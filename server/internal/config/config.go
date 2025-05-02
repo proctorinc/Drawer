@@ -1,0 +1,46 @@
+package config
+
+import (
+	"log"
+	"os"
+	"strings"
+
+	"github.com/joho/godotenv"
+)
+
+type Config struct {
+	Port           string
+	DatabaseURL    string
+	UploadDir      string
+	AllowedOrigins []string
+}
+
+func LoadConfig() *Config {
+	// Load environment variables from .env file
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using environment variables")
+	}
+
+	return &Config{
+		Port:           getEnv("PORT", "8080"), // Default to 8080 if not set
+		DatabaseURL:    getEnv("DATABASE_URL", "postgres://user:password@localhost:5432/dbname"),
+		UploadDir:      getEnv("UPLOAD_DIR", "./uploads"),
+		AllowedOrigins: getEnvSlice("ALLOWED_ORIGINS", []string{"http://localhost:1234"}),
+	}
+}
+
+// Helper function to get environment variable with a default value
+func getEnv(key string, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
+	return defaultValue
+}
+
+// Helper function to get a slice of environment variables
+func getEnvSlice(key string, defaultValue []string) []string {
+	if value, exists := os.LookupEnv(key); exists {
+		return strings.Split(value, ",")
+	}
+	return defaultValue
+}

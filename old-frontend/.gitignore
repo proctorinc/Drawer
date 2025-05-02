@@ -1,0 +1,7 @@
+node_modules
+dist
+.cache
+.env
+server/tmp
+server/uploads
+server/uploads/*
