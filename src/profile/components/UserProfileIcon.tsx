@@ -14,7 +14,7 @@ export const UserProfileIcon:FC<Props> = ({ user, onClick, className }) => {
     }
 
     const name = getTwoCapitalLetters(user.name);
-    const { primary, secondary, text } = nameToColor(name);
+    const { primary } = nameToColor(name);
 
     return (
         <div

@@ -6,7 +6,7 @@ import { cn } from "@/utils";
 
 export const Toolbar = () => {
     const { dailyPrompt } = useDailyPrompt();
-    const { selectedColor, setSelectedColor, selectEraser, undo, canUndo, clearCanvas } = useDrawing();
+    const { selectedColor, setSelectedColor, selectEraser, undo, canUndo } = useDrawing();
 
     if (!dailyPrompt) {
         return <></>;

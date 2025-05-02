@@ -29,7 +29,7 @@ function App() {
       submitPrompt(imageBlob)
         .then(() => clearCanvas())
         .catch((error) => {
-          console.error("Failed to submit prompt:", error);
+          setError(error.message);
         });
     } else {
       console.error("Failed to download canvas");
