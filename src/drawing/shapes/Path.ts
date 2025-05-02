@@ -1,17 +1,14 @@
-// src/shapes/Path.ts
-
-import type { IShape, SerializedShape } from "./IShape";
 import type { Point } from "./Point";
 
 // Define the specific serialized format for Path
-export interface SerializedPath extends SerializedShape {
+export interface SerializedPath {
     type: 'path';
     points: Point[];
     color: string;
     lineWidth: number;
 }
 
-export class Path implements IShape {
+export class Path {
     readonly type = 'path';
     public points: Point[];
     public color: string;

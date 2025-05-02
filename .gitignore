@@ -3,3 +3,9 @@ node_modules
 dist
 dist-ssr
 *.local
+.cache
+server/.env
+.vscode/
+server/tmp/
+server/uploads/
+server/uploads/*
