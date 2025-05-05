@@ -10,7 +10,7 @@ import (
 func CorsMiddleware(cfg *config.Config) gin.HandlerFunc {
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowCredentials = true
-	corsConfig.AllowOrigins = cfg.AllowedOrigins
+	corsConfig.AllowOrigins = []string{cfg.AllowedOrigin}
 
 	return cors.New(corsConfig)
 }

@@ -9,11 +9,11 @@ import (
 )
 
 type Config struct {
-	Port           string
-	DatabaseURL    string
-	UploadDir      string
-	AllowedOrigins []string
-	Env            string
+	Port          string
+	DatabaseURL   string
+	UploadDir     string
+	AllowedOrigin string
+	Env           string
 }
 
 func LoadConfig() *Config {
@@ -23,11 +23,11 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		Port:           getEnv("PORT", "8080"), // Default to 8080 if not set
-		DatabaseURL:    getEnv("DATABASE_URL", "<no database url set>"),
-		UploadDir:      getEnv("UPLOAD_DIR", "./uploads"),
-		AllowedOrigins: getEnvSlice("ALLOWED_ORIGINS", []string{"http://localhost:1234", "http://localhost:3000"}),
-		Env:            getEnv("ENV", "development"),
+		Port:          getEnv("PORT", "8080"), // Default to 8080 if not set
+		DatabaseURL:   getEnv("DATABASE_URL", "<no database url set>"),
+		UploadDir:     getEnv("UPLOAD_DIR", "./uploads"),
+		AllowedOrigin: getEnv("ALLOWED_ORIGINS", "http://localhost:1234"),
+		Env:           getEnv("ENV", "development"),
 	}
 }
 
