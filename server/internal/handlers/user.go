@@ -136,7 +136,7 @@ func HandleLoginUser(c *gin.Context) {
 	}
 
 	// Set the user ID as an HTTP-only cookie
-	c.SetCookie("user_id", user.ID, 0, "/", "", true, true) // 0 means session cookie
+	c.SetCookie("user_id", user.ID, 0, "/", "localhost", true, true) // 0 means session cookie
 
 	// Prepare the response
 	response, err := prepareUserResponse(c, user)
@@ -147,4 +147,9 @@ func HandleLoginUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func HandleLogoutUser(c *gin.Context) {
+	c.SetCookie("user_id", "", -1, "/", "localhost", true, true)
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }

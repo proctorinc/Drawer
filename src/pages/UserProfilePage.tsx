@@ -1,14 +1,14 @@
 import SubmissionList from '@/profile/components/SubmissionList';
 import { useProfile } from '@/profile/UserProfileContext';
 import { LoadingPage } from './LoadingPage';
-import { faHome } from '@fortawesome/free-solid-svg-icons';
+import { faDoorOpen, faHome } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useNavigate } from '@tanstack/react-router';
 import { FriendList } from '@/profile/components/FriendList';
 import { FriendLinkShare } from '@/profile/components/FriendLinkShare';
 
 const UserProfilePage: React.FC = () => {
-    const { userProfile } = useProfile();
+    const { userProfile, logoutUser } = useProfile();
     const navigate = useNavigate();
 
     if (!userProfile) {
@@ -29,6 +29,15 @@ const UserProfilePage: React.FC = () => {
             <FriendLinkShare />
             <FriendList />
             <SubmissionList />
+
+            {/* <div className="flex justify-between items-center bg-white border border-gray-200 rounded-2xl w-full max-w-md p-4">
+                <div className="border-gray-200">
+                    <h3 className="text-lg font-bold">Account</h3>
+                </div>
+                <button onClick={() => logoutUser()} className="flex items-center gap-2 bg-gray-100 text-gray-700 cursor-pointer hover:bg-gray-200 hover:text-gray-900 hover:scale-110 transition-all duration-300 border border-gray-200 justify-center px-3 py-2 rounded-xl border-gray-200">
+                    <FontAwesomeIcon icon={faDoorOpen} /> Logout
+                </button>
+            </div> */}
         </div>
     );
 };

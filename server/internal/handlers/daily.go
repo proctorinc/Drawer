@@ -22,13 +22,20 @@ import (
 
 func HandleGetDaily(c *gin.Context) {
 	repo := middleware.GetDB(c)
-	todayStr := utils.GetFormattedDate(time.Now())
+	loc, err := time.LoadLocation("America/Los_Angeles") // Default to PST
+	if err != nil {
+		log.Printf("No daily prompt found for today")
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "There is no daily prompt for today."})
+		return
+	}
+	now := time.Now().In(loc)
+	todayStr := utils.GetFormattedDate(now)
 	userID := middleware.GetUserID(c)
 
 	// --- 1. Check if the user has already submitted for today in the DB ---
 	checkQuery := `SELECT EXISTS(SELECT 1 FROM user_submissions WHERE user_id = $1 AND day = $2)`
 	var alreadySubmittedToday bool
-	err := repo.QueryRowContext(c, checkQuery, userID, todayStr).Scan(&alreadySubmittedToday)
+	err = repo.QueryRowContext(c, checkQuery, userID, todayStr).Scan(&alreadySubmittedToday)
 	if err != nil {
 		log.Printf("Error checking existing submission for user %s, day %s: %v", userID, todayStr, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error checking submission status"})
@@ -38,7 +45,7 @@ func HandleGetDaily(c *gin.Context) {
 	prompt, err := db.GetDailyPromptFromDB(repo, c.Request.Context(), todayStr)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			log.Printf("No daily prompt found for %s", todayStr)
+			log.Printf("No daily prompt found for today")
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "There is no daily prompt for today."})
 			return
 		} else {

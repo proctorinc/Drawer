@@ -6,6 +6,7 @@ type UserProfileContextType = {
     userProfile: GetMeResponse | null;
     createUserProfile: (name: string, email: string) => Promise<void>;
     loginUserProfile: (email: string) => Promise<void>;
+    logoutUser: () => Promise<void>;
     reloadUser: () => Promise<void>;
 }
 
@@ -28,15 +29,17 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         return fetchUserProfile()
             .then((profile) => {
-                console.log("Successful login!!")
-                setUserProfile(profile);
-                if (!pathname.startsWith('/login') && !pathname.startsWith('/create-profile')) {
-                    if (from) {
-                        console.log("Navigating to: ", from)
-                    } else {
-                        console.log("Navigating to: ", '/')
+                if (profile !== null) {
+                    console.log("Successful login!!")
+                    setUserProfile(profile);
+                    if (pathname.startsWith('/login') || pathname.startsWith('/create-profile')) {
+                        if (from) {
+                            console.log("Navigating to: ", from)
+                        } else {
+                            console.log("Navigating to: ", '/')
+                        }
+                        navigate({ to: from || '/' });
                     }
-                    navigate({ to: from || '/' });
                 }
             })
             .catch((error) => {
@@ -68,6 +71,14 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         });
     }
 
+    const logoutUser = async () => {
+        logoutUser()
+            .then(() => {
+                setUserProfile(null);
+                navigate({ to: "/login" });
+            });
+    }
+
     useEffect(() => {
         loadUserProfile();
     }, []);
@@ -76,6 +87,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         userProfile,
         createUserProfile,
         loginUserProfile,
+        logoutUser,
         reloadUser: loadUserProfile
     }
 
