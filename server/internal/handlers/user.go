@@ -6,6 +6,7 @@ import (
 	"drawer-service-backend/internal/middleware"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -135,8 +136,17 @@ func HandleLoginUser(c *gin.Context) {
 		return
 	}
 
-	// Set the user ID as an HTTP-only cookie
-	c.SetCookie("user_id", user.ID, 0, "/", "localhost", true, true) // 0 means session cookie
+	cookie := &http.Cookie{
+		Name:     "user_id",
+		Value:    user.ID,
+		Expires:  time.Now().Add(8760 * time.Hour), // 1 year
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	http.SetCookie(c.Writer, cookie)
 
 	// Prepare the response
 	response, err := prepareUserResponse(c, user)
@@ -150,6 +160,16 @@ func HandleLoginUser(c *gin.Context) {
 }
 
 func HandleLogoutUser(c *gin.Context) {
-	c.SetCookie("user_id", "", -1, "/", "localhost", true, true)
+	cookie := &http.Cookie{
+		Name:     "user_id",
+		Value:    "",
+		Expires:  time.Now().Add(-1), // Expires now
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	http.SetCookie(c.Writer, cookie)
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }

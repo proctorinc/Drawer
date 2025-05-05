@@ -1,17 +1,16 @@
 package middleware
 
 import (
+	"drawer-service-backend/internal/config"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func CorsMiddleware() gin.HandlerFunc {
+func CorsMiddleware(cfg *config.Config) gin.HandlerFunc {
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowCredentials = true
-	corsConfig.AllowOrigins = []string{
-		"http://localhost:1234",
-		"http://localhost:3000",
-	}
+	corsConfig.AllowOrigins = cfg.AllowedOrigins
 
 	return cors.New(corsConfig)
 }

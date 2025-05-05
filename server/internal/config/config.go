@@ -24,9 +24,9 @@ func LoadConfig() *Config {
 
 	return &Config{
 		Port:           getEnv("PORT", "8080"), // Default to 8080 if not set
-		DatabaseURL:    getEnv("DATABASE_URL", "postgres://user:password@localhost:5432/dbname"),
+		DatabaseURL:    getEnv("DATABASE_URL", "<no database url set>"),
 		UploadDir:      getEnv("UPLOAD_DIR", "./uploads"),
-		AllowedOrigins: getEnvSlice("ALLOWED_ORIGINS", []string{"http://localhost:1234"}),
+		AllowedOrigins: getEnvSlice("ALLOWED_ORIGINS", []string{"http://localhost:1234", "http://localhost:3000"}),
 		Env:            getEnv("ENV", "development"),
 	}
 }
