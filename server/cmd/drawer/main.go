@@ -20,7 +20,7 @@ func main() {
 
 	if cfg.Env == "production" {
 		if err := db.InitializeSchema(repo); err != nil {
-			log.Fatalf("failed to initialize database schema: %w", err)
+			log.Fatalf("failed to initialize database schema: %v", err)
 		}
 	}
 
