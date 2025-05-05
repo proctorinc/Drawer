@@ -18,11 +18,11 @@ func main() {
 		log.Fatalf("CRITICAL: Database initialization failed: %v", err)
 	}
 
-	if cfg.Env == "production" {
-		if err := db.InitializeSchema(repo); err != nil {
-			log.Fatalf("failed to initialize database schema: %v", err)
-		}
-	}
+	// if cfg.Env == "production" {
+	// 	if err := db.InitializeSchema(repo); err != nil {
+	// 		log.Fatalf("failed to initialize database schema: %v", err)
+	// 	}
+	// }
 
 	// Defer closing the database connection pool on application exit
 	defer func() {
