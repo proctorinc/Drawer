@@ -18,6 +18,12 @@ func main() {
 		log.Fatalf("CRITICAL: Database initialization failed: %v", err)
 	}
 
+	if cfg.Env == "production" {
+		if err := db.InitializeSchema(repo); err != nil {
+			log.Fatalf("failed to initialize database schema: %w", err)
+		}
+	}
+
 	// Defer closing the database connection pool on application exit
 	defer func() {
 		if err := repo.Close(); err != nil {
@@ -32,6 +38,12 @@ func main() {
 		log.Fatalf("CRITICAL: Failed to create base upload directory '%s': %v", cfg.UploadDir, err)
 	}
 	log.Printf("Upload directory set to: %s", cfg.UploadDir)
+
+	if cfg.Env == "development" {
+		log.Println("Running in development mode")
+	} else {
+		log.Println("Running in production mode")
+	}
 
 	// --- Gin Router Setup ---
 	router := routes.InitRouter(cfg, repo)

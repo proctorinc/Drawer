@@ -1,5 +1,3 @@
-// create a Dockerfile for the server
-
 # Use the official Golang image as a build stage
 FROM golang:1.20 AS builder
 

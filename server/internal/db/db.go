@@ -46,14 +46,10 @@ func InitDB() (*sql.DB, error) {
 
 	log.Println("Database connection pool established successfully.")
 
-	// if err := initializeSchema(db); err != nil {
-	// 	return nil, fmt.Errorf("failed to initialize database schema: %w", err)
-	// }
-
 	return db, nil
 }
 
-func initializeSchema(db *sql.DB) error {
+func InitializeSchema(db *sql.DB) error {
 	schemaFile := "schema.sql" // Path to your schema file
 
 	// Read the schema file

@@ -13,6 +13,7 @@ type Config struct {
 	DatabaseURL    string
 	UploadDir      string
 	AllowedOrigins []string
+	Env            string
 }
 
 func LoadConfig() *Config {
@@ -26,6 +27,7 @@ func LoadConfig() *Config {
 		DatabaseURL:    getEnv("DATABASE_URL", "postgres://user:password@localhost:5432/dbname"),
 		UploadDir:      getEnv("UPLOAD_DIR", "./uploads"),
 		AllowedOrigins: getEnvSlice("ALLOWED_ORIGINS", []string{"http://localhost:1234"}),
+		Env:            getEnv("ENV", "development"),
 	}
 }
 

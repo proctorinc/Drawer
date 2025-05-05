@@ -1,14 +1,14 @@
 import SubmissionList from '@/profile/components/SubmissionList';
 import { useProfile } from '@/profile/UserProfileContext';
 import { LoadingPage } from './LoadingPage';
-import { faDoorOpen, faHome } from '@fortawesome/free-solid-svg-icons';
+import { faHome } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useNavigate } from '@tanstack/react-router';
 import { FriendList } from '@/profile/components/FriendList';
 import { FriendLinkShare } from '@/profile/components/FriendLinkShare';
 
 const UserProfilePage: React.FC = () => {
-    const { userProfile, logoutUser } = useProfile();
+    const { userProfile } = useProfile();
     const navigate = useNavigate();
 
     if (!userProfile) {
