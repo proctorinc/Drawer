@@ -15,8 +15,13 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 	router.Use(middleware.CorsMiddleware(cfg))
 	router.Use(middleware.ContextMiddleware(cfg, repo))
 
-	// --- API Routes ---
-	router.Static("/app", "./frontend")
+	if cfg.Env == "production" {
+		frontendGroup := router.Group("/app")
+		frontendGroup.Static("/app", "./frontend")
+		frontendGroup.GET("/*filepath", func(c *gin.Context) {
+			c.File("./frontend/index.html")
+		})
+	}
 	serverGroup := router.Group("/api/v1")
 	serverGroup.POST("/register", handlers.HandleCreateUser)
 	serverGroup.POST("/login", handlers.HandleLoginUser)

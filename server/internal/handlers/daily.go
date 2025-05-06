@@ -30,6 +30,7 @@ func HandleGetDaily(c *gin.Context) {
 	}
 	now := time.Now().In(loc)
 	todayStr := utils.GetFormattedDate(now)
+	log.Println("today:", todayStr)
 	userID := middleware.GetUserID(c)
 
 	// --- 1. Check if the user has already submitted for today in the DB ---
