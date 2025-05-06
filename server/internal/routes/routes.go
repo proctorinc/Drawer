@@ -16,7 +16,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 	router.Use(middleware.ContextMiddleware(cfg, repo))
 
 	// --- API Routes ---
-	router.Static("/", "./frontend")
+	router.Static("/app", "./frontend")
 	serverGroup := router.Group("/server")
 	serverGroup.POST("/register", handlers.HandleCreateUser)
 	serverGroup.POST("/login", handlers.HandleLoginUser)
