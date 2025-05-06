@@ -19,16 +19,13 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 	router.Use(middleware.ContextMiddleware(cfg, repo))
 
 	if cfg.Env == "production" {
-		// router.Static("/", "./frontend")
 		router.NoRoute(func(c *gin.Context) {
 			requestedPath := c.Request.URL.Path
 			staticFilePath := filepath.Join("./frontend", requestedPath)
 
-			// Check if the requested path corresponds to an actual file in the 'dist' directory
 			if _, err := os.Stat(staticFilePath); err == nil {
-				// If the file exists, serve it
 				c.File(staticFilePath)
-				return // Stop processing here, the file has been served
+				return
 			}
 
 			// If the request path doesn't match any route and isn't a static file, return a 404

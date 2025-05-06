@@ -29,17 +29,15 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
         return fetchUserProfile()
             .then((profile) => {
-                if (profile !== null) {
-                    console.log("Successful login!!")
-                    setUserProfile(profile);
-                    if (pathname.startsWith('/login') || pathname.startsWith('/create-profile')) {
-                        if (from) {
-                            console.log("Navigating to: ", from)
-                        } else {
-                            console.log("Navigating to: ", '/')
-                        }
-                        navigate({ to: from || '/app' });
+                console.log("Successful login!!")
+                setUserProfile(profile);
+                if (pathname.startsWith('/login') || pathname.startsWith('/create-profile')) {
+                    if (from) {
+                        console.log("Navigating to: ", from)
+                    } else {
+                        console.log("Navigating to: ", '/')
                     }
+                    navigate({ to: from || '/app' });
                 }
             })
             .catch((error) => {
