@@ -17,12 +17,13 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 
 	// --- API Routes ---
 	router.Static("/", "./frontend")
-	router.POST("/register", handlers.HandleCreateUser)
-	router.POST("/login", handlers.HandleLoginUser)
-	log.Printf("Serving static files from '%s' at route '/uploads'", cfg.UploadDir)
+	serverGroup := router.Group("/server")
+	serverGroup.POST("/register", handlers.HandleCreateUser)
+	serverGroup.POST("/login", handlers.HandleLoginUser)
+	log.Printf("Serving static files from '%s' at route 'server/uploads'", cfg.UploadDir)
 
 	// Authenticated group
-	authGroup := router.Group("/")
+	authGroup := serverGroup.Group("/")
 	authGroup.Use(middleware.AuthMiddleware(repo))
 	{
 		authGroup.POST("/logout", handlers.HandleLogoutUser)
