@@ -6,6 +6,9 @@ import (
 	"drawer-service-backend/internal/handlers"
 	"drawer-service-backend/internal/middleware"
 	"log"
+	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,8 +19,22 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 	router.Use(middleware.ContextMiddleware(cfg, repo))
 
 	if cfg.Env == "production" {
+		// router.Static("/", "./frontend")
+		router.NoRoute(func(c *gin.Context) {
+			requestedPath := c.Request.URL.Path
+			staticFilePath := filepath.Join("./frontend", requestedPath)
+
+			// Check if the requested path corresponds to an actual file in the 'dist' directory
+			if _, err := os.Stat(staticFilePath); err == nil {
+				// If the file exists, serve it
+				c.File(staticFilePath)
+				return // Stop processing here, the file has been served
+			}
+
+			// If the request path doesn't match any route and isn't a static file, return a 404
+			c.Status(http.StatusNotFound)
+		})
 		frontendGroup := router.Group("/app")
-		frontendGroup.Static("/app", "./frontend")
 		frontendGroup.GET("/*filepath", func(c *gin.Context) {
 			c.File("./frontend/index.html")
 		})
