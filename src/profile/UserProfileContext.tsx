@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useLocation, useNavigate } from '@tanstack/react-router'; // Import useNavigate from TanStack Router
-import { createUser, loginUser, fetchUserProfile, type GetMeResponse } from "@/api/Api"// Adjust the path as needed
+import { useLocation, useNavigate } from '@tanstack/react-router';
+import { createUser, loginUser, fetchUserProfile, type GetMeResponse } from "@/api/Api"
 
 type UserProfileContextType = {
     userProfile: GetMeResponse | null;

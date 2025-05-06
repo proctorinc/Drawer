@@ -19,24 +19,23 @@ import { DailyPromptProvider } from './daily/DailyPromptContext.tsx'
 import { DrawingProvider } from './drawing/DrawingContext.tsx'
 import AddFriendPage from './pages/AddFriendPage.tsx'
 import LoginPage from './pages/LoginPage.tsx'
+import { LoggingProvider } from './lib/posthog.tsx'
 
 const rootRoute = createRootRoute({
-  component: () => (
-    <Outlet />
-  ),
+  component: () => <Outlet />,
 })
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   component: () => (
-      <UserProfileProvider>
-        <DailyPromptProvider>
-          <DrawingProvider>
-            <App />
-          </DrawingProvider>
-        </DailyPromptProvider>
-      </UserProfileProvider>
+    <UserProfileProvider>
+      <DailyPromptProvider>
+        <DrawingProvider>
+          <App />
+        </DrawingProvider>
+      </DailyPromptProvider>
+    </UserProfileProvider>
   ),
 })
 
@@ -45,7 +44,7 @@ const userProfileRoute = createRoute({
   path: '/user-profile',
   component: () => (
     <UserProfileProvider>
-        <UserProfilePage />
+      <UserProfilePage />
     </UserProfileProvider>
   ),
 })
@@ -57,7 +56,7 @@ const createProfileRoute = createRoute({
     <UserProfileProvider>
       <CreateProfilePage />
     </UserProfileProvider>
-  )
+  ),
 })
 
 const loginRoute = createRoute({
@@ -67,7 +66,7 @@ const loginRoute = createRoute({
     <UserProfileProvider>
       <LoginPage />
     </UserProfileProvider>
-  )
+  ),
 })
 
 const addFriendRoute = createRoute({
@@ -108,7 +107,9 @@ if (rootElement && !rootElement.innerHTML) {
   const root = ReactDOM.createRoot(rootElement)
   root.render(
     <StrictMode>
-      <RouterProvider router={router} />
+      <LoggingProvider>
+        <RouterProvider router={router} />
+      </LoggingProvider>
     </StrictMode>,
   )
 }

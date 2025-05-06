@@ -9,3 +9,4 @@ server/.env
 server/tmp/
 server/uploads/
 server/uploads/*
+.cursor

@@ -18,6 +18,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 	// --- API Routes ---
 	router.POST("/register", handlers.HandleCreateUser)
 	router.POST("/login", handlers.HandleLoginUser)
+	router.Static("/frontend", "./frontend")
 	log.Printf("Serving static files from '%s' at route '/uploads'", cfg.UploadDir)
 
 	// Authenticated group

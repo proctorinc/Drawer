@@ -1,7 +1,7 @@
-import { Config } from '@/config/Config';
-import { useProfile } from '../UserProfileContext'; // Adjust the path as needed
 import type { UserPromptSubmission } from '@/api/Api';
+import { useProfile } from '../UserProfileContext';
 import { UserProfileIcon } from './UserProfileIcon';
+import { Config } from '@/config/Config';
 
 export const SubmissionFeedList: React.FC = () => {
     const { userProfile } = useProfile();
