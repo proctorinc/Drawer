@@ -22,7 +22,7 @@ const UserProfilePage: React.FC = () => {
                     <h1 className="text-2xl text-gray-900 dark:text-gray-100">{userProfile.user.name}</h1>
                     <p className="text-sm text-gray-700 dark:text-gray-500">My Profile</p>
                 </div>
-                <div onClick={() => navigate({ to: '/' })} className="w-12 h-12 cursor-pointer hover:scale-110 transition-all duration-300 rounded-xl bg-gray-700 text-gray-300 hover:bg-gray-500 hover:text-gray-900 font-semibold flex items-center justify-center">
+                <div onClick={() => navigate({ to: '/app' })} className="w-12 h-12 cursor-pointer hover:scale-110 transition-all duration-300 rounded-xl bg-gray-700 text-gray-300 hover:bg-gray-500 hover:text-gray-900 font-semibold flex items-center justify-center">
                     <FontAwesomeIcon icon={faHome} />
                 </div>
             </div>

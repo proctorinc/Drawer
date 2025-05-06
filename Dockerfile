@@ -59,7 +59,7 @@ COPY --from=backend-builder /app/server/drawer-service .
 # Copy the built frontend files from the frontend builder stage
 # Source: /app/dist (assuming your frontend build outputs here) in the frontend-builder image
 # Destination: ./frontend (which is /root/frontend/) in the current image
-COPY --from=frontend-builder /app/frontend/ ./frontend
+COPY --from=frontend-builder /app/frontend/dist ./frontend
 
 # Expose the port that the backend will run on
 EXPOSE 8080

@@ -3,7 +3,7 @@ import { useParams } from '@tanstack/react-router';
 import { addFriend } from '@/api/Api';
 
 const AddFriendPage: React.FC = () => {
-    const { userId } = useParams({ from: "/add-friend/$userId"});
+    const { userId } = useParams({ from: "/app/add-friend/$userId"});
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 

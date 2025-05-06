@@ -27,7 +27,7 @@ const rootRoute = createRootRoute({
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
+  path: '/app',
   component: () => (
     <UserProfileProvider>
       <DailyPromptProvider>
@@ -41,7 +41,7 @@ const indexRoute = createRoute({
 
 const userProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/user-profile',
+  path: '/app/user-profile',
   component: () => (
     <UserProfileProvider>
       <UserProfilePage />
@@ -51,7 +51,7 @@ const userProfileRoute = createRoute({
 
 const createProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/create-profile',
+  path: '/app/create-profile',
   component: () => (
     <UserProfileProvider>
       <CreateProfilePage />
@@ -61,7 +61,7 @@ const createProfileRoute = createRoute({
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/login',
+  path: '/app/login',
   component: () => (
     <UserProfileProvider>
       <LoginPage />
@@ -71,7 +71,7 @@ const loginRoute = createRoute({
 
 const addFriendRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/add-friend/$userId',
+  path: '/app/add-friend/$userId',
   component: () => (
     <UserProfileProvider>
       <AddFriendPage />

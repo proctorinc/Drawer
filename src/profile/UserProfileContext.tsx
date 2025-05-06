@@ -38,13 +38,13 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
                         } else {
                             console.log("Navigating to: ", '/')
                         }
-                        navigate({ to: from || '/' });
+                        navigate({ to: from || '/app' });
                     }
                 }
             })
             .catch((error) => {
                 if (!pathname.startsWith('/login') && !pathname.startsWith('/create-profile')) {
-                    navigate({ to: '/create-profile', search: {
+                    navigate({ to: '/app/create-profile', search: {
                         from: pathname
                     } });
                 }
@@ -56,7 +56,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         return await createUser(name, email)
         .then((profile) => {
             setUserProfile(profile);
-            navigate({ to: '/' });
+            navigate({ to: '/app' });
         }).catch(() => {
             throw new Error("Email and Username must be unique");
         });
@@ -65,7 +65,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const loginUserProfile = async (email: string) => {
         return loginUser(email).then((profile) => {
             setUserProfile(profile);
-            navigate({ to: '/' });
+            navigate({ to: '/app' });
         }).catch(() => {
             throw new Error("Invalid login");
         });
@@ -75,7 +75,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         logoutUser()
             .then(() => {
                 setUserProfile(null);
-                navigate({ to: "/login" });
+                navigate({ to: "/app/login" });
             });
     }
 

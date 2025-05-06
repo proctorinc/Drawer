@@ -70,7 +70,7 @@ const CreateProfilePage: React.FC = () => {
                     <p className="text-sm">
                         Already have an account?{" "}
                         <Link
-                            to="/login"
+                            to="/app/login"
                             search={(currentSearch) => ({
                                 ...currentSearch,
                             })}

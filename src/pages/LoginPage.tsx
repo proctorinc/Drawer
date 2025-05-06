@@ -55,7 +55,7 @@ const LoginPage: React.FC = () => {
                     <p className="text-sm">
                         Don't have an account?{" "}
                         <Link
-                            to="/create-profile"
+                            to="/app/create-profile"
                             search={(currentSearch) => ({
                                 ...currentSearch,
                             })}
