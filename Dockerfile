@@ -45,7 +45,7 @@ RUN go build -o drawer-service ./cmd/drawer/main.go || exit 1
 FROM alpine:latest
 
 # Install necessary tools
-RUN apk add --no-cache file libc6-compat
+RUN apk update && apk add tzdata && apk add --no-cache file libc6-compat
 
 # Set the working directory for the final image
 # This is where the backend binary and frontend files will reside

@@ -25,7 +25,7 @@ func HandleGetDaily(c *gin.Context) {
 	loc, err := time.LoadLocation("America/Los_Angeles") // Default to PST
 	if err != nil {
 		log.Printf("No daily prompt found for today")
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "There is no daily prompt for today."})
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Failed to load timezone"})
 		return
 	}
 	now := time.Now().In(loc)
@@ -71,7 +71,14 @@ func HandleGetDaily(c *gin.Context) {
 
 func HandlePostDaily(c *gin.Context) {
 	userID := middleware.GetUserID(c)
-	todayStr := utils.GetFormattedDate(time.Now())
+	loc, err := time.LoadLocation("America/Los_Angeles")
+	if err != nil {
+		log.Printf("No daily prompt found for today")
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Failed to load timezone"})
+		return
+	}
+	now := time.Now().In(loc)
+	todayStr := utils.GetFormattedDate(now)
 	repo := middleware.GetDB(c)
 	config := middleware.GetConfig(c)
 	ctx := c.Request.Context() // Use request context for DB operations
@@ -79,7 +86,7 @@ func HandlePostDaily(c *gin.Context) {
 	// --- 1. Check if the user has already submitted for today in the DB ---
 	checkQuery := `SELECT EXISTS(SELECT 1 FROM user_submissions WHERE user_id = $1 AND day = $2)`
 	var alreadySubmittedToday bool
-	err := repo.QueryRowContext(ctx, checkQuery, userID, todayStr).Scan(&alreadySubmittedToday)
+	err = repo.QueryRowContext(ctx, checkQuery, userID, todayStr).Scan(&alreadySubmittedToday)
 	if err != nil {
 		log.Printf("Error checking existing submission for user %s, day %s: %v", userID, todayStr, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error checking submission status"})
