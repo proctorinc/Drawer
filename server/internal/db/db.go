@@ -3,37 +3,24 @@ package db
 import (
 	"context"
 	"database/sql"
+	"drawer-service-backend/internal/config"
 	"fmt"
 	"log"
 	"os"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
-func InitDB() (*sql.DB, error) {
-	var db *sql.DB
-	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
-	}
+func InitDB(cfg *config.Config) (*sql.DB, error) {
+	db, err := sql.Open("postgres", cfg.DatabaseURL)
 
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		// Provide a default DSN for local development if needed, but env var is better.
-		// Example DSN: "postgres://user:password@host:port/dbname?sslmode=disable"
-		log.Println("WARNING: DATABASE_URL environment variable not set. Using default local DSN.")
-	}
-
-	var err error
-	db, err = sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 
 	// Set connection pool parameters (adjust as needed)
-	db.SetMaxOpenConns(25)
+	db.SetMaxOpenConns(75)
 	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetConnMaxLifetime(120)
 
 	// Verify the connection is working
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

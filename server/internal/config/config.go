@@ -3,7 +3,6 @@ package config
 import (
 	"log"
 	"os"
-	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -17,7 +16,6 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
-	// Load environment variables from .env file
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
@@ -35,14 +33,6 @@ func LoadConfig() *Config {
 func getEnv(key string, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists {
 		return value
-	}
-	return defaultValue
-}
-
-// Helper function to get a slice of environment variables
-func getEnvSlice(key string, defaultValue []string) []string {
-	if value, exists := os.LookupEnv(key); exists {
-		return strings.Split(value, ",")
 	}
 	return defaultValue
 }

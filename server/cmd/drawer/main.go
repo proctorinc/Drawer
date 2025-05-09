@@ -12,7 +12,7 @@ import (
 
 func main() {
 	cfg := config.LoadConfig()
-	repo, err := db.InitDB()
+	repo, err := db.InitDB(cfg)
 
 	if err != nil {
 		log.Fatalf("CRITICAL: Database initialization failed: %v", err)

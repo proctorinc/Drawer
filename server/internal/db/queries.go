@@ -288,3 +288,16 @@ func GetUserByID(repo *sql.DB, ctx context.Context, userID string) (*User, error
 	}
 	return &user, nil
 }
+
+func CheckHasSubmittedForDay(repo *sql.DB, ctx context.Context, userID string, todayStr string) (bool, error) {
+	checkQuery := `SELECT EXISTS(SELECT 1 FROM user_submissions WHERE user_id = $1 AND day = $2)`
+	var hasSubmitted bool
+	err := repo.QueryRowContext(ctx, checkQuery, userID, todayStr).Scan(&hasSubmitted)
+
+	if err != nil {
+		log.Printf("Error getting user submission")
+		return false, err
+	}
+
+	return hasSubmitted, nil
+}

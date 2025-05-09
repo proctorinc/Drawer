@@ -26,10 +26,14 @@ func HandleGetDaily(c *gin.Context) {
 	todayStr := utils.GetFormattedDate(now)
 	userID := middleware.GetUserID(c)
 
-	// --- 1. Check if the user has already submitted for today in the DB ---
-	checkQuery := `SELECT EXISTS(SELECT 1 FROM user_submissions WHERE user_id = $1 AND day = $2)`
-	var alreadySubmittedToday bool
-	err := repo.QueryRowContext(c, checkQuery, userID, todayStr).Scan(&alreadySubmittedToday)
+	if repo == nil {
+		log.Println("Database connection is nil")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+		return
+	}
+
+	alreadySubmittedToday, err := db.CheckHasSubmittedForDay(repo, c.Request.Context(), userID, todayStr)
+
 	if err != nil {
 		log.Printf("Error checking existing submission for user %s, day %s: %v", userID, todayStr, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error checking submission status"})
@@ -70,10 +74,8 @@ func HandlePostDaily(c *gin.Context) {
 	config := middleware.GetConfig(c)
 	ctx := c.Request.Context() // Use request context for DB operations
 
-	// --- 1. Check if the user has already submitted for today in the DB ---
-	checkQuery := `SELECT EXISTS(SELECT 1 FROM user_submissions WHERE user_id = $1 AND day = $2)`
-	var alreadySubmittedToday bool
-	err := repo.QueryRowContext(ctx, checkQuery, userID, todayStr).Scan(&alreadySubmittedToday)
+	alreadySubmittedToday, err := db.CheckHasSubmittedForDay(repo, c.Request.Context(), userID, todayStr)
+
 	if err != nil {
 		log.Printf("Error checking existing submission for user %s, day %s: %v", userID, todayStr, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error checking submission status"})
@@ -81,12 +83,11 @@ func HandlePostDaily(c *gin.Context) {
 	}
 
 	if alreadySubmittedToday {
-		log.Printf("Submission rejected: User %s already submitted for %s", userID, todayStr)
-		c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": fmt.Sprintf("You have already submitted an image for today (%s)", todayStr)})
+		log.Printf("Additional submit attempt for user %s, day %s: %v", userID, todayStr, err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "You have already submitted a drawing today"})
 		return
 	}
 
-	// --- 2. Get the uploaded file from the form data ---
 	fileHeader, err := c.FormFile("image")
 	if err != nil {
 		log.Printf("Error getting form file 'image': %v", err)
@@ -94,14 +95,12 @@ func HandlePostDaily(c *gin.Context) {
 		return
 	}
 
-	// --- 3. Validate file type (ensure it's PNG) ---
 	if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".png") {
 		log.Printf("Invalid file type uploaded by %s: %s", userID, fileHeader.Filename)
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid file type. Only PNG files (.png) are allowed."})
 		return
 	}
 
-	// --- 4. Prepare the save path and filename ---
 	userUploadDir := filepath.Join(config.UploadDir, userID)
 	if err := os.MkdirAll(userUploadDir, os.ModePerm); err != nil {
 		log.Printf("CRITICAL: Error creating upload directory '%s': %v", userUploadDir, err)
@@ -112,7 +111,6 @@ func HandlePostDaily(c *gin.Context) {
 	filePath := filepath.Join(userUploadDir, filename)
 	imageURL := fmt.Sprintf("/uploads/%s/%s", userID, filename) // Relative URL path
 
-	// --- 5. Save the uploaded file to disk ---
 	srcFile, err := fileHeader.Open()
 	if err != nil {
 		log.Printf("Error opening uploaded file header for user %s: %v", userID, err)
@@ -132,12 +130,11 @@ func HandlePostDaily(c *gin.Context) {
 	_, err = io.Copy(dstFile, srcFile)
 	if err != nil {
 		log.Printf("CRITICAL: Error copying file content to '%s': %v", filePath, err)
-		_ = os.Remove(filePath) // Attempt cleanup
+		_ = os.Remove(filePath)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error: Failed to write file content."})
 		return
 	}
 
-	// --- 6. Record the successful submission in the database ---
 	insertSQL := `
         INSERT INTO user_submissions (user_id, day, file_path)
         VALUES ($1, $2, $3)
