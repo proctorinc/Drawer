@@ -277,19 +277,19 @@ func GetUserFriendsFromDB(repo *sql.DB, ctx context.Context, userID string) ([]U
 	return friends, nil
 }
 
-func CreateUser(repo *sql.DB, ctx context.Context, name string, email string) (string, error) {
-	var userID string
+func CreateUser(repo *sql.DB, ctx context.Context, name string, email string) (*User, error) {
+	var user User
 	insertSQL := `
         INSERT INTO users (id, name, email)
         VALUES (lower(hex(randomblob(16))), ?, ?)
-        RETURNING id
+        RETURNING id, name, email
     `
-	err := repo.QueryRowContext(ctx, insertSQL, name, email).Scan(&userID)
+	err := repo.QueryRowContext(ctx, insertSQL, name, email).Scan(&user.ID, &user.Name, &user.Email)
 	if err != nil {
 		log.Printf("Error inserting user: %v", err)
-		return "", err
+		return nil, err
 	}
-	return userID, nil
+	return &user, nil
 }
 
 func GetUserByEmail(repo *sql.DB, ctx context.Context, email string) (*User, error) {

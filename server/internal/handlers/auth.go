@@ -1,10 +1,9 @@
 package handlers
 
 import (
-	"database/sql"
-	"errors"
 	"log"
 	"net/http"
+	"time"
 
 	"drawer-service-backend/internal/db"
 	"drawer-service-backend/internal/email"
@@ -54,18 +53,9 @@ func HandleLogin(c *gin.Context) {
 	// Get or create user
 	user, err := db.GetUserByEmail(repo, c.Request.Context(), loginReq.Email)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			// Create new user
-			userID, err := db.CreateUser(repo, c.Request.Context(), "", loginReq.Email)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
-				return
-			}
-			user = &db.User{ID: userID, Email: loginReq.Email}
-		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
-			return
-		}
+		log.Printf("Error logging in: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to login. Invalid email"})
+		return
 	}
 
 	// Create verification token
@@ -86,4 +76,62 @@ func HandleLogin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Verification email sent",
 	})
+}
+
+func HandleRegister(c *gin.Context) {
+	var registerReq struct {
+		Username string `json:"name" binding:"required,name"`
+		Email    string `json:"email" binding:"required,email"`
+	}
+
+	if err := c.ShouldBindJSON(&registerReq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	// Get database connection from context
+	repo := middleware.GetDB(c)
+	ctx := c.Request.Context()
+
+	// Get or create user
+	user, err := db.CreateUser(repo, ctx, registerReq.Username, registerReq.Email)
+	if err != nil {
+		log.Printf("Error creating user: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		return
+	}
+
+	// Create verification token
+	token, err := db.CreateVerificationToken(repo, c.Request.Context(), user.ID, user.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create verification token"})
+		return
+	}
+
+	// Send verification email
+	cfg := middleware.GetConfig(c)
+	if err := email.SendVerificationEmail(cfg, user.Email, token); err != nil {
+		log.Printf("Failed to send verification email: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Verification email sent",
+	})
+}
+
+func HandleLogout(c *gin.Context) {
+	cookie := &http.Cookie{
+		Name:     "user_id",
+		Value:    "",
+		Expires:  time.Now().Add(-1), // Expires now
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	http.SetCookie(c.Writer, cookie)
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }

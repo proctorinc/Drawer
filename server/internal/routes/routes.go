@@ -37,15 +37,15 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 		})
 	}
 	serverGroup := router.Group("/api/v1")
-	serverGroup.POST("/register", handlers.HandleCreateUser)
-	serverGroup.POST("/login", handlers.HandleLoginUser)
+	serverGroup.POST("/register", handlers.HandleRegister)
+	serverGroup.POST("/login", handlers.HandleLogin)
 	log.Printf("Serving static files from '%s' at route 'server/uploads'", cfg.UploadDir)
 
 	// Authenticated group
 	authGroup := serverGroup.Group("/")
 	authGroup.Use(middleware.AuthMiddleware(repo))
 	{
-		authGroup.POST("/logout", handlers.HandleLogoutUser)
+		authGroup.POST("/logout", handlers.HandleLogout)
 		authGroup.POST("/add-friend/:friendID", handlers.HandleAddFriend)
 		authGroup.GET("/daily", handlers.HandleGetDaily)
 		authGroup.POST("/daily", handlers.HandlePostDaily)

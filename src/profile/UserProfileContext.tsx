@@ -1,12 +1,12 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from '@tanstack/react-router';
-import { createUser, loginUser, fetchUserProfile, type GetMeResponse } from "@/api/Api"
+import { createUser, loginUser, logoutUser, fetchUserProfile, type GetMeResponse } from "@/api/Api"
 
 type UserProfileContextType = {
     userProfile: GetMeResponse | null;
     createUserProfile: (name: string, email: string) => Promise<void>;
     loginUserProfile: (email: string) => Promise<void>;
-    logoutUser: () => Promise<void>;
+    logout: () => Promise<void>;
     reloadUser: () => Promise<void>;
 }
 
@@ -69,7 +69,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         });
     }
 
-    const logoutUser = async () => {
+    const logout = async () => {
         logoutUser()
             .then(() => {
                 setUserProfile(null);
@@ -85,7 +85,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         userProfile,
         createUserProfile,
         loginUserProfile,
-        logoutUser,
+        logout,
         reloadUser: loadUserProfile
     }
 

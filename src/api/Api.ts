@@ -92,6 +92,16 @@ export async function loginUser(email: string): Promise<GetMeResponse> {
     return await response.json() as Promise<GetMeResponse>;
 }
 
+export async function logoutUser(): Promise<{ message: string }> {
+    const response = await fetchAPI("POST", "/logout");
+
+    if (!response.ok) {
+        throw new Error(`Error logging out: ${response.statusText}`);
+    }
+
+    return await response.json() as Promise<{ message: string }>;
+}
+
 export async function addFriend(friendID: string): Promise<void> {
     const response = await fetchAPI("POST", "/add-friend", {
         body: JSON.stringify({ friendID }),

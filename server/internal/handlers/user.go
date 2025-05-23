@@ -2,11 +2,9 @@ package handlers
 
 import (
 	"database/sql"
-	"drawer-service-backend/internal/db"
 	"drawer-service-backend/internal/middleware"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -66,110 +64,4 @@ func HandleAddFriend(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Friend added successfully"})
-}
-
-func HandleCreateUser(c *gin.Context) {
-	var body struct {
-		Name  string `json:"name" binding:"required"`
-		Email string `json:"email" binding:"required,email"`
-	}
-
-	// Bind the JSON body to the struct
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-
-	// Create the user in the database
-	repo := middleware.GetDB(c)
-	ctx := c.Request.Context()
-
-	userID, err := db.CreateUser(repo, ctx, body.Name, body.Email)
-	if err != nil {
-		log.Printf("Error creating user: %v", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
-		return
-	}
-
-	// Set the user ID as an HTTP-only cookie
-	c.SetCookie("user_id", userID, 0, "/", "", true, true)
-
-	// Fetch the user object
-	user, err := db.GetUserByID(repo, ctx, userID) // Implement this function to get user by ID
-	if err != nil {
-		log.Printf("Error fetching user by ID %s: %v", userID, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
-		return
-	}
-
-	// Prepare the response
-	response, err := prepareUserResponse(c, user)
-	if err != nil {
-		log.Printf("Error preparing user response: %v", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare user response"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, response)
-}
-
-func HandleLoginUser(c *gin.Context) {
-	var body struct {
-		Email string `json:"email" binding:"required,email"`
-	}
-
-	// Bind the JSON body to the struct
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
-		return
-	}
-
-	// Get the database connection
-	repo := middleware.GetDB(c)
-	ctx := c.Request.Context()
-
-	// Find the user by email
-	user, err := db.GetUserByEmail(repo, ctx, body.Email) // Implement this function in your db package
-	if err != nil {
-		log.Printf("Error finding user by email %s: %v", body.Email, err)
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid email or password"})
-		return
-	}
-
-	cookie := &http.Cookie{
-		Name:     "user_id",
-		Value:    user.ID,
-		Expires:  time.Now().Add(8760 * time.Hour), // 1 year
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-	}
-
-	http.SetCookie(c.Writer, cookie)
-
-	// Prepare the response
-	response, err := prepareUserResponse(c, user)
-	if err != nil {
-		log.Printf("Error preparing user response: %v", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare user response"})
-		return
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
-func HandleLogoutUser(c *gin.Context) {
-	cookie := &http.Cookie{
-		Name:     "user_id",
-		Value:    "",
-		Expires:  time.Now().Add(-1), // Expires now
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-	}
-
-	http.SetCookie(c.Writer, cookie)
-	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }

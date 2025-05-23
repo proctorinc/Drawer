@@ -7,7 +7,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { FriendList } from '@/profile/components/FriendList';
 
 const UserProfilePage: React.FC = () => {
-    const { userProfile, logoutUser } = useProfile();
+    const { userProfile, logout } = useProfile();
     const navigate = useNavigate();
 
     if (!userProfile) {
@@ -31,7 +31,7 @@ const UserProfilePage: React.FC = () => {
                 <div className="border-gray-200">
                     <h3 className="text-lg font-bold">Account</h3>
                 </div>
-                <button onClick={() => logoutUser()} className="flex items-center gap-2 bg-gray-100 text-gray-700 cursor-pointer hover:bg-gray-200 hover:text-gray-900 hover:scale-110 transition-all duration-300 border border-gray-200 justify-center px-3 py-2 rounded-xl border-gray-200">
+                <button onClick={logout} className="flex items-center gap-2 bg-gray-100 text-gray-700 cursor-pointer hover:bg-gray-200 hover:text-gray-900 hover:scale-110 transition-all duration-300 border border-gray-200 justify-center px-3 py-2 rounded-xl border-gray-200">
                     <FontAwesomeIcon icon={faDoorOpen} /> Logout
                 </button>
             </div>

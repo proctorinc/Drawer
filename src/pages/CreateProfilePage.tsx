@@ -9,15 +9,34 @@ const CreateProfilePage: React.FC = () => {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [error, setError] = useState("");
+    const [isSubmitted, setIsSubmitted] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
-        createUserProfile(name, email).catch((error) => {
-            console.log(error.message)
+        try {
+            await createUserProfile(name, email);
+            setIsSubmitted(true);
+        } catch (error: any) {
+            console.log(error.message);
             setError(error.message);
-        });
+        }
     };
+
+    if (isSubmitted) {
+        return (
+            <div className="flex flex-col items-center p-4 gap-4 bg-gray-100 min-h-screen">
+                <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
+                    <div className="flex flex-col gap-4 bg-white border border-gray-300 rounded-2xl w-full max-w-md p-8 text-center">
+                        <h2 className="text-2xl font-bold text-gray-900">Check your email</h2>
+                        <p className="text-gray-600">
+                            We've sent a verification link to {email}. Please check your inbox and click the link to verify your account.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col items-center p-4 gap-4 bg-gray-100 min-h-screen">
