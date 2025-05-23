@@ -27,10 +27,18 @@ func InitDB(cfg *config.Config) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 
-	// Set connection pool parameters
-	db.SetMaxOpenConns(1) // SQLite only supports one writer at a time
-	db.SetMaxIdleConns(1)
-	db.SetConnMaxLifetime(time.Hour)
+	if cfg.Env == "production" {
+		// Turso can handle concurrent connections
+		db.SetMaxOpenConns(25)                 // Allow more concurrent connections
+		db.SetMaxIdleConns(10)                 // Keep more idle connections
+		db.SetConnMaxLifetime(5 * time.Minute) // Shorter lifetime for connections
+		db.SetConnMaxIdleTime(1 * time.Minute) // Shorter idle time
+	} else {
+		// Local SQLite settings
+		db.SetMaxOpenConns(1)
+		db.SetMaxIdleConns(1)
+		db.SetConnMaxLifetime(time.Hour)
+	}
 
 	// Verify the connection is working
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

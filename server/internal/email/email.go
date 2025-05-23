@@ -35,7 +35,7 @@ func (e *EmailClient) SendAuthEmail() error {
 	sent, err := sendEmail(e.ApiToken, params)
 
 	if err != nil {
-		return fmt.Errorf("Failed to send email (id: %d): %v", sent.Id, err)
+		return fmt.Errorf("failed to send email (id: %s): %v", sent.Id, err)
 	}
 
 	return nil

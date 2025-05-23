@@ -15,12 +15,21 @@ import (
 
 func GetUserFromDB(repo *sql.DB, ctx context.Context, userID string) (User, error) {
 	query := `SELECT id, name, email FROM users WHERE id = ?`
+
 	row := repo.QueryRowContext(ctx, query, userID)
 
 	var user User
 	err := row.Scan(&user.ID, &user.Name, &user.Email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return User{}, err
+		}
+		// Log the error for debugging
+		log.Printf("Error fetching user %s: %v", userID, err)
+		return User{}, fmt.Errorf("failed to fetch user: %w", err)
+	}
 
-	return user, err
+	return user, nil
 }
 
 func GetDailyPromptFromDB(repo *sql.DB, ctx context.Context, dateStr string) (DailyPrompt, error) {
