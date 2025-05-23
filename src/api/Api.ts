@@ -55,7 +55,7 @@ export async function fetchUserProfile(): Promise<GetMeResponse> {
 
 export async function submitDailyPrompt(canvasData: string): Promise<void> {
     const response = await fetchAPI("POST", "/daily", {
-        body: JSON.stringify({ canvas_data: canvasData }),
+        body: JSON.stringify({ canvasData }),
         headers: {
             'Content-Type': 'application/json',
         },
