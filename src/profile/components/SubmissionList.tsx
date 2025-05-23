@@ -1,5 +1,5 @@
-import { Config } from '@/config/Config';
 import { useProfile } from '../UserProfileContext'; // Adjust the path as needed
+import { CanvasRenderer } from '@/drawing/components/CanvasRenderer';
 
 const SubmissionList: React.FC = () => {
     const { userProfile } = useProfile();
@@ -24,8 +24,11 @@ const SubmissionList: React.FC = () => {
                             year: 'numeric'
                         });
                         return (
-                            <div key={submission.imageUrl} className="bg-white border border-gray-200 rounded-2xl">
-                                <img src={`${Config.API_BASE_URL}${submission.imageUrl}`} alt={submission.prompt} className="w-full h-auto rounded-t-2xl" />
+                            <div key={submission.day} className="bg-white border border-gray-200 rounded-2xl">
+                                <CanvasRenderer 
+                                    canvasData={submission.canvasData} 
+                                    className="w-full h-auto rounded-t-2xl"
+                                />
                                 <div className="px-4 py-2 border-t border-gray-200">
                                     <h3 className="text-lg font-bold">{submission.prompt}</h3>
                                     <p className="text-sm text-gray-500">{formattedDate}</p>

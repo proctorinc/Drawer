@@ -10,12 +10,13 @@ import { useDrawing } from './drawing/DrawingContext';
 import Canvas from './drawing/Canvas';
 import { UserProfileIcon } from './profile/components/UserProfileIcon';
 import { useState } from 'react';
+import { Config } from './config/Config';
 
 function App() {
   const navigate = useNavigate();
   const { userProfile } = useProfile();
   const { dailyPrompt, submitPrompt } = useDailyPrompt();
-  const { downloadCanvas, canvasRef, canUndo, clearCanvas } = useDrawing();
+  const { canvasRef, canUndo, clearCanvas } = useDrawing();
   const [error, setError] = useState("");
   const formattedDate = dailyPrompt ? new Date(dailyPrompt.day).toLocaleDateString('en-US', {
     month: 'long',
@@ -24,15 +25,25 @@ function App() {
   }) : '';
 
   async function handleSubmitCanvas() {
-    const imageBlob = await downloadCanvas();
-    if (imageBlob) {
-      submitPrompt(imageBlob)
-        .then(() => clearCanvas())
-        .catch((error) => {
-          setError(error.message);
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        const imageData = ctx.getImageData(0, 0, Config.CANVAS_WIDTH, Config.CANVAS_HEIGHT);
+        const canvasData = JSON.stringify({
+          width: Config.CANVAS_WIDTH,
+          height: Config.CANVAS_HEIGHT,
+          data: Array.from(imageData.data)
         });
+        submitPrompt(canvasData)
+          .then(() => clearCanvas())
+          .catch((error) => {
+            setError(error.message);
+          });
+      } else {
+        console.error("Failed to get canvas context");
+      }
     } else {
-      console.error("Failed to download canvas");
+      console.error("Failed to get canvas reference");
     }
   }
 

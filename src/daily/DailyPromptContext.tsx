@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { fetchDailyPrompt,submitDailyPrompt, type DailyPrompt } from '@/api/Api'; // Adjust the path as needed
+import { fetchDailyPrompt, submitDailyPrompt, type DailyPrompt } from '@/api/Api';
 import { useProfile } from '@/profile/UserProfileContext';
 
 type DailyPromptContextType = {
     dailyPrompt: DailyPrompt | null;
-    submitPrompt: (imageBlob: Blob) => Promise<void>;
+    submitPrompt: (canvasData: string) => Promise<void>;
 };
 
 const DailyPromptContext = createContext<DailyPromptContextType | undefined>(undefined);
@@ -13,10 +13,9 @@ export const DailyPromptProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const [dailyPrompt, setDailyPrompt] = useState<DailyPrompt | null>(null);
     const { reloadUser } = useProfile();
 
-    const submitPrompt = async (imageBlob: Blob) => {
-        submitDailyPrompt(imageBlob).then(() => {
-            reloadUser();
-        })
+    const submitPrompt = async (canvasData: string) => {
+        await submitDailyPrompt(canvasData);
+        reloadUser();
     }
 
     useEffect(() => {

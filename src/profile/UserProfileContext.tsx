@@ -31,7 +31,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
             .then((profile) => {
                 console.log("Successful login!!")
                 setUserProfile(profile);
-                if (pathname.startsWith('/login') || pathname.startsWith('/create-profile')) {
+                if (pathname.startsWith('/app/login') || pathname.startsWith('/app/create-profile')) {
                     if (from) {
                         console.log("Navigating to: ", from)
                     } else {
@@ -41,7 +41,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
                 }
             })
             .catch((error) => {
-                if (!pathname.startsWith('/login') && !pathname.startsWith('/create-profile')) {
+                if (!pathname.startsWith('/app/login') && !pathname.startsWith('/app/create-profile')) {
                     navigate({ to: '/app/create-profile', search: {
                         from: pathname
                     } });

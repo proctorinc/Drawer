@@ -14,7 +14,7 @@ export interface User {
 }
 
 export interface UserPromptSubmission extends DailyPrompt {
-    imageUrl: string;
+    canvasData: string;
     user: User;
 }
 
@@ -53,12 +53,12 @@ export async function fetchUserProfile(): Promise<GetMeResponse> {
     return await response.json() as Promise<GetMeResponse>;
 }
 
-export async function submitDailyPrompt(image: Blob): Promise<void> {
-    const formData = new FormData();
-    formData.append('image', image, 'canvas.png');
-
+export async function submitDailyPrompt(canvasData: string): Promise<void> {
     const response = await fetchAPI("POST", "/daily", {
-        body: formData,
+        body: JSON.stringify({ canvas_data: canvasData }),
+        headers: {
+            'Content-Type': 'application/json',
+        },
     });
 
     if (!response.ok) {

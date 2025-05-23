@@ -1,13 +1,11 @@
 import type { UserPromptSubmission } from '@/api/Api';
 import { useProfile } from '../UserProfileContext';
 import { UserProfileIcon } from './UserProfileIcon';
-import { Config } from '@/config/Config';
+import { CanvasRenderer } from '@/drawing/components/CanvasRenderer';
 
 export const SubmissionFeedList: React.FC = () => {
     const { userProfile } = useProfile();
-
-    // Check if the user has any feed data
-    const feed = userProfile?.feed || {}; // Default to an empty object
+    const feed = userProfile?.feed || {};
 
     return (
         <div className="flex flex-col gap-4 w-full max-w-md">
@@ -32,8 +30,11 @@ export const SubmissionFeedList: React.FC = () => {
                             </div>
                             <div className="flex gap-4 w-full max-w-md overflow-scroll">
                                 {submissions.map((submission) => (
-                                    <div key={submission.imageUrl} className="relative bg-white border border-gray-300 rounded-2xl w-[448px]">
-                                        <img src={`${Config.API_BASE_URL}${submission.imageUrl}`} alt={submission.prompt} className="w-full object-fill h-auto rounded-2xl" />
+                                    <div key={submission.day} className="relative bg-white border border-gray-300 rounded-2xl w-[448px]">
+                                        <CanvasRenderer 
+                                            canvasData={submission.canvasData}
+                                            className="w-full h-auto rounded-2xl"
+                                        />
                                         <UserProfileIcon user={submission.user} className="absolute top-2 right-2" />
                                     </div>
                                 ))}
