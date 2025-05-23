@@ -64,39 +64,41 @@ function App() {
     }
 
     return (
-      <div className="relative flex flex-col items-center p-2 gap-4 bg-gray-100 pb-10 min-h-screen">
-          {!dailyPrompt || !userProfile && (
-              <div className="absolute flex flex-col items-center justify-center h-screen w-full dark:bg-gray-100 blur-sm">
-              <div className="w-12 h-12 animate-spin rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 font-semibold flex items-center justify-center"></div>
+      <>
+        {!dailyPrompt || !userProfile && (
+            <div className="absolute flex flex-col items-center justify-center h-screen w-full dark:bg-gray-100">
+            <div className="w-12 h-12 animate-spin rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 font-semibold flex items-center justify-center"></div>
+          </div>
+        )}
+        <div className="flex flex-col items-center p-2 gap-4 bg-gray-100 pb-10 min-h-screen">
+            <div className="flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md p-4 w-full max-w-md">
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  <h1>Draw {dailyPrompt?.prompt}</h1>
+                  <p className="text-sm text-gray-500">
+                    {formattedDate}
+                  </p>
+                </div>
+                <UserProfileIcon user={userProfile?.user} onClick={() => navigate({ to: '/app/user-profile' })} />
             </div>
-          )}
-          <div className="flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md p-4 w-full max-w-md">
-              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                <h1>Draw {dailyPrompt?.prompt}</h1>
-                <p className="text-sm text-gray-500">
-                  {formattedDate}
-                </p>
-              </div>
-              <UserProfileIcon user={userProfile?.user} onClick={() => navigate({ to: '/app/user-profile' })} />
-          </div>
-          <Canvas ref={canvasRef} />
-          <div className="flex gap-2 justify-center items-center border border-gray-200 rounded-2xl bg-gray-200 px-4 py-2 w-full max-w-md text-gray-500">
-            <FontAwesomeIcon icon={faInfoCircle} />
-            <p className="text-sm">
-              Use today's three colors to draw the prompt
-            </p>
-          </div>
-          <Toolbar />
-          {error && <p className="text-center text-red-500">{error}</p>}
-          <button
-            className="flex text-lg gap-2 cursor-pointer disabled:cursor-default disabled:scale-100 hover:scale-110 transition-all duration-300 items-center bg-gradient-to-tr from-blue-600 to-purple-600 font-bold px-6 py-3 rounded-2xl shadow-md disabled:opacity-30"
-            onClick={handleSubmitCanvas}
-            disabled={!canUndo}
-          >
-            Submit
-            <FontAwesomeIcon icon={faArrowRight} />
-          </button>
-      </div>
+            <Canvas ref={canvasRef} />
+            <div className="flex gap-2 justify-center items-center border border-gray-200 rounded-2xl bg-gray-200 px-4 py-2 w-full max-w-md text-gray-500">
+              <FontAwesomeIcon icon={faInfoCircle} />
+              <p className="text-sm">
+                Use today's three colors to draw the prompt
+              </p>
+            </div>
+            <Toolbar />
+            {error && <p className="text-center text-red-500">{error}</p>}
+            <button
+              className="flex text-lg gap-2 cursor-pointer disabled:cursor-default disabled:scale-100 hover:scale-110 transition-all duration-300 items-center bg-gradient-to-tr from-blue-600 to-purple-600 font-bold px-6 py-3 rounded-2xl shadow-md disabled:opacity-30"
+              onClick={handleSubmitCanvas}
+              disabled={!canUndo}
+            >
+              Submit
+              <FontAwesomeIcon icon={faArrowRight} />
+            </button>
+        </div>
+      </>
     )
 }
 

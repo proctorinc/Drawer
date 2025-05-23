@@ -31,11 +31,12 @@ const CreateProfilePage: React.FC = () => {
                 <form className="flex flex-col gap-4 bg-white border border-gray-300 rounded-2xl w-full max-w-md p-4" onSubmit={handleSubmit}>
                     {error && <p className="text-center text-red-500">{error}</p>}
                     <div className="flex flex-col gap-2">
-                        <label htmlFor="name" className="text-sm text-gray-700 dark:text-gray-500">Name</label>
+                        <label htmlFor="username" className="text-sm text-gray-700 dark:text-gray-500">Name</label>
                         <div className="border border-gray-200 rounded-2xl">
                             <input
+                                id="username"
                                 type="text"
-                                placeholder="Name"
+                                placeholder="Username"
                                 className="w-full p-4 rounded-2xl"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
@@ -47,6 +48,7 @@ const CreateProfilePage: React.FC = () => {
                         <label htmlFor="email" className="text-sm text-gray-700 dark:text-gray-500">Email</label>
                         <div className="border border-gray-200 rounded-2xl">
                             <input
+                                id="email"
                                 type="email"
                                 placeholder="Email"
                                 className="w-full p-4 rounded-2xl"
