@@ -1,5 +1,9 @@
 package db
 
+import (
+	"encoding/json"
+)
+
 // DailyPrompt represents the data returned for the daily challenge.
 type DailyPrompt struct {
 	Day    string   `json:"day"` // Format: YYYY-MM-DD
@@ -21,13 +25,13 @@ type User struct {
 	Email string `json:"email"`
 }
 
-// DailyPromptWithPng combines the daily prompt details with the user's submitted image path/URL.
+// UserPromptSubmission combines the daily prompt details with the user's submitted canvas data.
 type UserPromptSubmission struct {
-	Day      string   `json:"day"` // Format: YYYY-MM-DD
-	Colors   []string `json:"colors"`
-	Prompt   string   `json:"prompt"`
-	ImageURL string   `json:"imageUrl"` // URL or path to the saved PNG
-	User     User     `json:"user"`     // User who submitted the prompt
+	Day        string          `json:"day"` // Format: YYYY-MM-DD
+	Colors     []string        `json:"colors"`
+	Prompt     string          `json:"prompt"`
+	CanvasData json.RawMessage `json:"canvasData"` // Raw JSON data from the canvas
+	User       User            `json:"user"`       // User who submitted the prompt
 }
 
 // GetMeResponse is the structure for the /me endpoint response.

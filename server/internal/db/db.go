@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	_ "modernc.org/sqlite"
+	_ "github.com/tursodatabase/libsql-client-go/libsql"
 )
 
 func InitDB(cfg *config.Config) (*sql.DB, error) {
@@ -22,7 +22,7 @@ func InitDB(cfg *config.Config) (*sql.DB, error) {
 		dbURL = "file:drawer.db?cache=shared&_journal=WAL&_timeout=5000"
 	}
 
-	db, err := sql.Open("sqlite", dbURL)
+	db, err := sql.Open("libsql", dbURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}

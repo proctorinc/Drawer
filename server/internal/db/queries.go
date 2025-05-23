@@ -106,7 +106,7 @@ func GenerateAndInsertDailyPrompt(repo *sql.DB, ctx context.Context, dateStr str
 func GetUserSubmissionsFromDB(repo *sql.DB, ctx context.Context, userID string) ([]UserPromptSubmission, error) {
 	query := `
 	SELECT
-		us.day, us.file_path, dp.colors, dp.prompt, u.id, u.name, u.email
+		us.day, us.canvas_data, dp.colors, dp.prompt, u.id, u.name, u.email
 	FROM
 		user_submissions us
 	JOIN
@@ -126,45 +126,48 @@ func GetUserSubmissionsFromDB(repo *sql.DB, ctx context.Context, userID string) 
 	}
 	defer rows.Close()
 
-	UserPrompts := []UserPromptSubmission{}
+	submissions := []UserPromptSubmission{}
 	for rows.Next() {
-		var p UserPromptSubmission
+		var submission UserPromptSubmission
 		var colorsJSON string
 		var submissionDay string
 		var userID, userName, userEmail string
+		var canvasData string
 
-		err := rows.Scan(&submissionDay, &p.ImageURL, &colorsJSON, &p.Prompt, &userID, &userName, &userEmail)
+		err := rows.Scan(&submissionDay, &canvasData, &colorsJSON, &submission.Prompt, &userID, &userName, &userEmail)
 		if err != nil {
 			log.Printf("Error scanning submission row for user %s: %v", userID, err)
 			continue
 		}
 
 		// Parse the JSON array of colors
-		err = json.Unmarshal([]byte(colorsJSON), &p.Colors)
+		err = json.Unmarshal([]byte(colorsJSON), &submission.Colors)
 		if err != nil {
 			log.Printf("Error parsing colors JSON for user %s: %v", userID, err)
 			continue
 		}
 
-		p.Day = submissionDay // Already in correct format
+		// Parse the canvas data
+		submission.CanvasData = json.RawMessage(canvasData)
+		submission.Day = submissionDay
 
 		// Populate user data
-		p.User = User{
+		submission.User = User{
 			ID:    userID,
 			Name:  userName,
 			Email: userEmail,
 		}
 
-		UserPrompts = append(UserPrompts, p)
+		submissions = append(submissions, submission)
 	}
 
-	return UserPrompts, nil
+	return submissions, nil
 }
 
 func GetUserAndFriendsSubmissionsFromDB(repo *sql.DB, ctx context.Context, userID string) (map[string][]UserPromptSubmission, error) {
 	query := `
 	SELECT
-		us.day, us.file_path, dp.colors, dp.prompt, u.id, u.name, u.email
+		us.day, us.canvas_data, dp.colors, dp.prompt, u.id, u.name, u.email
 	FROM
 		user_submissions us
 	JOIN
@@ -189,35 +192,38 @@ func GetUserAndFriendsSubmissionsFromDB(repo *sql.DB, ctx context.Context, userI
 	feed := make(map[string][]UserPromptSubmission)
 
 	for rows.Next() {
-		var p UserPromptSubmission
+		var submission UserPromptSubmission
 		var colorsJSON string
 		var submissionDay string
 		var userID, userName, userEmail string
+		var canvasData string
 
-		err := rows.Scan(&submissionDay, &p.ImageURL, &colorsJSON, &p.Prompt, &userID, &userName, &userEmail)
+		err := rows.Scan(&submissionDay, &canvasData, &colorsJSON, &submission.Prompt, &userID, &userName, &userEmail)
 		if err != nil {
 			log.Printf("Error scanning submission row for user %s: %v", userID, err)
 			continue
 		}
 
 		// Parse the JSON array of colors
-		err = json.Unmarshal([]byte(colorsJSON), &p.Colors)
+		err = json.Unmarshal([]byte(colorsJSON), &submission.Colors)
 		if err != nil {
 			log.Printf("Error parsing colors JSON for user %s: %v", userID, err)
 			continue
 		}
 
-		p.Day = submissionDay // Already in correct format
+		// Parse the canvas data
+		submission.CanvasData = json.RawMessage(canvasData)
+		submission.Day = submissionDay
 
 		// Populate user data
-		p.User = User{
+		submission.User = User{
 			ID:    userID,
 			Name:  userName,
 			Email: userEmail,
 		}
 
 		// Group by day
-		feed[p.Day] = append(feed[p.Day], p)
+		feed[submission.Day] = append(feed[submission.Day], submission)
 	}
 
 	if err = rows.Err(); err != nil {

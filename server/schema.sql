@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS user_submissions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     day TEXT NOT NULL,
-    file_path TEXT NOT NULL,
+    canvas_data TEXT NOT NULL, -- Store as JSON string containing drawing data
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id),
     UNIQUE(user_id, day)

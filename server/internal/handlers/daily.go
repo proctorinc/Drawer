@@ -5,19 +5,13 @@ import (
 	"drawer-service-backend/internal/db"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
+	"encoding/json"
 	"errors"
-	"fmt"
-	"io"
 	"log"
-	"mime/multipart"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/lib/pq"
 )
 
 func HandleGetDaily(c *gin.Context) {
@@ -66,16 +60,18 @@ func HandleGetDaily(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+type CanvasSubmission struct {
+	CanvasData json.RawMessage `json:"canvasData" binding:"required"`
+}
+
 func HandlePostDaily(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	now := time.Now()
 	todayStr := utils.GetFormattedDate(now)
 	repo := middleware.GetDB(c)
-	config := middleware.GetConfig(c)
-	ctx := c.Request.Context() // Use request context for DB operations
+	ctx := c.Request.Context()
 
-	alreadySubmittedToday, err := db.CheckHasSubmittedForDay(repo, c.Request.Context(), userID, todayStr)
-
+	alreadySubmittedToday, err := db.CheckHasSubmittedForDay(repo, ctx, userID, todayStr)
 	if err != nil {
 		log.Printf("Error checking existing submission for user %s, day %s: %v", userID, todayStr, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error checking submission status"})
@@ -83,84 +79,41 @@ func HandlePostDaily(c *gin.Context) {
 	}
 
 	if alreadySubmittedToday {
-		log.Printf("Additional submit attempt for user %s, day %s: %v", userID, todayStr, err)
+		log.Printf("Additional submit attempt for user %s, day %s", userID, todayStr)
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "You have already submitted a drawing today"})
 		return
 	}
 
-	fileHeader, err := c.FormFile("image")
-	if err != nil {
-		log.Printf("Error getting form file 'image': %v", err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Image file upload failed. Ensure the form field name is 'image'."})
+	var submission CanvasSubmission
+	if err := c.ShouldBindJSON(&submission); err != nil {
+		log.Printf("Error binding JSON for user %s: %v", userID, err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid submission data"})
 		return
 	}
 
-	if !strings.HasSuffix(strings.ToLower(fileHeader.Filename), ".png") {
-		log.Printf("Invalid file type uploaded by %s: %s", userID, fileHeader.Filename)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid file type. Only PNG files (.png) are allowed."})
+	// Validate that the canvas data is valid JSON
+	var canvasData interface{}
+	if err := json.Unmarshal(submission.CanvasData, &canvasData); err != nil {
+		log.Printf("Invalid canvas data JSON from user %s: %v", userID, err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid canvas data format"})
 		return
 	}
 
-	userUploadDir := filepath.Join(config.UploadDir, userID)
-	if err := os.MkdirAll(userUploadDir, os.ModePerm); err != nil {
-		log.Printf("CRITICAL: Error creating upload directory '%s': %v", userUploadDir, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error: Could not create storage directory."})
-		return
-	}
-	filename := fmt.Sprintf("%s.png", todayStr) // Use date as filename
-	filePath := filepath.Join(userUploadDir, filename)
-	imageURL := fmt.Sprintf("/uploads/%s/%s", userID, filename) // Relative URL path
-
-	srcFile, err := fileHeader.Open()
-	if err != nil {
-		log.Printf("Error opening uploaded file header for user %s: %v", userID, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error: Could not process uploaded file."})
-		return
-	}
-	defer func(srcFile multipart.File) { _ = srcFile.Close() }(srcFile)
-
-	dstFile, err := os.Create(filePath)
-	if err != nil {
-		log.Printf("CRITICAL: Error creating destination file '%s': %v", filePath, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error: Could not save file."})
-		return
-	}
-	defer func(dstFile *os.File) { _ = dstFile.Close() }(dstFile)
-
-	_, err = io.Copy(dstFile, srcFile)
-	if err != nil {
-		log.Printf("CRITICAL: Error copying file content to '%s': %v", filePath, err)
-		_ = os.Remove(filePath)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error: Failed to write file content."})
-		return
-	}
-
+	// Insert into the database
 	insertSQL := `
-        INSERT INTO user_submissions (user_id, day, file_path)
-        VALUES ($1, $2, $3)
+        INSERT INTO user_submissions (id, user_id, day, canvas_data)
+        VALUES (lower(hex(randomblob(16))), ?, ?, ?)
     `
-	_, err = repo.ExecContext(ctx, insertSQL, userID, todayStr, imageURL) // Store the URL/relative path
+	_, err = repo.ExecContext(ctx, insertSQL, userID, todayStr, string(submission.CanvasData))
 	if err != nil {
-		// Handle potential unique constraint violation (e.g., race condition)
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
-			log.Printf("Submission race condition for user %s, day %s. Already submitted.", userID, todayStr)
-			_ = os.Remove(filePath) // Clean up the newly saved file as the DB record failed
-			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": fmt.Sprintf("You have already submitted an image for today (%s) (race condition detected)", todayStr)})
-			return
-		}
-		// Other DB error
-		log.Printf("CRITICAL: Failed to insert submission record for user %s, day %s: %v", userID, todayStr, err)
-		_ = os.Remove(filePath) // Clean up the saved file if DB insert fails
+		log.Printf("Failed to insert submission record for user %s, day %s: %v", userID, todayStr, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error: Failed to record submission."})
 		return
 	}
 
-	log.Printf("User %s successfully uploaded image for %s to %s and recorded in DB", userID, todayStr, filePath)
-	// Return a success response.
+	log.Printf("User %s successfully submitted drawing for %s", userID, todayStr)
 	c.JSON(http.StatusCreated, gin.H{
-		"message":  "File uploaded successfully for today.",
-		"imageURL": imageURL,
-		"day":      todayStr,
+		"message": "Drawing submitted successfully for today.",
+		"day":     todayStr,
 	})
 }
