@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"database/sql"
+	"errors"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"drawer-service-backend/internal/db"
@@ -54,7 +57,11 @@ func HandleLogin(c *gin.Context) {
 	user, err := db.GetUserByEmail(repo, c.Request.Context(), loginReq.Email)
 	if err != nil {
 		log.Printf("Error logging in: %v", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to login. Invalid email"})
+		if errors.Is(err, sql.ErrNoRows) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "No account found with this email. Please register first."})
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while trying to log in. Please try again."})
 		return
 	}
 
@@ -97,6 +104,17 @@ func HandleRegister(c *gin.Context) {
 	user, err := db.CreateUser(repo, ctx, registerReq.Username, registerReq.Email)
 	if err != nil {
 		log.Printf("Error creating user: %v", err)
+		// Check for specific database errors
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			if strings.Contains(err.Error(), "users.email") {
+				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+				return
+			}
+			if strings.Contains(err.Error(), "users.name") {
+				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Username already taken"})
+				return
+			}
+		}
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}

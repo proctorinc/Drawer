@@ -27,10 +27,6 @@ func AuthMiddleware(repo *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		log.Println("REQUEST DETAILS NEXT")
-		log.Println(repo)
-		log.Println(c.Request.Context())
-
 		user, err := db.GetUserFromDB(repo, c.Request.Context(), userID)
 
 		if err != nil {
