@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -13,6 +14,7 @@ type Config struct {
 	UploadDir     string
 	AllowedOrigin string
 	Env           string
+	ResendAPIKey  string
 }
 
 func LoadConfig() *Config {
@@ -20,12 +22,31 @@ func LoadConfig() *Config {
 		log.Println("No .env file found, using environment variables")
 	}
 
+	env := getEnv("ENV", "development")
+	var dbURL string
+	if env == "production" {
+		// For production, use Turso
+		tursoURL := getEnv("TURSO_DATABASE_URL", "<turso db url>")
+		tursoToken := getEnv("TURSO_AUTH_TOKEN", "<turso auth token>")
+
+		if tursoURL == "" || tursoToken == "" {
+			log.Fatal("Both TURSO_DATABASE_URL and TURSO_AUTH_TOKEN are required in production")
+		}
+
+		// Format the URL with the auth token
+		dbURL = fmt.Sprintf("%s?authToken=%s", tursoURL, tursoToken)
+	} else {
+		// For development, use local SQLite
+		dbURL = "file:drawer.db?cache=shared&_journal=WAL&_timeout=5000"
+	}
+
 	return &Config{
-		Port:          getEnv("PORT", "8080"), // Default to 8080 if not set
-		DatabaseURL:   getEnv("DATABASE_URL", "<no database url set>"),
+		Port:          getEnv("PORT", "8080"),
+		DatabaseURL:   dbURL,
 		UploadDir:     getEnv("UPLOAD_DIR", "./uploads"),
 		AllowedOrigin: getEnv("ALLOWED_ORIGINS", "http://localhost:1234"),
-		Env:           getEnv("ENV", "development"),
+		Env:           env,
+		ResendAPIKey:  getEnv("RESEND_API_KEY", "<resend api key>"),
 	}
 }
 
