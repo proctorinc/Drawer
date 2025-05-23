@@ -65,9 +65,11 @@ function App() {
 
     return (
       <div className="relative flex flex-col items-center p-2 gap-4 bg-gray-100 pb-10 min-h-screen">
-          <div className="absolute flex flex-col items-center justify-center h-screen w-full bg-gray-900 dark:bg-gray-100 bg-sm">
-            <div className="w-12 h-12 animate-spin rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 font-semibold flex items-center justify-center"></div>
-          </div>
+          {!dailyPrompt || !userProfile && (
+              <div className="absolute flex flex-col items-center justify-center h-screen w-full dark:bg-gray-100 blur-sm">
+              <div className="w-12 h-12 animate-spin rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 font-semibold flex items-center justify-center"></div>
+            </div>
+          )}
           <div className="flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md p-4 w-full max-w-md">
               <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 <h1>Draw {dailyPrompt?.prompt}</h1>
