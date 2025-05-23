@@ -15,6 +15,8 @@ type Config struct {
 	AllowedOrigin string
 	Env           string
 	ResendAPIKey  string
+	FromEmail     string
+	BaseURL       string
 }
 
 func LoadConfig() *Config {
@@ -47,6 +49,8 @@ func LoadConfig() *Config {
 		AllowedOrigin: getEnv("ALLOWED_ORIGINS", "http://localhost:1234"),
 		Env:           env,
 		ResendAPIKey:  getEnv("RESEND_API_KEY", "<resend api key>"),
+		FromEmail:     getEnv("FROM_EMAIL", "noreply@drawer.app"),
+		BaseURL:       getEnv("BASE_URL", "http://localhost:3000"),
 	}
 }
 

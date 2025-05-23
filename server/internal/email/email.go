@@ -1,41 +1,42 @@
 package email
 
 import (
-	"drawer-service-backend/internal/config"
 	"fmt"
+
+	"drawer-service-backend/internal/config"
 
 	"github.com/resend/resend-go/v2"
 )
 
-type EmailClient struct {
-	ApiToken string
-}
+func SendVerificationEmail(cfg *config.Config, toEmail string, token string) error {
+	// Create verification URL
+	verifyURL := fmt.Sprintf("%s/api/auth/verify?token=%s", cfg.BaseURL, token)
 
-func NewClient(cfg *config.Config) EmailClient {
-	return EmailClient{
-		ApiToken: cfg.ResendAPIKey,
-	}
-}
+	// Create email HTML
+	html := fmt.Sprintf(`
+		<html>
+			<body>
+				<h2>Welcome to Drawer!</h2>
+				<p>Please click the link below to verify your email address:</p>
+				<p><a href="%s">Verify Email</a></p>
+				<p>This link will expire in 1 hour.</p>
+				<p>If you didn't request this verification, you can safely ignore this email.</p>
+			</body>
+		</html>
+	`, verifyURL)
 
-func sendEmail(apiToken string, params *resend.SendEmailRequest) (*resend.SendEmailResponse, error) {
-	client := resend.NewClient(apiToken)
+	client := resend.NewClient(cfg.ResendAPIKey)
 
-	return client.Emails.Send(params)
-}
-
-func (e *EmailClient) SendAuthEmail() error {
 	params := &resend.SendEmailRequest{
-		From:    "MattyP <onboarding@resend.dev>",
-		To:      []string{"delivered@resend.dev"},
-		Html:    "<strong>hello world</strong>",
-		Subject: "Login to Drawer!",
-		ReplyTo: "replyto@example.com",
+		From:    cfg.FromEmail,
+		To:      []string{toEmail},
+		Subject: "Verify your Drawer account",
+		Html:    html,
 	}
 
-	sent, err := sendEmail(e.ApiToken, params)
-
+	_, err := client.Emails.Send(params)
 	if err != nil {
-		return fmt.Errorf("failed to send email (id: %s): %v", sent.Id, err)
+		return fmt.Errorf("failed to send email: %w", err)
 	}
 
 	return nil

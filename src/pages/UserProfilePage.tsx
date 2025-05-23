@@ -5,7 +5,6 @@ import { faHome } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useNavigate } from '@tanstack/react-router';
 import { FriendList } from '@/profile/components/FriendList';
-import { FriendLinkShare } from '@/profile/components/FriendLinkShare';
 
 const UserProfilePage: React.FC = () => {
     const { userProfile } = useProfile();
@@ -26,7 +25,6 @@ const UserProfilePage: React.FC = () => {
                     <FontAwesomeIcon icon={faHome} />
                 </div>
             </div>
-            <FriendLinkShare />
             <FriendList />
             <SubmissionList />
 

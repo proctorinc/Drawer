@@ -53,5 +53,9 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 		authGroup.Static("/uploads", cfg.UploadDir)
 	}
 
+	// Auth routes
+	router.POST("/api/auth/login", handlers.HandleLogin)
+	router.GET("/api/auth/verify", handlers.HandleVerifyEmail)
+
 	return router
 }

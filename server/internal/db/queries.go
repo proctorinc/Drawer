@@ -326,3 +326,57 @@ func CheckHasSubmittedForDay(repo *sql.DB, ctx context.Context, userID string, t
 
 	return hasSubmitted, nil
 }
+
+func CreateVerificationToken(repo *sql.DB, ctx context.Context, userID string, email string) (string, error) {
+	// Generate a random token
+	token := hex.EncodeToString(make([]byte, 32))
+
+	// Set expiration to 1 hour from now
+	expiresAt := time.Now().Add(1 * time.Hour)
+
+	query := `
+        INSERT INTO verification_tokens (token, user_id, email, expires_at)
+        VALUES (?, ?, ?, ?)
+    `
+
+	_, err := repo.ExecContext(ctx, query, token, userID, email, expiresAt)
+	if err != nil {
+		return "", fmt.Errorf("failed to create verification token: %w", err)
+	}
+
+	return token, nil
+}
+
+func VerifyToken(repo *sql.DB, ctx context.Context, token string) (*User, error) {
+	query := `
+        SELECT u.id, u.name, u.email
+        FROM verification_tokens vt
+        JOIN users u ON vt.user_id = u.id
+        WHERE vt.token = ? AND vt.expires_at > CURRENT_TIMESTAMP
+    `
+
+	var user User
+	err := repo.QueryRowContext(ctx, query, token).Scan(&user.ID, &user.Name, &user.Email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, fmt.Errorf("invalid or expired token")
+		}
+		return nil, fmt.Errorf("error verifying token: %w", err)
+	}
+
+	// Delete the used token
+	_, err = repo.ExecContext(ctx, "DELETE FROM verification_tokens WHERE token = ?", token)
+	if err != nil {
+		log.Printf("Warning: Failed to delete used token: %v", err)
+	}
+
+	return &user, nil
+}
+
+func CleanupExpiredTokens(repo *sql.DB, ctx context.Context) error {
+	_, err := repo.ExecContext(ctx, "DELETE FROM verification_tokens WHERE expires_at <= CURRENT_TIMESTAMP")
+	if err != nil {
+		return fmt.Errorf("failed to cleanup expired tokens: %w", err)
+	}
+	return nil
+}
