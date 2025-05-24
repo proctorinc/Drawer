@@ -46,7 +46,7 @@ func HandleLogin(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Login: Invalid request body"})
 		return
 	}
 
@@ -58,17 +58,17 @@ func HandleLogin(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error logging in: %v", err)
 		if errors.Is(err, sql.ErrNoRows) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "No account found with this email. Please register first."})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Login: No account found with this email. Please register first."})
 			return
 		}
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while trying to log in. Please try again."})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Login: An error occurred while trying to log in. Please try again."})
 		return
 	}
 
 	// Create verification token
 	token, err := db.CreateVerificationToken(repo, c.Request.Context(), user.ID, user.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create verification token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Login: Failed to create verification token"})
 		return
 	}
 
@@ -76,7 +76,7 @@ func HandleLogin(c *gin.Context) {
 	cfg := middleware.GetConfig(c)
 	if err := email.SendVerificationEmail(cfg, user.Email, token); err != nil {
 		log.Printf("Failed to send verification email: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Login: Failed to send verification email"})
 		return
 	}
 
@@ -107,22 +107,22 @@ func HandleRegister(c *gin.Context) {
 		// Check for specific database errors
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			if strings.Contains(err.Error(), "users.email") {
-				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Register: Email already registered"})
 				return
 			}
 			if strings.Contains(err.Error(), "users.name") {
-				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Username already taken"})
+				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Register: Username already taken"})
 				return
 			}
 		}
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Register: Failed to create user"})
 		return
 	}
 
 	// Create verification token
 	token, err := db.CreateVerificationToken(repo, c.Request.Context(), user.ID, user.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create verification token"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Register: Failed to create verification token"})
 		return
 	}
 
@@ -130,7 +130,7 @@ func HandleRegister(c *gin.Context) {
 	cfg := middleware.GetConfig(c)
 	if err := email.SendVerificationEmail(cfg, user.Email, token); err != nil {
 		log.Printf("Failed to send verification email: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Register: Failed to send verification email"})
 		return
 	}
 
