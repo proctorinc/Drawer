@@ -2,19 +2,22 @@ package handlers
 
 import (
 	"database/sql"
-	"errors"
-	"log"
-	"net/http"
-	"strings"
-	"time"
-
 	"drawer-service-backend/internal/db"
 	"drawer-service-backend/internal/email"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
+	"errors"
+	"log"
+	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
+
+type RegisterRequest struct {
+	Username string `json:"name" binding:"required,name"`
+	Email    string `json:"email" binding:"required,email"`
+}
 
 func HandleVerifyEmail(c *gin.Context) {
 	token := c.Query("token")
@@ -43,105 +46,137 @@ func HandleVerifyEmail(c *gin.Context) {
 }
 
 func HandleLogin(c *gin.Context) {
+	log.Printf("HandleLogin called")
+
 	var loginReq struct {
 		Email string `json:"email" binding:"required,email"`
 	}
 
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		log.Printf("Invalid login request body: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		log.Printf("Failed to bind JSON in HandleLogin: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
-	// Get database connection from context
-	repo := middleware.GetDB(c)
+	log.Printf("Login request received for email: %s", utils.MaskEmail(loginReq.Email))
 
-	// Get or create user
-	user, err := db.GetUserByEmail(repo, c.Request.Context(), loginReq.Email)
+	// Get database connection
+	repo := middleware.GetDB(c)
+	if repo == nil {
+		log.Printf("Database connection is nil in HandleLogin")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+		return
+	}
+
+	ctx := c.Request.Context()
+
+	// Get user
+	user, err := db.GetUserByEmail(repo, ctx, loginReq.Email)
 	if err != nil {
-		log.Printf("Error logging in for email %s: %v", utils.MaskEmail(loginReq.Email), err)
 		if errors.Is(err, sql.ErrNoRows) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "No account found with this email. Please register first."})
+			log.Printf("No account found for email: %s", utils.MaskEmail(loginReq.Email))
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "No account found with this email. Please register first."})
 			return
 		}
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while trying to log in. Please try again."})
+		log.Printf("Database error fetching user: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while trying to log in. Please try again."})
 		return
 	}
 
 	// Create verification token
-	token, err := db.CreateVerificationToken(repo, c.Request.Context(), user.ID, user.Email)
+	token, err := db.CreateVerificationToken(repo, ctx, user.ID, user.Email)
 	if err != nil {
-		log.Printf("Failed to create verification token for user %s (email: %s): %v", user.ID, utils.MaskEmail(user.Email), err)
+		log.Printf("Failed to create verification token for user %s: %v", user.ID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create verification token"})
 		return
 	}
 
-	// Send verification email
+	// Get config for email
 	cfg := middleware.GetConfig(c)
-	if err := email.SendVerificationEmail(cfg, user.Email, token); err != nil {
-		log.Printf("Failed to send verification email to %s for user %s: %v", utils.MaskEmail(user.Email), user.ID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
+	if cfg == nil {
+		log.Printf("Config is nil in HandleLogin")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Configuration error"})
 		return
 	}
 
+	// Send verification email
+	if err := email.SendVerificationEmail(cfg, user.Email, token); err != nil {
+		log.Printf("Failed to send verification email: %v", err)
+		// Don't return error to user, just log it
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Verification email sent",
+		"message": "Verification email sent. Please check your inbox to log in.",
 	})
 }
 
 func HandleRegister(c *gin.Context) {
-	var registerReq struct {
-		Username string `json:"name" binding:"required,name"`
-		Email    string `json:"email" binding:"required,email"`
-	}
+	log.Printf("HandleRegister called")
 
-	if err := c.ShouldBindJSON(&registerReq); err != nil {
-		log.Printf("Invalid register request body: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+	var req RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("Failed to bind JSON in HandleRegister: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
-	// Get database connection from context
+	log.Printf("Register request received for email: %s", utils.MaskEmail(req.Email))
+
+	// Get database connection
 	repo := middleware.GetDB(c)
+	if repo == nil {
+		log.Printf("Database connection is nil in HandleRegister")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+		return
+	}
+
 	ctx := c.Request.Context()
 
-	// Get or create user
-	user, err := db.CreateUser(repo, ctx, registerReq.Username, registerReq.Email)
+	// Check if user already exists
+	existingUser, err := db.GetUserByEmail(repo, ctx, req.Email)
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Database error checking existing user: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error checking user"})
+		return
+	}
+	if existingUser != nil {
+		log.Printf("User already exists with email: %s", utils.MaskEmail(req.Email))
+		c.JSON(http.StatusConflict, gin.H{"error": "User already exists"})
+		return
+	}
+
+	// Create user
+	user, err := db.CreateUser(repo, ctx, req.Username, req.Email)
 	if err != nil {
-		log.Printf("Error creating user with username %s and email %s: %v", registerReq.Username, utils.MaskEmail(registerReq.Email), err)
-		// Check for specific database errors
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			if strings.Contains(err.Error(), "users.email") {
-				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Email already registered"})
-				return
-			}
-			if strings.Contains(err.Error(), "users.name") {
-				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Username already taken"})
-				return
-			}
-		}
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
+		log.Printf("Failed to create user: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
 	// Create verification token
-	token, err := db.CreateVerificationToken(repo, c.Request.Context(), user.ID, user.Email)
+	token, err := db.CreateVerificationToken(repo, ctx, user.ID, user.Email)
 	if err != nil {
-		log.Printf("Failed to create verification token for new user %s (email: %s): %v", user.ID, utils.MaskEmail(user.Email), err)
+		log.Printf("Failed to create verification token: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create verification token"})
 		return
 	}
 
-	// Send verification email
+	// Get config for email
 	cfg := middleware.GetConfig(c)
-	if err := email.SendVerificationEmail(cfg, user.Email, token); err != nil {
-		log.Printf("Failed to send verification email to new user %s (email: %s): %v", user.ID, utils.MaskEmail(user.Email), err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
+	if cfg == nil {
+		log.Printf("Config is nil in HandleRegister")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Configuration error"})
 		return
 	}
 
+	// Send verification email
+	if err := email.SendVerificationEmail(cfg, req.Email, token); err != nil {
+		log.Printf("Failed to send verification email: %v", err)
+		// Don't return error to user, just log it
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Verification email sent",
+		"message": "Registration successful. Please check your email to verify your account.",
 	})
 }
 
