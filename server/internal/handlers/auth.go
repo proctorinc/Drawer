@@ -11,6 +11,7 @@ import (
 	"drawer-service-backend/internal/db"
 	"drawer-service-backend/internal/email"
 	"drawer-service-backend/internal/middleware"
+	"drawer-service-backend/internal/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -18,6 +19,7 @@ import (
 func HandleVerifyEmail(c *gin.Context) {
 	token := c.Query("token")
 	if token == "" {
+		log.Printf("Missing verification token in request")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing verification token"})
 		return
 	}
@@ -28,7 +30,7 @@ func HandleVerifyEmail(c *gin.Context) {
 	// Verify the token
 	user, err := db.VerifyToken(repo, c.Request.Context(), token)
 	if err != nil {
-		log.Printf("Token verification failed: %v", err)
+		log.Printf("Token verification failed for token %s: %v", token, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired verification token"})
 		return
 	}
@@ -46,7 +48,8 @@ func HandleLogin(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Login: Invalid request body"})
+		log.Printf("Invalid login request body: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
 
@@ -56,27 +59,28 @@ func HandleLogin(c *gin.Context) {
 	// Get or create user
 	user, err := db.GetUserByEmail(repo, c.Request.Context(), loginReq.Email)
 	if err != nil {
-		log.Printf("Error logging in: %v", err)
+		log.Printf("Error logging in for email %s: %v", utils.MaskEmail(loginReq.Email), err)
 		if errors.Is(err, sql.ErrNoRows) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Login: No account found with this email. Please register first."})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "No account found with this email. Please register first."})
 			return
 		}
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Login: An error occurred while trying to log in. Please try again."})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while trying to log in. Please try again."})
 		return
 	}
 
 	// Create verification token
 	token, err := db.CreateVerificationToken(repo, c.Request.Context(), user.ID, user.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Login: Failed to create verification token"})
+		log.Printf("Failed to create verification token for user %s (email: %s): %v", user.ID, utils.MaskEmail(user.Email), err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create verification token"})
 		return
 	}
 
 	// Send verification email
 	cfg := middleware.GetConfig(c)
 	if err := email.SendVerificationEmail(cfg, user.Email, token); err != nil {
-		log.Printf("Failed to send verification email: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Login: Failed to send verification email"})
+		log.Printf("Failed to send verification email to %s for user %s: %v", utils.MaskEmail(user.Email), user.ID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
 		return
 	}
 
@@ -92,6 +96,7 @@ func HandleRegister(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&registerReq); err != nil {
+		log.Printf("Invalid register request body: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 		return
 	}
@@ -103,34 +108,35 @@ func HandleRegister(c *gin.Context) {
 	// Get or create user
 	user, err := db.CreateUser(repo, ctx, registerReq.Username, registerReq.Email)
 	if err != nil {
-		log.Printf("Error creating user: %v", err)
+		log.Printf("Error creating user with username %s and email %s: %v", registerReq.Username, utils.MaskEmail(registerReq.Email), err)
 		// Check for specific database errors
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			if strings.Contains(err.Error(), "users.email") {
-				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Register: Email already registered"})
+				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Email already registered"})
 				return
 			}
 			if strings.Contains(err.Error(), "users.name") {
-				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Register: Username already taken"})
+				c.AbortWithStatusJSON(http.StatusConflict, gin.H{"error": "Username already taken"})
 				return
 			}
 		}
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Register: Failed to create user"})
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
 	// Create verification token
 	token, err := db.CreateVerificationToken(repo, c.Request.Context(), user.ID, user.Email)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Register: Failed to create verification token"})
+		log.Printf("Failed to create verification token for new user %s (email: %s): %v", user.ID, utils.MaskEmail(user.Email), err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create verification token"})
 		return
 	}
 
 	// Send verification email
 	cfg := middleware.GetConfig(c)
 	if err := email.SendVerificationEmail(cfg, user.Email, token); err != nil {
-		log.Printf("Failed to send verification email: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Register: Failed to send verification email"})
+		log.Printf("Failed to send verification email to new user %s (email: %s): %v", user.ID, utils.MaskEmail(user.Email), err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
 		return
 	}
 

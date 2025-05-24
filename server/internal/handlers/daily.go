@@ -19,17 +19,18 @@ func HandleGetDaily(c *gin.Context) {
 	now := time.Now()
 	todayStr := utils.GetFormattedDate(now)
 	userID := middleware.GetUserID(c)
+	user := middleware.GetUser(c)
 
 	if repo == nil {
-		log.Println("Database connection is nil")
+		log.Printf("Database connection is nil for user %s (email: %s)", userID, utils.MaskEmail(user.Email))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
 		return
 	}
 
 	alreadySubmittedToday, err := db.CheckHasSubmittedForDay(repo, c.Request.Context(), userID, todayStr)
-
 	if err != nil {
-		log.Printf("Error checking existing submission for user %s, day %s: %v", userID, todayStr, err)
+		log.Printf("Error checking existing submission for user %s (email: %s), day %s: %v",
+			userID, utils.MaskEmail(user.Email), todayStr, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error checking submission status"})
 		return
 	}
@@ -37,7 +38,7 @@ func HandleGetDaily(c *gin.Context) {
 	prompt, err := db.GetDailyPromptFromDB(repo, c.Request.Context(), todayStr)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			log.Printf("No daily prompt found for today")
+			log.Printf("No daily prompt found for today (%s)", todayStr)
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "There is no daily prompt for today."})
 			return
 		} else {
@@ -55,7 +56,8 @@ func HandleGetDaily(c *gin.Context) {
 		Prompt:      prompt.Prompt,
 	}
 
-	log.Printf("Already submitted? %t", alreadySubmittedToday)
+	log.Printf("Retrieved daily prompt for user %s (email: %s) - Already submitted: %t",
+		userID, utils.MaskEmail(user.Email), alreadySubmittedToday)
 
 	c.JSON(http.StatusOK, response)
 }
@@ -66,6 +68,7 @@ type CanvasSubmission struct {
 
 func HandlePostDaily(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	user := middleware.GetUser(c)
 	now := time.Now()
 	todayStr := utils.GetFormattedDate(now)
 	repo := middleware.GetDB(c)
@@ -73,28 +76,32 @@ func HandlePostDaily(c *gin.Context) {
 
 	alreadySubmittedToday, err := db.CheckHasSubmittedForDay(repo, ctx, userID, todayStr)
 	if err != nil {
-		log.Printf("Error checking existing submission for user %s, day %s: %v", userID, todayStr, err)
+		log.Printf("Error checking existing submission for user %s (email: %s), day %s: %v",
+			userID, utils.MaskEmail(user.Email), todayStr, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error checking submission status"})
 		return
 	}
 
 	if alreadySubmittedToday {
-		log.Printf("Additional submit attempt for user %s, day %s", userID, todayStr)
+		log.Printf("Additional submit attempt for user %s (email: %s), day %s",
+			userID, utils.MaskEmail(user.Email), todayStr)
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "You have already submitted a drawing today"})
 		return
 	}
 
 	var submission CanvasSubmission
 	if err := c.ShouldBindJSON(&submission); err != nil {
-		log.Printf("Error binding JSON for user %s: %v", userID, err)
+		log.Printf("Error binding JSON for user %s (email: %s): %v",
+			userID, utils.MaskEmail(user.Email), err)
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid submission data"})
 		return
 	}
 
 	// Validate that the canvas data is valid JSON
-	var canvasData interface{}
+	var canvasData any
 	if err := json.Unmarshal(submission.CanvasData, &canvasData); err != nil {
-		log.Printf("Invalid canvas data JSON from user %s: %v", userID, err)
+		log.Printf("Invalid canvas data JSON from user %s (email: %s): %v",
+			userID, utils.MaskEmail(user.Email), err)
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid canvas data format"})
 		return
 	}
@@ -106,12 +113,14 @@ func HandlePostDaily(c *gin.Context) {
     `
 	_, err = repo.ExecContext(ctx, insertSQL, userID, todayStr, string(submission.CanvasData))
 	if err != nil {
-		log.Printf("Failed to insert submission record for user %s, day %s: %v", userID, todayStr, err)
+		log.Printf("Failed to insert submission record for user %s (email: %s), day %s: %v",
+			userID, utils.MaskEmail(user.Email), todayStr, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error: Failed to record submission."})
 		return
 	}
 
-	log.Printf("User %s successfully submitted drawing for %s", userID, todayStr)
+	log.Printf("User %s (email: %s) successfully submitted drawing for %s",
+		userID, utils.MaskEmail(user.Email), todayStr)
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Drawing submitted successfully for today.",
 		"day":     todayStr,
