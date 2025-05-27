@@ -1,8 +1,9 @@
+-- Drop tables in correct order (dependent tables first)
+DROP TABLE IF EXISTS verification_tokens;
 DROP TABLE IF EXISTS friendships;
 DROP TABLE IF EXISTS user_submissions;
 DROP TABLE IF EXISTS daily_prompts;
 DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS verification_tokens;
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
@@ -27,7 +28,7 @@ CREATE TABLE IF NOT EXISTS user_submissions (
     day TEXT NOT NULL,
     canvas_data TEXT NOT NULL, -- Store as JSON string containing drawing data
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, day)
 );
 
@@ -36,8 +37,8 @@ CREATE TABLE IF NOT EXISTS friendships (
     user_id TEXT NOT NULL,
     friend_id TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (friend_id) REFERENCES users(id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, friend_id)
 );
 
@@ -60,7 +61,7 @@ CREATE INDEX IF NOT EXISTS idx_verification_tokens_user_id ON verification_token
 CREATE INDEX IF NOT EXISTS idx_verification_tokens_email ON verification_tokens(email);
 
 -- Insert initial users
-INSERT OR IGNORE INTO users (id, name, email) VALUES 
+INSERT OR IGNORE INTO users (id, username, email) VALUES 
     (lower(hex(randomblob(16))), 'Alice', 'alice@example.com'),
     (lower(hex(randomblob(16))), 'Bob', 'bob@example.com');
 

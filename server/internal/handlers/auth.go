@@ -7,15 +7,18 @@ import (
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
 	"errors"
+	"io"
 	"log"
 	"net/http"
 	"time"
+
+	"bytes"
 
 	"github.com/gin-gonic/gin"
 )
 
 type RegisterRequest struct {
-	Username string `json:"name" binding:"required,name"`
+	Username string `json:"username" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
 }
 
@@ -106,11 +109,30 @@ func HandleLogin(c *gin.Context) {
 }
 
 func HandleRegister(c *gin.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("Recovered from panic in HandleRegister: %v", r)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
+		}
+	}()
+
 	log.Printf("HandleRegister called")
+
+	// Log the raw request body
+	body, err := c.GetRawData()
+	if err != nil {
+		log.Printf("Failed to read request body: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
+		return
+	}
+	log.Printf("Raw request body: %s", string(body))
+
+	// Restore the body for binding
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
 
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Printf("Failed to bind JSON in HandleRegister: %v", err)
+		log.Printf("Failed to bind JSON in HandleRegister. Error: %v, Body: %s", err, string(body))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}

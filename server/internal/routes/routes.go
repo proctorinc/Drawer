@@ -36,26 +36,28 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			c.File("./frontend/index.html")
 		})
 	}
-	serverGroup := router.Group("/api/v1")
-	serverGroup.POST("/register", handlers.HandleRegister)
-	serverGroup.POST("/login", handlers.HandleLogin)
-	log.Printf("Serving static files from '%s' at route 'server/uploads'", cfg.UploadDir)
 
-	// Authenticated group
-	authGroup := serverGroup.Group("/")
-	authGroup.Use(middleware.AuthMiddleware(repo))
+	// API routes
+	apiGroup := router.Group("/api/v1")
 	{
-		authGroup.POST("/logout", handlers.HandleLogout)
-		authGroup.POST("/add-friend/:friendID", handlers.HandleAddFriend)
-		authGroup.GET("/daily", handlers.HandleGetDaily)
-		authGroup.POST("/daily", handlers.HandlePostDaily)
-		authGroup.GET("/me", handlers.HandleGetUser)
-		authGroup.Static("/uploads", cfg.UploadDir)
+		// Auth routes
+		apiGroup.POST("/register", handlers.HandleRegister)
+		apiGroup.POST("/login", handlers.HandleLogin)
+		apiGroup.GET("/verify", handlers.HandleVerifyEmail)
+
+		// Authenticated routes
+		authGroup := apiGroup.Group("/")
+		authGroup.Use(middleware.AuthMiddleware(repo))
+		{
+			authGroup.POST("/logout", handlers.HandleLogout)
+			authGroup.POST("/add-friend/:friendID", handlers.HandleAddFriend)
+			authGroup.GET("/daily", handlers.HandleGetDaily)
+			authGroup.POST("/daily", handlers.HandlePostDaily)
+			authGroup.GET("/me", handlers.HandleGetUser)
+			authGroup.Static("/uploads", cfg.UploadDir)
+		}
 	}
 
-	// Auth routes
-	router.POST("/api/auth/login", handlers.HandleLogin)
-	router.GET("/api/auth/verify", handlers.HandleVerifyEmail)
-
+	log.Printf("Serving static files from '%s' at route 'server/uploads'", cfg.UploadDir)
 	return router
 }
