@@ -42,7 +42,7 @@ func HandleVerifyEmail(c *gin.Context) {
 	}
 
 	// Set the auth cookie
-	c.SetCookie("auth", user.ID, 30*24*60*60, "/", "", true, true)
+	c.SetCookie("user_id", user.ID, 30*24*60*60, "/", "", true, true)
 
 	// Redirect to the app
 	c.Redirect(http.StatusSeeOther, "/app/")
