@@ -39,7 +39,7 @@ func HandleGetDaily(c *gin.Context) {
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Printf("No daily prompt found for today (%s)", todayStr)
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "There is no daily prompt for today."})
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "There is no daily prompt for today."})
 			return
 		} else {
 			// Other database error

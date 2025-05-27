@@ -5,12 +5,14 @@ import { useProfile } from '@/profile/UserProfileContext';
 type DailyPromptContextType = {
     dailyPrompt: DailyPrompt | null;
     submitPrompt: (canvasData: string) => Promise<void>;
+    isFetching: boolean;
 };
 
 const DailyPromptContext = createContext<DailyPromptContextType | undefined>(undefined);
 
 export const DailyPromptProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [dailyPrompt, setDailyPrompt] = useState<DailyPrompt | null>(null);
+    const [isFetching, setIsFetching] = useState(true);
     const { reloadUser } = useProfile();
 
     const submitPrompt = async (canvasData: string) => {
@@ -19,11 +21,11 @@ export const DailyPromptProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     useEffect(() => {
-        fetchDailyPrompt().then(setDailyPrompt);
+        fetchDailyPrompt().then(setDailyPrompt).finally(() => setIsFetching(false));
     }, []);
 
     return (
-        <DailyPromptContext.Provider value={{ dailyPrompt, submitPrompt }}>
+        <DailyPromptContext.Provider value={{ dailyPrompt, submitPrompt, isFetching }}>
             {children}
         </DailyPromptContext.Provider>
     );

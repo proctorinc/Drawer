@@ -15,7 +15,7 @@ import { Config } from './config/Config';
 function App() {
   const navigate = useNavigate();
   const { userProfile } = useProfile();
-  const { dailyPrompt, submitPrompt } = useDailyPrompt();
+  const { dailyPrompt, submitPrompt, isFetching } = useDailyPrompt();
   const { canvasRef, canUndo, clearCanvas } = useDrawing();
   const [error, setError] = useState("");
   const formattedDate = dailyPrompt ? new Date(dailyPrompt.day).toLocaleDateString('en-US', {
@@ -48,22 +48,22 @@ function App() {
     }
   }
 
-    if (dailyPrompt && userProfile && dailyPrompt.isCompleted) {
-      return (
-          <div className="flex flex-col items-center p-2 gap-4 bg-gray-100 pb-10 min-h-screen">
-              <div className="flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md p-4 w-full max-w-md">
-                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    <CountDownTimer />
-                    <p className="text-sm text-gray-500">Next prompt</p>
-                  </div>
-                  <UserProfileIcon user={userProfile.user} onClick={() => navigate({ to: '/app/user-profile' })} />
-              </div>
-              <SubmissionFeedList />
-          </div>
-      );
-    }
-
+  if (dailyPrompt && userProfile && dailyPrompt.isCompleted) {
     return (
+        <div className="flex flex-col items-center p-2 gap-4 bg-gray-100 pb-10 min-h-screen">
+            <div className="flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md p-4 w-full max-w-md">
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  <CountDownTimer />
+                  <p className="text-sm text-gray-500">Next prompt</p>
+                </div>
+                <UserProfileIcon user={userProfile.user} onClick={() => navigate({ to: '/app/user-profile' })} />
+            </div>
+            <SubmissionFeedList />
+        </div>
+    );
+  }
+
+  return (
       <>
         {!dailyPrompt || !userProfile && (
             <div className="absolute flex flex-col items-center justify-center h-screen w-full dark:bg-gray-100">
@@ -72,20 +72,30 @@ function App() {
         )}
         <div className="flex flex-col items-center p-2 gap-4 bg-gray-100 pb-10 min-h-screen">
             <div className="flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md p-4 w-full max-w-md">
-                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  <h1>Draw {dailyPrompt?.prompt}</h1>
-                  <p className="text-sm text-gray-500">
-                    {formattedDate}
-                  </p>
-                </div>
+                {!isFetching && !dailyPrompt ? (
+                  <></>
+                ) : (
+                  <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    <h1>Draw {dailyPrompt?.prompt}</h1>
+                    <p className="text-sm text-gray-500">
+                      {formattedDate}
+                    </p>
+                  </div>
+                )}
                 <UserProfileIcon user={userProfile?.user} onClick={() => navigate({ to: '/app/user-profile' })} />
             </div>
             <Canvas ref={canvasRef} />
             <div className="flex gap-2 justify-center items-center border border-gray-200 rounded-2xl bg-gray-200 px-4 py-2 w-full max-w-md text-gray-500">
               <FontAwesomeIcon icon={faInfoCircle} />
-              <p className="text-sm">
-                Use today's three colors to draw the prompt
-              </p>
+              {!isFetching && !dailyPrompt ? (
+                <p className="text-sm">
+                  There's no prompt for today
+                </p>
+              ) : (
+                <p className="text-sm">
+                  Use today's three colors to draw the prompt
+                </p>
+              )}
             </div>
             <Toolbar />
             {error && <p className="text-center text-red-500">{error}</p>}

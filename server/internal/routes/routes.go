@@ -50,7 +50,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 		authGroup.Use(middleware.AuthMiddleware(repo))
 		{
 			authGroup.POST("/logout", handlers.HandleLogout)
-			authGroup.POST("/add-friend/:friendID", handlers.HandleAddFriend)
+			authGroup.POST("/add-friend", handlers.HandleAddFriend)
 			authGroup.GET("/daily", handlers.HandleGetDaily)
 			authGroup.POST("/daily", handlers.HandlePostDaily)
 			authGroup.GET("/me", handlers.HandleGetUser)
