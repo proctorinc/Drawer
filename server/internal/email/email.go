@@ -1,16 +1,15 @@
 package email
 
 import (
+	"drawer-service-backend/internal/config"
 	"fmt"
 
-	"drawer-service-backend/internal/config"
-
-	"github.com/resend/resend-go/v2"
+	"gopkg.in/gomail.v2"
 )
 
 func SendVerificationEmail(cfg *config.Config, toEmail string, token string) error {
 	// Create verification URL
-	verifyURL := fmt.Sprintf("%s/api/auth/verify?token=%s", cfg.BaseURL, token)
+	verifyURL := fmt.Sprintf("%s/api/v1/verify?token=%s", cfg.BaseURL, token)
 
 	// Create email HTML
 	html := fmt.Sprintf(`
@@ -25,17 +24,18 @@ func SendVerificationEmail(cfg *config.Config, toEmail string, token string) err
 		</html>
 	`, verifyURL)
 
-	client := resend.NewClient(cfg.ResendAPIKey)
+	// Create new message
+	m := gomail.NewMessage()
+	m.SetHeader("From", cfg.FromEmail)
+	m.SetHeader("To", toEmail)
+	m.SetHeader("Subject", "Verify your Drawer account")
+	m.SetBody("text/html", html)
 
-	params := &resend.SendEmailRequest{
-		From:    cfg.FromEmail,
-		To:      []string{toEmail},
-		Subject: "Verify your Drawer account",
-		Html:    html,
-	}
+	// Create dialer
+	d := gomail.NewDialer("smtp.gmail.com", 587, cfg.FromEmail, cfg.GmailAppPassword)
 
-	_, err := client.Emails.Send(params)
-	if err != nil {
+	// Send email
+	if err := d.DialAndSend(m); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 

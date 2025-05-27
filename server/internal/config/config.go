@@ -9,14 +9,14 @@ import (
 )
 
 type Config struct {
-	Port          string
-	DatabaseURL   string
-	UploadDir     string
-	AllowedOrigin string
-	Env           string
-	ResendAPIKey  string
-	FromEmail     string
-	BaseURL       string
+	Port             string
+	DatabaseURL      string
+	UploadDir        string
+	AllowedOrigin    string
+	Env              string
+	FromEmail        string
+	BaseURL          string
+	GmailAppPassword string // App password for Gmail SMTP
 }
 
 func LoadConfig() *Config {
@@ -43,14 +43,14 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		Port:          getEnv("PORT", "8080"),
-		DatabaseURL:   dbURL,
-		UploadDir:     getEnv("UPLOAD_DIR", "./uploads"),
-		AllowedOrigin: getEnv("ALLOWED_ORIGINS", "http://localhost:1234"),
-		Env:           env,
-		ResendAPIKey:  getEnv("RESEND_API_KEY", "<resend api key>"),
-		FromEmail:     getEnv("FROM_EMAIL", "noreply@drawer.app"),
-		BaseURL:       getEnv("BASE_URL", "http://localhost:3000"),
+		Port:             getEnv("PORT", "8080"),
+		DatabaseURL:      dbURL,
+		UploadDir:        getEnv("UPLOAD_DIR", "./uploads"),
+		AllowedOrigin:    getEnv("ALLOWED_ORIGINS", "http://localhost:1234"),
+		Env:              env,
+		FromEmail:        getEnv("FROM_EMAIL", "your.email@gmail.com"),
+		BaseURL:          getEnv("BASE_URL", "http://localhost:3000"),
+		GmailAppPassword: getEnv("GMAIL_APP_PASSWORD", ""),
 	}
 }
 
