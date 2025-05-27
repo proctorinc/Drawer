@@ -46,7 +46,7 @@ func LoadConfig() *Config {
 		Port:             getEnv("PORT", "8080"),
 		DatabaseURL:      dbURL,
 		UploadDir:        getEnv("UPLOAD_DIR", "./uploads"),
-		AllowedOrigin:    getEnv("ALLOWED_ORIGINS", "http://localhost:1234"),
+		AllowedOrigin:    getEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
 		Env:              env,
 		FromEmail:        getEnv("FROM_EMAIL", "your.email@gmail.com"),
 		BaseURL:          getEnv("BASE_URL", "http://localhost:3000"),

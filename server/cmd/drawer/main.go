@@ -7,7 +7,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"os"
 )
 
 func main() {
@@ -18,12 +17,6 @@ func main() {
 		log.Fatalf("CRITICAL: Database initialization failed: %v", err)
 	}
 
-	// if cfg.Env == "production" {
-	// 	if err := db.InitializeSchema(repo); err != nil {
-	// 		log.Fatalf("failed to initialize database schema: %v", err)
-	// 	}
-	// }
-
 	// Defer closing the database connection pool on application exit
 	defer func() {
 		if err := repo.Close(); err != nil {
@@ -32,12 +25,6 @@ func main() {
 			log.Println("Database connection pool closed.")
 		}
 	}()
-
-	// --- Upload Directory Check ---
-	if err := os.MkdirAll(cfg.UploadDir, os.ModePerm); err != nil {
-		log.Fatalf("CRITICAL: Failed to create base upload directory '%s': %v", cfg.UploadDir, err)
-	}
-	log.Printf("Upload directory set to: %s", cfg.UploadDir)
 
 	if cfg.Env == "development" {
 		log.Println("Running in development mode")

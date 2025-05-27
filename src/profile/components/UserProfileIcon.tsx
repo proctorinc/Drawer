@@ -10,7 +10,13 @@ type Props = {
 
 export const UserProfileIcon:FC<Props> = ({ user, onClick, className }) => {
     if (!user) {
-        return <></>;
+        return (
+          <div
+            className={cn("w-12 h-12 bg-gradient-to-tr from-blue-600 to-purple-600 animate-spin cursor-pointer select-none rounded-full font-semibold flex items-center justify-center hover:opacity-80 hover:scale-110 transition-all duration-300", className)}
+          >
+            <p className="text-lg"></p>
+          </div>
+        );
     }
 
     const name = getTwoCapitalLetters(user.username);

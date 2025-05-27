@@ -11,6 +11,7 @@ import Canvas from './drawing/Canvas';
 import { UserProfileIcon } from './profile/components/UserProfileIcon';
 import { useState } from 'react';
 import { Config } from './config/Config';
+import { cn } from './utils';
 
 function App() {
   const navigate = useNavigate();
@@ -58,7 +59,7 @@ function App() {
                 </div>
                 <UserProfileIcon user={userProfile.user} onClick={() => navigate({ to: '/app/user-profile' })} />
             </div>
-            <SubmissionFeedList />
+            <SubmissionFeedList isLoading={isFetching} />
         </div>
     );
   }
@@ -73,10 +74,10 @@ function App() {
         <div className="flex flex-col items-center p-2 gap-4 bg-gray-100 pb-10 min-h-screen">
             <div className="flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md p-4 w-full max-w-md">
                 {!isFetching && !dailyPrompt ? (
-                  <></>
+                  <div className="h-12 bg-gray-600 w-48 rounded-lg"></div>
                 ) : (
                   <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    <h1>Draw {dailyPrompt?.prompt}</h1>
+                    <h1>Draw {dailyPrompt?.prompt.toLowerCase()}</h1>
                     <p className="text-sm text-gray-500">
                       {formattedDate}
                     </p>
@@ -84,7 +85,7 @@ function App() {
                 )}
                 <UserProfileIcon user={userProfile?.user} onClick={() => navigate({ to: '/app/user-profile' })} />
             </div>
-            <Canvas ref={canvasRef} />
+            <Canvas className={cn(!isFetching && !dailyPrompt?.isCompleted && "invisible")} ref={canvasRef} />
             <div className="flex gap-2 justify-center items-center border border-gray-200 rounded-2xl bg-gray-200 px-4 py-2 w-full max-w-md text-gray-500">
               <FontAwesomeIcon icon={faInfoCircle} />
               {!isFetching && !dailyPrompt ? (

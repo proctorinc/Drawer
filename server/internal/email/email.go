@@ -3,6 +3,7 @@ package email
 import (
 	"drawer-service-backend/internal/config"
 	"fmt"
+	"log"
 
 	"gopkg.in/gomail.v2"
 )
@@ -10,6 +11,11 @@ import (
 func SendVerificationEmail(cfg *config.Config, toEmail string, token string) error {
 	// Create verification URL
 	verifyURL := fmt.Sprintf("%s/api/v1/verify?token=%s", cfg.BaseURL, token)
+
+	if cfg.Env != "production" {
+		log.Printf("Skipping email sending in development mode. Verify URL: %s", verifyURL)
+		return nil
+	}
 
 	// Create email HTML
 	html := fmt.Sprintf(`

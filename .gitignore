@@ -11,3 +11,5 @@ server/tmp/
 server/uploads/
 server/uploads/*
 .cursor
+*.db
+*.db*

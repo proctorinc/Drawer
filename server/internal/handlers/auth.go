@@ -41,8 +41,7 @@ func HandleVerifyEmail(c *gin.Context) {
 		return
 	}
 
-	// Set the auth cookie
-	c.SetCookie("user_id", user.ID, 30*24*60*60, "/", "", true, true)
+	setAuthCookie(c, user.ID)
 
 	// Redirect to the app
 	c.Redirect(http.StatusSeeOther, "/app/")
@@ -50,6 +49,8 @@ func HandleVerifyEmail(c *gin.Context) {
 
 func HandleLogin(c *gin.Context) {
 	log.Printf("HandleLogin called")
+
+	cfg := middleware.GetConfig(c)
 
 	var loginReq struct {
 		Email string `json:"email" binding:"required,email"`
@@ -86,6 +87,13 @@ func HandleLogin(c *gin.Context) {
 		return
 	}
 
+	// Skip email verification for development environment
+	if cfg.Env != "production" {
+		setAuthCookie(c, user.ID)
+		c.Redirect(http.StatusSeeOther, "/app/")
+		return
+	}
+
 	// Create verification token
 	token, err := db.CreateVerificationToken(repo, ctx, user.ID, user.Email)
 	if err != nil {
@@ -93,9 +101,6 @@ func HandleLogin(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create verification token"})
 		return
 	}
-
-	// Get config for email
-	cfg := middleware.GetConfig(c)
 
 	// Send verification email
 	if err := email.SendVerificationEmail(cfg, user.Email, token); err != nil {
@@ -171,19 +176,20 @@ func HandleRegister(c *gin.Context) {
 		return
 	}
 
+	cfg := middleware.GetConfig(c)
+
+	// Skip email verification for development environment
+	if cfg.Env != "production" {
+		setAuthCookie(c, user.ID)
+		c.Redirect(http.StatusSeeOther, "/app/")
+		return
+	}
+
 	// Create verification token
 	token, err := db.CreateVerificationToken(repo, ctx, user.ID, user.Email)
 	if err != nil {
 		log.Printf("Failed to create verification token: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create verification token"})
-		return
-	}
-
-	// Get config for email
-	cfg := middleware.GetConfig(c)
-	if cfg == nil {
-		log.Printf("Config is nil in HandleRegister")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Configuration error"})
 		return
 	}
 
@@ -199,6 +205,15 @@ func HandleRegister(c *gin.Context) {
 }
 
 func HandleLogout(c *gin.Context) {
+	removeAuthCookie(c)
+	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
+}
+
+func setAuthCookie(c *gin.Context, token string) {
+	c.SetCookie("user_id", token, 30*24*60*60, "/", "", true, true)
+}
+
+func removeAuthCookie(c *gin.Context) {
 	cookie := &http.Cookie{
 		Name:     "user_id",
 		Value:    "",
@@ -210,5 +225,4 @@ func HandleLogout(c *gin.Context) {
 	}
 
 	http.SetCookie(c.Writer, cookie)
-	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }

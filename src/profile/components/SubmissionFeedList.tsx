@@ -3,9 +3,24 @@ import { useProfile } from '../UserProfileContext';
 import { UserProfileIcon } from './UserProfileIcon';
 import { CanvasRenderer } from '@/drawing/components/CanvasRenderer';
 
-export const SubmissionFeedList: React.FC = () => {
+type Props = {
+    isLoading: boolean
+}
+
+export const SubmissionFeedList: React.FC<Props> = ({ isLoading }) => {
     const { userProfile } = useProfile();
     const feed = userProfile?.feed || {};
+
+    if (isLoading) {
+        return (
+            <div className="flex flex-col gap-4 w-full max-w-md">
+                <div className="flex flex-col animate-pulse w-[50%] h-12 rounded-2xl bg-gray-200"></div>
+                <div className="flex flex-col animate-pulse aspect-square rounded-2xl bg-gray-200"></div>
+                <div className="flex flex-col animate-pulse aspect-square rounded-2xl bg-gray-200"></div>
+                <div className="flex flex-col animate-pulse aspect-square rounded-2xl bg-gray-200"></div>
+            </div>
+        )
+    }
 
     return (
         <div className="flex flex-col gap-4 w-full max-w-md">
@@ -25,15 +40,15 @@ export const SubmissionFeedList: React.FC = () => {
                     return (
                         <div key={date} className="flex flex-col gap-2">
                             <div className="text-2xl font-bold text-gray-900">
-                                <h2>Draw {submissions[0].prompt}</h2>
+                                <h2>Draw {submissions[0].prompt.toLowerCase()}</h2>
                                 <p className="text-sm text-gray-500">{formattedDate}</p>
                             </div>
-                            <div className="flex gap-4 w-full max-w-md overflow-scroll">
+                            <div className="flex flex-col gap-4">
                                 {submissions.map((submission) => (
-                                    <div key={submission.day} className="relative bg-white border border-gray-300 rounded-2xl w-[448px]">
+                                    <div key={submission.day} className="relative bg-white border border-gray-300 rounded-2xl">
                                         <CanvasRenderer 
                                             canvasData={submission.canvasData}
-                                            className="w-full h-auto rounded-2xl"
+                                            className="rounded-2xl"
                                         />
                                         <UserProfileIcon user={submission.user} className="absolute top-2 right-2" />
                                     </div>
