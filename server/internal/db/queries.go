@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha1"
 	"database/sql"
 	"drawer-service-backend/internal/utils"
@@ -322,8 +323,12 @@ func CheckHasSubmittedForDay(repo *sql.DB, ctx context.Context, userID string, t
 }
 
 func CreateVerificationToken(repo *sql.DB, ctx context.Context, userID string, email string) (string, error) {
-	// Generate a random token
-	token := hex.EncodeToString(make([]byte, 32))
+	// Generate a random token using crypto/rand
+	tokenBytes := make([]byte, 32)
+	if _, err := rand.Read(tokenBytes); err != nil {
+		return "", fmt.Errorf("failed to generate random token: %w", err)
+	}
+	token := hex.EncodeToString(tokenBytes)
 
 	// Set expiration to 1 hour from now
 	expiresAt := time.Now().Add(1 * time.Hour)
