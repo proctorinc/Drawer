@@ -52,7 +52,7 @@ func HandleAddFriend(c *gin.Context) {
 	// Insert the friendship into the database
 	insertSQL := `
 		INSERT INTO friendships (user_id, friend_id)
-		VALUES ($1, $2)
+		VALUES (?, ?)
 		ON CONFLICT (user_id, friend_id) DO NOTHING
 	`
 	_, err := repo.ExecContext(c.Request.Context(), insertSQL, requester.ID, friendID)

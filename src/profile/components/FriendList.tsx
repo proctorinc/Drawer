@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useProfile } from "../UserProfileContext";
 import { UserProfileIcon } from "./UserProfileIcon";
-import { faShare } from "@fortawesome/free-solid-svg-icons";
+import { faPlane } from "@fortawesome/free-solid-svg-icons";
 
 export const FriendList = () => {
     const { userProfile } = useProfile();
@@ -34,7 +34,7 @@ export const FriendList = () => {
                     <p className="text-sm text-gray-500">My friends</p>
                 </div>
                 <button className="flex items-center bg-gray-100 text-gray-700 cursor-pointer hover:bg-gray-200 hover:text-gray-900 hover:scale-110 transition-all duration-300 border border-gray-200 justify-center w-10 h-10 rounded-xl border-gray-200" onClick={handleShare}>
-                    <FontAwesomeIcon icon={faShare} />
+                    <FontAwesomeIcon icon={faPlane} />
                 </button>
             </div>
             {userProfile.friends.length === 0 && <div className="border border-gray-200 p-4 bg-gray-100 rounded-2xl">None</div>}
