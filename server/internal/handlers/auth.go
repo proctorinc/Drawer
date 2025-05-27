@@ -157,6 +157,7 @@ func HandleRegister(c *gin.Context) {
 		return
 	}
 	if existingUser != nil {
+		log.Printf("existingUser: %+v", existingUser)
 		log.Printf("User already exists with email: %s", utils.MaskEmail(req.Email))
 		c.JSON(http.StatusConflict, gin.H{"error": "User already exists"})
 		return
