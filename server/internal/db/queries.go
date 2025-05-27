@@ -294,7 +294,11 @@ func GetUserByEmail(repo *sql.DB, ctx context.Context, email string) (*User, err
 	query := `SELECT id, username, email FROM users WHERE email = ?`
 	err := repo.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Username, &user.Email)
 
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func GetUserByID(repo *sql.DB, ctx context.Context, userID string) (*User, error) {
@@ -302,7 +306,11 @@ func GetUserByID(repo *sql.DB, ctx context.Context, userID string) (*User, error
 	query := `SELECT id, username, email FROM users WHERE id = ?`
 	err := repo.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email)
 
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func CheckHasSubmittedForDay(repo *sql.DB, ctx context.Context, userID string, todayStr string) (bool, error) {
@@ -350,5 +358,9 @@ func VerifyToken(repo *sql.DB, ctx context.Context, token string) (*User, error)
 	// Delete the used token
 	_, err = repo.ExecContext(ctx, "DELETE FROM verification_tokens WHERE token = ?", token)
 
-	return &user, err
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
