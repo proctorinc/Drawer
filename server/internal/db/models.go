@@ -20,9 +20,9 @@ type DailyPromptWithCompletion struct {
 
 // User represents basic user profile information.
 type User struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
 }
 
 // UserPromptSubmission combines the daily prompt details with the user's submitted canvas data.

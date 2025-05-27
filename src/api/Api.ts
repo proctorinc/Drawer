@@ -9,7 +9,7 @@ export interface DailyPrompt {
 
 export interface User {
     id: string;
-    name: string;
+    username: string;
     email: string;
 }
 
@@ -53,7 +53,7 @@ export async function fetchUserProfile(): Promise<GetMeResponse> {
     return await response.json() as Promise<GetMeResponse>;
 }
 
-export async function submitDailyPrompt(canvasData: string): Promise<void> {
+export async function submitDailyPrompt(canvasData: string): Promise<{ message: string}> {
     const response = await fetchAPI("POST", "/daily", {
         body: JSON.stringify({ canvasData }),
         headers: {
@@ -65,22 +65,22 @@ export async function submitDailyPrompt(canvasData: string): Promise<void> {
         throw new Error(`Error submitting daily prompt: ${response.statusText}`);
     }
 
-    return await response.json() as Promise<void>;
+    return await response.json() as Promise<{ message: string}>;
 }
 
-export async function createUser(name: string, email: string): Promise<GetMeResponse> {
+export async function createUser(username: string, email: string): Promise<{ message: string}> {
     const response = await fetchAPI("POST", "/register", {
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify({ username, email }),
     });
 
     if (!response.ok) {
         throw new Error(`Error creating user: ${response.statusText}`);
     }
 
-    return await response.json() as Promise<GetMeResponse>;
+    return await response.json() as Promise<{ message: string}>;
 }
 
-export async function loginUser(email: string): Promise<GetMeResponse> {
+export async function loginUser(email: string): Promise<{ message: string}> {
     const response = await fetchAPI("POST", "/login", {
         body: JSON.stringify({ email }),
     });
@@ -89,7 +89,7 @@ export async function loginUser(email: string): Promise<GetMeResponse> {
         throw new Error(`Error logging in: ${response.statusText}`);
     }
 
-    return await response.json() as Promise<GetMeResponse>;
+    return await response.json() as Promise<{ message: string}>;
 }
 
 export async function logoutUser(): Promise<{ message: string }> {

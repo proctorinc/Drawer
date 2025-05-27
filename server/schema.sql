@@ -7,7 +7,7 @@ DROP TABLE IF EXISTS verification_tokens;
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
+    username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -93,11 +93,6 @@ func HandleLogin(c *gin.Context) {
 
 	// Get config for email
 	cfg := middleware.GetConfig(c)
-	if cfg == nil {
-		log.Printf("Config is nil in HandleLogin")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Configuration error"})
-		return
-	}
 
 	// Send verification email
 	if err := email.SendVerificationEmail(cfg, user.Email, token); err != nil {

@@ -13,7 +13,7 @@ export const UserProfileIcon:FC<Props> = ({ user, onClick, className }) => {
         return <></>;
     }
 
-    const name = getTwoCapitalLetters(user.name);
+    const name = getTwoCapitalLetters(user.username);
     const { primary } = nameToColor(name);
 
     return (

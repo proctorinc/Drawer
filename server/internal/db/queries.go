@@ -14,12 +14,12 @@ import (
 )
 
 func GetUserFromDB(repo *sql.DB, ctx context.Context, userID string) (User, error) {
-	query := `SELECT id, name, email FROM users WHERE id = ?`
+	query := `SELECT id, username, email FROM users WHERE id = ?`
 
 	row := repo.QueryRowContext(ctx, query, userID)
 
 	var user User
-	err := row.Scan(&user.ID, &user.Name, &user.Email)
+	err := row.Scan(&user.ID, &user.Username, &user.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return User{}, err
@@ -115,7 +115,7 @@ func GenerateAndInsertDailyPrompt(repo *sql.DB, ctx context.Context, dateStr str
 func GetUserSubmissionsFromDB(repo *sql.DB, ctx context.Context, userID string) ([]UserPromptSubmission, error) {
 	query := `
 	SELECT
-		us.day, us.canvas_data, dp.colors, dp.prompt, u.id, u.name, u.email
+		us.day, us.canvas_data, dp.colors, dp.prompt, u.id, u.username, u.email
 	FROM
 		user_submissions us
 	JOIN
@@ -162,9 +162,9 @@ func GetUserSubmissionsFromDB(repo *sql.DB, ctx context.Context, userID string) 
 
 		// Populate user data
 		submission.User = User{
-			ID:    userID,
-			Name:  userName,
-			Email: userEmail,
+			ID:       userID,
+			Username: userName,
+			Email:    userEmail,
 		}
 
 		submissions = append(submissions, submission)
@@ -176,7 +176,7 @@ func GetUserSubmissionsFromDB(repo *sql.DB, ctx context.Context, userID string) 
 func GetUserAndFriendsSubmissionsFromDB(repo *sql.DB, ctx context.Context, userID string) (map[string][]UserPromptSubmission, error) {
 	query := `
 	SELECT
-		us.day, us.canvas_data, dp.colors, dp.prompt, u.id, u.name, u.email
+		us.day, us.canvas_data, dp.colors, dp.prompt, u.id, u.username, u.email
 	FROM
 		user_submissions us
 	JOIN
@@ -226,9 +226,9 @@ func GetUserAndFriendsSubmissionsFromDB(repo *sql.DB, ctx context.Context, userI
 
 		// Populate user data
 		submission.User = User{
-			ID:    userID,
-			Name:  userName,
-			Email: userEmail,
+			ID:       userID,
+			Username: userName,
+			Email:    userEmail,
 		}
 
 		// Group by day
@@ -245,7 +245,7 @@ func GetUserAndFriendsSubmissionsFromDB(repo *sql.DB, ctx context.Context, userI
 
 func GetUserFriendsFromDB(repo *sql.DB, ctx context.Context, userID string) ([]User, error) {
 	query := `
-		SELECT u.id, u.name, u.email
+		SELECT u.id, u.username, u.email
 		FROM friendships f
 		JOIN users u ON f.friend_id = u.id
 		WHERE f.user_id = ? OR f.friend_id = ?
@@ -260,7 +260,7 @@ func GetUserFriendsFromDB(repo *sql.DB, ctx context.Context, userID string) ([]U
 	var friends []User
 	for rows.Next() {
 		var friend User
-		if err := rows.Scan(&friend.ID, &friend.Name, &friend.Email); err != nil {
+		if err := rows.Scan(&friend.ID, &friend.Username, &friend.Email); err != nil {
 			return nil, err
 		}
 		friends = append(friends, friend)
@@ -277,41 +277,32 @@ func GetUserFriendsFromDB(repo *sql.DB, ctx context.Context, userID string) ([]U
 	return friends, nil
 }
 
-func CreateUser(repo *sql.DB, ctx context.Context, name string, email string) (*User, error) {
+func CreateUser(repo *sql.DB, ctx context.Context, username string, email string) (*User, error) {
 	var user User
 	insertSQL := `
-        INSERT INTO users (id, name, email)
+        INSERT INTO users (id, username, email)
         VALUES (lower(hex(randomblob(16))), ?, ?)
-        RETURNING id, name, email
+        RETURNING id, username, email
     `
-	err := repo.QueryRowContext(ctx, insertSQL, name, email).Scan(&user.ID, &user.Name, &user.Email)
-	if err != nil {
-		log.Printf("Error inserting user: %v", err)
-		return nil, err
-	}
-	return &user, nil
+	err := repo.QueryRowContext(ctx, insertSQL, username, email).Scan(&user.ID, &user.Username, &user.Email)
+
+	return &user, err
 }
 
 func GetUserByEmail(repo *sql.DB, ctx context.Context, email string) (*User, error) {
 	var user User
-	query := `SELECT id, name, email FROM users WHERE email = ?`
-	err := repo.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Name, &user.Email)
-	if err != nil {
-		log.Printf("Error fetching user by email: %v", err)
-		return nil, err
-	}
-	return &user, nil
+	query := `SELECT id, username, email FROM users WHERE email = ?`
+	err := repo.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Username, &user.Email)
+
+	return &user, err
 }
 
 func GetUserByID(repo *sql.DB, ctx context.Context, userID string) (*User, error) {
 	var user User
-	query := `SELECT id, name, email FROM users WHERE id = ?`
-	err := repo.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Name, &user.Email)
-	if err != nil {
-		log.Printf("Error fetching user by ID: %v", err)
-		return nil, err
-	}
-	return &user, nil
+	query := `SELECT id, username, email FROM users WHERE id = ?`
+	err := repo.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email)
+
+	return &user, err
 }
 
 func CheckHasSubmittedForDay(repo *sql.DB, ctx context.Context, userID string, todayStr string) (bool, error) {
@@ -319,12 +310,7 @@ func CheckHasSubmittedForDay(repo *sql.DB, ctx context.Context, userID string, t
 	var hasSubmitted bool
 	err := repo.QueryRowContext(ctx, checkQuery, userID, todayStr).Scan(&hasSubmitted)
 
-	if err != nil {
-		log.Printf("Error getting user submission")
-		return false, err
-	}
-
-	return hasSubmitted, nil
+	return hasSubmitted, err
 }
 
 func CreateVerificationToken(repo *sql.DB, ctx context.Context, userID string, email string) (string, error) {
@@ -340,23 +326,20 @@ func CreateVerificationToken(repo *sql.DB, ctx context.Context, userID string, e
     `
 
 	_, err := repo.ExecContext(ctx, query, token, userID, email, expiresAt)
-	if err != nil {
-		return "", fmt.Errorf("failed to create verification token: %w", err)
-	}
 
-	return token, nil
+	return token, err
 }
 
 func VerifyToken(repo *sql.DB, ctx context.Context, token string) (*User, error) {
 	query := `
-        SELECT u.id, u.name, u.email
+        SELECT u.id, u.username, u.email
         FROM verification_tokens vt
         JOIN users u ON vt.user_id = u.id
         WHERE vt.token = ? AND vt.expires_at > CURRENT_TIMESTAMP
     `
 
 	var user User
-	err := repo.QueryRowContext(ctx, query, token).Scan(&user.ID, &user.Name, &user.Email)
+	err := repo.QueryRowContext(ctx, query, token).Scan(&user.ID, &user.Username, &user.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("invalid or expired token")
@@ -366,17 +349,6 @@ func VerifyToken(repo *sql.DB, ctx context.Context, token string) (*User, error)
 
 	// Delete the used token
 	_, err = repo.ExecContext(ctx, "DELETE FROM verification_tokens WHERE token = ?", token)
-	if err != nil {
-		log.Printf("Warning: Failed to delete used token: %v", err)
-	}
 
-	return &user, nil
-}
-
-func CleanupExpiredTokens(repo *sql.DB, ctx context.Context) error {
-	_, err := repo.ExecContext(ctx, "DELETE FROM verification_tokens WHERE expires_at <= CURRENT_TIMESTAMP")
-	if err != nil {
-		return fmt.Errorf("failed to cleanup expired tokens: %w", err)
-	}
-	return nil
+	return &user, err
 }

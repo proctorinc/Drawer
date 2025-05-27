@@ -4,8 +4,8 @@ import { createUser, loginUser, logoutUser, fetchUserProfile, type GetMeResponse
 
 type UserProfileContextType = {
     userProfile: GetMeResponse | null;
-    createUserProfile: (name: string, email: string) => Promise<void>;
-    loginUserProfile: (email: string) => Promise<void>;
+    createUserProfile: (username: string, email: string) => Promise<{ message: string }>;
+    loginUserProfile: (email: string) => Promise<{ message: string }>;
     logout: () => Promise<void>;
     reloadUser: () => Promise<void>;
 }
@@ -50,21 +50,14 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
             });
     };
 
-    const createUserProfile = async (name: string, email: string) => {
-        return await createUser(name, email)
-        .then((profile) => {
-            setUserProfile(profile);
-            navigate({ to: '/app' });
-        }).catch(() => {
+    const createUserProfile = async (username: string, email: string) => {
+        return await createUser(username, email).catch(() => {
             throw new Error("Email and Username must be unique");
         });
     }
     
     const loginUserProfile = async (email: string) => {
-        return loginUser(email).then((profile) => {
-            setUserProfile(profile);
-            navigate({ to: '/app' });
-        }).catch(() => {
+        return loginUser(email).catch(() => {
             throw new Error("Invalid login");
         });
     }
@@ -81,7 +74,7 @@ export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({ c
         loadUserProfile();
     }, []);
 
-    const data = {
+    const data: UserProfileContextType = {
         userProfile,
         createUserProfile,
         loginUserProfile,

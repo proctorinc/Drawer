@@ -6,7 +6,7 @@ import React, { useState } from "react";
 
 const CreateProfilePage: React.FC = () => {
     const { createUserProfile } = useProfile();
-    const [name, setName] = useState("");
+    const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [error, setError] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
@@ -15,7 +15,7 @@ const CreateProfilePage: React.FC = () => {
         e.preventDefault();
         setError("");
         try {
-            await createUserProfile(name, email);
+            await createUserProfile(username, email);
             setIsSubmitted(true);
         } catch (error: any) {
             console.log(error.message);
@@ -50,15 +50,15 @@ const CreateProfilePage: React.FC = () => {
                 <form className="flex flex-col gap-4 bg-white border border-gray-300 rounded-2xl w-full max-w-md p-4" onSubmit={handleSubmit}>
                     {error && <p className="text-center text-red-500">{error}</p>}
                     <div className="flex flex-col gap-2">
-                        <label htmlFor="username" className="text-sm text-gray-700 dark:text-gray-500">Name</label>
+                        <label htmlFor="username" className="text-sm text-gray-700 dark:text-gray-500">Username</label>
                         <div className="border border-gray-200 rounded-2xl">
                             <input
                                 id="username"
                                 type="text"
                                 placeholder="Username"
                                 className="w-full p-4 rounded-2xl"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
+                                value={username}
+                                onChange={(e) => setUsername(e.target.value)}
                                 required
                             />
                         </div>
@@ -80,7 +80,7 @@ const CreateProfilePage: React.FC = () => {
                     <button
                         type="submit"
                         className="flex justify-center cursor-pointer disabled:cursor-default disabled:scale-100 hover:scale-110 transition-all duration-300 text-lg gap-2 items-center bg-gradient-to-tr from-blue-600 to-purple-600 font-bold px-6 py-3 rounded-2xl shadow-md disabled:opacity-50"
-                        disabled={!name || !email}
+                        disabled={!username || !email}
                     >
                         Join
                         <FontAwesomeIcon icon={faArrowRight} />

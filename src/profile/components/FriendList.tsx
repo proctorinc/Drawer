@@ -43,7 +43,7 @@ export const FriendList = () => {
                     {userProfile.friends.map((friend) => (
                         <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-2xl w-full px-4 py-2">
                             <UserProfileIcon user={friend} />
-                            <h3 className="text-lg font-bold">{friend.name}</h3>
+                            <h3 className="text-lg font-bold">{friend.username}</h3>
                         </div>
                     ))}
                 </div>
