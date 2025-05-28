@@ -186,7 +186,7 @@ func GetUserAndFriendsSubmissionsFromDB(repo *sql.DB, ctx context.Context, userI
 		users u ON us.user_id = u.id
 	WHERE
 		us.user_id = ? OR us.user_id IN (
-			SELECT friend_id FROM friendships WHERE user_id = ? OR friend_id = ?
+			SELECT friend_id FROM friendships WHERE user_id = ?
 		)
 	ORDER BY
 		dp.day DESC
@@ -249,7 +249,7 @@ func GetUserFriendsFromDB(repo *sql.DB, ctx context.Context, userID string) ([]U
 		SELECT u.id, u.username, u.email
 		FROM friendships f
 		JOIN users u ON f.friend_id = u.id
-		WHERE f.user_id = ? OR f.friend_id = ?
+		WHERE f.user_id = ?
 	`
 
 	rows, err := repo.QueryContext(ctx, query, userID, userID)

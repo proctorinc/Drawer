@@ -51,11 +51,12 @@ func HandleAddFriend(c *gin.Context) {
 
 	// Insert the friendship into the database
 	insertSQL := `
-		INSERT INTO friendships (user_id, friend_id)
-		VALUES (?, ?)
+		INSERT INTO friendships (user_id, friend_id) VALUES
+			(?, ?),
+			(?, ?),
 		ON CONFLICT (user_id, friend_id) DO NOTHING
 	`
-	_, err := repo.ExecContext(c.Request.Context(), insertSQL, requester.ID, friendID)
+	_, err := repo.ExecContext(c.Request.Context(), insertSQL, requester.ID, friendID, friendID, requester.ID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("Friend ID '%s' not found when user %s (email: %s) attempted to add them: %v",
