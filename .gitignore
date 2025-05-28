@@ -13,3 +13,4 @@ server/uploads/*
 .cursor
 *.db
 *.db*
+*.sample.sql

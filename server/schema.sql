@@ -59,19 +59,3 @@ CREATE INDEX IF NOT EXISTS idx_friendships_user ON friendships (user_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_friend ON friendships (friend_id);
 CREATE INDEX IF NOT EXISTS idx_verification_tokens_user_id ON verification_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_verification_tokens_email ON verification_tokens(email);
-
--- Insert initial users
-INSERT OR IGNORE INTO users (id, username, email) VALUES 
-    (lower(hex(randomblob(16))), 'Alice', 'alice@example.com'),
-    (lower(hex(randomblob(16))), 'Bob', 'bob@example.com');
-
--- Insert daily prompts
-INSERT OR IGNORE INTO daily_prompts (day, colors, prompt) VALUES 
-    ('2025-04-29', '["#123456", "#789abc", "#def123"]', 'A hippopotamus'),
-    ('2025-04-30', '["#123456", "#789abc", "#def123"]', 'A giraffe'),
-    ('2025-05-01', '["#123456", "#789abc", "#def123"]', 'A zebra'),
-    ('2025-05-02', '["#123456", "#789abc", "#def123"]', 'A lion'),
-    ('2025-05-03', '["#123456", "#789abc", "#def123"]', 'A tiger'),
-    ('2025-05-04', '["#123456", "#789abc", "#def123"]', 'A bear'),
-    ('2025-05-05', '["#123456", "#789abc", "#def123"]', 'A fox'),
-    ('2025-05-06', '["#123456", "#789abc", "#def123"]', 'A wolf');

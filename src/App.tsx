@@ -85,7 +85,7 @@ function App() {
                 )}
                 <UserProfileIcon user={userProfile?.user} onClick={() => navigate({ to: '/app/user-profile' })} />
             </div>
-            <Canvas className={cn(!isFetching && !dailyPrompt?.isCompleted && "invisible")} ref={canvasRef} />
+            <Canvas className={cn(isFetching && dailyPrompt?.isCompleted ? "invisible" : "visible")} ref={canvasRef} />
             <div className="flex gap-2 justify-center items-center border border-gray-200 rounded-2xl bg-gray-200 px-4 py-2 w-full max-w-md text-gray-500">
               <FontAwesomeIcon icon={faInfoCircle} />
               {!isFetching && !dailyPrompt ? (

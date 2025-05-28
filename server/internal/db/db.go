@@ -20,7 +20,7 @@ func InitDB(cfg *config.Config) (*sql.DB, error) {
 	var err error
 
 	if cfg.Env == "production" {
-		res, err := initProductionDB()
+		res, err := initProductionDB(cfg)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open database connection: %w", err)
 		}
@@ -56,8 +56,8 @@ func InitDB(cfg *config.Config) (*sql.DB, error) {
 	return db, nil
 }
 
-func initProductionDB() (*sql.DB, error) {
-	db, err := sql.Open("libsql", "file:drawer.db?cache=shared&_journal=WAL&_timeout=5000")
+func initProductionDB(cfg *config.Config) (*sql.DB, error) {
+	db, err := sql.Open("libsql", cfg.DatabaseURL)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)

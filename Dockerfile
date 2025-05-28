@@ -38,14 +38,13 @@ COPY server/ ./
 # -o drawer-service: specifies the output filename
 # ./cmd/drawer/main.go: specifies the entry point relative to the WORKDIR (/app/server)
 # || exit 1: ensures the Docker build fails if the go build command fails
-RUN go build -o drawer-service ./cmd/drawer/main.go || exit 1
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o drawer-service ./cmd/drawer/main.go || exit 1
 
 # Stage 3: Create the final image
-# Using a minimal base image for a smaller final image size
-FROM alpine:latest
+FROM debian:bullseye-slim
 
 # Install necessary tools
-RUN apk update && apk add tzdata && apk add --no-cache file libc6-compat
+RUN apt-get update && apt-get install -y ca-certificates tzdata && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory for the final image
 # This is where the backend binary and frontend files will reside
@@ -65,9 +64,6 @@ COPY --from=frontend-builder /app/frontend/dist ./frontend
 EXPOSE 8080
 
 RUN chmod +x /root/drawer-service
-
-# Check the binary format
-RUN file /root/drawer-service
 
 # Command to run the backend server
 # This executes the binary located at /root/drawer-service
