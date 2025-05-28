@@ -47,7 +47,7 @@ const Feed = () => {
         />
       </Header>
       {!isFetching && !dailyPrompt && (
-        <div className="flex gap-2 justify-center items-center border border-gray-200 rounded-2xl bg-gray-200 px-4 py-2 w-full max-w-md text-gray-500">
+        <div className="flex gap-2 justify-center items-center rounded-2xl border-2 border-border bg-border px-4 py-2 w-full max-w-md font-bold text-primary">
           <FontAwesomeIcon icon={faFrown} />
           <p className="text-sm">
             Sorry, looks like there's no prompt for today

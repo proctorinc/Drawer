@@ -7,20 +7,21 @@ export function cn(...inputs: Array<ClassValue>) {
 }
 
 export function nameToColor(name: string) {
+  const letters = getTwoCapitalLetters(name);
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < letters.length; i++) {
+    hash = letters.charCodeAt(i) + ((hash << 5) - hash);
   }
 
   const hue = ((hash % 360) + 360) % 360;
-  const saturation = 70;
+  const saturation = 50;
   const lightness = 70;
 
-  const primary = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-  const secondary = `hsl(${hue - 180}, ${saturation}%, ${lightness}%)`;
-  const text = '#000000';
-
-  return { primary, secondary, text };
+  return {
+    primary: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+    secondary: `hsl(${hue}, ${saturation}%, 90%)`,
+    text: `hsl(${hue}, ${saturation}%, 30%)`,
+  };
 }
 
 export function getTwoCapitalLetters(input: string): string {

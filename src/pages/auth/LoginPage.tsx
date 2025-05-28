@@ -1,6 +1,7 @@
 import {
   faArrowRight,
   faQuestionCircle,
+  faThumbsUp,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Link } from '@tanstack/react-router';
@@ -8,6 +9,8 @@ import React, { useState } from 'react';
 import { useProfile } from '@/pages/profile/UserProfileContext';
 import { Config } from '@/config/Config';
 import Button from '@/components/Button';
+import Layout from '@/components/Layout';
+import Header from '@/components/Header';
 
 const LoginPage: React.FC = () => {
   const { loginUserProfile } = useProfile();
@@ -30,50 +33,43 @@ const LoginPage: React.FC = () => {
 
   if (isSubmitted) {
     return (
-      <div className="flex flex-col items-center p-4 gap-4 bg-gray-100 min-h-screen">
+      <Layout>
         <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
-          <div className="flex flex-col gap-4 bg-white border border-gray-300 rounded-2xl w-full max-w-md p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900">
+          <div className="bg-card border-2 border-border flex flex-col gap-4  rounded-2xl w-full max-w-md p-8 text-center">
+            <h2 className="text-2xl font-bold text-primary">
               Check your email
             </h2>
-            <p className="text-gray-600">
+            <p className="font-bold text-secondary">
               We've sent a verification link to {email}. Please check your inbox
               and click the link to verify your account.
             </p>
+            <Button icon={faThumbsUp} onClick={() => setIsSubmitted(false)}>
+              Got it
+            </Button>
           </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="flex flex-col items-center p-4 gap-4 bg-gray-100 min-h-screen">
+    <Layout>
       <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
-        <div className="flex justify-between items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-md px-6 py-2 w-full max-w-md font-bold">
-          <div className="flex flex-col">
-            <h1 className="text-2xl text-gray-900 dark:text-gray-100">
-              Welcome!
-            </h1>
-            <p className="text-sm text-gray-700 dark:text-gray-500">Login</p>
-          </div>
-        </div>
+        <Header title="Login" subtitle="Welcome to Drawer"></Header>
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-4 bg-white border border-gray-300 rounded-2xl w-full max-w-md p-4"
+          className="flex flex-col gap-4 bg-card border-2 border-border rounded-2xl w-full max-w-md p-4"
         >
           {error && <p className="text-center text-red-500">{error}</p>}
           <div className="flex flex-col gap-2">
-            <label
-              htmlFor="email"
-              className="text-sm text-gray-700 dark:text-gray-500"
-            >
+            <label htmlFor="email" className="font-bold text-sm text-primary">
               Email
             </label>
-            <div className="border border-gray-200 rounded-2xl">
+            <div className=" rounded-2xl">
               <input
                 type="email"
                 placeholder="Email"
-                className="w-full p-4 rounded-2xl"
+                className="font-bold border-2 text-primary border-border w-full p-4 rounded-2xl"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -84,7 +80,7 @@ const LoginPage: React.FC = () => {
             Login
           </Button>
         </form>
-        <div className="flex gap-2 justify-center items-center border border-gray-200 rounded-2xl bg-gray-200 px-4 py-2 w-full max-w-md text-gray-500">
+        <div className="flex gap-2 justify-center items-center  rounded-2xl border-2 border-border bg-border px-4 py-2 w-full max-w-md font-bold text-primary">
           <FontAwesomeIcon icon={faQuestionCircle} />
           <p className="text-sm">
             Don't have an account?{' '}
@@ -93,14 +89,14 @@ const LoginPage: React.FC = () => {
               search={(currentSearch) => ({
                 ...currentSearch,
               })}
-              className="text-blue-500"
+              className="text-primary-foreground"
             >
               Create one
             </Link>
           </p>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 

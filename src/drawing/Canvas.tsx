@@ -18,7 +18,7 @@ const Canvas = forwardRef<
   return (
     <div
       className={cn(
-        'bg-white border border-gray-200 rounded-2xl shadow-md w-fit',
+        'bg-card rounded-2xl border-2 border-border w-fit',
         className,
       )}
     >

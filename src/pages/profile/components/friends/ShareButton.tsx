@@ -1,4 +1,4 @@
-import { faCheck, faShareAlt } from '@fortawesome/free-solid-svg-icons';
+import { faShareAlt, faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useState } from 'react';
 import { useProfile } from '../../UserProfileContext';
@@ -30,15 +30,18 @@ export const ShareButton = () => {
     <button
       disabled={!userProfile}
       className={cn(
-        'flex gap-2 px-3 font-bold text-sm items-center cursor-pointer transition-all duration-300 border border-gray-200 justify-center h-10 rounded-xl',
+        'flex gap-2 px-3 font-bold text-sm items-center cursor-pointer transition-all duration-300  justify-center h-10 rounded-xl',
         isShared
-          ? 'bg-green-100 text-green-700 border-green-200'
-          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:text-gray-900 hover:scale-110',
+          ? 'bg-purple-100 text-purple-700 border-purple-200'
+          : 'bg-base text-primary hover:bg-gray-200 hover:text-gray-900 hover:scale-110',
       )}
       onClick={handleShare}
     >
-      <FontAwesomeIcon icon={isShared ? faCheck : faShareAlt} />
-      {isShared ? 'Shared!' : 'Share'}
+      <FontAwesomeIcon
+        icon={isShared ? faSpinner : faShareAlt}
+        className={cn(isShared && 'animate-spin')}
+      />
+      {isShared ? 'Sharing...' : 'Share'}
     </button>
   );
 };

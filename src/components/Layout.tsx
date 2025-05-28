@@ -6,7 +6,7 @@ type Props = {
 
 const Layout: FC<Props> = ({ children }) => {
   return (
-    <div className="flex flex-col items-center p-4 md:p-2 pb-20 gap-4 bg-gray-100 min-h-screen overflow-y-auto">
+    <div className="flex flex-col items-center p-6 md:p-2 mb-20 gap-4 bg-base min-h-screen overflow-y-auto">
       {children}
     </div>
   );

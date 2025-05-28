@@ -2,6 +2,7 @@ import { useProfile } from '../../profile/UserProfileContext';
 import { UserProfileIcon } from '../../profile/components/UserProfileIcon';
 import type { UserPromptSubmission } from '@/api/Api';
 import { CanvasRenderer } from '@/drawing/components/CanvasRenderer';
+import { nameToColor } from '@/utils';
 
 type Props = {
   isLoading: boolean;
@@ -14,11 +15,12 @@ export const SubmissionFeedList: React.FC<Props> = ({ isLoading }) => {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4 w-full max-w-md">
-        <div className="flex flex-col gap-2">
-          <div className="text-2xl h-[28px] w-[250px] bg-gray-200 rounded-xl animate-pulse"></div>
-          <div className="text-sm h-[16px] w-[150px] bg-gray-200 rounded-xl animate-pulse"></div>
+        <div className="flex flex-col gap-4">
+          <div className="text-2xl h-[28px] w-[250px] bg-secondary rounded-xl animate-pulse"></div>
+          <div className="text-sm h-[16px] w-[150px] bg-secondary rounded-xl animate-pulse"></div>
         </div>
-        <div className="flex flex-col animate-pulse aspect-square rounded-2xl bg-gray-200"></div>
+        <div className="flex flex-col animate-pulse aspect-square rounded-2xl bg-secondary"></div>
+        <div className="flex flex-col animate-pulse aspect-square rounded-2xl bg-secondary"></div>
       </div>
     );
   }
@@ -26,9 +28,13 @@ export const SubmissionFeedList: React.FC<Props> = ({ isLoading }) => {
   return (
     <div className="flex flex-col gap-4 w-full max-w-md">
       {Object.keys(feed).length === 0 ? (
-        <div className="flex flex-col py-10 text-center text-gray-600 flex-grow border border-gray-200 rounded-2xl p-4 bg-gray-200">
-          <h2 className="text-xl font-semibold">No Submissions Yet</h2>
-          <p>It looks like you haven't submitted any prompts. Start drawing!</p>
+        <div className="flex flex-col h-64 justify-center text-center border-border bg-border rounded-2xl p-4">
+          <h2 className="text-primary-foreground font-bold text-xl">
+            No Submissions Yet
+          </h2>
+          <p className="font-bold text-primary">
+            It looks like you haven't submitted any prompts. Start drawing!
+          </p>
         </div>
       ) : (
         Object.entries(feed)
@@ -42,26 +48,39 @@ export const SubmissionFeedList: React.FC<Props> = ({ isLoading }) => {
             });
             return (
               <div key={date} className="flex flex-col gap-2">
-                <div className="text-2xl font-bold text-gray-900">
-                  <h2>Draw {submissions[0].prompt.toLowerCase()}</h2>
-                  <p className="text-sm text-gray-500">{formattedDate}</p>
+                <div className="text-2xl pl-1 font-bold">
+                  <h2 className="text-primary">
+                    Draw {submissions[0].prompt.toLowerCase()}
+                  </h2>
+                  <p className="text-secondary text-sm">{formattedDate}</p>
                 </div>
                 <div className="flex flex-col gap-4">
-                  {submissions.map((submission) => (
-                    <div
-                      key={submission.day}
-                      className="relative bg-white border border-gray-300 rounded-2xl"
-                    >
-                      <CanvasRenderer
-                        canvasData={submission.canvasData}
-                        className="rounded-2xl"
-                      />
-                      <UserProfileIcon
-                        user={submission.user}
-                        className="absolute top-2 right-2"
-                      />
-                    </div>
-                  ))}
+                  {submissions.map((submission) => {
+                    const { primary } = nameToColor(submission.user.username);
+                    return (
+                      <div
+                        key={`${submission.user.id}-${submission.day}`}
+                        className="relative bg-card rounded-2xl overflow-hidden border-2 border-border"
+                      >
+                        <CanvasRenderer
+                          canvasData={submission.canvasData}
+                          className="rounded-2xl"
+                        />
+                        <div
+                          className="absolute inset-0 bg-gradient-to-bl from-[var(--gradient-color)]/20 to-transparent rounded-2xl"
+                          style={
+                            {
+                              '--gradient-color': primary,
+                            } as React.CSSProperties
+                          }
+                        />
+                        <UserProfileIcon
+                          user={submission.user}
+                          className="absolute top-2 right-2"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );

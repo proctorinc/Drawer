@@ -36,7 +36,7 @@ export const UserProfileIcon: FC<Props> = ({
       <div
         className={cn(
           userProfileIconVariants({ size }),
-          'bg-gradient-to-tr from-blue-600 to-purple-600 animate-spin',
+          'animate-pulse bg-primary',
           className,
         )}
       ></div>
@@ -44,12 +44,19 @@ export const UserProfileIcon: FC<Props> = ({
   }
 
   const name = getTwoCapitalLetters(user.username);
-  const { primary } = nameToColor(name);
+  const { primary, text: textColor } = nameToColor(user.username);
 
   return (
     <div
-      className={cn(userProfileIconVariants({ size }), className)}
-      style={{ backgroundColor: primary }}
+      className={cn(
+        'font-bold shadow-sm',
+        userProfileIconVariants({ size }),
+        className,
+      )}
+      style={{
+        backgroundColor: primary,
+        color: textColor,
+      }}
       onClick={onClick}
     >
       {name}

@@ -34,7 +34,7 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
   const currentPathRef = useRef<Path | null>(null);
 
   const canUndo = paths.length > 0;
-  const isEraseMode = selectedColor === null;
+  const isEraseMode = selectedColor === 'null';
 
   const clearCanvas = useCallback(() => {
     if (canvasRef.current) {
@@ -77,7 +77,7 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const path = new Path(
         [startPoint],
-        selectedColor || 'white',
+        selectedColor || '#faf9f6',
         Config.CURSOR_SIZE,
       );
       currentPathRef.current = path;
