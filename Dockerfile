@@ -43,28 +43,23 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o drawer-service ./cmd/drawe
 # Stage 3: Create the final image
 FROM debian:bullseye-slim
 
-# Install necessary tools
+# Install necessary tools and set timezone
 RUN apt-get update && apt-get install -y ca-certificates tzdata && rm -rf /var/lib/apt/lists/*
 
-# Set the working directory for the final image
-# This is where the backend binary and frontend files will reside
+# Set timezone to PST
+ENV TZ=PST
+
+# Set the working directory
 WORKDIR /root/
 
-# Copy the backend binary from the backend builder stage
-# Source: /app/server/drawer-service in the backend-builder image
-# Destination: . (which is /root/) in the current image
+# Copy the backend binary and frontend files
 COPY --from=backend-builder /app/server/drawer-service .
-
-# Copy the built frontend files from the frontend builder stage
-# Source: /app/dist (assuming your frontend build outputs here) in the frontend-builder image
-# Destination: ./frontend (which is /root/frontend/) in the current image
 COPY --from=frontend-builder /app/frontend/dist ./frontend
 
-# Expose the port that the backend will run on
+# Expose the port
 EXPOSE 8080
 
 RUN chmod +x /root/drawer-service
 
 # Command to run the backend server
-# This executes the binary located at /root/drawer-service
 CMD ["/root/drawer-service"]
