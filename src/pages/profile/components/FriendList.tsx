@@ -1,12 +1,7 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useProfile } from '../UserProfileContext';
 import { UserProfileIcon } from './UserProfileIcon';
-import {
-  faMessage,
-  faPaperPlane,
-  faShareAlt,
-  faCheck,
-} from '@fortawesome/free-solid-svg-icons';
+import { faShareAlt, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 import { cn } from '@/utils';
 
