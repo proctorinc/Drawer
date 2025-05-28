@@ -3,11 +3,13 @@ Welcome to your new TanStack app!
 # Getting started
 
 To run the frontend (port 3000):
+
 ```bash
 npm run dev
 ```
 
 To run the backend (port 8002):
+
 ```bash
 ~/.air
 ```
@@ -36,7 +38,6 @@ sqlite3 drawer.db < server/schema.sql
 
 To update the database schema to prod:
 
-
 ```bash
 turso db shell drawer-db < server/schema.sql
 ```
@@ -50,16 +51,19 @@ migrate create -ext sql -dir server/migrations -seq <add_new_feature>
 ```
 
 To apply all pending migrations
+
 ```bash
 migrate -database "sqlite3://drawer.db" -path server/migrations up
 ```
 
 To rollback the last migration
+
 ```bash
 migrate -database "sqlite3://drawer.db" -path server/migrations down 1
 ```
 
 To rollback all migrations
+
 ```bash
 migrate -database "sqlite3://drawer.db" -path server/migrations down
 ```

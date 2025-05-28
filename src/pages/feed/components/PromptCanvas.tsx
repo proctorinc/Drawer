@@ -1,0 +1,68 @@
+import { faArrowRight, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useState } from 'react';
+import Button from '@/components/Button';
+import { useDailyPrompt } from '@/daily/DailyPromptContext';
+import Canvas from '@/drawing/Canvas';
+import { useDrawing } from '@/drawing/DrawingContext';
+import { Toolbar } from '@/drawing/Toolbar';
+import { useProfile } from '@/pages/profile/UserProfileContext';
+import { cn } from '@/utils';
+
+const PromptCanvas = () => {
+  const { userProfile } = useProfile();
+  const { dailyPrompt, submitPrompt } = useDailyPrompt();
+  const { canvasRef, canUndo, clearCanvas, getCanvasData } = useDrawing();
+  const [error, setError] = useState('');
+
+  const isLoading = !userProfile || !dailyPrompt;
+
+  function handleSubmitCanvas() {
+    try {
+      const canvasData = getCanvasData();
+      submitPrompt(canvasData)
+        .then(() => {
+          window.location.reload();
+          clearCanvas();
+        })
+        .catch((err) => {
+          setError(err.message);
+        });
+    } catch (err) {
+      console.error((err as Error).message);
+    }
+  }
+
+  if (dailyPrompt?.isCompleted === true) {
+    return <></>;
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex flex-col gap-4 items-center w-full max-w-md',
+        isLoading ? 'invisible' : 'visible',
+      )}
+    >
+      <Canvas ref={canvasRef} />
+      <div className="flex flex-col items-center w-full gap-4 p-2">
+        <div className="flex gap-2 justify-center items-center border border-gray-200 rounded-2xl bg-gray-200 px-4 py-2 w-full max-w-md text-gray-500">
+          <FontAwesomeIcon icon={faInfoCircle} />
+          <p className="text-sm">Use today's colors to draw the prompt</p>
+        </div>
+        <Toolbar />
+        {error && <p className="text-center text-red-500">{error}</p>}
+        <Button
+          className="w-fit"
+          onClick={handleSubmitCanvas}
+          disabled={!canUndo}
+          icon={faArrowRight}
+        >
+          Submit
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export default PromptCanvas;

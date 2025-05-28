@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export const CountDownTimer = () => {
   const [time, setTime] = useState(0);
@@ -6,8 +6,17 @@ export const CountDownTimer = () => {
   useEffect(() => {
     const calculateTimeRemaining = () => {
       const now = new Date();
-      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
-      const timeRemaining = Math.floor((nextMidnight.getTime() - now.getTime()) / 1000); // Time in seconds
+      const nextMidnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+        0,
+        0,
+        0,
+      );
+      const timeRemaining = Math.floor(
+        (nextMidnight.getTime() - now.getTime()) / 1000,
+      ); // Time in seconds
       setTime(timeRemaining);
     };
 
@@ -34,9 +43,5 @@ export const CountDownTimer = () => {
     return `${hours}:${minutes}:${secs}`;
   };
 
-  return (
-    <div>
-      <h1 className="text-2xl font-bold">{formatTime(time)}</h1>
-    </div>
-  );
+  return <>{formatTime(time)}</>;
 };

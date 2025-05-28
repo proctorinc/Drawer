@@ -1,29 +1,29 @@
-import { StrictMode } from 'react'
-import ReactDOM from 'react-dom/client'
+import { StrictMode } from 'react';
+import ReactDOM from 'react-dom/client';
 import {
   Outlet,
   RouterProvider,
   createRootRoute,
   createRoute,
   createRouter,
-} from '@tanstack/react-router'
+} from '@tanstack/react-router';
 
-import './styles.css'
-import reportWebVitals from './reportWebVitals.ts'
+import './styles.css';
+import reportWebVitals from './reportWebVitals.ts';
 
-import App from './App.tsx'
-import UserProfilePage from './pages/UserProfilePage.tsx'
-import CreateProfilePage from './pages/CreateProfilePage.tsx'
-import { UserProfileProvider } from './profile/UserProfileContext.tsx'
-import { DailyPromptProvider } from './daily/DailyPromptContext.tsx'
-import { DrawingProvider } from './drawing/DrawingContext.tsx'
-import AddFriendPage from './pages/AddFriendPage.tsx'
-import LoginPage from './pages/LoginPage.tsx'
-import { LoggingProvider } from './lib/posthog.tsx'
+import App from './pages/feed/Feed.tsx';
+import CreateProfilePage from './pages/auth/CreateProfilePage.tsx';
+import { UserProfileProvider } from './pages/profile/UserProfileContext.tsx';
+import { DailyPromptProvider } from './daily/DailyPromptContext.tsx';
+import { DrawingProvider } from './drawing/DrawingContext.tsx';
+import AddFriendPage from './pages/AddFriendPage.tsx';
+import LoginPage from './pages/auth/LoginPage.tsx';
+import { LoggingProvider } from './lib/posthog.tsx';
+import UserProfilePage from './pages/profile/components/UserProfilePage.tsx';
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
-})
+});
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -37,7 +37,7 @@ const indexRoute = createRoute({
       </DailyPromptProvider>
     </UserProfileProvider>
   ),
-})
+});
 
 const userProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -47,7 +47,7 @@ const userProfileRoute = createRoute({
       <UserProfilePage />
     </UserProfileProvider>
   ),
-})
+});
 
 const createProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -57,7 +57,7 @@ const createProfileRoute = createRoute({
       <CreateProfilePage />
     </UserProfileProvider>
   ),
-})
+});
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -67,7 +67,7 @@ const loginRoute = createRoute({
       <LoginPage />
     </UserProfileProvider>
   ),
-})
+});
 
 const addFriendRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -77,7 +77,7 @@ const addFriendRoute = createRoute({
       <AddFriendPage />
     </UserProfileProvider>
   ),
-})
+});
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -85,7 +85,7 @@ const routeTree = rootRoute.addChildren([
   createProfileRoute,
   loginRoute,
   addFriendRoute,
-])
+]);
 
 const router = createRouter({
   routeTree,
@@ -94,27 +94,27 @@ const router = createRouter({
   scrollRestoration: true,
   defaultStructuralSharing: true,
   defaultPreloadStaleTime: 0,
-})
+});
 
 declare module '@tanstack/react-router' {
   interface Register {
-    router: typeof router
+    router: typeof router;
   }
 }
 
-const rootElement = document.getElementById('app')
+const rootElement = document.getElementById('app');
 if (rootElement && !rootElement.innerHTML) {
-  const root = ReactDOM.createRoot(rootElement)
+  const root = ReactDOM.createRoot(rootElement);
   root.render(
     <StrictMode>
       <LoggingProvider>
         <RouterProvider router={router} />
       </LoggingProvider>
     </StrictMode>,
-  )
+  );
 }
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals()
+reportWebVitals();
