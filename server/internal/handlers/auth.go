@@ -7,12 +7,9 @@ import (
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
 	"errors"
-	"io"
 	"log"
 	"net/http"
 	"time"
-
-	"bytes"
 
 	"github.com/gin-gonic/gin"
 )
@@ -48,8 +45,6 @@ func HandleVerifyEmail(c *gin.Context) {
 }
 
 func HandleLogin(c *gin.Context) {
-	log.Printf("HandleLogin called")
-
 	cfg := middleware.GetConfig(c)
 
 	var loginReq struct {
@@ -62,16 +57,8 @@ func HandleLogin(c *gin.Context) {
 		return
 	}
 
-	log.Printf("Login request received for email: %s", utils.MaskEmail(loginReq.Email))
-
 	// Get database connection
 	repo := middleware.GetDB(c)
-	if repo == nil {
-		log.Printf("Database connection is nil in HandleLogin")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
-		return
-	}
-
 	ctx := c.Request.Context()
 
 	// Get user
@@ -121,37 +108,15 @@ func HandleRegister(c *gin.Context) {
 		}
 	}()
 
-	log.Printf("HandleRegister called")
-
-	// Log the raw request body
-	body, err := c.GetRawData()
-	if err != nil {
-		log.Printf("Failed to read request body: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read request body"})
-		return
-	}
-	log.Printf("Raw request body: %s", string(body))
-
-	// Restore the body for binding
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(body))
-
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		log.Printf("Failed to bind JSON in HandleRegister. Error: %v, Body: %s", err, string(body))
+		log.Printf("Failed to bind JSON in HandleRegister. Error: %v, Body: %s", err, c.Request.Body)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
 		return
 	}
 
-	log.Printf("Register request received for email: %s", utils.MaskEmail(req.Email))
-
 	// Get database connection
 	repo := middleware.GetDB(c)
-	if repo == nil {
-		log.Printf("Database connection is nil in HandleRegister")
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
-		return
-	}
-
 	ctx := c.Request.Context()
 
 	// Check if user already exists

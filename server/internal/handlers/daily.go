@@ -21,12 +21,6 @@ func HandleGetDaily(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	user := middleware.GetUser(c)
 
-	if repo == nil {
-		log.Printf("Database connection is nil for user %s (email: %s)", userID, utils.MaskEmail(user.Email))
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
-		return
-	}
-
 	alreadySubmittedToday, err := db.CheckHasSubmittedForDay(repo, c.Request.Context(), userID, todayStr)
 	if err != nil {
 		log.Printf("Error checking existing submission for user %s (email: %s), day %s: %v",

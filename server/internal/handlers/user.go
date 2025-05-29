@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"drawer-service-backend/internal/db"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
 	"log"
@@ -73,4 +74,40 @@ func HandleAddFriend(c *gin.Context) {
 	log.Printf("Successfully added friend ID '%s' for user %s (email: %s)",
 		friendID, requester.ID, utils.MaskEmail(requester.Email))
 	c.JSON(http.StatusOK, gin.H{"message": "Friend added successfully"})
+}
+
+func HandleGetUserByID(c *gin.Context) {
+	userID := c.Param("id")
+	if userID == "" {
+		log.Printf("Empty user ID provided in request")
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
+		return
+	}
+
+	repo := middleware.GetDB(c)
+
+	// Query the user from the database
+	var user db.User
+	query := `
+		SELECT id, email, username
+		FROM users
+		WHERE id = ?
+	`
+	err := repo.QueryRowContext(c.Request.Context(), query, userID).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Username,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("User ID '%s' not found", userID)
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		log.Printf("Error fetching user ID '%s': %v", userID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }
