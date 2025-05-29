@@ -26,12 +26,14 @@ const UserProfilePage = () => {
         <HomeButton />
       </Header>
       {userProfile && (
-        <div className="flex gap-2 items-center text-2xl ml-1 font-bold w-full max-w-md">
+        <div className="flex gap-2 items-center py-2 ml-1 font-bold w-full max-w-md">
           <UserProfileIcon user={userProfile.user} />
-          <div className="text-xl pl-1 font-bold">
-            <h2 className="text-primary">Hi, {userProfile.user.username}</h2>
-            <p className="text-secondary text-sm">
-              You've done {userProfile.prompts.length} drawings!
+          <div className="pl-1 font-bold">
+            <h2 className="text-2xl text-primary">
+              Hi, {userProfile.user.username}
+            </h2>
+            <p className="text-secondary">
+              You've done {userProfile.prompts.length} doodles!
             </p>
           </div>
         </div>

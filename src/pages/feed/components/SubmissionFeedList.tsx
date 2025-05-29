@@ -47,9 +47,11 @@ export const SubmissionFeedList: React.FC<Props> = ({ isLoading }) => {
             });
             return (
               <div key={date} className="flex flex-col gap-2">
-                <div className="text-xl pl-1 font-bold">
-                  <h2 className="text-primary">{submissions[0].prompt}</h2>
-                  <p className="text-secondary text-sm">{formattedDate}</p>
+                <div className="pl-1 font-bold">
+                  <h2 className="text-2xl text-primary">
+                    {submissions[0].prompt}
+                  </h2>
+                  <p className="text-secondary">{formattedDate}</p>
                 </div>
                 <div className="flex flex-col gap-4">
                   {submissions.map((submission) => {

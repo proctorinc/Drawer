@@ -7,7 +7,7 @@ type Props = {
 
 const Layout: FC<Props> = ({ children }) => {
   return (
-    <div className="flex flex-col items-center p-6 md:p-2 gap-4 bg-base min-h-screen overflow-y-auto overflow-x-hidden">
+    <div className="flex flex-col items-center p-6 md:p-2 gap-6 bg-base min-h-screen overflow-y-auto overflow-x-hidden">
       {children}
       <h1 className="text-sm mt-20 font-cursive tracking-widest text-secondary">
         {Config.APP_NAME}
