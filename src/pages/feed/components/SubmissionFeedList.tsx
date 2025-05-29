@@ -56,23 +56,14 @@ export const SubmissionFeedList: React.FC<Props> = ({ isLoading }) => {
                 </div>
                 <div className="flex flex-col gap-4">
                   {submissions.map((submission) => {
-                    const { primary } = nameToColor(submission.user.username);
                     return (
                       <div
                         key={`${submission.user.id}-${submission.day}`}
-                        className="flex items-center relative bg-card rounded-2xl overflow-hidden p-4 border-2 border-border"
+                        className="flex items-center relative bg-card rounded-2xl overflow-hidden border-2 border-border"
                       >
                         <CanvasRenderer
                           canvasData={submission.canvasData}
                           className="rounded-2xl"
-                        />
-                        <div
-                          className="absolute inset-0 bg-gradient-to-bl from-[var(--gradient-color)]/40 to-transparent rounded-2xl"
-                          style={
-                            {
-                              '--gradient-color': primary,
-                            } as React.CSSProperties
-                          }
                         />
                         <UserProfileIcon
                           user={submission.user}

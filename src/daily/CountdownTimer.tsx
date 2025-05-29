@@ -6,16 +6,18 @@ export const CountDownTimer = () => {
   useEffect(() => {
     const calculateTimeRemaining = () => {
       const now = new Date();
-      const nextMidnight = new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate() + 1,
-        0,
-        0,
-        0,
+      const nextMidnightUTC = new Date(
+        Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth(),
+          now.getUTCDate() + 1,
+          0,
+          0,
+          0,
+        ),
       );
       const timeRemaining = Math.floor(
-        (nextMidnight.getTime() - now.getTime()) / 1000,
+        (nextMidnightUTC.getTime() - now.getTime()) / 1000,
       ); // Time in seconds
       setTime(timeRemaining);
     };
