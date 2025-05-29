@@ -126,3 +126,13 @@ export async function addFriend(friendID: string): Promise<void> {
 
   return (await response.json()) as Promise<void>;
 }
+
+export async function fetchUserByID(userID: string): Promise<User> {
+  const response = await fetchAPI('GET', `/user/${userID}`);
+
+  if (!response.ok) {
+    throw new Error(`Error fetching user: ${response.statusText}`);
+  }
+
+  return (await response.json()) as Promise<User>;
+}

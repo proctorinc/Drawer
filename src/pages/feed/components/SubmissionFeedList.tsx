@@ -2,7 +2,6 @@ import { useProfile } from '../../profile/UserProfileContext';
 import { UserProfileIcon } from '../../profile/components/UserProfileIcon';
 import type { UserPromptSubmission } from '@/api/Api';
 import { CanvasRenderer } from '@/drawing/components/CanvasRenderer';
-import { nameToColor } from '@/utils';
 
 type Props = {
   isLoading: boolean;

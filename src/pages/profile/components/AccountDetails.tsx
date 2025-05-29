@@ -12,8 +12,8 @@ const AccountDetails = () => {
     setIsClicked(true);
     setTimeout(() => {
       setIsClicked(false);
+      logout();
     }, 1000);
-    logout();
   };
 
   return (

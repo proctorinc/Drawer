@@ -1,12 +1,37 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from '@tanstack/react-router';
-import { addFriend } from '@/api/Api';
+import { faUserFriends } from '@fortawesome/free-solid-svg-icons';
+import { UserProfileIcon } from './profile/components/UserProfileIcon';
+import type {User} from '@/api/Api';
+import {  addFriend, fetchUserByID } from '@/api/Api';
+import Layout from '@/components/Layout';
+import Header from '@/components/Header';
+import Button from '@/components/Button';
+import { nameToColor } from '@/utils';
 
 const AddFriendPage: React.FC = () => {
   const navigate = useNavigate();
   const { userId } = useParams({ from: '/app/add-friend/$userId' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { secondary } = nameToColor(user?.username ?? '');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const userData = await fetchUserByID(userId);
+        setUser(userData);
+      } catch (err) {
+        setError('Error fetching user: ' + (err as Error).message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, [userId]);
 
   const handleAddFriend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,36 +43,61 @@ const AddFriendPage: React.FC = () => {
       setSuccess('Friend added successfully!');
       navigate({ to: '/app/user-profile' });
     } catch (err) {
-      setError('Error adding friend: ' + (err as Error).message);
+      setError('Error adding friend');
     }
   };
 
-  return (
-    <div className="flex flex-col items-center p-4 gap-4 bg-gray-100 min-h-screen">
-      <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
-        <div className="flex justify-between items-center bg-card dark:bg-gray-800  dark:border-gray-700 rounded-2xl shadow-md px-6 py-2 w-full max-w-md font-bold">
-          <div className="flex flex-col">
-            <h1 className="text-2xl text-gray-900 dark:text-gray-100">
-              Add a friend!
-            </h1>
-          </div>
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
+          <Header title="Daily Drawer" subtitle="Loading user..."></Header>
         </div>
+      </Layout>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Layout>
+        <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
+          <Header title="Daily Drawer" subtitle="User not found"></Header>
+          <p className="text-red-500">{error}</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
+        <Header title="Add a friend!" subtitle="Daily Drawer"></Header>
         <form
           onSubmit={handleAddFriend}
-          className="flex flex-col gap-4 bg-card  rounded-2xl w-full max-w-md p-4"
+          className="flex flex-col gap-4 bg-card border-2 border-border rounded-2xl w-full max-w-md p-4"
         >
-          {error && <p className="text-red-500">{error}</p>}
+          {error && <p className="text-center text-red-500">{error}</p>}
           {success && <p className="text-green-500">{success}</p>}
-          <p>Are you sure you want to add user with ID: {userId}?</p>
-          <button
-            type="submit"
-            className="flex justify-center cursor-pointer disabled:cursor-default disabled:scale-100 hover:scale-110 transition-all duration-300 text-lg gap-2 items-center bg-gradient-to-tr from-blue-600 to-purple-600 font-bold px-6 py-3 rounded-2xl shadow-md disabled:opacity-50"
-          >
+          <div className="flex flex-col gap-2">
+            <div
+              className="flex items-center gap-2 rounded-2xl w-full px-4 py-2"
+              style={{ backgroundColor: secondary }}
+            >
+              <UserProfileIcon user={user} />
+              <h3 className="text-primary text-lg font-bold">
+                {user.username}
+              </h3>
+            </div>
+            <p className="text-center font-bold">
+              Invited you to be their friend
+            </p>
+          </div>
+          <Button type="submit" icon={faUserFriends}>
             Add Friend
-          </button>
+          </Button>
         </form>
       </div>
-    </div>
+    </Layout>
   );
 };
 
