@@ -49,7 +49,7 @@ export const UserProfileIcon: FC<Props> = ({
   return (
     <div
       className={cn(
-        'font-bold shadow-sm',
+        'font-bold shadow-sm font-cursive tracking-widest',
         userProfileIconVariants({ size }),
         className,
       )}
