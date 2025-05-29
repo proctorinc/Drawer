@@ -48,10 +48,6 @@ export async function fetchDailyPrompt(): Promise<DailyPrompt> {
 }
 
 export async function fetchUserProfile(): Promise<GetMeResponse> {
-  if (Config.ENV !== 'production') {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-  }
-
   const response = await fetchAPI('GET', '/me');
 
   if (!response.ok) {

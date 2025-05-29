@@ -1,17 +1,8 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  
-  faSpinner
-} from '@fortawesome/free-solid-svg-icons';
-import {
-  
-  
-  
-  
-  useState
-} from 'react';
-import type {IconDefinition} from '@fortawesome/free-solid-svg-icons';
-import type {ButtonHTMLAttributes, FC, MouseEvent, ReactNode} from 'react';
+import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { useState } from 'react';
+import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
+import type { ButtonHTMLAttributes, FC, MouseEvent, ReactNode } from 'react';
 import { cn } from '@/utils';
 
 type Props = {

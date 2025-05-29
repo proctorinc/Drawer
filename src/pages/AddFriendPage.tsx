@@ -5,6 +5,7 @@ import {
   faSpinner,
   faUserFriends,
 } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { UserProfileIcon } from './profile/components/UserProfileIcon';
 import type { User } from '@/api/Api';
 import { addFriend, fetchUserByID } from '@/api/Api';
@@ -12,7 +13,6 @@ import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 import Button from '@/components/Button';
 import { nameToColor } from '@/utils';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 
 const AddFriendPage: React.FC = () => {
   const navigate = useNavigate();
