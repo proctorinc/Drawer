@@ -18,19 +18,15 @@ const PromptCanvas = () => {
   const isLoading = !userProfile || !dailyPrompt;
 
   function handleSubmitCanvas() {
-    try {
-      const canvasData = getCanvasData();
-      submitPrompt(canvasData)
-        .then(() => {
-          window.location.reload();
-          clearCanvas();
-        })
-        .catch((err) => {
-          setError(err.message);
-        });
-    } catch (err) {
-      console.error((err as Error).message);
-    }
+    const canvasData = getCanvasData();
+    submitPrompt(canvasData)
+      .then(() => {
+        clearCanvas();
+        window.location.reload();
+      })
+      .catch(() => {
+        setError('Failed to submit drawing');
+      });
   }
 
   if (dailyPrompt?.isCompleted === true) {

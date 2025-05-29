@@ -10,6 +10,7 @@ import { useProfile } from '@/pages/profile/UserProfileContext';
 import Button from '@/components/Button';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
+import { Config } from '@/config/Config';
 
 const LoginPage: React.FC = () => {
   const { loginUserProfile } = useProfile();
@@ -52,7 +53,10 @@ const LoginPage: React.FC = () => {
   return (
     <Layout>
       <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
-        <Header title="Login" subtitle="Welcome to Daily Drawer!"></Header>
+        <h1 className="text-5xl p-4 font-cursive text-secondary">
+          {Config.APP_NAME}
+        </h1>
+        <Header title="Welcome!" subtitle="Log in to get drawing"></Header>
         <form
           onSubmit={handleSubmit}
           className="flex flex-col gap-4 bg-card border-2 border-border rounded-2xl w-full max-w-md p-4"

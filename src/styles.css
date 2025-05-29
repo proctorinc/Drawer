@@ -1,8 +1,9 @@
 @import 'tailwindcss';
-
 @theme {
   --font-*: initial;
   --font-sans: 'Quicksand', 'sans-serif';
+  --font-cursive: 'Pacifico', cursive;
+  --tracking-cursive: 0.05em;
 
   /* background colors */
   --color-base: #edeae1;
@@ -10,7 +11,7 @@
   --color-border: #d4cfc1;
 
   --color-primary: #635d4d;
-  --color-primary-foreground: #2b2b2b;
+  --color-primary-foreground: #363229;
   --color-secondary: #bab4a4;
 }
 

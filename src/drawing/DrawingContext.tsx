@@ -77,7 +77,7 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const path = new Path(
         [startPoint],
-        selectedColor || '#faf9f6',
+        selectedColor || Config.ERASER_COLOR,
         Config.CURSOR_SIZE,
       );
       currentPathRef.current = path;

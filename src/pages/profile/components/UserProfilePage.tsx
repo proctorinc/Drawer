@@ -8,27 +8,32 @@ import { useProfile } from '@/pages/profile/UserProfileContext';
 import { FriendList } from '@/pages/profile/components/friends/FriendList';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
-import { nameToColor } from '@/utils';
+import { Config } from '@/config/Config';
 
 const UserProfilePage = () => {
   const { userProfile } = useProfile();
-  const { secondary } = nameToColor(userProfile?.user.username ?? '');
 
   return (
     <Layout>
-      <Header title="Daily Drawer" subtitle="My Profile">
+      <Header
+        title={
+          <span className="font-cursive tracking-widest">
+            {Config.APP_NAME}
+          </span>
+        }
+        subtitle="My Profile"
+      >
         <HomeButton />
       </Header>
-
       {userProfile && (
-        <div
-          style={{ backgroundColor: secondary }}
-          className="flex items-center gap-4 bg-card border-2 border-border rounded-2xl w-full max-w-md p-4"
-        >
+        <div className="flex gap-2 items-center text-2xl ml-1 font-bold w-full max-w-md">
           <UserProfileIcon user={userProfile.user} />
-          <h3 className="text-xl text-primary font-bold">
-            Hi, {userProfile.user.username}!
-          </h3>
+          <div className="text-xl pl-1 font-bold">
+            <h2 className="text-primary">Hi, {userProfile.user.username}</h2>
+            <p className="text-secondary text-sm">
+              You've done {userProfile.prompts.length} drawings!
+            </p>
+          </div>
         </div>
       )}
       <FriendList />
@@ -44,7 +49,7 @@ const HomeButton = () => {
   return (
     <div
       onClick={() => navigate({ to: '/app' })}
-      className="w-12 h-12 cursor-pointer hover:scale-110 transition-all duration-300 rounded-xl bg-primary/80 text-secondary hover:bg-gray-500 hover:text-gray-900 font-semibold flex items-center justify-center"
+      className="w-12 h-12 cursor-pointer hover:scale-110 transition-all duration-300 rounded-full bg-primary/80 text-secondary hover:bg-gray-500 hover:text-gray-900 font-semibold flex items-center justify-center"
     >
       <FontAwesomeIcon icon={faHome} />
     </div>

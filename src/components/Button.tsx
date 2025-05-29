@@ -27,7 +27,7 @@ const Button: FC<Props> = ({ icon, children, ...props }) => {
   return (
     <button
       className={cn(
-        'flex justify-center cursor-pointer disabled:cursor-default disabled:scale-100 hover:scale-105 transition-all duration-300 text-lg font-bold text-primary gap-2 items-center bg-base px-6 py-3 rounded-2xl disabled:opacity-50',
+        'flex justify-center cursor-pointer disabled:cursor-default disabled:scale-100 hover:scale-105 transition-all duration-300 text-lg font-bold text-primary gap-2 items-center bg-secondary disabled:bg-base disabled:text-secondary px-6 py-3 rounded-2xl',
         isClicked && 'bg-primary/50',
         className,
       )}

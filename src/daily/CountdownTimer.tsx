@@ -19,7 +19,11 @@ export const CountDownTimer = () => {
       const timeRemaining = Math.floor(
         (nextMidnightUTC.getTime() - now.getTime()) / 1000,
       ); // Time in seconds
-      setTime(timeRemaining);
+      if (timeRemaining < 0) {
+        window.location.reload();
+      } else {
+        setTime(timeRemaining);
+      }
     };
 
     calculateTimeRemaining(); // Initial calculation

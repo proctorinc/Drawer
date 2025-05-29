@@ -10,6 +10,7 @@ import { useProfile } from '@/pages/profile/UserProfileContext';
 import Header from '@/components/Header';
 import Layout from '@/components/Layout';
 import Button from '@/components/Button';
+import { Config } from '@/config/Config';
 
 const CreateProfilePage: React.FC = () => {
   const { createUserProfile } = useProfile();
@@ -53,10 +54,10 @@ const CreateProfilePage: React.FC = () => {
   return (
     <Layout>
       <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
-        <Header
-          title="Create Profile"
-          subtitle="Welcome to Daily Drawer!"
-        ></Header>
+        <h1 className="text-5xl p-4 font-cursive text-secondary">
+          {Config.APP_NAME}
+        </h1>
+        <Header title="Welcome!" subtitle="Create your Profile"></Header>
         <form
           className="bg-card flex flex-col gap-4 border-2 border-border rounded-2xl w-full max-w-md p-4"
           onSubmit={handleSubmit}

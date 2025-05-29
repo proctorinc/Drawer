@@ -1,4 +1,5 @@
 import { Config } from '@/config/Config';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 export interface DailyPrompt {
   day: string;
@@ -37,98 +38,130 @@ async function fetchAPI(
   });
 }
 
-export async function fetchDailyPrompt(): Promise<DailyPrompt> {
-  const response = await fetchAPI('GET', '/daily');
+// Query keys
+export const queryKeys = {
+  daily: ['daily'] as const,
+  userProfile: ['userProfile'] as const,
+  user: (id: string) => ['user', id] as const,
+};
 
-  if (!response.ok) {
-    throw new Error(`Error fetching daily prompt: ${response.statusText}`);
-  }
-
-  return (await response.json()) as Promise<DailyPrompt>;
-}
-
-export async function fetchUserProfile(): Promise<GetMeResponse> {
-  const response = await fetchAPI('GET', '/me');
-
-  if (!response.ok) {
-    throw new Error(`Error fetching user profile: ${response.statusText}`);
-  }
-
-  return (await response.json()) as Promise<GetMeResponse>;
-}
-
-export async function submitDailyPrompt(
-  canvasData: string,
-): Promise<{ message: string }> {
-  const response = await fetchAPI('POST', '/daily', {
-    body: JSON.stringify({ canvasData }),
-    headers: {
-      'Content-Type': 'application/json',
+// Queries
+export function useGetDailyPrompt() {
+  return useQuery({
+    queryKey: queryKeys.daily,
+    queryFn: async () => {
+      const response = await fetchAPI('GET', '/daily');
+      if (!response.ok) {
+        throw new Error(`Error fetching daily prompt: ${response.statusText}`);
+      }
+      return response.json() as Promise<DailyPrompt>;
     },
   });
-
-  if (!response.ok) {
-    throw new Error(`Error submitting daily prompt: ${response.statusText}`);
-  }
-
-  return (await response.json()) as Promise<{ message: string }>;
 }
 
-export async function createUser(
-  username: string,
-  email: string,
-): Promise<{ message: string }> {
-  const response = await fetchAPI('POST', '/register', {
-    body: JSON.stringify({ username, email }),
+export function useGetUserProfile() {
+  return useQuery({
+    queryKey: queryKeys.userProfile,
+    queryFn: async () => {
+      const response = await fetchAPI('GET', '/me');
+      if (!response.ok) {
+        throw new Error(`Error fetching user profile: ${response.statusText}`);
+      }
+      return response.json() as Promise<GetMeResponse>;
+    },
   });
-
-  if (!response.ok) {
-    throw new Error(`Error creating user: ${response.statusText}`);
-  }
-
-  return (await response.json()) as Promise<{ message: string }>;
 }
 
-export async function loginUser(email: string): Promise<{ message: string }> {
-  const response = await fetchAPI('POST', '/login', {
-    body: JSON.stringify({ email }),
+export function useUser(userId: string) {
+  return useQuery({
+    queryKey: queryKeys.user(userId),
+    queryFn: async () => {
+      const response = await fetchAPI('GET', `/user/${userId}`);
+      if (!response.ok) {
+        throw new Error(`Error fetching user: ${response.statusText}`);
+      }
+      return response.json() as Promise<User>;
+    },
+    enabled: !!userId,
   });
-
-  if (!response.ok) {
-    throw new Error(`Error logging in: ${response.statusText}`);
-  }
-
-  return (await response.json()) as Promise<{ message: string }>;
 }
 
-export async function logoutUser(): Promise<{ message: string }> {
-  const response = await fetchAPI('POST', '/logout');
-
-  if (!response.ok) {
-    throw new Error(`Error logging out: ${response.statusText}`);
-  }
-
-  return (await response.json()) as Promise<{ message: string }>;
-}
-
-export async function addFriend(friendID: string): Promise<void> {
-  const response = await fetchAPI('POST', '/add-friend', {
-    body: JSON.stringify({ friendID }),
+// Mutations
+export function useSubmitDailyPrompt() {
+  return useMutation({
+    mutationFn: async (canvasData: string) => {
+      const response = await fetchAPI('POST', '/daily', {
+        body: JSON.stringify({ canvasData }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error(
+          `Error submitting daily prompt: ${response.statusText}`,
+        );
+      }
+      return response.json() as Promise<{ message: string }>;
+    },
   });
-
-  if (!response.ok) {
-    throw new Error(`Error adding friend: ${response.statusText}`);
-  }
-
-  return (await response.json()) as Promise<void>;
 }
 
-export async function fetchUserByID(userID: string): Promise<User> {
-  const response = await fetchAPI('GET', `/user/${userID}`);
+export function useCreateUser() {
+  return useMutation({
+    mutationFn: async ({
+      username,
+      email,
+    }: {
+      username: string;
+      email: string;
+    }) => {
+      const response = await fetchAPI('POST', '/register', {
+        body: JSON.stringify({ username, email }),
+      });
+      if (!response.ok) {
+        throw new Error(`Error creating user: ${response.statusText}`);
+      }
+      return response.json() as Promise<{ message: string }>;
+    },
+  });
+}
 
-  if (!response.ok) {
-    throw new Error(`Error fetching user: ${response.statusText}`);
-  }
+export function useLoginUser() {
+  return useMutation({
+    mutationFn: async (email: string) => {
+      const response = await fetchAPI('POST', '/login', {
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) {
+        throw new Error(`Error logging in: ${response.statusText}`);
+      }
+      return response.json() as Promise<{ message: string }>;
+    },
+  });
+}
 
-  return (await response.json()) as Promise<User>;
+export function useLogoutUser() {
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetchAPI('POST', '/logout');
+      if (!response.ok) {
+        throw new Error(`Error logging out: ${response.statusText}`);
+      }
+      return response.json() as Promise<{ message: string }>;
+    },
+  });
+}
+
+export function useAddFriend() {
+  return useMutation({
+    mutationFn: async (friendID: string) => {
+      const response = await fetchAPI('POST', '/add-friend', {
+        body: JSON.stringify({ friendID }),
+      });
+      if (!response.ok) {
+        throw new Error(`Error adding friend: ${response.statusText}`);
+      }
+      return response.json() as Promise<void>;
+    },
+  });
 }

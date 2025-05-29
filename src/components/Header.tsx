@@ -17,9 +17,9 @@ const Header: FC<Props> = ({ title, subtitle, children, isLoading }) => {
         </div>
       )}
       {!isLoading && (
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-2">
           <h1 className="text-2xl text-base">{title}</h1>
-          <p className="text-sm text-secondary">{subtitle}</p>
+          <p className="text-secondary">{subtitle}</p>
         </div>
       )}
       {!isLoading && children}

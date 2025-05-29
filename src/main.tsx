@@ -20,9 +20,16 @@ import AddFriendPage from './pages/AddFriendPage.tsx';
 import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/components/UserProfilePage.tsx';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 const rootRoute = createRootRoute({
-  component: () => <Outlet />,
+  component: () => (
+    <QueryClientProvider client={queryClient}>
+      <Outlet />
+    </QueryClientProvider>
+  ),
 });
 
 const indexRoute = createRoute({

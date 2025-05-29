@@ -1,10 +1,14 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import type { DailyPrompt } from '@/api/Api';
-import { fetchDailyPrompt, submitDailyPrompt } from '@/api/Api';
+import { createContext, useContext, type FC } from 'react';
+import {
+  useGetDailyPrompt,
+  useSubmitDailyPrompt,
+  type DailyPrompt,
+} from '@/api/Api';
 import { useProfile } from '@/pages/profile/UserProfileContext';
+import type { ReactNode } from '@tanstack/react-router';
 
 type DailyPromptContextType = {
-  dailyPrompt: DailyPrompt | null;
+  dailyPrompt: DailyPrompt | undefined;
   submitPrompt: (canvasData: string) => Promise<void>;
   isFetching: boolean;
 };
@@ -13,28 +17,28 @@ const DailyPromptContext = createContext<DailyPromptContextType | undefined>(
   undefined,
 );
 
-export const DailyPromptProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [dailyPrompt, setDailyPrompt] = useState<DailyPrompt | null>(null);
-  const [isFetching, setIsFetching] = useState(true);
+type Props = {
+  children: ReactNode;
+};
+
+export const DailyPromptProvider: FC<Props> = ({ children }) => {
+  const { data, isFetching } = useGetDailyPrompt();
+  const sumbitPromptMutation = useSubmitDailyPrompt();
   const { reloadUser } = useProfile();
 
   const submitPrompt = async (canvasData: string) => {
-    await submitDailyPrompt(canvasData);
+    sumbitPromptMutation.mutate(canvasData);
     reloadUser();
   };
 
-  useEffect(() => {
-    fetchDailyPrompt()
-      .then(setDailyPrompt)
-      .finally(() => setIsFetching(false));
-  }, []);
+  const contextData = {
+    dailyPrompt: data,
+    submitPrompt,
+    isFetching,
+  };
 
   return (
-    <DailyPromptContext.Provider
-      value={{ dailyPrompt, submitPrompt, isFetching }}
-    >
+    <DailyPromptContext.Provider value={contextData}>
       {children}
     </DailyPromptContext.Provider>
   );

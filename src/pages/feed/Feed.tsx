@@ -1,17 +1,16 @@
 import { useNavigate } from '@tanstack/react-router';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFrown } from '@fortawesome/free-solid-svg-icons';
+import { faFrown, faUser } from '@fortawesome/free-solid-svg-icons';
 import { useProfile } from '../profile/UserProfileContext';
 import { CountDownTimer } from '../../daily/CountdownTimer';
 import { useDailyPrompt } from '../../daily/DailyPromptContext';
-import { UserProfileIcon } from '../profile/components/UserProfileIcon';
 import PromptCanvas from './components/PromptCanvas';
 import { SubmissionFeedList } from './components/SubmissionFeedList';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
+import { Config } from '@/config/Config';
 
 const Feed = () => {
-  const navigate = useNavigate();
   const { userProfile } = useProfile();
   const { isFetching, dailyPrompt } = useDailyPrompt();
   const formattedDate = dailyPrompt
@@ -24,28 +23,30 @@ const Feed = () => {
 
   const isLoading = !userProfile || isFetching;
   const hasPromptBeenCompleted = dailyPrompt && dailyPrompt.isCompleted;
+  const promptNotCompleted = dailyPrompt && !dailyPrompt.isCompleted;
   const isNoPrompt = !isFetching && !dailyPrompt;
 
   return (
     <Layout>
       <Header
         title={
-          hasPromptBeenCompleted || isNoPrompt ? (
-            <CountDownTimer />
-          ) : (
+          !isLoading && promptNotCompleted ? (
             `Draw ${dailyPrompt?.prompt.toLowerCase()}`
+          ) : (
+            <span className="font-cursive tracking-widest">
+              {Config.APP_NAME}
+            </span>
           )
         }
-        subtitle={
-          hasPromptBeenCompleted || isNoPrompt ? 'Next prompt' : formattedDate
-        }
-        isLoading={isLoading}
+        subtitle={!isLoading && promptNotCompleted ? formattedDate : 'Feed'}
       >
-        <UserProfileIcon
-          user={userProfile?.user}
-          onClick={() => navigate({ to: '/app/user-profile' })}
-        />
+        <UserProfileButton />
       </Header>
+      {(hasPromptBeenCompleted || isNoPrompt) && (
+        <div className="flex gap-2 justify-center items-center rounded-2xl border-2 border-border bg-border px-4 py-2 w-full max-w-md font-bold text-primary">
+          Next Prompt in <CountDownTimer />
+        </div>
+      )}
       {!isFetching && !dailyPrompt && (
         <div className="flex gap-2 justify-center items-center rounded-2xl border-2 border-border bg-border px-4 py-2 w-full max-w-md font-bold text-primary">
           <FontAwesomeIcon icon={faFrown} />
@@ -59,6 +60,19 @@ const Feed = () => {
       )}
       <PromptCanvas />
     </Layout>
+  );
+};
+
+const UserProfileButton = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div
+      onClick={() => navigate({ to: '/app/user-profile' })}
+      className="w-12 h-12 cursor-pointer hover:scale-110 transition-all duration-300 rounded-full bg-primary/80 text-secondary hover:bg-gray-500 hover:text-gray-900 font-semibold flex items-center justify-center"
+    >
+      <FontAwesomeIcon icon={faUser} />
+    </div>
   );
 };
 

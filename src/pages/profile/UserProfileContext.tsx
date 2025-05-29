@@ -1,10 +1,15 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useLocation, useNavigate } from '@tanstack/react-router';
+import { createContext, useContext, type FC, type ReactNode } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import type { GetMeResponse } from '@/api/Api';
-import { createUser, fetchUserProfile, loginUser, logoutUser } from '@/api/Api';
+import {
+  useLogoutUser,
+  useGetUserProfile,
+  useCreateUser,
+  useLoginUser,
+} from '@/api/Api';
 
 type UserProfileContextType = {
-  userProfile: GetMeResponse | null;
+  userProfile?: GetMeResponse;
   createUserProfile: (
     username: string,
     email: string,
@@ -18,85 +23,52 @@ const UserProfileContext = createContext<UserProfileContextType | undefined>(
   undefined,
 );
 
-type LoginSearchParams = {
-  from?: string;
+type Props = {
+  children: ReactNode;
 };
 
-export const UserProfileProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const [userProfile, setUserProfile] = useState<GetMeResponse | null>(null);
+export const UserProfileProvider: FC<Props> = ({ children }) => {
+  const { data, refetch: refetchUserProfile } = useGetUserProfile();
+  const loginMutation = useLoginUser();
+  const logoutMutation = useLogoutUser();
+  const createUserMutation = useCreateUser();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const loadUserProfile = async () => {
-    const pathname = location.pathname;
-    const { from } = location.search as LoginSearchParams;
+  async function reloadUser() {
+    await refetchUserProfile();
+  }
 
-    return fetchUserProfile()
-      .then((profile) => {
-        setUserProfile(profile);
-        if (
-          pathname.startsWith('/app/login') ||
-          pathname.startsWith('/app/create-profile')
-        ) {
-          if (from) {
-            console.log('Navigating to: ', from);
-          } else {
-            console.log('Navigating to: ', '/');
-          }
-          navigate({ to: from || '/app' });
-        }
-      })
-      .catch((error) => {
-        if (
-          !pathname.startsWith('/app/login') &&
-          !pathname.startsWith('/app/create-profile')
-        ) {
-          navigate({
-            to: '/app/create-profile',
-            search: {
-              from: pathname,
-            },
-          });
-        }
-        throw error;
+  const createUserProfile = async (username: string, email: string) => {
+    return await createUserMutation
+      .mutateAsync({ username, email })
+      .catch(() => {
+        throw new Error('Email and Username must be unique');
       });
   };
 
-  const createUserProfile = async (username: string, email: string) => {
-    return await createUser(username, email).catch(() => {
-      throw new Error('Email and Username must be unique');
-    });
-  };
-
   const loginUserProfile = async (email: string) => {
-    return loginUser(email).catch(() => {
+    return loginMutation.mutateAsync(email).catch(() => {
       throw new Error('Invalid login');
     });
   };
 
   const logout = async () => {
-    await logoutUser().then(() => {
-      setUserProfile(null);
+    await logoutMutation.mutateAsync().then(() => {
+      reloadUser();
       navigate({ to: '/app/login' });
     });
   };
 
-  useEffect(() => {
-    loadUserProfile();
-  }, []);
-
-  const data: UserProfileContextType = {
-    userProfile,
+  const contextData: UserProfileContextType = {
+    userProfile: data,
     createUserProfile,
     loginUserProfile,
     logout,
-    reloadUser: loadUserProfile,
+    reloadUser,
   };
 
   return (
-    <UserProfileContext.Provider value={data}>
+    <UserProfileContext.Provider value={contextData}>
       {children}
     </UserProfileContext.Provider>
   );
