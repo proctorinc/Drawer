@@ -7,16 +7,13 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Link } from '@tanstack/react-router';
 import React, { useState } from 'react';
 import { useProfile } from '@/pages/profile/UserProfileContext';
-import { Config } from '@/config/Config';
 import Button from '@/components/Button';
 import Layout from '@/components/Layout';
 import Header from '@/components/Header';
 
 const LoginPage: React.FC = () => {
   const { loginUserProfile } = useProfile();
-  const [email, setEmail] = useState(
-    Config.ENV !== 'production' ? 'demo1@example.com' : '',
-  );
+  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -55,7 +52,7 @@ const LoginPage: React.FC = () => {
   return (
     <Layout>
       <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
-        <Header title="Login" subtitle="Welcome to Drawer"></Header>
+        <Header title="Login" subtitle="Welcome to Daily Drawer!"></Header>
         <form
           onSubmit={handleSubmit}
           className="flex flex-col gap-4 bg-card border-2 border-border rounded-2xl w-full max-w-md p-4"

@@ -53,7 +53,10 @@ const CreateProfilePage: React.FC = () => {
   return (
     <Layout>
       <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
-        <Header title="Create Profile" subtitle="Welcome to Drawer"></Header>
+        <Header
+          title="Create Profile"
+          subtitle="Welcome to Daily Drawer!"
+        ></Header>
         <form
           className="bg-card flex flex-col gap-4 border-2 border-border rounded-2xl w-full max-w-md p-4"
           onSubmit={handleSubmit}
