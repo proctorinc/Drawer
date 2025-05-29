@@ -50,7 +50,7 @@ const SubmissionList: FC<Props> = ({ isLoading }) => {
                 >
                   <CanvasRenderer
                     canvasData={submission.canvasData}
-                    className="w-full h-auto rounded-t-2xl"
+                    className="p-2 w-full h-auto rounded-t-2xl"
                   />
                   <div className="px-4 py-2 border-t-2 border-border bg-base">
                     <h3 className="text-primary text-sm font-bold whitespace-nowrap overflow-hidden overflow-ellipsis">

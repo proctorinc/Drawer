@@ -16,11 +16,7 @@ const UserProfilePage = () => {
 
   return (
     <Layout>
-      <Header
-        title="Daily Drawer"
-        subtitle="My Profile"
-        isLoading={!userProfile}
-      >
+      <Header title="Daily Drawer" subtitle="My Profile">
         <HomeButton />
       </Header>
 

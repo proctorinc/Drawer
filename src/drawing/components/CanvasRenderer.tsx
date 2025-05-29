@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Config } from '@/config/Config';
+import { cn } from '@/utils';
 
 interface CanvasRendererProps {
   canvasData: string;
@@ -36,7 +37,7 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
       ref={canvasRef}
       width={Config.CANVAS_WIDTH}
       height={Config.CANVAS_HEIGHT}
-      className={className}
+      className={cn('w-full', className)}
     />
   );
 };

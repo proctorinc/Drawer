@@ -60,14 +60,14 @@ export const SubmissionFeedList: React.FC<Props> = ({ isLoading }) => {
                     return (
                       <div
                         key={`${submission.user.id}-${submission.day}`}
-                        className="relative bg-card rounded-2xl overflow-hidden border-2 border-border"
+                        className="flex items-center relative bg-card rounded-2xl overflow-hidden p-4 border-2 border-border"
                       >
                         <CanvasRenderer
                           canvasData={submission.canvasData}
                           className="rounded-2xl"
                         />
                         <div
-                          className="absolute inset-0 bg-gradient-to-bl from-[var(--gradient-color)]/20 to-transparent rounded-2xl"
+                          className="absolute inset-0 bg-gradient-to-bl from-[var(--gradient-color)]/40 to-transparent rounded-2xl"
                           style={
                             {
                               '--gradient-color': primary,
