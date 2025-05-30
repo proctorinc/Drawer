@@ -1,7 +1,9 @@
+import { useProfile } from '@/pages/profile/UserProfileContext';
 import { useEffect, useState } from 'react';
 
 export const CountDownTimer = () => {
   const [time, setTime] = useState(0);
+  const { reloadUser } = useProfile();
 
   useEffect(() => {
     const calculateTimeRemaining = () => {
@@ -20,7 +22,7 @@ export const CountDownTimer = () => {
         (nextMidnightUTC.getTime() - now.getTime()) / 1000,
       ); // Time in seconds
       if (timeRemaining < 0) {
-        window.location.reload();
+        reloadUser();
       } else {
         setTime(timeRemaining);
       }
