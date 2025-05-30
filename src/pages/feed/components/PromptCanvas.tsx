@@ -19,14 +19,9 @@ const PromptCanvas = () => {
 
   function handleSubmitCanvas() {
     const canvasData = getCanvasData();
-    submitPrompt(canvasData)
-      .then(() => {
-        clearCanvas();
-        window.location.reload();
-      })
-      .catch(() => {
-        setError('Failed to submit drawing');
-      });
+    submitPrompt(canvasData, clearCanvas).catch(() =>
+      setError('Failed to submit drawing'),
+    );
   }
 
   if (dailyPrompt?.isCompleted === true) {
