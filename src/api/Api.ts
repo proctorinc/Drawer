@@ -12,6 +12,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  createdAt: Date;
 }
 
 export interface UserPromptSubmission extends DailyPrompt {
@@ -19,11 +20,17 @@ export interface UserPromptSubmission extends DailyPrompt {
   user: User;
 }
 
+export interface UserStats {
+  totalDrawings: number;
+  currentStreak: number;
+}
+
 export interface GetMeResponse {
   user: User;
   prompts: Array<UserPromptSubmission>;
   feed: Map<string, Array<UserPromptSubmission>>;
   friends: Array<User>;
+  stats: UserStats;
 }
 
 async function fetchAPI(

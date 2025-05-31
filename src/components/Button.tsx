@@ -4,37 +4,73 @@ import { useState } from 'react';
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import type { ButtonHTMLAttributes, FC, MouseEvent, ReactNode } from 'react';
 import { cn } from '@/utils';
+import { cva, type VariantProps } from 'class-variance-authority';
+
+const buttonVariants = cva(
+  'flex justify-center cursor-pointer disabled:cursor-default transition-all duration-300 font-bold gap-2 items-center rounded-2xl disabled:bg-transparent disabled:text-secondary',
+  {
+    variants: {
+      variant: {
+        primary: 'bg-secondary text-primary hover:scale-105',
+        base: 'bg-base text-primary',
+      },
+      size: {
+        sm: 'text-sm px-4 py-2',
+        md: 'text-lg px-6 py-3',
+      },
+    },
+    defaultVariants: {
+      variant: 'primary',
+      size: 'md',
+    },
+  },
+);
 
 type Props = {
   icon?: IconDefinition;
+  disableLoad?: boolean;
   children?: ReactNode;
-} & ButtonHTMLAttributes<HTMLButtonElement>;
+} & ButtonHTMLAttributes<HTMLButtonElement> &
+  VariantProps<typeof buttonVariants>;
 
-const Button: FC<Props> = ({ icon, children, ...props }) => {
-  const { className, onClick, ...otherProps } = props;
+const Button: FC<Props> = ({
+  icon,
+  children,
+  variant,
+  size,
+  className,
+  disableLoad = false,
+  ...props
+}) => {
+  const { onClick, disabled, ...otherProps } = props;
   const [isClicked, setIsClicked] = useState(false);
 
   const handleOnClick = (event: MouseEvent<HTMLButtonElement>) => {
-    setIsClicked(true);
-    setTimeout(() => {
-      if (onClick) {
-        onClick(event);
-      }
-      setIsClicked(false);
-    }, 1000);
+    if (onClick && !disableLoad) {
+      setIsClicked(true);
+      setTimeout(() => {
+        if (onClick) {
+          onClick(event);
+        }
+        setIsClicked(false);
+      }, 1000);
+    } else if (onClick) {
+      onClick(event);
+    }
   };
 
   return (
     <button
+      disabled={disabled}
       className={cn(
-        'flex justify-center cursor-pointer disabled:cursor-default disabled:scale-100 hover:scale-105 transition-all duration-300 text-lg font-bold text-primary gap-2 items-center bg-secondary disabled:bg-base disabled:text-secondary px-6 py-3 rounded-2xl',
+        buttonVariants({ variant, size }),
         isClicked && 'bg-primary/50',
         className,
       )}
       onClick={handleOnClick}
       {...otherProps}
     >
-      {icon && !isClicked && <FontAwesomeIcon icon={icon} />}
+      {icon && !isClicked && !disabled && <FontAwesomeIcon icon={icon} />}
       {isClicked && (
         <FontAwesomeIcon className="animate-spin" icon={faSpinner} />
       )}

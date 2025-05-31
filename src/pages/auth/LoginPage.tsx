@@ -9,8 +9,7 @@ import React, { useState } from 'react';
 import { useProfile } from '@/pages/profile/UserProfileContext';
 import Button from '@/components/Button';
 import Layout from '@/components/Layout';
-import Header from '@/components/Header';
-import { Config } from '@/config/Config';
+import { Card, CardContent } from '@/components/Card';
 
 const LoginPage: React.FC = () => {
   const { loginUserProfile } = useProfile();
@@ -53,34 +52,39 @@ const LoginPage: React.FC = () => {
   return (
     <Layout>
       <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
-        <h1 className="text-5xl p-4 font-cursive text-secondary">
-          {Config.APP_NAME}
-        </h1>
-        <Header title="Welcome!" subtitle="Log in to get drawing"></Header>
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col gap-4 bg-card border-2 border-border rounded-2xl w-full max-w-md p-4"
-        >
-          {error && <p className="text-center text-red-500">{error}</p>}
-          <div className="flex flex-col gap-2">
-            <label htmlFor="email" className="font-bold text-sm text-primary">
-              Email
-            </label>
-            <div className=" rounded-2xl">
-              <input
-                type="email"
-                placeholder="Email"
-                className="font-bold border-2 text-primary border-border w-full p-4 rounded-2xl"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-          <Button type="submit" disabled={!email} icon={faArrowRight}>
-            Login
-          </Button>
-        </form>
+        <h1 className="text-left text-xl font-bold text-primary">Login</h1>
+        <Card>
+          <form onSubmit={handleSubmit}>
+            <CardContent>
+              {error && (
+                <p className="text-center text-sm font-bold text-red-700">
+                  {error}
+                </p>
+              )}
+              <div className="flex flex-col gap-2">
+                <label
+                  htmlFor="email"
+                  className="font-bold text-sm text-primary"
+                >
+                  Email
+                </label>
+                <div className=" rounded-2xl">
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    className="font-bold border-2 text-primary border-border w-full p-4 rounded-2xl"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+              <Button type="submit" disabled={!email} icon={faArrowRight}>
+                Let's go
+              </Button>
+            </CardContent>
+          </form>
+        </Card>
         <div className="flex gap-2 justify-center items-center  rounded-2xl border-2 border-border bg-border px-4 py-2 w-full max-w-md font-bold text-primary">
           <FontAwesomeIcon icon={faQuestionCircle} />
           <p className="text-sm">

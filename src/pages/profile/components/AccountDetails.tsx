@@ -1,20 +1,9 @@
-import { faDoorOpen, faSpinner } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useState } from 'react';
+import { faDoorOpen } from '@fortawesome/free-solid-svg-icons';
 import { useProfile } from '../UserProfileContext';
-import { cn } from '@/utils';
+import Button from '@/components/Button';
 
 const AccountDetails = () => {
   const { logout } = useProfile();
-  const [isClicked, setIsClicked] = useState(false);
-
-  const handleLogout = () => {
-    setIsClicked(true);
-    setTimeout(() => {
-      setIsClicked(false);
-      logout();
-    }, 1000);
-  };
 
   return (
     <div className="flex justify-between items-center bg-card border-2 border-border rounded-2xl w-full max-w-md p-4">
@@ -22,21 +11,9 @@ const AccountDetails = () => {
         <h3 className="text-lg font-bold text-primary">Account</h3>
         <p className="text-sm font-bold text-secondary">Manage account</p>
       </div>
-      <button
-        className={cn(
-          'flex gap-2 px-4 py-2 font-bold text-sm items-center cursor-pointer transition-all duration-300  justify-center h-10 rounded-xl',
-          isClicked
-            ? 'bg-purple-100 text-purple-700 border-purple-200'
-            : 'bg-base text-primary hover:bg-gray-200 hover:text-gray-900 hover:scale-110',
-        )}
-        onClick={handleLogout}
-      >
-        <FontAwesomeIcon
-          icon={isClicked ? faSpinner : faDoorOpen}
-          className={cn(isClicked && 'animate-spin')}
-        />
+      <Button size="sm" variant="base" icon={faDoorOpen} onClick={logout}>
         Log out
-      </button>
+      </Button>
     </div>
   );
 };

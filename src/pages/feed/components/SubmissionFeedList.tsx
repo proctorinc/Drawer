@@ -1,28 +1,12 @@
+import { Card, CardContent } from '@/components/Card';
 import { useProfile } from '../../profile/UserProfileContext';
 import { UserProfileIcon } from '../../profile/components/UserProfileIcon';
 import type { UserPromptSubmission } from '@/api/Api';
 import { CanvasRenderer } from '@/drawing/components/CanvasRenderer';
 
-type Props = {
-  isLoading: boolean;
-};
-
-export const SubmissionFeedList: React.FC<Props> = ({ isLoading }) => {
+export const SubmissionFeedList = () => {
   const { userProfile } = useProfile();
   const feed = userProfile?.feed || {};
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-4 w-full max-w-md">
-        <div className="flex flex-col gap-4">
-          <div className="text-2xl h-[28px] w-[250px] bg-secondary rounded-xl animate-pulse"></div>
-          <div className="text-sm h-[16px] w-[150px] bg-secondary rounded-xl animate-pulse"></div>
-        </div>
-        <div className="flex flex-col animate-pulse aspect-square rounded-2xl bg-secondary"></div>
-        <div className="flex flex-col animate-pulse aspect-square rounded-2xl bg-secondary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-md">
@@ -46,29 +30,31 @@ export const SubmissionFeedList: React.FC<Props> = ({ isLoading }) => {
               year: 'numeric',
             });
             return (
-              <div key={date} className="flex flex-col gap-2">
+              <div key={date} className="flex flex-col gap-4 p-2">
                 <div className="pl-1 font-bold">
                   <h2 className="text-2xl text-primary">
                     {submissions[0].prompt}
                   </h2>
                   <p className="text-secondary">{formattedDate}</p>
                 </div>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-6">
                   {submissions.map((submission) => {
                     return (
-                      <div
+                      <Card
                         key={`${submission.user.id}-${submission.day}`}
                         className="flex items-center relative bg-card rounded-2xl overflow-hidden border-2 border-border"
                       >
-                        <CanvasRenderer
-                          canvasData={submission.canvasData}
-                          className="rounded-2xl"
-                        />
-                        <UserProfileIcon
-                          user={submission.user}
-                          className="absolute top-2 right-2"
-                        />
-                      </div>
+                        <CardContent>
+                          <CanvasRenderer
+                            canvasData={submission.canvasData}
+                            className="rounded-2xl"
+                          />
+                          <UserProfileIcon
+                            user={submission.user}
+                            className="absolute top-2 right-2"
+                          />
+                        </CardContent>
+                      </Card>
                     );
                   })}
                 </div>

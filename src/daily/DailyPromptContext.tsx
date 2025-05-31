@@ -1,16 +1,17 @@
 import { createContext, useContext, type FC } from 'react';
 import {
+  queryKeys,
   useGetDailyPrompt,
   useSubmitDailyPrompt,
   type DailyPrompt,
 } from '@/api/Api';
 import type { ReactNode } from '@tanstack/react-router';
-import { useProfile } from '@/pages/profile/UserProfileContext';
+import { useQueryClient } from '@tanstack/react-query';
 
 type DailyPromptContextType = {
   dailyPrompt: DailyPrompt | undefined;
   submitPrompt: (canvasData: string, onSuccess: () => void) => Promise<void>;
-  isFetching: boolean;
+  isLoading: boolean;
 };
 
 const DailyPromptContext = createContext<DailyPromptContextType | undefined>(
@@ -22,15 +23,16 @@ type Props = {
 };
 
 export const DailyPromptProvider: FC<Props> = ({ children }) => {
-  const { data, isFetching } = useGetDailyPrompt();
+  const { data, isLoading } = useGetDailyPrompt();
   const submitPromptMutation = useSubmitDailyPrompt();
-  const { reloadUser } = useProfile();
+  const queryClient = useQueryClient();
 
   const submitPrompt = async (canvasData: string, onSuccess: () => void) => {
     return submitPromptMutation.mutate(canvasData, {
       onSuccess: () => {
         onSuccess();
-        reloadUser();
+        queryClient.invalidateQueries({ queryKey: queryKeys.daily });
+        queryClient.invalidateQueries({ queryKey: queryKeys.userProfile });
       },
     });
   };
@@ -38,7 +40,7 @@ export const DailyPromptProvider: FC<Props> = ({ children }) => {
   const contextData = {
     dailyPrompt: data,
     submitPrompt,
-    isFetching,
+    isLoading,
   };
 
   return (

@@ -17,6 +17,7 @@ type UserProfileContextType = {
   loginUserProfile: (email: string) => Promise<{ message: string }>;
   logout: () => Promise<void>;
   reloadUser: () => Promise<void>;
+  isLoading: boolean;
 };
 
 const UserProfileContext = createContext<UserProfileContextType | undefined>(
@@ -28,7 +29,7 @@ type Props = {
 };
 
 export const UserProfileProvider: FC<Props> = ({ children }) => {
-  const { data, refetch: refetchUserProfile } = useGetUserProfile();
+  const { data, isLoading, refetch: refetchUserProfile } = useGetUserProfile();
   const loginMutation = useLoginUser();
   const logoutMutation = useLogoutUser();
   const createUserMutation = useCreateUser();
@@ -65,6 +66,7 @@ export const UserProfileProvider: FC<Props> = ({ children }) => {
     loginUserProfile,
     logout,
     reloadUser,
+    isLoading,
   };
 
   return (

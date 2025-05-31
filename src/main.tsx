@@ -21,13 +21,20 @@ import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/components/UserProfilePage.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import CalendarPage from './pages/calendar/CalendarPage.tsx';
 
 const queryClient = new QueryClient();
 
 const rootRoute = createRootRoute({
   component: () => (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <UserProfileProvider>
+        <DailyPromptProvider>
+          <DrawingProvider>
+            <Outlet />
+          </DrawingProvider>
+        </DailyPromptProvider>
+      </UserProfileProvider>
     </QueryClientProvider>
   ),
 });
@@ -35,60 +42,43 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app',
-  component: () => (
-    <UserProfileProvider>
-      <DailyPromptProvider>
-        <DrawingProvider>
-          <App />
-        </DrawingProvider>
-      </DailyPromptProvider>
-    </UserProfileProvider>
-  ),
+  component: () => <App />,
 });
 
 const userProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app/user-profile',
-  component: () => (
-    <UserProfileProvider>
-      <UserProfilePage />
-    </UserProfileProvider>
-  ),
+  component: () => <UserProfilePage />,
+});
+
+const calendarRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/app/calendar',
+  component: () => <CalendarPage />,
 });
 
 const createProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app/create-profile',
-  component: () => (
-    <UserProfileProvider>
-      <CreateProfilePage />
-    </UserProfileProvider>
-  ),
+  component: () => <CreateProfilePage />,
 });
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app/login',
-  component: () => (
-    <UserProfileProvider>
-      <LoginPage />
-    </UserProfileProvider>
-  ),
+  component: () => <LoginPage />,
 });
 
 const addFriendRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app/add-friend/$userId',
-  component: () => (
-    <UserProfileProvider>
-      <AddFriendPage />
-    </UserProfileProvider>
-  ),
+  component: () => <AddFriendPage />,
 });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
   userProfileRoute,
+  calendarRoute,
   createProfileRoute,
   loginRoute,
   addFriendRoute,

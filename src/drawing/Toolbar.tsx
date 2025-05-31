@@ -10,13 +10,13 @@ export const Toolbar = () => {
     useDrawing();
 
   return (
-    <div className="flex justify-between items-center bg-primary-foreground rounded-2xl shadow-md p-4 w-full max-w-md">
+    <div className="flex justify-between items-center bg-card border-2 border-border rounded-2xl p-4 w-full max-w-md">
       <div className="flex gap-4">
         {dailyPrompt?.colors.map((color) => (
           <button
             className={cn(
-              'w-10 h-10 cursor-pointer rounded-md hover:opacity-80 hover:scale-110 transition-all duration-300',
-              selectedColor === color ? 'ring-3 ring-card' : '',
+              'w-10 h-10 border-2 border-primary cursor-pointer rounded-md hover:opacity-80 hover:scale-110 transition-all duration-300',
+              selectedColor === color && 'ring-4 ring-border border-none',
             )}
             style={{ backgroundColor: color }}
             onClick={() => setSelectedColor(color)}
@@ -28,8 +28,8 @@ export const Toolbar = () => {
           onClick={selectEraser}
           disabled={!canUndo}
           className={cn(
-            'w-10 h-10 cursor-pointer disabled:cursor-default rounded-md disabled:opacity-30 disabled:scale-100 bg-card hover:opacity-80 hover:scale-110 transition-all duration-300',
-            selectedColor ? '' : 'ring-3 ring-blue-500',
+            'w-10 h-10 cursor-pointer disabled:cursor-default rounded-md disabled:opacity-30 disabled:scale-100 bg-base text-primary hover:opacity-80 hover:scale-110 transition-all duration-300',
+            !selectedColor && 'ring-4 ring-border',
           )}
         >
           <FontAwesomeIcon icon={faEraser} />
@@ -37,7 +37,7 @@ export const Toolbar = () => {
         <button
           onClick={undo}
           disabled={!canUndo}
-          className="w-10 h-10 cursor-pointer disabled:cursor-default rounded-md disabled:opacity-30 disabled:scale-100 bg-card hover:opacity-80 hover:scale-110 transition-all duration-300"
+          className="w-10 h-10 cursor-pointer disabled:cursor-default rounded-md disabled:opacity-30 disabled:scale-100 bg-base text-primary hover:opacity-80 hover:scale-110 transition-all duration-300"
         >
           <FontAwesomeIcon icon={faUndo} />
         </button>

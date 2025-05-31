@@ -1,31 +1,9 @@
-import type { FC, ReactNode } from 'react';
-
-type Props = {
-  title?: ReactNode;
-  subtitle?: ReactNode;
-  children?: ReactNode;
-  isLoading?: boolean;
-};
-
-const Header: FC<Props> = ({ title, subtitle, children, isLoading }) => {
+const Header = () => {
   return (
-    <div className="flex justify-between items-center bg-primary-foreground rounded-2xl border-border p-4 w-full max-w-md font-bold">
-      {isLoading && (
-        <div className="flex flex-col gap-2">
-          <div className="text-2xl h-[28px] w-[200px] bg-primary rounded-xl animate-pulse"></div>
-          <div className="h-[16px] w-[100px] bg-primary rounded-xl animate-pulse"></div>
-        </div>
-      )}
-      {!isLoading && (
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl text-base">{title}</h1>
-          <p className="text-secondary">{subtitle}</p>
-        </div>
-      )}
-      {!isLoading && children}
-      {isLoading && (
-        <div className="h-12 w-12 rounded-full bg-primary animate-pulse" />
-      )}
+    <div className="flex text-center justify-center items-center border-2 border-primary-foreground bg-primary-foreground rounded-2xl p-2 w-full">
+      <h1 className="text-2xl font-cursive tracking-widest text-border">
+        Daily Doodle
+      </h1>
     </div>
   );
 };
