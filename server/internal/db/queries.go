@@ -266,16 +266,38 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string) (GetMeR
 		SELECT
 			COUNT(*) as total_drawings,
 			(
+				WITH RECURSIVE dates AS (
+					SELECT date('now') as date
+					UNION ALL
+					SELECT date(date, '-1 day')
+					FROM dates
+					WHERE date > (
+						SELECT MIN(day)
+						FROM user_submissions_cte
+					)
+				)
 				SELECT COUNT(*)
-				FROM user_submissions_cte s1
-				WHERE s1.day <= date('now')
+				FROM dates d
+				WHERE EXISTS (
+					SELECT 1
+					FROM user_submissions_cte s
+					WHERE s.day = d.date
+				)
 				AND NOT EXISTS (
 					SELECT 1
-					FROM user_submissions_cte s2
-					WHERE s2.day = date(s1.day, '-1 day')
+					FROM dates d2
+					WHERE d2.date < d.date
+					AND d2.date > (
+						SELECT MAX(day)
+						FROM user_submissions_cte s2
+						WHERE s2.day < d.date
+					)
+					AND NOT EXISTS (
+						SELECT 1
+						FROM user_submissions_cte s3
+						WHERE s3.day = d2.date
+					)
 				)
-				ORDER BY s1.day DESC
-				LIMIT 1
 			) as current_streak
 		FROM user_submissions_cte
 	)
