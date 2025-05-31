@@ -85,12 +85,7 @@ const CalendarGrid = ({ onCellClick, currentDate }: Props) => {
                   : 'text-primary',
               )}
             >
-              {isToday && (
-                <div className="flex items-center justify-center rounded-full w-8 h-8 bg-card">
-                  {date.getDate()}
-                </div>
-              )}
-              {!isToday && date.getDate()}
+              {date.getDate()}
             </div>
             {isMissedDay && (
               <FontAwesomeIcon
