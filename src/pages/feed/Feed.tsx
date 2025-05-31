@@ -1,4 +1,4 @@
-import { faFrown } from '@fortawesome/free-solid-svg-icons';
+import { faFrown, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import { CountDownTimer } from '../../daily/CountdownTimer';
 import { useDailyPrompt } from '../../daily/DailyPromptContext';
 import PromptCanvas from './components/PromptCanvas';
@@ -23,12 +23,17 @@ const Feed = () => {
   return (
     <Layout>
       {promptNotCompleted && !isNoPrompt && (
-        <div className="flex flex-col items-center w-full -mb-4">
-          <h3 className="text-xl font-bold text-primary">
-            Draw {dailyPrompt.prompt.toLowerCase()}
-          </h3>
-          <p className="font-bold text-secondary">{formattedDate}</p>
-        </div>
+        <>
+          <Banner icon={faInfoCircle}>
+            Use today's colors to draw the prompt
+          </Banner>
+          <div className="flex flex-col items-center w-full -mb-4">
+            <h3 className="text-xl font-bold text-primary">
+              Draw {dailyPrompt.prompt.toLowerCase()}
+            </h3>
+            <p className="font-bold text-secondary">{formattedDate}</p>
+          </div>
+        </>
       )}
       {(hasPromptBeenCompleted || isNoPrompt) && (
         <Banner>

@@ -16,7 +16,9 @@ export const FriendList = () => {
         </CardHeader>
         <div className="flex flex-col gap-2 w-full max-w-md">
           {userProfile?.friends.length === 0 && (
-            <Banner>Share a link to add friends!</Banner>
+            <Banner className="bg-base border-none p-4">
+              Share a link to add friends!
+            </Banner>
           )}
           {userProfile &&
             userProfile.friends.length > 0 &&

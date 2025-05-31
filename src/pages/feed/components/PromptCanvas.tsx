@@ -1,4 +1,4 @@
-import { faCircleCheck, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import { faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 import Button from '@/components/Button';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
@@ -7,7 +7,6 @@ import { useDrawing } from '@/drawing/DrawingContext';
 import { Toolbar } from '@/drawing/Toolbar';
 import { useProfile } from '@/pages/profile/UserProfileContext';
 import { cn } from '@/utils';
-import Banner from '@/components/Banner';
 
 const PromptCanvas = () => {
   const { userProfile } = useProfile();
@@ -37,9 +36,6 @@ const PromptCanvas = () => {
     >
       <Canvas ref={canvasRef} />
       <div className="flex flex-col items-center w-full gap-4">
-        <Banner icon={faInfoCircle}>
-          Use today's colors to draw the prompt
-        </Banner>
         <Toolbar />
         {error && <p className="text-center text-red-500">{error}</p>}
         <Button

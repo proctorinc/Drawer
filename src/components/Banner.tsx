@@ -13,7 +13,7 @@ const Banner: FC<Props> = ({ icon, className, children, ...props }) => {
   return (
     <div
       className={cn(
-        'flex gap-2 justify-center items-center rounded-2xl border-2 border-border bg-border px-4 py-2 w-full text-sm font-bold text-primary',
+        'flex gap-2 justify-center items-center rounded-2xl bg-border px-4 py-1.5 w-full text-sm font-bold text-primary',
         className,
       )}
       {...props}
