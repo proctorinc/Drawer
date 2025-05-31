@@ -38,6 +38,8 @@ func InitDB(cfg *config.Config) (*sql.DB, error) {
 			return nil, fmt.Errorf("failed to initialize dev data: %w", err)
 		}
 
+		log.Println("Initialized dev database")
+
 		db = res
 	}
 
@@ -103,10 +105,10 @@ func initializeDevData(db *sql.DB) error {
 	// Add demo data
 	demoData := `
 		-- Insert demo users
-		INSERT OR IGNORE INTO users (id, username, email) VALUES 
-			('user1', 'TankardWellington', 'demo1@example.com'),
-			('user2', 'Pro-tractor', 'demo2@example.com'),
-			('user3', 'Octorpray', 'demo3@example.com');
+		INSERT OR IGNORE INTO users (id, username, email, created_at) VALUES 
+			('user1', 'TankardWellington', 'demo1@example.com', date('now', '-5 days')),
+			('user2', 'Pro-tractor', 'demo2@example.com', date('now', '-5 days')),
+			('user3', 'Octorpray', 'demo3@example.com', date('now', '-5 days'));
 
 		-- Make them friends
 		INSERT OR IGNORE INTO friendships (user_id, friend_id) VALUES 
@@ -119,7 +121,9 @@ func initializeDevData(db *sql.DB) error {
 		INSERT OR IGNORE INTO daily_prompts (day, colors, prompt) VALUES 
 			(date('now', '-2 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A sunset over mountains'),
 			(date('now', '-1 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A magical forest'),
-			(date('now'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A futuristic city');
+			(date('now'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A futuristic city'),
+			(date('now', '+1 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A Banana'),
+			(date('now', '+2 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'An Orange banana');
 
 		-- Add submissions for the last 2 days
 		INSERT OR IGNORE INTO user_submissions (id, user_id, day, canvas_data) VALUES 

@@ -21,7 +21,7 @@ func SendVerificationEmail(cfg *config.Config, toEmail string, token string) err
 	html := fmt.Sprintf(`
 		<html>
 			<body>
-				<h2>Welcome to Drawer!</h2>
+				<h2>Welcome to Daily Doodle!</h2>
 				<p>Please click the link below to verify your email address:</p>
 				<p><a href="%s">Verify Email</a></p>
 				<p>This link will expire in 1 hour.</p>

@@ -13,10 +13,11 @@ import (
 
 func HandleGetUser(c *gin.Context) {
 	user := middleware.GetUser(c)
+	repo := middleware.GetDB(c)
 
-	response, err := prepareUserResponse(c, &user)
+	response, err := db.GetUserDataFromDB(repo, c.Request.Context(), user.ID)
 	if err != nil {
-		log.Printf("Error preparing user response for user %s (email: %s): %v", user.ID, utils.MaskEmail(user.Email), err)
+		log.Printf("Error querying user data for userId: %s (email: %s): %v", user.ID, utils.MaskEmail(user.Email), err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare user response"})
 		return
 	}
