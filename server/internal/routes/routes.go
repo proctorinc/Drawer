@@ -5,7 +5,6 @@ import (
 	"drawer-service-backend/internal/config"
 	"drawer-service-backend/internal/handlers"
 	"drawer-service-backend/internal/middleware"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -59,6 +58,5 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 		}
 	}
 
-	log.Printf("Serving static files from '%s' at route 'server/uploads'", cfg.UploadDir)
 	return router
 }
