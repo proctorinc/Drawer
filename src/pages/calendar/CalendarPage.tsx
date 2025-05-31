@@ -64,7 +64,7 @@ const CalendarPage = () => {
             <CardContent className="pb-0">
               <CardHeader
                 title="My Doodles"
-                subtitle="See all your doodles"
+                subtitle="A whole bunch of doodles"
               ></CardHeader>
             </CardContent>
             <div className="w-full border-t-2 border-border" />

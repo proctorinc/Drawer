@@ -30,7 +30,7 @@ export const SubmissionFeedList = () => {
               year: 'numeric',
             });
             return (
-              <div key={date} className="flex flex-col gap-4 p-2">
+              <div key={date} className="flex flex-col gap-4">
                 <div className="pl-1 font-bold">
                   <h2 className="text-2xl text-primary">
                     {submissions[0].prompt}
