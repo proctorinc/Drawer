@@ -2,6 +2,8 @@ import { cn } from '@/utils';
 import { CanvasRenderer } from '@/drawing/components/CanvasRenderer';
 import type { UserPromptSubmission } from '@/api/Api';
 import { useProfile } from '@/pages/profile/UserProfileContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faX } from '@fortawesome/free-solid-svg-icons';
 
 type Props = {
   onCellClick: (
@@ -48,6 +50,8 @@ const CalendarGrid = ({ onCellClick, currentDate }: Props) => {
         const isToday = date.toDateString() === today.toDateString();
         const isBeforeUserCreation =
           date < new Date(userProfile.user.createdAt);
+        const isMissedDay =
+          !isBeforeUserCreation && !drawing && date < today && !isToday;
 
         return (
           <div
@@ -68,7 +72,8 @@ const CalendarGrid = ({ onCellClick, currentDate }: Props) => {
               <div
                 className={cn(
                   'w-full h-full',
-                  isBeforeUserCreation ? 'bg-border' : 'bg-border',
+                  isBeforeUserCreation ? 'bg-card' : 'bg-border',
+                  isMissedDay && 'bg-secondary/50',
                 )}
               />
             )}
@@ -80,8 +85,20 @@ const CalendarGrid = ({ onCellClick, currentDate }: Props) => {
                   : 'text-primary',
               )}
             >
-              {date.getDate()}
+              {isToday && (
+                <div className="flex items-center justify-center rounded-full w-8 h-8 bg-card">
+                  {date.getDate()}
+                </div>
+              )}
+              {!isToday && date.getDate()}
             </div>
+            {isMissedDay && (
+              <FontAwesomeIcon
+                icon={faX}
+                size="2x"
+                className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 absolute text-primary/20"
+              />
+            )}
           </div>
         );
       })}

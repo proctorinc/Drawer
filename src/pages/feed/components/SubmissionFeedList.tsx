@@ -1,4 +1,4 @@
-import { Card, CardContent } from '@/components/Card';
+import { Card } from '@/components/Card';
 import { useProfile } from '../../profile/UserProfileContext';
 import { UserProfileIcon } from '../../profile/components/UserProfileIcon';
 import type { UserPromptSubmission } from '@/api/Api';
@@ -44,16 +44,15 @@ export const SubmissionFeedList = () => {
                         key={`${submission.user.id}-${submission.day}`}
                         className="flex items-center relative bg-card rounded-2xl overflow-hidden border-2 border-border"
                       >
-                        <CardContent>
-                          <CanvasRenderer
-                            canvasData={submission.canvasData}
-                            className="rounded-2xl"
-                          />
-                          <UserProfileIcon
-                            user={submission.user}
-                            className="absolute top-2 right-2"
-                          />
-                        </CardContent>
+                        <CanvasRenderer
+                          canvasData={submission.canvasData}
+                          className="rounded-2xl"
+                        />
+                        <UserProfileIcon
+                          showTooltip
+                          user={submission.user}
+                          className="absolute top-2 right-2"
+                        />
                       </Card>
                     );
                   })}

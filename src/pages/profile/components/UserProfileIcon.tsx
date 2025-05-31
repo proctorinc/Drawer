@@ -3,9 +3,10 @@ import type { VariantProps } from 'class-variance-authority';
 import type { User } from '@/api/Api';
 import type { FC } from 'react';
 import { cn, getTwoCapitalLetters, nameToColor } from '@/utils';
+import { useState } from 'react';
 
 const userProfileIconVariants = cva(
-  'cursor-pointer select-none rounded-full font-semibold flex items-center justify-center hover:opacity-80 hover:scale-110 transition-all duration-300',
+  'cursor-pointer select-none rounded-full font-semibold flex items-center justify-center hover:scale-110 transition-all duration-300',
   {
     variants: {
       size: {
@@ -23,6 +24,7 @@ type Props = {
   user?: User;
   onClick?: () => void;
   className?: string;
+  showTooltip?: boolean;
 } & VariantProps<typeof userProfileIconVariants>;
 
 export const UserProfileIcon: FC<Props> = ({
@@ -30,7 +32,10 @@ export const UserProfileIcon: FC<Props> = ({
   onClick,
   className,
   size,
+  showTooltip = false,
 }) => {
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+
   if (!user) {
     return (
       <div
@@ -46,20 +51,46 @@ export const UserProfileIcon: FC<Props> = ({
   const name = getTwoCapitalLetters(user.username);
   const { primary, text: textColor } = nameToColor(user.username);
 
+  const handleClick = () => {
+    if (showTooltip) {
+      setIsTooltipVisible(!isTooltipVisible);
+    }
+    onClick?.();
+  };
+
   return (
     <div
-      className={cn(
-        'font-bold shadow-sm font-cursive tracking-widest',
-        userProfileIconVariants({ size }),
-        className,
-      )}
-      style={{
-        backgroundColor: primary,
-        color: textColor,
-      }}
-      onClick={onClick}
+      className={cn('relative group', className)}
+      onMouseEnter={() => showTooltip && setIsTooltipVisible(true)}
+      onMouseLeave={() => showTooltip && setIsTooltipVisible(false)}
     >
-      {name}
+      <div
+        className={cn(
+          'font-bold shadow-sm font-cursive tracking-widest',
+          userProfileIconVariants({ size }),
+        )}
+        style={{
+          backgroundColor: primary,
+          color: textColor,
+        }}
+        onClick={handleClick}
+      >
+        {name}
+      </div>
+      {showTooltip && (
+        <div
+          className={cn(
+            'absolute right-full top-1/2 -translate-y-1/2 mr-2 bg-card text-card-foreground rounded-full text-lg whitespace-nowrap transition-opacity duration-200 pointer-events-none px-4 py-2 font-bold',
+            isTooltipVisible ? 'opacity-100' : 'opacity-0',
+          )}
+          style={{
+            backgroundColor: primary,
+            color: textColor,
+          }}
+        >
+          {user.username}
+        </div>
+      )}
     </div>
   );
 };
