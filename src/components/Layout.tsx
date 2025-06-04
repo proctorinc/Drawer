@@ -4,16 +4,22 @@ import { useProfile } from '@/pages/profile/UserProfileContext';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
 import LoadingScreen from './LoadingScreen';
 import Header from './Header';
+import { useLocation } from '@tanstack/react-router';
 
 type Props = {
   children: ReactNode;
 };
 
 const Layout: FC<Props> = ({ children }) => {
+  const location = useLocation();
   const { isLoading: isProfileLoading } = useProfile();
   const { isLoading: isPromptLoading } = useDailyPrompt();
 
-  if (isProfileLoading || isPromptLoading) {
+  const isAuthPage =
+    !location.pathname.startsWith('/login') &&
+    !location.pathname.startsWith('/create-profile');
+
+  if (isAuthPage && (isProfileLoading || isPromptLoading)) {
     return <LoadingScreen />;
   }
 
