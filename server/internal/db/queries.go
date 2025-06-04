@@ -375,7 +375,6 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		var colorsJSON string
 		var submissionDay string
 		var userID, userName, userEmail string
-		var submissionID string
 		var submissionType string
 		var userCreatedAt, submissionCreatedAt time.Time
 		var totalDrawings, currentStreak int
@@ -383,7 +382,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		err := rows.Scan(
 			&submissionType,
 			&submissionDay,
-			&submissionID,
+			&submission.ID,
 			&colorsJSON,
 			&submission.Prompt,
 			&userID,
@@ -398,6 +397,9 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			log.Printf("Error scanning submission row: %v", err)
 			continue
 		}
+
+		// Set the day in the submission struct
+		submission.Day = submissionDay
 
 		// Parse the JSON array of colors
 		err = json.Unmarshal([]byte(colorsJSON), &submission.Colors)
@@ -437,11 +439,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			friendMap[userID] = user
 		}
 
-		// Set the ID in the submission
-		submission.ID = submissionID
-
 		// Generate the image URL
-		filename := utils.GetImageFilename(userID, submissionID)
+		filename := utils.GetImageFilename(userID, submission.ID)
 		submission.ImageUrl = utils.GetImageUrl(cfg, filename)
 	}
 
