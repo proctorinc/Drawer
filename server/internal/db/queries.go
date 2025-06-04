@@ -331,24 +331,6 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		(SELECT total_drawings FROM user_stats) as total_drawings,
 		(SELECT current_streak FROM user_stats) as current_streak
 	FROM friend_submissions
-	UNION ALL
-	SELECT
-		'friend' as submission_type,
-		NULL as day,
-		NULL as id,
-		NULL as colors,
-		NULL as prompt,
-		id as user_id,
-		username,
-		email,
-		created_at,
-		NULL as submission_created_at,
-		(SELECT total_drawings FROM user_stats) as total_drawings,
-		(SELECT current_streak FROM user_stats) as current_streak
-	FROM friends f
-	WHERE NOT EXISTS (
-		SELECT 1 FROM friend_submissions fs WHERE fs.user_id = f.id
-	)
 	ORDER BY submission_created_at DESC;
 	`
 
@@ -417,6 +399,10 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		}
 		submission.User = user
 
+		// Generate the image URL
+		filename := utils.GetImageFilename(userID, submission.ID)
+		submission.ImageUrl = utils.GetImageUrl(cfg, filename)
+
 		// If this is the main user, set it in the response
 		if submissionType == "user" && response.User.ID == "" {
 			response.User = user
@@ -438,10 +424,6 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		if submissionType == "friend" {
 			friendMap[userID] = user
 		}
-
-		// Generate the image URL
-		filename := utils.GetImageFilename(userID, submission.ID)
-		submission.ImageUrl = utils.GetImageUrl(cfg, filename)
 	}
 
 	// Convert friend map to slice
