@@ -1,7 +1,6 @@
 package db
 
 import (
-	"encoding/json"
 	"time"
 )
 
@@ -29,11 +28,12 @@ type User struct {
 
 // UserPromptSubmission combines the daily prompt details with the user's submitted canvas data.
 type UserPromptSubmission struct {
+	ID		   string          `json:"id"`
 	Day        string          `json:"day"` // Format: YYYY-MM-DD
 	Colors     []string        `json:"colors"`
 	Prompt     string          `json:"prompt"`
-	CanvasData json.RawMessage `json:"canvasData"` // Raw JSON data from the canvas
 	User       User            `json:"user"`       // User who submitted the prompt
+	ImageUrl   string		   `json:"imageUrl"`
 }
 
 type UserStats struct {

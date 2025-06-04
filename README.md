@@ -30,13 +30,15 @@ docker run -p 8080:8080 -e TURSO_DATABASE_URL='' -e TURSO_AUTH_TOKEN='' -e FROM_
 
 ## Database schema
 
-To update the database schema locally:
+### Update database schema
+
+Locally:
 
 ```bash
 sqlite3 drawer.db < server/schema.sql
 ```
 
-To update the database schema to prod:
+Turso:
 
 ```bash
 turso db shell drawer-db < server/schema.sql
@@ -44,28 +46,50 @@ turso db shell drawer-db < server/schema.sql
 
 ## Migrations
 
+- Checkout Turso/Geni docs here: https://turso.tech/blog/database-migrations-with-geni
+
+- To run on dev db:
+
+```bash
+DATABASE_URL="sqlite://./server/drawer.db" geni <COMMAND>
+```
+
 To create a migration
 
 ```bash
-migrate create -ext sql -dir server/migrations -seq <add_new_feature>
+geni new this_cool_new_feature
 ```
 
-To apply all pending migrations
+### To apply all pending migrations
 
 ```bash
-migrate -database "sqlite3://drawer.db" -path server/migrations up
+geni up
 ```
 
 To rollback the last migration
 
 ```bash
-migrate -database "sqlite3://drawer.db" -path server/migrations down 1
+geni down
 ```
 
-To rollback all migrations
+Check migration status
+
+````bash
+geni status
+``
+
+### To rollback all migrations
+
+Locally:
 
 ```bash
 migrate -database "sqlite3://drawer.db" -path server/migrations down
+````
+
+Turso:
+
+```bash
+turso db migrate rollback drawer-db
 ```
 
 ## Styling

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha1"
 	"database/sql"
+	"drawer-service-backend/internal/config"
 	"drawer-service-backend/internal/utils"
 	"encoding/hex"
 	"encoding/json"
@@ -205,7 +206,7 @@ func VerifyToken(repo *sql.DB, ctx context.Context, token string) (*User, error)
 	return &user, nil
 }
 
-func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string) (GetMeResponse, error) {
+func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *config.Config) (GetMeResponse, error) {
 	query := `
 	WITH user_submissions_cte AS (
 		SELECT
@@ -216,7 +217,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string) (GetMeR
 			u.id as user_id,
 			u.username,
 			u.email,
-			us.created_at,
+			u.created_at,
 			us.created_at as submission_created_at
 		FROM
 			user_submissions us
@@ -227,30 +228,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string) (GetMeR
 		WHERE
 			us.user_id = ?
 	),
-	friend_submissions AS (
-		SELECT
-			us.day,
-			us.canvas_data,
-			dp.colors,
-			dp.prompt,
-			u.id as user_id,
-			u.username,
-			u.email,
-			us.created_at,
-			us.created_at as submission_created_at
-		FROM
-			user_submissions us
-		JOIN
-			daily_prompts dp ON us.day = dp.day
-		JOIN
-			users u ON us.user_id = u.id
-		WHERE
-			us.user_id IN (
-				SELECT friend_id FROM friendships WHERE user_id = ?
-			)
-	),
 	friends AS (
-		SELECT 
+		SELECT DISTINCT
 			u.id,
 			u.username,
 			u.email,
@@ -261,6 +240,28 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string) (GetMeR
 			users u ON f.friend_id = u.id
 		WHERE 
 			f.user_id = ?
+	),
+	friend_submissions AS (
+		SELECT
+			us.day,
+			us.canvas_data,
+			dp.colors,
+			dp.prompt,
+			u.id as user_id,
+			u.username,
+			u.email,
+			u.created_at,
+			us.created_at as submission_created_at
+		FROM
+			user_submissions us
+		JOIN
+			daily_prompts dp ON us.day = dp.day
+		JOIN
+			users u ON us.user_id = u.id
+		WHERE
+			us.user_id IN (
+				SELECT id FROM friends
+			)
 	),
 	user_stats AS (
 		SELECT
@@ -330,10 +331,28 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string) (GetMeR
 		(SELECT total_drawings FROM user_stats) as total_drawings,
 		(SELECT current_streak FROM user_stats) as current_streak
 	FROM friend_submissions
+	UNION ALL
+	SELECT
+		'friend' as submission_type,
+		NULL as day,
+		NULL as canvas_data,
+		NULL as colors,
+		NULL as prompt,
+		id as user_id,
+		username,
+		email,
+		created_at,
+		NULL as submission_created_at,
+		(SELECT total_drawings FROM user_stats) as total_drawings,
+		(SELECT current_streak FROM user_stats) as current_streak
+	FROM friends f
+	WHERE NOT EXISTS (
+		SELECT 1 FROM friend_submissions fs WHERE fs.user_id = f.id
+	)
 	ORDER BY submission_created_at DESC;
 	`
 
-	rows, err := repo.QueryContext(ctx, query, userID, userID, userID)
+	rows, err := repo.QueryContext(ctx, query, userID, userID)
 	if err != nil {
 		log.Printf("Error fetching user data for user %s: %v", userID, err)
 		return GetMeResponse{}, err
@@ -388,7 +407,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string) (GetMeR
 		}
 
 		// Parse the canvas data
-		submission.CanvasData = json.RawMessage(canvasData)
+		filename := utils.GetImageFilename(userID, submission.ID)
+		submission.ImageUrl = utils.GetImageUrl(cfg, filename)
 		submission.Day = submissionDay
 
 		// Populate user data

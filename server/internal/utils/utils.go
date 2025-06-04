@@ -1,5 +1,7 @@
 package utils // getFormattedDate returns the current date string in YYYY-MM-DD format.
 import (
+	"drawer-service-backend/internal/config"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -26,4 +28,16 @@ func MaskEmail(email string) string {
 		return "***@" + domain
 	}
 	return username[:3] + "***@" + domain
+}
+
+func GetImageUrl(cfg *config.Config, imageFilename string) string {
+	if cfg.Env == "production" {
+		return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", cfg.S3BucketName, cfg.S3BucketRegion, imageFilename)
+	}
+
+	return fmt.Sprintf("/uploads/%s", imageFilename)
+}
+
+func GetImageFilename(userId string, submissionId string) string {
+	return fmt.Sprintf("%s/%s.png", userId, submissionId)
 }

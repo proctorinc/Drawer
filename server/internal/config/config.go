@@ -11,12 +11,13 @@ import (
 type Config struct {
 	Port             string
 	DatabaseURL      string
-	UploadDir        string
 	AllowedOrigin    string
 	Env              string
 	FromEmail        string
 	BaseURL          string
-	GmailAppPassword string // App password for Gmail SMTP
+	GmailAppPassword string
+	S3BucketName     string
+	S3BucketRegion   string
 }
 
 func LoadConfig() *Config {
@@ -45,12 +46,13 @@ func LoadConfig() *Config {
 	return &Config{
 		Port:             getEnv("PORT", "8080"),
 		DatabaseURL:      dbURL,
-		UploadDir:        getEnv("UPLOAD_DIR", "./uploads"),
 		AllowedOrigin:    getEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
 		Env:              env,
 		FromEmail:        getEnv("FROM_EMAIL", "your.email@gmail.com"),
 		BaseURL:          getEnv("BASE_URL", "http://localhost:3000"),
 		GmailAppPassword: getEnv("GMAIL_APP_PASSWORD", ""),
+		S3BucketName:     getEnv("S3_BUCKET_NAME", ""),
+		S3BucketRegion:   getEnv("S3_BUCKET_REGION", ""),
 	}
 }
 
