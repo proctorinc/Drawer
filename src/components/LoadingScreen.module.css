@@ -1,0 +1,46 @@
+.wave {
+  animation: wave 2s linear infinite;
+}
+
+@keyframes wave {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-200px);
+  }
+}
+
+.pencil {
+  animation: followWave 2s linear infinite;
+}
+
+@keyframes followWave {
+  0% {
+    transform: translateY(0);
+  }
+  12.5% {
+    transform: translateY(-10px);
+  }
+  25% {
+    transform: translateY(0);
+  }
+  37.5% {
+    transform: translateY(10px);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  62.5% {
+    transform: translateY(-10px);
+  }
+  75% {
+    transform: translateY(0);
+  }
+  87.5% {
+    transform: translateY(10px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}

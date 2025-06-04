@@ -18,9 +18,11 @@ var AppContextKey = "APP_CONTEXT"
 
 func ContextMiddleware(cfg *config.Config, db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		storageService := storage.NewStorageService(cfg)
 		appCtx := &AppContext{
-			DB:     db,
-			Config: cfg,
+			DB:      db,
+			Config:  cfg,
+			Storage: storageService,
 		}
 		// Store the AppContext in the context
 		c.Set(string(AppContextKey), appCtx)
