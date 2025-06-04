@@ -135,25 +135,27 @@ func HandlePostDaily(c *gin.Context) {
 			userID, utils.MaskEmail(user.Email), file.Size, bytesRead)
 	}
 
-	// Upload to S3
-	imageURL, err := storageService.UploadImage(userID, todayStr, buf)
-	if err != nil {
-		log.Printf("Error uploading image to S3 for user %s (email: %s): %v",
-			userID, utils.MaskEmail(user.Email), err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error uploading image"})
-		return
-	}
-
 	// Insert into the database
 	insertSQL := `
         INSERT INTO user_submissions (id, user_id, day, canvas_data)
         VALUES (lower(hex(randomblob(16))), ?, ?, ?)
+        RETURNING id
     `
-	_, err = repo.ExecContext(ctx, insertSQL, userID, todayStr, string(buf))
+	var submissionID string
+	err = repo.QueryRowContext(ctx, insertSQL, userID, todayStr, string(buf)).Scan(&submissionID)
 	if err != nil {
 		log.Printf("Failed to insert submission record for user %s (email: %s), day %s: %v",
 			userID, utils.MaskEmail(user.Email), todayStr, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Server error: Failed to record submission."})
+		return
+	}
+
+	// Upload to S3
+	imageURL, err := storageService.UploadImage(userID, submissionID, buf)
+	if err != nil {
+		log.Printf("Error uploading image to S3 for user %s (email: %s): %v",
+			userID, utils.MaskEmail(user.Email), err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error uploading image"})
 		return
 	}
 
@@ -163,5 +165,6 @@ func HandlePostDaily(c *gin.Context) {
 		"message":  "Drawing submitted successfully for today.",
 		"day":      todayStr,
 		"imageUrl": imageURL,
+		"id":       submissionID,
 	})
 }
