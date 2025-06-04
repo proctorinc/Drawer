@@ -13,26 +13,39 @@ import (
 )
 
 type StorageService struct {
-	client *s3.Client
+	client     *s3.Client
 	bucketName string
-	region string
+	region     string
 }
 
 func NewStorageService(cfg *config.Config) *StorageService {
-	context := context.TODO()
-	region := s3Config.WithRegion(cfg.S3BucketRegion)
-	s3cfg, err := s3Config.LoadDefaultConfig(context, region)
+	ctx := context.Background()
+	
+	// Create custom credentials provider
+	credentials := aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
+		return aws.Credentials{
+			AccessKeyID:     cfg.AwsAccessKey,
+			SecretAccessKey: cfg.AwsSecretKey,
+		}, nil
+	})
+
+	// Load AWS config with custom credentials
+	s3cfg, err := s3Config.LoadDefaultConfig(ctx,
+		s3Config.WithRegion(cfg.S3BucketRegion),
+		s3Config.WithCredentialsProvider(credentials),
+	)
 
 	if err != nil {
-		log.Fatal("Unable to load SDK config:", err)
+		log.Printf("Unable to load AWS SDK config: %v", err)
+		return nil
 	}
 
 	s3Client := s3.NewFromConfig(s3cfg)
 
-	return &StorageService {
-		client: s3Client,
+	return &StorageService{
+		client:     s3Client,
 		bucketName: cfg.S3BucketName,
-		region: cfg.S3BucketRegion,
+		region:     cfg.S3BucketRegion,
 	}
 }
 

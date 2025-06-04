@@ -18,6 +18,8 @@ type Config struct {
 	GmailAppPassword string
 	S3BucketName     string
 	S3BucketRegion   string
+	AwsAccessKey     string
+	AwsSecretKey     string
 }
 
 func LoadConfig() *Config {
@@ -53,6 +55,8 @@ func LoadConfig() *Config {
 		GmailAppPassword: getEnv("GMAIL_APP_PASSWORD", ""),
 		S3BucketName:     getEnv("S3_BUCKET_NAME", ""),
 		S3BucketRegion:   getEnv("S3_BUCKET_REGION", ""),
+		AwsAccessKey:     getEnv("AWS_ACCESS_KEY_ID", ""),
+		AwsSecretKey:     getEnv("AWS_SECRET_ACCESS_KEY", ""),
 	}
 }
 
