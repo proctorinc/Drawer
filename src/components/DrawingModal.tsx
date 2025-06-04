@@ -75,7 +75,7 @@ const DrawingModal = ({ drawing, onClose, initialPosition }: Props) => {
           </CardHeader>
         </CardContent>
         <CanvasRenderer
-          canvasData={drawing.canvasData}
+          imageUrl={drawing.imageUrl}
           className="w-full aspect-square border-t-2 border-border"
         />
       </Card>

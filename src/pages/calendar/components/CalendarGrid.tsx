@@ -83,7 +83,7 @@ const CalendarGrid = ({ onCellClick, currentDate }: Props) => {
           >
             {drawing ? (
               <CanvasRenderer
-                canvasData={drawing.canvasData}
+                imageUrl={drawing.imageUrl}
                 className="absolute inset-0 w-full h-full object-cover rounded-lg"
               />
             ) : (

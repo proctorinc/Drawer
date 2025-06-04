@@ -45,7 +45,7 @@ export const SubmissionFeedList = () => {
                         className="flex items-center relative bg-card rounded-2xl overflow-hidden border-2 border-border"
                       >
                         <CanvasRenderer
-                          canvasData={submission.canvasData}
+                          imageUrl={submission.imageUrl}
                           className="rounded-2xl"
                         />
                         <UserProfileIcon

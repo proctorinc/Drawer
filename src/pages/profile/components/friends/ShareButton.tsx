@@ -9,11 +9,12 @@ export const ShareButton = () => {
     if (userProfile) {
       if (navigator.share) {
         navigator.share({
-          text: `Hey, let's draw! ${window.location.origin}/app/add-friend/${userProfile.user.id}`,
+          text: 'Come doodle with me!',
+          url: `${window.location.origin}/app`,
         });
       } else {
         navigator.clipboard.writeText(
-          `Hey, let's draw! ${window.location.origin}/app/add-friend/${userProfile.user.id}`,
+          `Come doodle with me! ${window.location.origin}/app`,
         );
       }
     }

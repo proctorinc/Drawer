@@ -4,19 +4,26 @@ import {
   faThumbsUp,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Link } from '@tanstack/react-router';
-import React, { useState } from 'react';
+import { Link, useNavigate } from '@tanstack/react-router';
+import React, { useEffect, useState } from 'react';
 import { useProfile } from '@/pages/profile/UserProfileContext';
 import Layout from '@/components/Layout';
 import Button from '@/components/Button';
 import { Card, CardContent } from '@/components/Card';
 
 const CreateProfilePage: React.FC = () => {
-  const { createUserProfile } = useProfile();
+  const { userProfile, createUserProfile } = useProfile();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (userProfile) {
+      navigate({ to: '/app' });
+    }
+  }, [userProfile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

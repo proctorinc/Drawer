@@ -16,7 +16,7 @@ export interface User {
 }
 
 export interface UserPromptSubmission extends DailyPrompt {
-  canvasData: string;
+  imageUrl: string;
   user: User;
 }
 

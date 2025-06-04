@@ -1,20 +1,46 @@
-import { faDoorOpen } from '@fortawesome/free-solid-svg-icons';
+import { faCircleCheck, faDoorOpen } from '@fortawesome/free-solid-svg-icons';
 import { useProfile } from '../UserProfileContext';
 import Button from '@/components/Button';
+import { Card, CardContent, CardHeader } from '@/components/Card';
+import { useState, type FormEvent } from 'react';
 
 const AccountDetails = () => {
-  const { logout } = useProfile();
+  const { userProfile, logout } = useProfile();
+  const [username, setUsername] = useState(userProfile?.user.username);
+
+  function handleUpdateProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+  }
 
   return (
-    <div className="flex justify-between items-center bg-card border-2 border-border rounded-2xl w-full max-w-md p-4">
-      <div>
-        <h3 className="text-lg font-bold text-primary">Account</h3>
-        <p className="text-sm font-bold text-secondary">Manage account</p>
-      </div>
-      <Button size="sm" variant="base" icon={faDoorOpen} onClick={logout}>
-        Log out
-      </Button>
-    </div>
+    <Card>
+      <CardContent>
+        <CardHeader title="Account" subtitle="Change username">
+          <Button size="sm" variant="base" icon={faDoorOpen} onClick={logout}>
+            Log out
+          </Button>
+        </CardHeader>
+        <form onSubmit={handleUpdateProfile} className="flex flex-col gap-2">
+          <div className="flex gap-2 rounded-2xl">
+            <input
+              id="username"
+              type="text"
+              placeholder="Username"
+              className="font-bold border-2 text-primary border-border w-full p-4 rounded-2xl"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+            />
+            <Button
+              type="submit"
+              disabled={username === userProfile?.user.username}
+              icon={faCircleCheck}
+              className="disabled:bg-base"
+            ></Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   );
 };
 

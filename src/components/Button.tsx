@@ -70,7 +70,7 @@ const Button: FC<Props> = ({
       onClick={handleOnClick}
       {...otherProps}
     >
-      {icon && !isClicked && !disabled && <FontAwesomeIcon icon={icon} />}
+      {icon && !isClicked && <FontAwesomeIcon icon={icon} />}
       {isClicked && (
         <FontAwesomeIcon className="animate-spin" icon={faSpinner} />
       )}

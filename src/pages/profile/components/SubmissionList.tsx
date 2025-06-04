@@ -32,7 +32,7 @@ const SubmissionList = () => {
                 className="bg-card border-2 border-border rounded-2xl overflow-clip"
               >
                 <CanvasRenderer
-                  canvasData={submission.canvasData}
+                  imageUrl={submission.imageUrl}
                   className="w-full h-auto rounded-t-2xl"
                 />
                 <div className="px-4 py-2 bg-card border-t-2 border-border">
