@@ -10,7 +10,10 @@ import { useQueryClient } from '@tanstack/react-query';
 
 type DailyPromptContextType = {
   dailyPrompt: DailyPrompt | undefined;
-  submitPrompt: (canvasData: string, onSuccess: () => void) => Promise<void>;
+  submitPrompt: (
+    canvasData: string,
+    onSuccess: (imageUrl: string) => void,
+  ) => Promise<void>;
   isLoading: boolean;
 };
 
@@ -27,10 +30,13 @@ export const DailyPromptProvider: FC<Props> = ({ children }) => {
   const submitPromptMutation = useSubmitDailyPrompt();
   const queryClient = useQueryClient();
 
-  const submitPrompt = async (canvasData: string, onSuccess: () => void) => {
+  const submitPrompt = async (
+    canvasData: string,
+    onSuccess: (imageUrl: string) => void,
+  ) => {
     return submitPromptMutation.mutate(canvasData, {
-      onSuccess: () => {
-        onSuccess();
+      onSuccess: (response) => {
+        onSuccess(response.imageUrl);
         queryClient.invalidateQueries({ queryKey: queryKeys.daily });
         queryClient.invalidateQueries({ queryKey: queryKeys.userProfile });
       },

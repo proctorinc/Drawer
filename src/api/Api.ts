@@ -97,18 +97,43 @@ export function useUser(userId: string) {
 export function useSubmitDailyPrompt() {
   return useMutation({
     mutationFn: async (canvasData: string) => {
-      const response = await fetchAPI('POST', '/daily', {
-        body: JSON.stringify({ canvasData }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // Convert canvas data to PNG
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
+
+      const data = JSON.parse(canvasData);
+      const imageData = new ImageData(
+        new Uint8ClampedArray(data.data),
+        data.width,
+        data.height,
+      );
+      canvas.width = data.width;
+      canvas.height = data.height;
+      ctx.putImageData(imageData, 0, 0);
+
+      // Convert to PNG
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+        }, 'image/png');
       });
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('image', blob, 'drawing.png');
+
+      const response = await fetchAPI('POST', '/daily', {
+        body: formData,
+        // Remove Content-Type header to let browser set it with boundary
+      });
+
       if (!response.ok) {
         throw new Error(
           `Error submitting daily prompt: ${response.statusText}`,
         );
       }
-      return response.json() as Promise<{ message: string }>;
+      return response.json() as Promise<{ message: string; imageUrl: string }>;
     },
   });
 }
