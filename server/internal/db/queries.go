@@ -210,8 +210,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 	query := `
 	WITH user_submissions_cte AS (
 		SELECT
+			us.id,
 			us.day,
-			us.canvas_data,
 			dp.colors,
 			dp.prompt,
 			u.id as user_id,
@@ -243,8 +243,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 	),
 	friend_submissions AS (
 		SELECT
+			us.id,
 			us.day,
-			us.canvas_data,
 			dp.colors,
 			dp.prompt,
 			u.id as user_id,
@@ -305,7 +305,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 	SELECT
 		'user' as submission_type,
 		day,
-		canvas_data,
+		id,
 		colors,
 		prompt,
 		user_id,
@@ -320,7 +320,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 	SELECT
 		'friend' as submission_type,
 		day,
-		canvas_data,
+		id,
 		colors,
 		prompt,
 		user_id,
@@ -335,7 +335,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 	SELECT
 		'friend' as submission_type,
 		NULL as day,
-		NULL as canvas_data,
+		NULL as id,
 		NULL as colors,
 		NULL as prompt,
 		id as user_id,
@@ -375,7 +375,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		var colorsJSON string
 		var submissionDay string
 		var userID, userName, userEmail string
-		var canvasData string
+		var submissionID string
 		var submissionType string
 		var userCreatedAt, submissionCreatedAt time.Time
 		var totalDrawings, currentStreak int
@@ -383,7 +383,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		err := rows.Scan(
 			&submissionType,
 			&submissionDay,
-			&canvasData,
+			&submissionID,
 			&colorsJSON,
 			&submission.Prompt,
 			&userID,
@@ -405,11 +405,6 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			log.Printf("Error parsing colors JSON: %v", err)
 			continue
 		}
-
-		// Parse the canvas data
-		filename := utils.GetImageFilename(userID, submission.ID)
-		submission.ImageUrl = utils.GetImageUrl(cfg, filename)
-		submission.Day = submissionDay
 
 		// Populate user data
 		user := User{
@@ -441,6 +436,13 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		if submissionType == "friend" {
 			friendMap[userID] = user
 		}
+
+		// Set the ID in the submission
+		submission.ID = submissionID
+
+		// Generate the image URL
+		filename := utils.GetImageFilename(userID, submissionID)
+		submission.ImageUrl = utils.GetImageUrl(cfg, filename)
 	}
 
 	// Convert friend map to slice
