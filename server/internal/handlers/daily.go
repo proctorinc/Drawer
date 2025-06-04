@@ -62,12 +62,30 @@ type CanvasSubmission struct {
 
 func HandlePostDaily(c *gin.Context) {
 	userID := middleware.GetUserID(c)
+	if userID == "" {
+		log.Printf("Error: No user ID found in context")
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
 	user := middleware.GetUser(c)
+
 	now := time.Now()
 	todayStr := utils.GetFormattedDate(now)
 	repo := middleware.GetDB(c)
+	if repo == nil {
+		log.Printf("Error: Database connection is nil for user %s", userID)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+		return
+	}
+
 	ctx := c.Request.Context()
 	storageService := middleware.GetStorageService(c)
+	if storageService == nil {
+		log.Printf("Error: Storage service is nil for user %s", userID)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Storage service error"})
+		return
+	}
 
 	alreadySubmittedToday, err := db.CheckHasSubmittedForDay(repo, ctx, userID, todayStr)
 	if err != nil {
@@ -105,11 +123,16 @@ func HandlePostDaily(c *gin.Context) {
 
 	// Read the file into a buffer
 	buf := make([]byte, file.Size)
-	if _, err := f.Read(buf); err != nil {
+	bytesRead, err := f.Read(buf)
+	if err != nil {
 		log.Printf("Error reading image file for user %s (email: %s): %v",
 			userID, utils.MaskEmail(user.Email), err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error reading image file"})
 		return
+	}
+	if int64(bytesRead) != file.Size {
+		log.Printf("Warning: Incomplete file read for user %s (email: %s). Expected %d bytes, got %d",
+			userID, utils.MaskEmail(user.Email), file.Size, bytesRead)
 	}
 
 	// Upload to S3
@@ -123,10 +146,10 @@ func HandlePostDaily(c *gin.Context) {
 
 	// Insert into the database
 	insertSQL := `
-        INSERT INTO user_submissions (id, user_id, day, image_url)
+        INSERT INTO user_submissions (id, user_id, day, canvas_data)
         VALUES (lower(hex(randomblob(16))), ?, ?, ?)
     `
-	_, err = repo.ExecContext(ctx, insertSQL, userID, todayStr, imageURL)
+	_, err = repo.ExecContext(ctx, insertSQL, userID, todayStr, string(buf))
 	if err != nil {
 		log.Printf("Failed to insert submission record for user %s (email: %s), day %s: %v",
 			userID, utils.MaskEmail(user.Email), todayStr, err)
