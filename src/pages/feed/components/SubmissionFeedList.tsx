@@ -2,7 +2,7 @@ import { Card } from '@/components/Card';
 import { useProfile } from '../../profile/UserProfileContext';
 import { UserProfileIcon } from '../../profile/components/UserProfileIcon';
 import type { UserPromptSubmission } from '@/api/Api';
-import { CanvasRenderer } from '@/drawing/components/CanvasRenderer';
+import { DrawingImage } from '@/drawing/components/DrawingImage';
 
 export const SubmissionFeedList = () => {
   const { userProfile } = useProfile();
@@ -44,7 +44,7 @@ export const SubmissionFeedList = () => {
                         key={`${submission.user.id}-${submission.day}`}
                         className="flex items-center relative bg-card rounded-2xl overflow-hidden border-2 border-border"
                       >
-                        <CanvasRenderer
+                        <DrawingImage
                           imageUrl={submission.imageUrl}
                           className="rounded-2xl"
                         />

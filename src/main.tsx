@@ -21,6 +21,7 @@ import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/components/UserProfilePage.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CalendarPage from './pages/calendar/CalendarPage.tsx';
+import AuthProvider from './auth/AuthProvider.tsx';
 
 const queryClient = new QueryClient();
 
@@ -29,9 +30,9 @@ const rootRoute = createRootRoute({
     <QueryClientProvider client={queryClient}>
       <UserProfileProvider>
         <DailyPromptProvider>
-          <DrawingProvider>
+          <AuthProvider>
             <Outlet />
-          </DrawingProvider>
+          </AuthProvider>
         </DailyPromptProvider>
       </UserProfileProvider>
     </QueryClientProvider>
@@ -41,7 +42,11 @@ const rootRoute = createRootRoute({
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app',
-  component: () => <App />,
+  component: () => (
+    <DrawingProvider>
+      <App />
+    </DrawingProvider>
+  ),
 });
 
 const userProfileRoute = createRoute({

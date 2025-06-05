@@ -63,6 +63,9 @@ export function useGetDailyPrompt() {
       }
       return response.json() as Promise<DailyPrompt>;
     },
+    retry: () => {
+      return false;
+    },
   });
 }
 
@@ -75,6 +78,9 @@ export function useGetUserProfile() {
         throw new Error(`Error fetching user profile: ${response.statusText}`);
       }
       return response.json() as Promise<GetMeResponse>;
+    },
+    retry: () => {
+      return false;
     },
   });
 }

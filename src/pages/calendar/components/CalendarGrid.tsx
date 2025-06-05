@@ -1,5 +1,5 @@
 import { cn } from '@/utils';
-import { CanvasRenderer } from '@/drawing/components/CanvasRenderer';
+import { DrawingImage } from '@/drawing/components/DrawingImage';
 import type { UserPromptSubmission } from '@/api/Api';
 import { useProfile } from '@/pages/profile/UserProfileContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -82,7 +82,7 @@ const CalendarGrid = ({ onCellClick, currentDate }: Props) => {
             onMouseLeave={() => isUserCreationDay && setIsTooltipVisible(false)}
           >
             {drawing ? (
-              <CanvasRenderer
+              <DrawingImage
                 imageUrl={drawing.imageUrl}
                 className="absolute inset-0 w-full h-full object-cover rounded-lg"
               />

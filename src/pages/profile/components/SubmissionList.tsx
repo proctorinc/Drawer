@@ -1,5 +1,5 @@
 import { useProfile } from '../UserProfileContext'; // Adjust the path as needed
-import { CanvasRenderer } from '@/drawing/components/CanvasRenderer';
+import { DrawingImage } from '@/drawing/components/DrawingImage';
 
 const SubmissionList = () => {
   const { userProfile } = useProfile();
@@ -31,7 +31,7 @@ const SubmissionList = () => {
                 key={submission.day}
                 className="bg-card border-2 border-border rounded-2xl overflow-clip"
               >
-                <CanvasRenderer
+                <DrawingImage
                   imageUrl={submission.imageUrl}
                   className="w-full h-auto rounded-t-2xl"
                 />

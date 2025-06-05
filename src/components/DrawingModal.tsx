@@ -1,6 +1,6 @@
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { CanvasRenderer } from '@/drawing/components/CanvasRenderer';
+import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { cn } from '@/utils';
 import type { UserPromptSubmission } from '@/api/Api';
 import { useEffect, useState } from 'react';
@@ -74,7 +74,7 @@ const DrawingModal = ({ drawing, onClose, initialPosition }: Props) => {
             </Button>
           </CardHeader>
         </CardContent>
-        <CanvasRenderer
+        <DrawingImage
           imageUrl={drawing.imageUrl}
           className="w-full aspect-square border-t-2 border-border"
         />
