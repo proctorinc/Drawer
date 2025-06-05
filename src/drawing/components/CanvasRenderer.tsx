@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react';
-import { Config } from '@/config/Config';
+import { useState } from 'react';
 import { cn } from '@/utils';
 
 interface CanvasRendererProps {
@@ -11,41 +10,24 @@ export const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   imageUrl,
   className = '',
 }) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-        // Create an image element
-        const img = new Image();
-        img.crossOrigin = 'anonymous'; // Enable CORS for the image
-
-        img.onload = () => {
-          // Set canvas dimensions to match the image
-          canvasRef.current!.width = Config.CANVAS_WIDTH;
-          canvasRef.current!.height = Config.CANVAS_HEIGHT;
-
-          // Draw the image on the canvas
-          ctx.drawImage(img, 0, 0, Config.CANVAS_WIDTH, Config.CANVAS_HEIGHT);
-        };
-
-        img.onerror = (error) => {
-          console.error('Error loading image:', error);
-        };
-
-        // Set the image source to load it
-        img.src = imageUrl;
-      }
-    }
-  }, [imageUrl]);
+  const [isLoading, setIsLoading] = useState(true);
 
   return (
-    <canvas
-      ref={canvasRef}
-      width={Config.CANVAS_WIDTH}
-      height={Config.CANVAS_HEIGHT}
-      className={cn('w-full', className)}
+    <img
+      src={imageUrl}
+      crossOrigin="anonymous"
+      onLoad={() => setIsLoading(false)}
+      onError={(error) => {
+        console.error('Error loading image:', error);
+        setIsLoading(false);
+      }}
+      className={cn(
+        'w-full transition-all duration-300',
+        isLoading
+          ? 'opacity-70 blur-lg scale-105'
+          : 'opacity-100 blur-0 scale-100',
+        className,
+      )}
     />
   );
 };

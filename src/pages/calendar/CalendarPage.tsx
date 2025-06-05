@@ -75,7 +75,7 @@ const CalendarPage = () => {
       </div>
       <div className="flex gap-2 w-full">
         <Button
-          className="w-full bg-secondary/50 border-base disabled:bg-card/50 disabled:ring-3 disabled:ring-border/50"
+          className="w-full bg-secondary/50 border-base disabled:bg-card disabled:ring-3 disabled:ring-border/50"
           size="sm"
           onClick={() => setDisplayMode('calendar')}
           disabled={displayMode === 'calendar'}
@@ -84,7 +84,7 @@ const CalendarPage = () => {
           Calendar
         </Button>
         <Button
-          className="w-full bg-secondary/50 border-base disabled:bg-card/50 disabled:ring-3 disabled:ring-border/50"
+          className="w-full bg-secondary/50 border-base disabled:bg-card disabled:ring-3 disabled:ring-border/50"
           size="sm"
           onClick={() => setDisplayMode('list')}
           disabled={displayMode === 'list'}

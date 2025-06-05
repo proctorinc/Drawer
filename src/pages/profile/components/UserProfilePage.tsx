@@ -7,13 +7,26 @@ import { Card, CardContent, CardHeader } from '@/components/Card';
 import Button from '@/components/Button';
 import { useState, type FormEvent } from 'react';
 import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
+import { useAddFriend } from '@/api/Api';
 
 const UserProfilePage = () => {
   const { userProfile } = useProfile();
   const [username, setUsername] = useState('');
+  const [error, setError] = useState('');
+  const addFriendMutation = useAddFriend();
 
   function handleAddFriend(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError('');
+
+    addFriendMutation
+      .mutateAsync(username)
+      .then(() => {
+        setUsername('');
+      })
+      .catch((err) => {
+        setError(err.message || 'Failed to add friend');
+      });
   }
 
   return (
@@ -47,11 +60,16 @@ const UserProfilePage = () => {
               />
               <Button
                 type="submit"
-                disabled={username === ''}
+                disabled={username === '' || addFriendMutation.isPending}
                 icon={faPlusCircle}
                 className="disabled:bg-base"
               ></Button>
             </div>
+            {error && (
+              <p className="text-center text-sm font-bold text-red-700 mb-2">
+                {error}
+              </p>
+            )}
           </CardContent>
         </form>
       </Card>

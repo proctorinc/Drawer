@@ -334,7 +334,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 	ORDER BY submission_created_at DESC;
 	`
 
-	rows, err := repo.QueryContext(ctx, query, userID, userID)
+	rows, err := repo.QueryContext(ctx, query, userID, userID, userID, userID)
 	if err != nil {
 		log.Printf("Error fetching user data for user %s: %v", userID, err)
 		return GetMeResponse{}, err

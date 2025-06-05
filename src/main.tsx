@@ -16,7 +16,6 @@ import CreateProfilePage from './pages/auth/CreateProfilePage.tsx';
 import { UserProfileProvider } from './pages/profile/UserProfileContext.tsx';
 import { DailyPromptProvider } from './daily/DailyPromptContext.tsx';
 import { DrawingProvider } from './drawing/DrawingContext.tsx';
-import AddFriendPage from './pages/AddFriendPage.tsx';
 import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/components/UserProfilePage.tsx';
@@ -69,19 +68,12 @@ const loginRoute = createRoute({
   component: () => <LoginPage />,
 });
 
-const addFriendRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/app/add-friend/$userId',
-  component: () => <AddFriendPage />,
-});
-
 const routeTree = rootRoute.addChildren([
   indexRoute,
   userProfileRoute,
   calendarRoute,
   createProfileRoute,
   loginRoute,
-  addFriendRoute,
 ]);
 
 const router = createRouter({

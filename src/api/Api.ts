@@ -186,14 +186,29 @@ export function useLogoutUser() {
 
 export function useAddFriend() {
   return useMutation({
-    mutationFn: async (friendID: string) => {
+    mutationFn: async (username: string) => {
       const response = await fetchAPI('POST', '/add-friend', {
-        body: JSON.stringify({ friendID }),
+        body: JSON.stringify({ username }),
       });
       if (!response.ok) {
         throw new Error(`Error adding friend: ${response.statusText}`);
       }
       return response.json() as Promise<void>;
+    },
+  });
+}
+
+export function useUpdateUsername() {
+  return useMutation({
+    mutationFn: async (username: string) => {
+      const response = await fetchAPI('PUT', '/update-username', {
+        body: JSON.stringify({ username }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update username');
+      }
+      return response.json() as Promise<{ message: string }>;
     },
   });
 }

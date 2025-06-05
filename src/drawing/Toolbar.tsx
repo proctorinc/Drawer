@@ -16,7 +16,7 @@ export const Toolbar = () => {
           <button
             className={cn(
               'w-10 h-10 border-2 border-primary cursor-pointer rounded-md hover:opacity-80 hover:scale-110 transition-all duration-300',
-              selectedColor === color && 'ring-4 ring-border border-none',
+              selectedColor === color && 'ring-4 ring-primary border-none',
             )}
             style={{ backgroundColor: color }}
             onClick={() => setSelectedColor(color)}
@@ -29,7 +29,7 @@ export const Toolbar = () => {
           disabled={!canUndo}
           className={cn(
             'w-10 h-10 cursor-pointer disabled:cursor-default rounded-md disabled:opacity-30 disabled:scale-100 bg-base text-primary hover:opacity-80 hover:scale-110 transition-all duration-300',
-            !selectedColor && 'ring-4 ring-border',
+            !selectedColor && 'ring-4 ring-primary',
           )}
         >
           <FontAwesomeIcon icon={faEraser} />

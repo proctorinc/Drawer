@@ -9,6 +9,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -112,6 +113,23 @@ func HandleRegister(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		log.Printf("Failed to bind JSON in HandleRegister. Error: %v, Body: %s", err, c.Request.Body)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request format"})
+		return
+	}
+
+	// Validate username
+	if len(req.Username) < 2 {
+		log.Printf("Invalid username length: %s", req.Username)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username must be at least 2 characters long"})
+		return
+	}
+	if len(req.Username) > 15 {
+		log.Printf("Invalid username length: %s", req.Username)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username max length is 15 characters"})
+		return
+	}
+	if strings.Contains(req.Username, " ") {
+		log.Printf("Invalid username containing spaces: %s", req.Username)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username cannot contain spaces"})
 		return
 	}
 

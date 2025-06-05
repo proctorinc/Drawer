@@ -54,6 +54,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			authGroup.POST("/daily", handlers.HandlePostDaily)
 			authGroup.GET("/me", handlers.HandleGetUser)
 			authGroup.GET("/user/:id", handlers.HandleGetUserByID)
+			authGroup.PUT("/update-username", handlers.HandleUpdateUsername)
 		}
 	}
 

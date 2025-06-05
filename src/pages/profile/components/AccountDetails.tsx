@@ -3,13 +3,26 @@ import { useProfile } from '../UserProfileContext';
 import Button from '@/components/Button';
 import { Card, CardContent, CardHeader } from '@/components/Card';
 import { useState, type FormEvent } from 'react';
+import { useUpdateUsername } from '@/api/Api';
 
 const AccountDetails = () => {
-  const { userProfile, logout } = useProfile();
-  const [username, setUsername] = useState(userProfile?.user.username);
+  const { userProfile, logout, reloadUser } = useProfile();
+  const [username, setUsername] = useState(userProfile?.user.username || '');
+  const [error, setError] = useState('');
+  const updateUsernameMutation = useUpdateUsername();
 
   function handleUpdateProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setError('');
+
+    updateUsernameMutation
+      .mutateAsync(username)
+      .then(() => {
+        reloadUser();
+      })
+      .catch((err) => {
+        setError(err.message);
+      });
   }
 
   return (
@@ -28,16 +41,24 @@ const AccountDetails = () => {
               placeholder="Username"
               className="font-bold border-2 text-primary border-border w-full p-4 rounded-2xl"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value.toLowerCase())}
               required
             />
             <Button
               type="submit"
-              disabled={username === userProfile?.user.username}
+              disabled={
+                username === userProfile?.user.username ||
+                updateUsernameMutation.isPending
+              }
               icon={faCircleCheck}
               className="disabled:bg-base"
             ></Button>
-          </div>
+          </div>{' '}
+          {error && (
+            <p className="text-center text-sm font-bold text-red-700">
+              {error}
+            </p>
+          )}
         </form>
       </CardContent>
     </Card>

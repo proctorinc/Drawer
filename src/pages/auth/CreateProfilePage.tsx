@@ -85,7 +85,7 @@ const CreateProfilePage: React.FC = () => {
                     placeholder="Username"
                     className="font-bold border-2 text-primary border-border w-full p-4 rounded-2xl"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase())}
                     required
                   />
                 </div>
