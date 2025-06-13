@@ -1,4 +1,6 @@
-Welcome to your new TanStack app!
+# Welcome to the Daily Doodle!
+
+![alt text](https://github.com/proctorinc/drawer/blob/main/daily-doodle-1.png?raw=true)
 
 # Getting started
 
