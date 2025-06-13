@@ -1,6 +1,6 @@
 # Welcome to the Daily Doodle!
 
-![alt text](https://github.com/proctorinc/drawer/blob/main/daily-doodle-1.png?raw=true)
+![Daily Doodle image](https://github.com/proctorinc/Drawer/blob/main/public/daily-doodle-1.png)
 
 # Getting started
 
