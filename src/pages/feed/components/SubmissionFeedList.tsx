@@ -1,8 +1,6 @@
-import { Card } from '@/components/Card';
 import { useProfile } from '../../profile/UserProfileContext';
-import { UserProfileIcon } from '../../profile/components/UserProfileIcon';
 import type { UserPromptSubmission } from '@/api/Api';
-import { DrawingImage } from '@/drawing/components/DrawingImage';
+import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
 
 export const SubmissionFeedList = () => {
   const { userProfile } = useProfile();
@@ -39,22 +37,7 @@ export const SubmissionFeedList = () => {
                 </div>
                 <div className="flex flex-col gap-6">
                   {submissions.map((submission) => {
-                    return (
-                      <Card
-                        key={`${submission.user.id}-${submission.day}`}
-                        className="flex items-center relative bg-card rounded-2xl overflow-hidden border-2 border-border"
-                      >
-                        <DrawingImage
-                          imageUrl={submission.imageUrl}
-                          className="rounded-2xl"
-                        />
-                        <UserProfileIcon
-                          showTooltip
-                          user={submission.user}
-                          className="absolute top-2 right-2"
-                        />
-                      </Card>
-                    );
+                    return <DrawingFeedImage submission={submission} />;
                   })}
                 </div>
               </div>

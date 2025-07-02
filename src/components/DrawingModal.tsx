@@ -41,7 +41,7 @@ const DrawingModal = ({ drawing, onClose, initialPosition }: Props) => {
   return (
     <div
       className={cn(
-        'fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300',
+        'fixed inset-0 z-10 flex items-center justify-center p-4 transition-all duration-300',
         isVisible ? 'opacity-100' : 'opacity-0',
       )}
       onClick={onClose}
