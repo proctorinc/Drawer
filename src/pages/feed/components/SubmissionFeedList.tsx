@@ -1,5 +1,8 @@
+import { Card } from '@/components/Card';
 import { useProfile } from '../../profile/UserProfileContext';
 import SubmissionComments from './SubmissionComments';
+import { DrawingImage } from '@/drawing/components/DrawingImage';
+import { UserProfileIcon } from '@/pages/profile/components/UserProfileIcon';
 
 export const SubmissionFeedList = () => {
   const { userProfile } = useProfile();
