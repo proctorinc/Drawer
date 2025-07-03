@@ -12,6 +12,7 @@ const userProfileIconVariants = cva(
       size: {
         sm: 'w-9 h-9 text-sm',
         lg: 'w-12 h-12 text-lg',
+        xl: 'w-20 h-20 text-3xl',
       },
     },
     defaultVariants: {

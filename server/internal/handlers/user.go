@@ -5,9 +5,11 @@ import (
 	"drawer-service-backend/internal/db"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
+	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -200,4 +202,163 @@ func HandleUpdateUsername(c *gin.Context) {
 	log.Printf("Successfully updated username for user %s (email: %s) to '%s'",
 		user.ID, utils.MaskEmail(user.Email), body.Username)
 	c.JSON(http.StatusOK, gin.H{"message": "Username updated successfully"})
+}
+
+func HandleGetPromptSubmissionByID(c *gin.Context) {
+	submissionID := c.Param("id")
+	if submissionID == "" {
+		log.Printf("Empty submission ID provided in request")
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Submission ID is required"})
+		return
+	}
+
+	repo := middleware.GetDB(c)
+	cfg := middleware.GetConfig(c)
+
+	// Query the submission, its user, and prompt info
+	query := `
+		SELECT
+			us.id,
+			us.day,
+			dp.colors,
+			dp.prompt,
+			u.id as user_id,
+			u.username,
+			u.email,
+			u.created_at,
+			us.created_at as submission_created_at,
+			us.canvas_data
+		FROM user_submissions us
+		JOIN daily_prompts dp ON us.day = dp.day
+		JOIN users u ON us.user_id = u.id
+		WHERE us.id = ?
+	`
+	var (
+		subID, day, colorsJSON, prompt, userID, username, email, canvasData string
+		userCreatedAt, submissionCreatedAt sql.NullTime
+	)
+	err := repo.QueryRowContext(c.Request.Context(), query, submissionID).Scan(
+		&subID,
+		&day,
+		&colorsJSON,
+		&prompt,
+		&userID,
+		&username,
+		&email,
+		&userCreatedAt,
+		&submissionCreatedAt,
+		&canvasData,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Submission not found"})
+			return
+		}
+		log.Printf("Error fetching submission by id %s: %v", submissionID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch submission"})
+		return
+	}
+
+	// Parse colors
+	var colors []string
+	_ = json.Unmarshal([]byte(colorsJSON), &colors)
+
+	// Query comments for this submission
+	commentsQuery := `
+		SELECT c.text, u.id, u.username, u.email, u.created_at, c.created_at
+		FROM comments c
+		JOIN users u ON c.user_id = u.id
+		WHERE c.submission_id = ?
+		ORDER BY c.created_at ASC`
+	rows, err := repo.QueryContext(c.Request.Context(), commentsQuery, submissionID)
+	if err != nil {
+		log.Printf("Error fetching comments for submission %s: %v", submissionID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch comments"})
+		return
+	}
+	defer rows.Close()
+	comments := []db.Comment{}
+	for rows.Next() {
+		var commentText, commentUserID, commentUsername, commentUserEmail string
+		var commentUserCreatedAt, commentCreatedAt sql.NullTime
+		err := rows.Scan(&commentText, &commentUserID, &commentUsername, &commentUserEmail, &commentUserCreatedAt, &commentCreatedAt)
+		if err != nil {
+			log.Printf("Error scanning comment row: %v", err)
+			continue
+		}
+		comments = append(comments, db.Comment{
+			User: db.User{
+				ID:        commentUserID,
+				Username:  commentUsername,
+				Email:     commentUserEmail,
+				CreatedAt: commentUserCreatedAt.Time,
+			},
+			Text: commentText,
+			CreatedAt: commentCreatedAt.Time,
+		})
+	}
+
+	imageUrl := utils.GetImageUrl(cfg, utils.GetImageFilename(userID, subID))
+
+	resp := db.UserPromptSubmission{
+		ID:       subID,
+		Day:      day,
+		Colors:   colors,
+		Prompt:   prompt,
+		User: db.User{
+			ID:        userID,
+			Username:  username,
+			Email:     email,
+			CreatedAt: userCreatedAt.Time,
+		},
+		ImageUrl: imageUrl,
+		Comments: comments,
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+func HandleAddCommentToSubmission(c *gin.Context) {
+	submissionID := c.Param("id")
+	if submissionID == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Submission ID is required"})
+		return
+	}
+
+	var body struct {
+		Text string `json:"text" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.Text == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Text is required"})
+		return
+	}
+
+	repo := middleware.GetDB(c)
+	user := middleware.GetUser(c)
+
+	insertSQL := `
+		INSERT INTO comments (submission_id, user_id, text)
+		VALUES (?, ?, ?)
+		RETURNING id, created_at
+	`
+	var commentID int64
+	var createdAt time.Time
+	err := repo.QueryRowContext(c.Request.Context(), insertSQL, submissionID, user.ID, body.Text).Scan(&commentID, &createdAt)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to add comment"})
+		return
+	}
+
+	resp := db.Comment{
+		User: db.User{
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			CreatedAt: user.CreatedAt,
+		},
+		Text: body.Text,
+		CreatedAt: createdAt,
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
