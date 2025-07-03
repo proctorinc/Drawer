@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 )
 
@@ -207,28 +208,20 @@ func VerifyToken(repo *sql.DB, ctx context.Context, token string) (*User, error)
 }
 
 func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *config.Config) (GetMeResponse, error) {
-	query := `
-	WITH user_submissions_cte AS (
-		SELECT
-			us.id,
-			us.day,
-			dp.colors,
-			dp.prompt,
-			u.id as user_id,
-			u.username,
-			u.email,
-			u.created_at,
-			us.created_at as submission_created_at
-		FROM
-			user_submissions us
-		JOIN
-			daily_prompts dp ON us.day = dp.day
-		JOIN
-			users u ON us.user_id = u.id
-		WHERE
-			us.user_id = ?
-	),
-	friends AS (
+	var response GetMeResponse
+
+	// 1. Get main user info
+	userQuery := `SELECT id, username, email, created_at FROM users WHERE id = ?`
+	var user User
+	err := repo.QueryRowContext(ctx, userQuery, userID).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
+	if err != nil {
+		log.Printf("Error fetching user info for user %s: %v", userID, err)
+		return GetMeResponse{}, err
+	}
+	response.User = user
+
+	// 2. Get user's friends
+	friendsQuery := `
 		SELECT DISTINCT
 			u.id,
 			u.username,
@@ -240,10 +233,43 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			users u ON f.friend_id = u.id
 		WHERE 
 			f.user_id = ?
-	),
-	friend_submissions AS (
+		ORDER BY u.username`
+	friendsRows, err := repo.QueryContext(ctx, friendsQuery, userID)
+	if err != nil {
+		log.Printf("Error fetching friends for user %s: %v", userID, err)
+		return GetMeResponse{}, err
+	}
+	defer friendsRows.Close()
+	response.Friends = []User{}
+	friendIDs := []string{}
+	for friendsRows.Next() {
+		var friend User
+		err := friendsRows.Scan(&friend.ID, &friend.Username, &friend.Email, &friend.CreatedAt)
+		if err != nil {
+			log.Printf("Error scanning friend row: %v", err)
+			continue
+		}
+		response.Friends = append(response.Friends, friend)
+		friendIDs = append(friendIDs, friend.ID)
+	}
+	if err = friendsRows.Err(); err != nil {
+		log.Printf("Error iterating friends rows: %v", err)
+		return GetMeResponse{}, err
+	}
+
+	// 3. Get all relevant submissions (user + friends) and their comments in one query
+	submissionIDs := []interface{}{userID}
+	whereClause := "us.user_id = ?"
+	if len(friendIDs) > 0 {
+		whereClause = "(us.user_id = ? OR us.user_id IN (" + strings.Repeat("?,", len(friendIDs)-1) + "?) )"
+		for _, id := range friendIDs {
+			submissionIDs = append(submissionIDs, id)
+		}
+	}
+
+	query := `
 		SELECT
-			us.id,
+			us.id as submission_id,
 			us.day,
 			dp.colors,
 			dp.prompt,
@@ -251,189 +277,161 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			u.username,
 			u.email,
 			u.created_at,
-			us.created_at as submission_created_at
-		FROM
-			user_submissions us
-		JOIN
-			daily_prompts dp ON us.day = dp.day
-		JOIN
-			users u ON us.user_id = u.id
-		WHERE
-			us.user_id IN (
-				SELECT id FROM friends
-			)
-	),
-	user_stats AS (
-		SELECT
-			COUNT(*) as total_drawings,
-			(
-				WITH RECURSIVE dates AS (
-					SELECT date('now') as date
-					UNION ALL
-					SELECT date(date, '-1 day')
-					FROM dates
-					WHERE date > (
-						SELECT MIN(day)
-						FROM user_submissions_cte
-					)
-				)
-				SELECT COUNT(*)
-				FROM dates d
-				WHERE EXISTS (
-					SELECT 1
-					FROM user_submissions_cte s
-					WHERE s.day = d.date
-				)
-				AND NOT EXISTS (
-					SELECT 1
-					FROM dates d2
-					WHERE d2.date < d.date
-					AND d2.date > (
-						SELECT MAX(day)
-						FROM user_submissions_cte s2
-						WHERE s2.day < d.date
-					)
-					AND NOT EXISTS (
-						SELECT 1
-						FROM user_submissions_cte s3
-						WHERE s3.day = d2.date
-					)
-				)
-			) as current_streak
-		FROM user_submissions_cte
-	)
-	SELECT
-		'user' as submission_type,
-		day,
-		id,
-		colors,
-		prompt,
-		user_id,
-		username,
-		email,
-		created_at,
-		submission_created_at,
-		(SELECT total_drawings FROM user_stats) as total_drawings,
-		(SELECT current_streak FROM user_stats) as current_streak
-	FROM user_submissions_cte
-	UNION ALL
-	SELECT
-		'friend' as submission_type,
-		day,
-		id,
-		colors,
-		prompt,
-		user_id,
-		username,
-		email,
-		created_at,
-		submission_created_at,
-		(SELECT total_drawings FROM user_stats) as total_drawings,
-		(SELECT current_streak FROM user_stats) as current_streak
-	FROM friend_submissions
-	ORDER BY submission_created_at DESC;
-	`
+			us.created_at as submission_created_at,
+			c.text as comment_text,
+			cu.id as comment_user_id,
+			cu.username as comment_username,
+			cu.email as comment_user_email,
+			cu.created_at as comment_user_created_at,
+			c.created_at as comment_created_at
+		FROM user_submissions us
+		JOIN daily_prompts dp ON us.day = dp.day
+		JOIN users u ON us.user_id = u.id
+		LEFT JOIN comments c ON c.submission_id = us.id
+		LEFT JOIN users cu ON c.user_id = cu.id
+		WHERE ` + whereClause + `
+		ORDER BY us.day DESC, c.created_at ASC`
 
-	rows, err := repo.QueryContext(ctx, query, userID, userID, userID, userID)
+	rows, err := repo.QueryContext(ctx, query, submissionIDs...)
 	if err != nil {
-		log.Printf("Error fetching user data for user %s: %v", userID, err)
+		log.Printf("Error fetching submissions and comments: %v", err)
 		return GetMeResponse{}, err
 	}
 	defer rows.Close()
 
-	response := GetMeResponse{
-		User:    User{},
-		Prompts: []UserPromptSubmission{},
-		Feed:    make(map[string][]UserPromptSubmission),
-		Friends: []User{},
-		Stats:   UserStats{},
-	}
-
-	// Track unique friends
-	friendMap := make(map[string]User)
+	// Map submission_id to UserPromptSubmission
+	subMap := make(map[string]*UserPromptSubmission)
+	response.Feed = []*UserPromptSubmission{}
+	response.Prompts = []*UserPromptSubmission{}
 
 	for rows.Next() {
-		var submission UserPromptSubmission
-		var colorsJSON string
-		var submissionDay string
-		var userID, userName, userEmail string
-		var submissionType string
-		var userCreatedAt, submissionCreatedAt time.Time
-		var totalDrawings, currentStreak int
-
+		var (
+			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail string
+			subUserCreatedAt, subCreatedAt time.Time
+			commentText, commentUserID, commentUsername, commentUserEmail sql.NullString
+			commentUserCreatedAt, commentCreatedAt sql.NullTime
+		)
 		err := rows.Scan(
-			&submissionType,
-			&submissionDay,
-			&submission.ID,
+			&subID,
+			&day,
 			&colorsJSON,
-			&submission.Prompt,
-			&userID,
-			&userName,
-			&userEmail,
-			&userCreatedAt,
-			&submissionCreatedAt,
-			&totalDrawings,
-			&currentStreak,
+			&prompt,
+			&subUserID,
+			&subUsername,
+			&subUserEmail,
+			&subUserCreatedAt,
+			&subCreatedAt,
+			&commentText,
+			&commentUserID,
+			&commentUsername,
+			&commentUserEmail,
+			&commentUserCreatedAt,
+			&commentCreatedAt,
 		)
 		if err != nil {
-			log.Printf("Error scanning submission row: %v", err)
+			log.Printf("Error scanning submission+comment row: %v", err)
 			continue
 		}
 
-		// Set the day in the submission struct
-		submission.Day = submissionDay
-
-		// Parse the JSON array of colors
-		err = json.Unmarshal([]byte(colorsJSON), &submission.Colors)
-		if err != nil {
-			log.Printf("Error parsing colors JSON: %v", err)
-			continue
-		}
-
-		// Populate user data
-		user := User{
-			ID:        userID,
-			Username:  userName,
-			Email:     userEmail,
-			CreatedAt: userCreatedAt,
-		}
-		submission.User = user
-
-		// Generate the image URL
-		filename := utils.GetImageFilename(userID, submission.ID)
-		submission.ImageUrl = utils.GetImageUrl(cfg, filename)
-
-		// If this is the main user, set it in the response
-		if submissionType == "user" && response.User.ID == "" {
-			response.User = user
-			response.Stats = UserStats{
-				TotalDrawings: totalDrawings,
-				CurrentStreak: currentStreak,
+		sub, exists := subMap[subID]
+		if !exists {
+			var colors []string
+			_ = json.Unmarshal([]byte(colorsJSON), &colors)
+			submission := UserPromptSubmission{
+				ID:       subID,
+				Day:      day,
+				Colors:   colors,
+				Prompt:   prompt,
+				User: User{
+					ID:        subUserID,
+					Username:  subUsername,
+					Email:     subUserEmail,
+					CreatedAt: subUserCreatedAt,
+				},
+				ImageUrl: utils.GetImageUrl(cfg, utils.GetImageFilename(subUserID, subID)),
+				Comments: []Comment{},
 			}
+			subMap[subID] = &submission
+			// Add to feed as a flat list
+			response.Feed = append(response.Feed, &submission)
+			// If this is the main user's submission, add to Prompts
+			if subUserID == userID {
+				response.Prompts = append(response.Prompts, &submission)
+			}
+			sub = &submission
 		}
-
-		// Add to appropriate collection
-		if submissionType == "user" {
-			response.Prompts = append(response.Prompts, submission)
-		}
-		
-		// Add to feed
-		response.Feed[submission.Day] = append(response.Feed[submission.Day], submission)
-
-		// Track unique friends
-		if submissionType == "friend" {
-			friendMap[userID] = user
+		// Add comment if present
+		if commentText.Valid && commentUserID.Valid && commentUsername.Valid && commentUserEmail.Valid && commentUserCreatedAt.Valid && commentCreatedAt.Valid {
+			comment := Comment{
+				User: User{
+					ID:        commentUserID.String,
+					Username:  commentUsername.String,
+					Email:     commentUserEmail.String,
+					CreatedAt: commentUserCreatedAt.Time,
+				},
+				Text: commentText.String,
+				CreatedAt: commentCreatedAt.Time,
+			}
+			sub.Comments = append(sub.Comments, comment)
 		}
 	}
-
-	// Convert friend map to slice
-	for _, friend := range friendMap {
-		response.Friends = append(response.Friends, friend)
-	}
-
 	if err = rows.Err(); err != nil {
-		log.Printf("Error iterating rows: %v", err)
+		log.Printf("Error iterating submission+comment rows: %v", err)
 		return GetMeResponse{}, err
+	}
+
+	// 4. Get user stats
+	totalDrawingsQuery := `SELECT COUNT(*) FROM user_submissions WHERE user_id = ?`
+	var totalDrawings int
+	err = repo.QueryRowContext(ctx, totalDrawingsQuery, userID).Scan(&totalDrawings)
+	if err != nil {
+		log.Printf("Error fetching total drawings for user %s: %v", userID, err)
+		return GetMeResponse{}, err
+	}
+	currentStreakQuery := `
+		WITH RECURSIVE dates AS (
+			SELECT date('now') as date
+			UNION ALL
+			SELECT date(date, '-1 day')
+			FROM dates
+			WHERE date > (
+				SELECT MIN(day)
+				FROM user_submissions
+				WHERE user_id = ?
+			)
+		)
+		SELECT COUNT(*)
+		FROM dates d
+		WHERE EXISTS (
+			SELECT 1
+			FROM user_submissions s
+			WHERE s.user_id = ? AND s.day = d.date
+		)
+		AND NOT EXISTS (
+			SELECT 1
+			FROM dates d2
+			WHERE d2.date < d.date
+			AND d2.date > (
+				SELECT MAX(day)
+				FROM user_submissions s2
+				WHERE s2.user_id = ? AND s2.day < d.date
+			)
+			AND NOT EXISTS (
+				SELECT 1
+				FROM user_submissions s3
+				WHERE s3.user_id = ? AND s3.day = d2.date
+			)
+		)
+	`
+	var currentStreak int
+	err = repo.QueryRowContext(ctx, currentStreakQuery, userID, userID, userID, userID).Scan(&currentStreak)
+	if err != nil {
+		log.Printf("Error fetching current streak for user %s: %v", userID, err)
+		return GetMeResponse{}, err
+	}
+	response.Stats = UserStats{
+		TotalDrawings: totalDrawings,
+		CurrentStreak: currentStreak,
 	}
 
 	return response, nil

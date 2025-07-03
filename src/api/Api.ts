@@ -15,9 +15,17 @@ export interface User {
   createdAt: Date;
 }
 
+export interface Comment {
+  user: User;
+  text: string;
+  createdAt: Date;
+}
+
 export interface UserPromptSubmission extends DailyPrompt {
+  id: string;
   imageUrl: string;
   user: User;
+  comments: Comment[];
 }
 
 export interface UserStats {
@@ -28,7 +36,7 @@ export interface UserStats {
 export interface GetMeResponse {
   user: User;
   prompts: Array<UserPromptSubmission>;
-  feed: Map<string, Array<UserPromptSubmission>>;
+  feed: Array<UserPromptSubmission>;
   friends: Array<User>;
   stats: UserStats;
 }
@@ -96,6 +104,20 @@ export function useUser(userId: string) {
       return response.json() as Promise<User>;
     },
     enabled: !!userId,
+  });
+}
+
+export function usePromptSubmission(submissionId: string) {
+  return useQuery({
+    queryKey: ['promptSubmission', submissionId],
+    queryFn: async () => {
+      const response = await fetchAPI('GET', `/submission/${submissionId}`);
+      if (!response.ok) {
+        throw new Error(`Error fetching submission: ${response.statusText}`);
+      }
+      return response.json() as Promise<UserPromptSubmission>;
+    },
+    enabled: !!submissionId,
   });
 }
 
@@ -215,6 +237,32 @@ export function useUpdateUsername() {
         throw new Error(data.error || 'Failed to update username');
       }
       return response.json() as Promise<{ message: string }>;
+    },
+  });
+}
+
+export function useAddComment() {
+  return useMutation({
+    mutationFn: async ({
+      submissionId,
+      text,
+    }: {
+      submissionId: string;
+      text: string;
+    }) => {
+      const response = await fetchAPI(
+        'POST',
+        `/submission/${submissionId}/comment`,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        },
+      );
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to add comment');
+      }
+      return response.json();
     },
   });
 }

@@ -32,15 +32,17 @@ const UserProfilePage = () => {
   return (
     <Layout>
       {userProfile && (
-        <div className="flex gap-2 items-center ml-1 font-bold w-full max-w-md">
-          <UserProfileIcon user={userProfile.user} />
-          <div className="pl-1 font-bold">
-            <h2 className="text-2xl text-primary">
-              Hi, {userProfile.user.username}
-            </h2>
-            <p className="text-secondary">
-              You've done {userProfile.stats.totalDrawings} doodles!
-            </p>
+        <div className="flex flex-col items-center gap-3">
+          <UserProfileIcon user={userProfile.user} size="xl" />
+          <div className="flex gap-2 justify-center items-center text-center font-bold w-full max-w-md">
+            <div className="pl-1 font-bold">
+              <h2 className="text-2xl text-primary">
+                Hi, {userProfile.user.username}
+              </h2>
+              <p className="text-secondary">
+                You've done {userProfile.stats.totalDrawings} doodles!
+              </p>
+            </div>
           </div>
         </div>
       )}

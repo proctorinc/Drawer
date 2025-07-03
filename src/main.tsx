@@ -22,6 +22,7 @@ import UserProfilePage from './pages/profile/components/UserProfilePage.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import CalendarPage from './pages/calendar/CalendarPage.tsx';
 import AuthProvider from './auth/AuthProvider.tsx';
+import PromptSubmissionPage from './pages/feed/PromptSubmissionPage';
 
 const queryClient = new QueryClient();
 
@@ -73,12 +74,19 @@ const loginRoute = createRoute({
   component: () => <LoginPage />,
 });
 
+const promptSubmissionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/app/submission/$submissionId',
+  component: () => <PromptSubmissionPage />,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   userProfileRoute,
   calendarRoute,
   createProfileRoute,
   loginRoute,
+  promptSubmissionRoute,
 ]);
 
 const router = createRouter({

@@ -8,6 +8,7 @@ import Banner from '@/components/Banner';
 
 const Feed = () => {
   const { isLoading, dailyPrompt } = useDailyPrompt();
+
   const formattedDate = dailyPrompt
     ? new Date(dailyPrompt.day).toLocaleDateString('en-US', {
         month: 'long',
