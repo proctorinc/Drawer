@@ -26,14 +26,22 @@ type User struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+// Comment represents a comment on a prompt submission.
+type Comment struct {
+	User User   `json:"user"`
+	Text string `json:"text"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 // UserPromptSubmission combines the daily prompt details with the user's submitted canvas data.
 type UserPromptSubmission struct {
-	ID		   string          `json:"id"`
-	Day        string          `json:"day"` // Format: YYYY-MM-DD
-	Colors     []string        `json:"colors"`
-	Prompt     string          `json:"prompt"`
-	User       User            `json:"user"`       // User who submitted the prompt
-	ImageUrl   string		   `json:"imageUrl"`
+	ID         string    `json:"id"`
+	Day        string    `json:"day"`
+	Colors     []string  `json:"colors"`
+	Prompt     string    `json:"prompt"`
+	User       User      `json:"user"`
+	ImageUrl   string    `json:"imageUrl"`
+	Comments   []Comment `json:"comments"`
 }
 
 type UserStats struct {
@@ -43,9 +51,9 @@ type UserStats struct {
 
 // GetMeResponse is the structure for the /me endpoint response.
 type GetMeResponse struct {
-	User    User                              `json:"user"`
-	Prompts []UserPromptSubmission            `json:"prompts"`
-	Feed    map[string][]UserPromptSubmission `json:"feed"`
-	Friends []User                            `json:"friends"`
-	Stats 	UserStats 						  `json:"stats"`
+	User    User                    `json:"user"`
+	Prompts []*UserPromptSubmission `json:"prompts"`
+	Feed    []*UserPromptSubmission `json:"feed"`
+	Friends []User                  `json:"friends"`
+	Stats   UserStats               `json:"stats"`
 }

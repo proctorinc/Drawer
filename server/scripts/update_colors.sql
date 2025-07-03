@@ -1,0 +1,889 @@
+-- Update colors for prompts from 2025-06-11 to 2026-04-02
+UPDATE daily_prompts 
+SET colors = '["#8dc682", "#e658c9", "#3a8dec"]'
+WHERE day = '2025-06-11';
+UPDATE daily_prompts 
+SET colors = '["#41bfc6", "#64578f", "#9b5235"]'
+WHERE day = '2025-06-12';
+UPDATE daily_prompts 
+SET colors = '["#a284e6", "#98bf8c", "#ceb931"]'
+WHERE day = '2025-06-13';
+UPDATE daily_prompts 
+SET colors = '["#d553e3", "#344e88", "#2a882e"]'
+WHERE day = '2025-06-14';
+UPDATE daily_prompts 
+SET colors = '["#31bae0", "#67b585", "#5ef02b"]'
+WHERE day = '2025-06-15';
+UPDATE daily_prompts 
+SET colors = '["#654adc", "#9b8482", "#d17f28"]'
+WHERE day = '2025-06-16';
+UPDATE daily_prompts 
+SET colors = '["#cfeb7f", "#2de6fd", "#fb49a3"]'
+WHERE day = '2025-06-17';
+UPDATE daily_prompts 
+SET colors = '["#2a7b7c", "#61b5fa", "#8deb45"]'
+WHERE day = '2025-06-18';
+UPDATE daily_prompts 
+SET colors = '["#9445f6", "#cb3f9c", "#c17a42"]'
+WHERE day = '2025-06-19';
+UPDATE daily_prompts 
+SET colors = '["#c8acf3", "#fee699", "#5344bd"]'
+WHERE day = '2025-06-20';
+UPDATE daily_prompts 
+SET colors = '["#5a7696", "#b3e0dd", "#e03d28"]'
+WHERE day = '2025-06-21';
+UPDATE daily_prompts 
+SET colors = '["#e76fda", "#45aa7f", "#3ca5fd"]'
+WHERE day = '2025-06-22';
+UPDATE daily_prompts 
+SET colors = '["#43d7d7", "#79397c", "#6f34fa"]'
+WHERE day = '2025-06-23';
+UPDATE daily_prompts 
+SET colors = '["#76a6d3", "#ada079", "#d03842"]'
+WHERE day = '2025-06-24';
+UPDATE daily_prompts 
+SET colors = '["#3f6af4", "#98d563", "#c43286"]'
+WHERE day = '2025-06-25';
+UPDATE daily_prompts 
+SET colors = '["#cc645f", "#c29edd", "#eed429"]'
+WHERE day = '2025-06-26';
+UPDATE daily_prompts 
+SET colors = '["#5e2e42", "#5468c0", "#b79889"]'
+WHERE day = '2025-06-27';
+UPDATE daily_prompts 
+SET colors = '["#beca62", "#b42de0", "#e1622c"]'
+WHERE day = '2025-06-28';
+UPDATE daily_prompts 
+SET colors = '["#e894dd", "#46cf83", "#732ca6"]'
+WHERE day = '2025-06-29';
+UPDATE daily_prompts 
+SET colors = '["#7a5e80", "#b058fd", "#dd8e49"]'
+WHERE day = '2025-06-30';
+UPDATE daily_prompts 
+SET colors = '["#e428fa", "#dafaa0", "#385d46"]'
+WHERE day = '2025-07-01';
+UPDATE daily_prompts 
+SET colors = '["#3f8ff7", "#6cc442", "#8ff4e4"]'
+WHERE day = '2025-07-02';
+UPDATE daily_prompts 
+SET colors = '["#d68ebd", "#2bc3e1", "#57f82c"]'
+WHERE day = '2025-07-03';
+UPDATE daily_prompts 
+SET colors = '["#5e52dd", "#8b8829", "#81c2a7"]'
+WHERE day = '2025-07-04';
+UPDATE daily_prompts 
+SET colors = '["#88f480", "#bfeffe", "#f551a3"]'
+WHERE day = '2025-07-05';
+UPDATE daily_prompts 
+SET colors = '["#fc837d", "#f27efb", "#51b9a0"]'
+WHERE day = '2025-07-06';
+UPDATE daily_prompts 
+SET colors = '["#58eb7a", "#4e4df7", "#84489d"]'
+WHERE day = '2025-07-07';
+UPDATE daily_prompts 
+SET colors = '["#8b7a76", "#82b5f4", "#eeea40"]'
+WHERE day = '2025-07-08';
+UPDATE daily_prompts 
+SET colors = '["#f544f1", "#ec7e97", "#4a793d"]'
+WHERE day = '2025-07-09';
+UPDATE daily_prompts 
+SET colors = '["#51abee", "#47e694", "#7e4839"]'
+WHERE day = '2025-07-10';
+UPDATE daily_prompts 
+SET colors = '["#857aeb", "#bb7590", "#b1af36"]'
+WHERE day = '2025-07-11';
+UPDATE daily_prompts 
+SET colors = '["#b8e2e8", "#efdc8d", "#e53f33"]'
+WHERE day = '2025-07-12';
+UPDATE daily_prompts 
+SET colors = '["#ec71e4", "#4aab8a", "#9a3877"]'
+WHERE day = '2025-07-13';
+UPDATE daily_prompts 
+SET colors = '["#e1aa50", "#d7a5ce", "#36e074"]'
+WHERE day = '2025-07-14';
+UPDATE daily_prompts 
+SET colors = '["#3d3a4d", "#3334cb", "#96a494"]'
+WHERE day = '2025-07-15';
+UPDATE daily_prompts 
+SET colors = '["#9dd66d", "#9339eb", "#ca3391"]'
+WHERE day = '2025-07-16';
+UPDATE daily_prompts 
+SET colors = '["#d1656a", "#2fa0e8", "#5bd573"]'
+WHERE day = '2025-07-17';
+UPDATE daily_prompts 
+SET colors = '["#632f4d", "#596acb", "#bc9a94"]'
+WHERE day = '2025-07-18';
+UPDATE daily_prompts 
+SET colors = '["#c3cc6d", "#b92eeb", "#ef2991"]'
+WHERE day = '2025-07-19';
+UPDATE daily_prompts 
+SET colors = '["#f79b6a", "#5595e8", "#4bd08d"]'
+WHERE day = '2025-07-20';
+UPDATE daily_prompts 
+SET colors = '["#522a67", "#89fde5", "#b55a30"]'
+WHERE day = '2025-07-21';
+UPDATE daily_prompts 
+SET colors = '["#bccce1", "#e9292d", "#47fcab"]'
+WHERE day = '2025-07-22';
+UPDATE daily_prompts 
+SET colors = '["#4e5684", "#44902a", "#a7c0cb"]'
+WHERE day = '2025-07-23';
+UPDATE daily_prompts 
+SET colors = '["#ae5aa4", "#30c5eb", "#febf91"]'
+WHERE day = '2025-07-24';
+UPDATE daily_prompts 
+SET colors = '["#6d596a", "#6354e8", "#c6c4b1"]'
+WHERE day = '2025-07-25';
+UPDATE daily_prompts 
+SET colors = '["#cdf68b", "#fa53ae", "#4f88d2"]'
+WHERE day = '2025-07-26';
+UPDATE daily_prompts 
+SET colors = '["#56baab", "#4cf551", "#795274"]'
+WHERE day = '2025-07-27';
+UPDATE daily_prompts 
+SET colors = '["#c0844e", "#b67fcb", "#41ee95"]'
+WHERE day = '2025-07-28';
+UPDATE daily_prompts 
+SET colors = '["#48486e", "#3e83ec", "#6bb837"]'
+WHERE day = '2025-07-29';
+UPDATE daily_prompts 
+SET colors = '["#72eae9", "#a8e58e", "#de4734"]'
+WHERE day = '2025-07-30';
+UPDATE daily_prompts 
+SET colors = '["#e67ae5", "#dcb48b", "#3aaf31"]'
+WHERE day = '2025-07-31';
+UPDATE daily_prompts 
+SET colors = '["#41e1e2", "#384388", "#6e3e2e"]'
+WHERE day = '2025-08-01';
+UPDATE daily_prompts 
+SET colors = '["#75b0df", "#abab85", "#a2e52b"]'
+WHERE day = '2025-08-02';
+UPDATE daily_prompts 
+SET colors = '["#df3a82", "#d574ff", "#336fa5"]'
+WHERE day = '2025-08-03';
+UPDATE daily_prompts 
+SET colors = '["#3be17e", "#31dcfc", "#673ea2"]'
+WHERE day = '2025-08-04';
+UPDATE daily_prompts 
+SET colors = '["#6e707b", "#a56bf9", "#d1a045"]'
+WHERE day = '2025-08-05';
+UPDATE daily_prompts 
+SET colors = '["#d83af6", "#2d6f41", "#59a5a5"]'
+WHERE day = '2025-08-06';
+UPDATE daily_prompts 
+SET colors = '["#61d77e", "#57d1fc", "#8d34a2"]'
+WHERE day = '2025-08-07';
+UPDATE daily_prompts 
+SET colors = '["#94667b", "#caa0f9", "#f7d644"]'
+WHERE day = '2025-08-08';
+UPDATE daily_prompts 
+SET colors = '["#fe30f6", "#536541", "#499fbf"]'
+WHERE day = '2025-08-09';
+UPDATE daily_prompts 
+SET colors = '["#50d298", "#86cc3e", "#7d2fbc"]'
+WHERE day = '2025-08-10';
+UPDATE daily_prompts 
+SET colors = '["#c46195", "#ba9b3b", "#45cbdc"]'
+WHERE day = '2025-08-11';
+UPDATE daily_prompts 
+SET colors = '["#4cfdb5", "#42605b", "#795ad9"]'
+WHERE day = '2025-08-12';
+UPDATE daily_prompts 
+SET colors = '["#80ccb2", "#ac2ad6", "#37599f"]'
+WHERE day = '2025-08-13';
+UPDATE daily_prompts 
+SET colors = '["#3e8b78", "#35c6f6", "#61fb42"]'
+WHERE day = '2025-08-14';
+UPDATE daily_prompts 
+SET colors = '["#6855f3", "#9f9099", "#f8fae0"]'
+WHERE day = '2025-08-15';
+UPDATE daily_prompts 
+SET colors = '["#ff54b9", "#5d4f5f", "#548adc"]'
+WHERE day = '2025-08-16';
+UPDATE daily_prompts 
+SET colors = '["#5bbcb6", "#91f65c", "#be537f"]'
+WHERE day = '2025-08-17';
+UPDATE daily_prompts 
+SET colors = '["#c58558", "#bb80d6", "#46f09f"]'
+WHERE day = '2025-08-18';
+UPDATE daily_prompts 
+SET colors = '["#4d4a79", "#8384f6", "#b0ba42"]'
+WHERE day = '2025-08-19';
+UPDATE daily_prompts 
+SET colors = '["#b7ecf3", "#ad4e99", "#e4493f"]'
+WHERE day = '2025-08-20';
+UPDATE daily_prompts 
+SET colors = '["#eb7bf0", "#e1b696", "#3fb03c"]'
+WHERE day = '2025-08-21';
+UPDATE daily_prompts 
+SET colors = '["#46e2ed", "#7d4593", "#737f38"]'
+WHERE day = '2025-08-22';
+UPDATE daily_prompts 
+SET colors = '["#7ab1ea", "#a7e735", "#dde1b3"]'
+WHERE day = '2025-08-23';
+UPDATE daily_prompts 
+SET colors = '["#da7632", "#39b0b0", "#9243f7"]'
+WHERE day = '2025-08-24';
+UPDATE daily_prompts 
+SET colors = '["#9975d0", "#cf7076", "#f2df3f"]'
+WHERE day = '2025-08-25';
+UPDATE daily_prompts 
+SET colors = '["#f93959", "#5774d6", "#b1de45"]'
+WHERE day = '2025-08-26';
+UPDATE daily_prompts 
+SET colors = '["#b838f7", "#ee339c", "#e46e42"]'
+WHERE day = '2025-08-27';
+UPDATE daily_prompts 
+SET colors = '["#eba0f3", "#4ada99", "#7637bd"]'
+WHERE day = '2025-08-28';
+UPDATE daily_prompts 
+SET colors = '["#7d6a96", "#d7d4dd", "#2b3128"]'
+WHERE day = '2025-08-29';
+UPDATE daily_prompts 
+SET colors = '["#3263da", "#699e80", "#c230c6"]'
+WHERE day = '2025-08-30';
+UPDATE daily_prompts 
+SET colors = '["#c962a0", "#bf9d46", "#4acde7"]'
+WHERE day = '2025-08-31';
+UPDATE daily_prompts 
+SET colors = '["#51ffc0", "#876166", "#7e5ce4"]'
+WHERE day = '2025-09-01';
+UPDATE daily_prompts 
+SET colors = '["#85cebd", "#bbc863", "#b12be0"]'
+WHERE day = '2025-09-02';
+UPDATE daily_prompts 
+SET colors = '["#b85dba", "#ef5860", "#438d83"]'
+WHERE day = '2025-09-03';
+UPDATE daily_prompts 
+SET colors = '["#4aff5c", "#81fada", "#775c80"]'
+WHERE day = '2025-09-04';
+UPDATE daily_prompts 
+SET colors = '["#7e8e59", "#b489d7", "#d7f9a0"]'
+WHERE day = '2025-09-05';
+UPDATE daily_prompts 
+SET colors = '["#de537a", "#3d8df7", "#69c243"]'
+WHERE day = '2025-09-06';
+UPDATE daily_prompts 
+SET colors = '["#70f4f4", "#a7ef9a", "#9d5240"]'
+WHERE day = '2025-09-07';
+UPDATE daily_prompts 
+SET colors = '["#a484f1", "#dabe97", "#2ff4ba"]'
+WHERE day = '2025-09-08';
+UPDATE daily_prompts 
+SET colors = '["#364e94", "#8fb8db", "#86f380"]'
+WHERE day = '2025-09-09';
+UPDATE daily_prompts 
+SET colors = '["#cd4d5a", "#c347d7", "#4eb7a1"]'
+WHERE day = '2025-09-10';
+UPDATE daily_prompts 
+SET colors = '["#55e97a", "#4b4cf8", "#82469d"]'
+WHERE day = '2025-09-11';
+UPDATE daily_prompts 
+SET colors = '["#897877", "#bfb3f5", "#ece840"]'
+WHERE day = '2025-09-12';
+UPDATE daily_prompts 
+SET colors = '["#f342f1", "#e97d97", "#47773d"]'
+WHERE day = '2025-09-13';
+UPDATE daily_prompts 
+SET colors = '["#4ea9ee", "#45e494", "#7bdf3a"]'
+WHERE day = '2025-09-14';
+UPDATE daily_prompts 
+SET colors = '["#827953", "#b873d1", "#dbe39a"]'
+WHERE day = '2025-09-15';
+UPDATE daily_prompts 
+SET colors = '["#e23d73", "#4138f1", "#377297"]'
+WHERE day = '2025-09-16';
+UPDATE daily_prompts 
+SET colors = '["#3ea470", "#74dfee", "#a13c39"]'
+WHERE day = '2025-09-17';
+UPDATE daily_prompts 
+SET colors = '["#a86eeb", "#de6991", "#d5a336"]'
+WHERE day = '2025-09-18';
+UPDATE daily_prompts 
+SET colors = '["#dcd5e8", "#3a388d", "#899d7a"]'
+WHERE day = '2025-09-19';
+UPDATE daily_prompts 
+SET colors = '["#90cf54", "#c732d1", "#eaa19a"]'
+WHERE day = '2025-09-20';
+UPDATE daily_prompts 
+SET colors = '["#59d374", "#4fcef2", "#853197"]'
+WHERE day = '2025-09-21';
+UPDATE daily_prompts 
+SET colors = '["#8c6371", "#835dee", "#afd33a"]'
+WHERE day = '2025-09-22';
+UPDATE daily_prompts 
+SET colors = '["#b62deb", "#edff91", "#4b6237"]'
+WHERE day = '2025-09-23';
+UPDATE daily_prompts 
+SET colors = '["#5294e8", "#7fc934", "#752cb1"]'
+WHERE day = '2025-09-24';
+UPDATE daily_prompts 
+SET colors = '["#7c5e8b", "#b25830", "#d5c8d2"]'
+WHERE day = '2025-09-25';
+UPDATE daily_prompts 
+SET colors = '["#3b5d51", "#7157ce", "#94c798"]'
+WHERE day = '2025-09-26';
+UPDATE daily_prompts 
+SET colors = '["#9bf971", "#d1f4ef", "#c85695"]'
+WHERE day = '2025-09-27';
+UPDATE daily_prompts 
+SET colors = '["#cf886e", "#2dc3ec", "#5af837"]'
+WHERE day = '2025-09-28';
+UPDATE daily_prompts 
+SET colors = '["#6152e8", "#974d8e", "#8d8734"]'
+WHERE day = '2025-09-29';
+UPDATE daily_prompts 
+SET colors = '["#94b9e5", "#cbf48b", "#f751af"]'
+WHERE day = '2025-09-30';
+UPDATE daily_prompts 
+SET colors = '["#fe8388", "#53b8ab", "#ac4bf2"]'
+WHERE day = '2025-10-01';
+UPDATE daily_prompts 
+SET colors = '["#b37dcc", "#eab871", "#3eed95"]'
+WHERE day = '2025-10-02';
+UPDATE daily_prompts 
+SET colors = '["#45476e", "#3b41ec", "#68b738"]'
+WHERE day = '2025-10-03';
+UPDATE daily_prompts 
+SET colors = '["#6fe9e9", "#a5e38f", "#dc4634"]'
+WHERE day = '2025-10-04';
+UPDATE daily_prompts 
+SET colors = '["#e3784e", "#d972cb", "#37ad71"]'
+WHERE day = '2025-10-05';
+UPDATE daily_prompts 
+SET colors = '["#3fdf4b", "#3542c8", "#6b3c6e"]'
+WHERE day = '2025-10-06';
+UPDATE daily_prompts 
+SET colors = '["#726e47", "#a9a9c5", "#9fe46b"]'
+WHERE day = '2025-10-07';
+UPDATE daily_prompts 
+SET colors = '["#a63e44", "#dc38c2", "#316de5"]'
+WHERE day = '2025-10-08';
+UPDATE daily_prompts 
+SET colors = '["#389fbf", "#2eda65", "#643de2"]'
+WHERE day = '2025-10-09';
+UPDATE daily_prompts 
+SET colors = '["#6c6fbc", "#a26961", "#c5d92b"]'
+WHERE day = '2025-10-10';
+UPDATE daily_prompts 
+SET colors = '["#cc33dc", "#2a6e82", "#83d8c9"]'
+WHERE day = '2025-10-11';
+UPDATE daily_prompts 
+SET colors = '["#8a32a2", "#e49de9", "#38d234"]'
+WHERE day = '2025-10-12';
+UPDATE daily_prompts 
+SET colors = '["#3f2ce6", "#76668c", "#cfd1d3"]'
+WHERE day = '2025-10-13';
+UPDATE daily_prompts 
+SET colors = '["#d62bac", "#ccfd52", "#2b60cf"]'
+WHERE day = '2025-10-14';
+UPDATE daily_prompts 
+SET colors = '["#3292a9", "#68cd4f", "#952a72"]'
+WHERE day = '2025-10-15';
+UPDATE daily_prompts 
+SET colors = '["#9c5c4b", "#9297c9", "#f5c692"]'
+WHERE day = '2025-10-16';
+UPDATE daily_prompts 
+SET colors = '["#f25be9", "#50568f", "#479035"]'
+WHERE day = '2025-10-17';
+UPDATE daily_prompts 
+SET colors = '["#8ec2e6", "#84fd8c", "#baf732"]'
+WHERE day = '2025-10-18';
+UPDATE daily_prompts 
+SET colors = '["#c251e3", "#b88c89", "#ee872f"]'
+WHERE day = '2025-10-19';
+UPDATE daily_prompts 
+SET colors = '["#f5f9e0", "#4a562b", "#4050a9"]'
+WHERE day = '2025-10-20';
+UPDATE daily_prompts 
+SET colors = '["#878383", "#7dbd28", "#e0edc9"]'
+WHERE day = '2025-10-21';
+UPDATE daily_prompts 
+SET colors = '["#e787a3", "#3cbcc6", "#954f35"]'
+WHERE day = '2025-10-22';
+UPDATE daily_prompts 
+SET colors = '["#9c81e7", "#d37b8c", "#c9b632"]'
+WHERE day = '2025-10-23';
+UPDATE daily_prompts 
+SET colors = '["#d0e8e3", "#2e4a89", "#fd456f"]'
+WHERE day = '2025-10-24';
+UPDATE daily_prompts 
+SET colors = '["#2c7748", "#62b2c6", "#bb4435"]'
+WHERE day = '2025-10-25';
+UPDATE daily_prompts 
+SET colors = '["#c276e6", "#f9b18c", "#4de6b0"]'
+WHERE day = '2025-10-26';
+UPDATE daily_prompts 
+SET colors = '["#544089", "#4b7b2f", "#aeaad0"]'
+WHERE day = '2025-10-27';
+UPDATE daily_prompts 
+SET colors = '["#b5dca9", "#ab3f4f", "#e13acd"]'
+WHERE day = '2025-10-28';
+UPDATE daily_prompts 
+SET colors = '["#e8aca6", "#47a64c", "#3de1ca"]'
+WHERE day = '2025-10-29';
+UPDATE daily_prompts 
+SET colors = '["#443ba3", "#7a3649", "#9da5ea"]'
+WHERE day = '2025-10-30';
+UPDATE daily_prompts 
+SET colors = '["#a4d7c3", "#db3a69", "#d135e7"]'
+WHERE day = '2025-10-31';
+UPDATE daily_prompts 
+SET colors = '["#4067c0", "#36a166", "#99d12f"]'
+WHERE day = '2025-11-01';
+UPDATE daily_prompts 
+SET colors = '["#a06be0", "#cda02c", "#f0d0cd"]'
+WHERE day = '2025-11-02';
+UPDATE daily_prompts 
+SET colors = '["#5f2aa7", "#55654c", "#b894ed"]'
+WHERE day = '2025-11-03';
+UPDATE daily_prompts 
+SET colors = '["#bf2fc7", "#409936", "#3794b4"]'
+WHERE day = '2025-11-04';
+UPDATE daily_prompts 
+SET colors = '["#3e2e8d", "#742833", "#9798d4"]'
+WHERE day = '2025-11-05';
+UPDATE daily_prompts 
+SET colors = '["#decaad", "#33ffd1", "#5f5cf4"]'
+WHERE day = '2025-11-06';
+UPDATE daily_prompts 
+SET colors = '["#668ece", "#5dc973", "#bff93c"]'
+WHERE day = '2025-11-07';
+UPDATE daily_prompts 
+SET colors = '["#c753ee", "#bd8d94", "#f38839"]'
+WHERE day = '2025-11-08';
+UPDATE daily_prompts 
+SET colors = '["#fafaeb", "#59f590", "#4f5736"]'
+WHERE day = '2025-11-09';
+UPDATE daily_prompts 
+SET colors = '["#5689e8", "#8c848d", "#83bf33"]'
+WHERE day = '2025-11-10';
+UPDATE daily_prompts 
+SET colors = '["#8af1e4", "#c0538a", "#f64e30"]'
+WHERE day = '2025-11-11';
+UPDATE daily_prompts 
+SET colors = '["#fd80e1", "#f4ba87", "#52b52d"]'
+WHERE day = '2025-11-12';
+UPDATE daily_prompts 
+SET colors = '["#594f46", "#4f4ac4", "#b2b98d"]'
+WHERE day = '2025-11-13';
+UPDATE daily_prompts 
+SET colors = '["#b9ec66", "#f0e6e4", "#e6498a"]'
+WHERE day = '2025-11-14';
+UPDATE daily_prompts 
+SET colors = '["#ed7b63", "#4bb5e1", "#78eb2c"]'
+WHERE day = '2025-11-15';
+UPDATE daily_prompts 
+SET colors = '["#7f45de", "#ab7a29", "#ceeacb"]'
+WHERE day = '2025-11-16';
+UPDATE daily_prompts 
+SET colors = '["#3d44a4", "#97aeeb", "#c3e336"]'
+WHERE day = '2025-11-17';
+UPDATE daily_prompts 
+SET colors = '["#ca3de8", "#c1788d", "#f77333"]'
+WHERE day = '2025-11-18';
+UPDATE daily_prompts 
+SET colors = '["#fea5e5", "#f4df8a", "#53da30"]'
+WHERE day = '2025-11-19';
+UPDATE daily_prompts 
+SET colors = '["#5a74e1", "#906e87", "#86a92d"]'
+WHERE day = '2025-11-20';
+UPDATE daily_prompts 
+SET colors = '["#8ddbde", "#c4d684", "#ba382a"]'
+WHERE day = '2025-11-21';
+UPDATE daily_prompts 
+SET colors = '["#c16adb", "#f7a581", "#4cdaa4"]'
+WHERE day = '2025-11-22';
+UPDATE daily_prompts 
+SET colors = '["#53347e", "#892ffb", "#b66447"]'
+WHERE day = '2025-11-23';
+UPDATE daily_prompts 
+SET colors = '["#bdd6f8", "#ea3344", "#e02ec1"]'
+WHERE day = '2025-11-24';
+UPDATE daily_prompts 
+SET colors = '["#e7609b", "#459a41", "#7c95be"]'
+WHERE day = '2025-11-25';
+UPDATE daily_prompts 
+SET colors = '["#832f98", "#dc99df", "#31cf2a"]'
+WHERE day = '2025-11-26';
+UPDATE daily_prompts 
+SET colors = '["#3829db", "#2efb81", "#91934a"]'
+WHERE day = '2025-11-27';
+UPDATE daily_prompts 
+SET colors = '["#98c5fc", "#ce28a2", "#c5fa47"]'
+WHERE day = '2025-11-28';
+UPDATE daily_prompts 
+SET colors = '["#cc54f9", "#2a8f9e", "#f88a44"]'
+WHERE day = '2025-11-29';
+UPDATE daily_prompts 
+SET colors = '["#fffcf5", "#5ef69b", "#545941"]'
+WHERE day = '2025-11-30';
+UPDATE daily_prompts 
+SET colors = '["#9b8bf2", "#c8c03e", "#495285"]'
+WHERE day = '2025-12-01';
+UPDATE daily_prompts 
+SET colors = '["#50845e", "#46bfdc", "#a9efa5"]'
+WHERE day = '2025-12-02';
+UPDATE daily_prompts 
+SET colors = '["#b089be", "#e68464", "#3bb988"]'
+WHERE day = '2025-12-03';
+UPDATE daily_prompts 
+SET colors = '["#42eb61", "#384ddf", "#6f4884"]'
+WHERE day = '2025-12-04';
+UPDATE daily_prompts 
+SET colors = '["#76ba5e", "#6cb5dc", "#cf4ca5"]'
+WHERE day = '2025-12-05';
+UPDATE daily_prompts 
+SET colors = '["#d67e7e", "#3479fc", "#2bb4a2"]'
+WHERE day = '2025-12-06';
+UPDATE daily_prompts 
+SET colors = '["#32e67b", "#6848f9", "#957d44"]'
+WHERE day = '2025-12-07';
+UPDATE daily_prompts 
+SET colors = '["#9cb0f6", "#c8e541", "#f54265"]'
+WHERE day = '2025-12-08';
+UPDATE daily_prompts 
+SET colors = '["#fc743e", "#5aafbc", "#aa3ca8"]'
+WHERE day = '2025-12-09';
+UPDATE daily_prompts 
+SET colors = '["#b16e82", "#e7a8ff", "#dee3a5"]'
+WHERE day = '2025-12-10';
+UPDATE daily_prompts 
+SET colors = '["#e53d7f", "#4337fc", "#3972a2"]'
+WHERE day = '2025-12-11';
+UPDATE daily_prompts 
+SET colors = '["#80a47b", "#77dff9", "#a33c45"]'
+WHERE day = '2025-12-12';
+UPDATE daily_prompts 
+SET colors = '["#aa6ef6", "#e1699c", "#d7a341"]'
+WHERE day = '2025-12-13';
+UPDATE daily_prompts 
+SET colors = '["#ded5f3", "#3c3899", "#73323e"]'
+WHERE day = '2025-12-14';
+UPDATE daily_prompts 
+SET colors = '["#7a64f0", "#709f95", "#a69a3b"]'
+WHERE day = '2025-12-15';
+UPDATE daily_prompts 
+SET colors = '["#adcced", "#a42e92", "#da6938"]'
+WHERE day = '2025-12-16';
+UPDATE daily_prompts 
+SET colors = '["#e19be9", "#36d035", "#6ccbb3"]'
+WHERE day = '2025-12-17';
+UPDATE daily_prompts 
+SET colors = '["#73658c", "#cccfd3", "#f92cf6"]'
+WHERE day = '2025-12-18';
+UPDATE daily_prompts 
+SET colors = '["#285ed0", "#f65975", "#81c93f"]'
+WHERE day = '2025-12-19';
+UPDATE daily_prompts 
+SET colors = '["#88fbf0", "#be5d96", "#36c282"]'
+WHERE day = '2025-12-20';
+UPDATE daily_prompts 
+SET colors = '["#3df45c", "#7357da", "#96c7a3"]'
+WHERE day = '2025-12-21';
+UPDATE daily_prompts 
+SET colors = '["#9df97c", "#d4f4fa", "#3256a0"]'
+WHERE day = '2025-12-22';
+UPDATE daily_prompts 
+SET colors = '["#3988b9", "#2fc35f", "#92f328"]'
+WHERE day = '2025-12-23';
+UPDATE daily_prompts 
+SET colors = '["#994dd9", "#90877f", "#f3b748"]'
+WHERE day = '2025-12-24';
+UPDATE daily_prompts 
+SET colors = '["#fa51fa", "#584c9f", "#4e8645"]'
+WHERE day = '2025-12-25';
+UPDATE daily_prompts 
+SET colors = '["#55b8f7", "#8cb39c", "#82ed42"]'
+WHERE day = '2025-12-26';
+UPDATE daily_prompts 
+SET colors = '["#8948f3", "#bf8299", "#40ede0"]'
+WHERE day = '2025-12-27';
+UPDATE daily_prompts 
+SET colors = '["#4847b9", "#7e415f", "#a1b128"]'
+WHERE day = '2025-12-28';
+UPDATE daily_prompts 
+SET colors = '["#a8e3da", "#de467f", "#d440fd"]'
+WHERE day = '2025-12-29';
+UPDATE daily_prompts 
+SET colors = '["#3aad7c", "#30a7fa", "#933fc3"]'
+WHERE day = '2025-12-30';
+UPDATE daily_prompts 
+SET colors = '["#c7a7c0", "#fde166", "#523e89"]'
+WHERE day = '2025-12-31';
+UPDATE daily_prompts 
+SET colors = '["#597063", "#4fabe0", "#7ce02c"]'
+WHERE day = '2026-01-01';
+UPDATE daily_prompts 
+SET colors = '["#c33add", "#ef6f29", "#44a54c"]'
+WHERE day = '2026-01-02';
+UPDATE daily_prompts 
+SET colors = '["#4bd7fe", "#4139a3", "#783449"]'
+WHERE day = '2026-01-03';
+UPDATE daily_prompts 
+SET colors = '["#7f66fa", "#75a0a0", "#ab9b46"]'
+WHERE day = '2026-01-04';
+UPDATE daily_prompts 
+SET colors = '["#b235f7", "#e9309d", "#df6a43"]'
+WHERE day = '2026-01-05';
+UPDATE daily_prompts 
+SET colors = '["#e69cf4", "#44979a", "#3bd240"]'
+WHERE day = '2026-01-06';
+UPDATE daily_prompts 
+SET colors = '["#422cf1", "#786697", "#d1d1de"]'
+WHERE day = '2026-01-07';
+UPDATE daily_prompts 
+SET colors = '["#d82bb7", "#37fd5d", "#2d60db"]'
+WHERE day = '2026-01-08';
+UPDATE daily_prompts 
+SET colors = '["#3492b4", "#6acc5a", "#972a7d"]'
+WHERE day = '2026-01-09';
+UPDATE daily_prompts 
+SET colors = '["#9e5c56", "#9456d4", "#f7c69d"]'
+WHERE day = '2026-01-10';
+UPDATE daily_prompts 
+SET colors = '["#fef8b7", "#5c5b5d", "#5355da"]'
+WHERE day = '2026-01-11';
+UPDATE daily_prompts 
+SET colors = '["#5a87b4", "#90c259", "#b35afb"]'
+WHERE day = '2026-01-12';
+UPDATE daily_prompts 
+SET colors = '["#fa8cd4", "#4fc1f7", "#7bf643"]'
+WHERE day = '2026-01-13';
+UPDATE daily_prompts 
+SET colors = '["#8250f4", "#798b9a", "#af8540"]'
+WHERE day = '2026-01-14';
+UPDATE daily_prompts 
+SET colors = '["#b6b8f1", "#acf297", "#e3ed3d"]'
+WHERE day = '2026-01-15';
+UPDATE daily_prompts 
+SET colors = '["#ea47ee", "#488194", "#3ebc39"]'
+WHERE day = '2026-01-16';
+UPDATE daily_prompts 
+SET colors = '["#45eeeb", "#7ce991", "#724b36"]'
+WHERE day = '2026-01-17';
+UPDATE daily_prompts 
+SET colors = '["#797de8", "#afb88d", "#ff457a"]'
+WHERE day = '2026-01-18';
+UPDATE daily_prompts 
+SET colors = '["#6e7753", "#64b1d1", "#c7e19a"]'
+WHERE day = '2026-01-19';
+UPDATE daily_prompts 
+SET colors = '["#ce7b74", "#c576f2", "#50e6bb"]'
+WHERE day = '2026-01-20';
+UPDATE daily_prompts 
+SET colors = '["#574094", "#ba705d", "#b0aadb"]'
+WHERE day = '2026-01-21';
+UPDATE daily_prompts 
+SET colors = '["#b7dcb4", "#ed3f5a", "#e439d8"]'
+WHERE day = '2026-01-22';
+UPDATE daily_prompts 
+SET colors = '["#eb6bb1", "#49a657", "#3fa1d5"]'
+WHERE day = '2026-01-23';
+UPDATE daily_prompts 
+SET colors = '["#863bae", "#dfa5f5", "#34da41"]'
+WHERE day = '2026-01-24';
+UPDATE daily_prompts 
+SET colors = '["#3b34f2", "#316f98", "#686a3d"]'
+WHERE day = '2026-01-25';
+UPDATE daily_prompts 
+SET colors = '["#6f9cef", "#65d694", "#9bd13a"]'
+WHERE day = '2026-01-26';
+UPDATE daily_prompts 
+SET colors = '["#a36bec", "#d96591", "#cfa037"]'
+WHERE day = '2026-01-27';
+UPDATE daily_prompts 
+SET colors = '["#d6d2e8", "#35cd8e", "#2b2f34"]'
+WHERE day = '2026-01-28';
+UPDATE daily_prompts 
+SET colors = '["#3261e5", "#689c8b", "#c12ed2"]'
+WHERE day = '2026-01-29';
+UPDATE daily_prompts 
+SET colors = '["#c860ab", "#ff5b51", "#539075"]'
+WHERE day = '2026-01-30';
+UPDATE daily_prompts 
+SET colors = '["#5a2a8e", "#51fd34", "#b495d5"]'
+WHERE day = '2026-01-31';
+UPDATE daily_prompts 
+SET colors = '["#bbc7ae", "#46f677", "#3c59f5"]'
+WHERE day = '2026-02-01';
+UPDATE daily_prompts 
+SET colors = '["#438bcf", "#79c674", "#d358bb"]'
+WHERE day = '2026-02-02';
+UPDATE daily_prompts 
+SET colors = '["#da8a95", "#2ebfb8", "#fdfa5e"]'
+WHERE day = '2026-02-03';
+UPDATE daily_prompts 
+SET colors = '["#6c5437", "#624fb5", "#c5be7e"]'
+WHERE day = '2026-02-04';
+UPDATE daily_prompts 
+SET colors = '["#ccf058", "#c253d5", "#f94e7b"]'
+WHERE day = '2026-02-05';
+UPDATE daily_prompts 
+SET colors = '["#288054", "#f6bad2", "#4aeff6"]'
+WHERE day = '2026-02-06';
+UPDATE daily_prompts 
+SET colors = '["#9249cf", "#888475", "#ebb43e"]'
+WHERE day = '2026-02-07';
+UPDATE daily_prompts 
+SET colors = '["#f2e6ef", "#e84995", "#46433b"]'
+WHERE day = '2026-02-08';
+UPDATE daily_prompts 
+SET colors = '["#4eb5ec", "#7aea38", "#a7485b"]'
+WHERE day = '2026-02-09';
+UPDATE daily_prompts 
+SET colors = '["#ae7a34", "#e474b2", "#39a9d6"]'
+WHERE day = '2026-02-10';
+UPDATE daily_prompts 
+SET colors = '["#4043af", "#99aef6", "#c6e341"]'
+WHERE day = '2026-02-11';
+UPDATE daily_prompts 
+SET colors = '["#cd3df3", "#2b3899", "#f9723e"]'
+WHERE day = '2026-02-12';
+UPDATE daily_prompts 
+SET colors = '["#28a4f0", "#5fdf95", "#8b3cb9"]'
+WHERE day = '2026-02-13';
+UPDATE daily_prompts 
+SET colors = '["#926e92", "#b5de5b", "#ecd9d9"]'
+WHERE day = '2026-02-14';
+UPDATE daily_prompts 
+SET colors = '["#f333b3", "#516d58", "#4768d6"]'
+WHERE day = '2026-02-15';
+UPDATE daily_prompts 
+SET colors = '["#4e9aaf", "#85d455", "#7b37d3"]'
+WHERE day = '2026-02-16';
+UPDATE daily_prompts 
+SET colors = '["#8269ac", "#b86452", "#dbd4f3"]'
+WHERE day = '2026-02-17';
+UPDATE daily_prompts 
+SET colors = '["#4a2ecd", "#416872", "#a4983c"]'
+WHERE day = '2026-02-18';
+UPDATE daily_prompts 
+SET colors = '["#abcaed", "#a12d93", "#d7ff38"]'
+WHERE day = '2026-02-19';
+UPDATE daily_prompts 
+SET colors = '["#de9952", "#d594cf", "#33ce75"]'
+WHERE day = '2026-02-20';
+UPDATE daily_prompts 
+SET colors = '["#3a284f", "#70fbcc", "#9d58f0"]'
+WHERE day = '2026-02-21';
+UPDATE daily_prompts 
+SET colors = '["#a4cac9", "#d128ed", "#fd5d38"]'
+WHERE day = '2026-02-22';
+UPDATE daily_prompts 
+SET colors = '["#2c8fe9", "#63898f", "#59c435"]'
+WHERE day = '2026-02-23';
+UPDATE daily_prompts 
+SET colors = '["#60f6e6", "#96598c", "#efc3d3"]'
+WHERE day = '2026-02-24';
+UPDATE daily_prompts 
+SET colors = '["#f6f5ac", "#4b52d0", "#6ec299"]'
+WHERE day = '2026-02-25';
+UPDATE daily_prompts 
+SET colors = '["#b5f472", "#abeff0", "#e25196"]'
+WHERE day = '2026-02-26';
+UPDATE daily_prompts 
+SET colors = '["#e9836f", "#dfbeed", "#3db993"]'
+WHERE day = '2026-02-27';
+UPDATE daily_prompts 
+SET colors = '["#44eb6c", "#3b4dea", "#714890"]'
+WHERE day = '2026-02-28';
+UPDATE daily_prompts 
+SET colors = '["#787a69", "#aeb4e7", "#a5ef8c"]'
+WHERE day = '2026-03-01';
+UPDATE daily_prompts 
+SET colors = '["#ac4966", "#e244e4", "#37792f"]'
+WHERE day = '2026-03-02';
+UPDATE daily_prompts 
+SET colors = '["#3eabe0", "#34e586", "#6a482c"]'
+WHERE day = '2026-03-03';
+UPDATE daily_prompts 
+SET colors = '["#717add", "#a87583", "#9eaf29"]'
+WHERE day = '2026-03-04';
+UPDATE daily_prompts 
+SET colors = '["#a5e1da", "#db4480", "#d23ffe"]'
+WHERE day = '2026-03-05';
+UPDATE daily_prompts 
+SET colors = '["#d971d7", "#37ab7d", "#2da6fa"]'
+WHERE day = '2026-03-06';
+UPDATE daily_prompts 
+SET colors = '["#74d8d4", "#6b3a7a", "#a175f7"]'
+WHERE day = '2026-03-07';
+UPDATE daily_prompts 
+SET colors = '["#a8a7d1", "#293940", "#f834bd"]'
+WHERE day = '2026-03-08';
+UPDATE daily_prompts 
+SET colors = '["#ffa697", "#5da13c", "#93dbba"]'
+WHERE day = '2026-03-09';
+UPDATE daily_prompts 
+SET colors = '["#9a3594", "#f4a0da", "#48d5fe"]'
+WHERE day = '2026-03-10';
+UPDATE daily_prompts 
+SET colors = '["#4f2fd7", "#466a7d", "#a99946"]'
+WHERE day = '2026-03-11';
+UPDATE daily_prompts 
+SET colors = '["#b0cb60", "#e62edd", "#3b6329"]'
+WHERE day = '2026-03-12';
+UPDATE daily_prompts 
+SET colors = '["#4295da", "#38d080", "#642da3"]'
+WHERE day = '2026-03-13';
+UPDATE daily_prompts 
+SET colors = '["#6c5f7d", "#a25afb", "#ce8f46"]'
+WHERE day = '2026-03-14';
+UPDATE daily_prompts 
+SET colors = '["#34fc9d", "#2a5e43", "#6059c1"]'
+WHERE day = '2026-03-15';
+UPDATE daily_prompts 
+SET colors = '["#688b9a", "#5ec540", "#9428bd"]'
+WHERE day = '2026-03-16';
+UPDATE daily_prompts 
+SET colors = '["#9b5a97", "#f4c4de", "#53bf84"]'
+WHERE day = '2026-03-17';
+UPDATE daily_prompts 
+SET colors = '["#5a595d", "#5054db", "#b3c4a4"]'
+WHERE day = '2026-03-18';
+UPDATE daily_prompts 
+SET colors = '["#baf67d", "#b0f0fb", "#e753a1"]'
+WHERE day = '2026-03-19';
+UPDATE daily_prompts 
+SET colors = '["#ee857a", "#4cbff8", "#79f543"]'
+WHERE day = '2026-03-20';
+UPDATE daily_prompts 
+SET colors = '["#804ff5", "#ac8440", "#cfb4e1"]'
+WHERE day = '2026-03-21';
+UPDATE daily_prompts 
+SET colors = '["#d64ebb", "#354860", "#2b83de"]'
+WHERE day = '2026-03-22';
+UPDATE daily_prompts 
+SET colors = '["#72b5b8", "#cb47fe", "#f87d4a"]'
+WHERE day = '2026-03-23';
+UPDATE daily_prompts 
+SET colors = '["#ffaffb", "#f5e9a1", "#54e447"]'
+WHERE day = '2026-03-24';
+UPDATE daily_prompts 
+SET colors = '["#5b3ef8", "#51789e", "#87b344"]'
+WHERE day = '2026-03-25';
+UPDATE daily_prompts 
+SET colors = '["#8ee5f5", "#c5e09b", "#bb4240"]'
+WHERE day = '2026-03-26';
+UPDATE daily_prompts 
+SET colors = '["#c274f2", "#f86f98", "#efa93d"]'
+WHERE day = '2026-03-27';
+UPDATE daily_prompts 
+SET colors = '["#f6dcef", "#543e94", "#b76e5e"]'
+WHERE day = '2026-03-28';
+UPDATE daily_prompts 
+SET colors = '["#bea037", "#b4dbb5", "#eb3d5b"]'
+WHERE day = '2026-03-29';
+UPDATE daily_prompts 
+SET colors = '["#f26f34", "#e86ab2", "#46a457"]'
+WHERE day = '2026-03-30';
+UPDATE daily_prompts 
+SET colors = '["#4dd631", "#8439ae", "#dda3f5"]'
+WHERE day = '2026-03-31';
+UPDATE daily_prompts 
+SET colors = '["#e4d537", "#dad0b5", "#38335a"]'
+WHERE day = '2026-04-01';
+UPDATE daily_prompts 
+SET colors = '["#406534", "#369fb1", "#99cf7b"]'
+WHERE day = '2026-04-02';
