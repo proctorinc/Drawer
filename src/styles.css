@@ -2,7 +2,8 @@
 @theme {
   --font-*: initial;
   --font-sans: 'Quicksand', 'sans-serif';
-  --font-cursive: 'Pacifico', cursive;
+  --font-cursive: 'Jua', cursive;
+  --font-accent: 'Jua';
 
   /* background colors */
   --color-base: #edeae1;

@@ -65,7 +65,7 @@ const DrawingFeedImage: FC<Props> = ({ submission }) => {
       key={`${submission.user.id}-${submission.day}`}
       className="flex items-center relative bg-card rounded-2xl border-2 border-border"
     >
-      <DrawingImage imageUrl={submission.imageUrl} className="rounded-2xl" />
+      <DrawingImage imageUrl={submission.imageUrl} className="rounded-xl" />
       <ReactionButton submission={submission} />
       <div className="flex flex-col gap-2 absolute top-2 right-2">
         <UserProfileIcon showTooltip user={submission.user} />
@@ -107,14 +107,14 @@ const ReactionButton: FC<ReactionButtonProps> = ({ submission }) => {
 };
 
 const reactionIndicatorVariants = cva(
-  'z-20 bg-base gap-1 text-sm w-12 h-8 text-card-foreground rounded-full whitespace-nowrap transition-opacity duration-200 font-bold shadow-lg',
+  'z-20 bg-base gap-1 text-sm w-12 h-8 text-card-foreground rounded-full whitespace-nowrap transition-opacity duration-200 font-bold shadow-[2px_2px_0_0_rgba(0,0,0,0.2)]',
   {
     variants: {
       icon: {
-        heart: 'text-red-500/50 bg-red-400/40',
-        'cry-laugh': 'text-blue-600/50 bg-blue-400/40',
-        fire: 'text-orange-600/50 bg-orange-400/40',
-        'face-meh': 'text-purple-600/50 bg-purple-400/40',
+        heart: 'text-red-500/50 bg-red-400/40 shadow-red-500/50',
+        'cry-laugh': 'text-blue-600/50 bg-blue-400/40 shadow-blue-500/50',
+        fire: 'text-orange-600/50 bg-orange-400/40 shadow-orange-500/50',
+        'face-meh': 'text-purple-600/50 bg-purple-400/40 shadow-purple-500/50',
       },
     },
     defaultVariants: {
@@ -136,7 +136,10 @@ const FriendReactionIndicator: FC<FriendReactionIndicatorProps> = ({
       disableLoad
       variant="base"
       size="sm"
-      className={cn(reactionIndicatorVariants({ icon: reaction.reactionId }))}
+      className={cn(
+        'font-accent',
+        reactionIndicatorVariants({ icon: reaction.reactionId }),
+      )}
     >
       {reaction.count}
       {icon && <FontAwesomeIcon icon={icon} />}
@@ -183,7 +186,8 @@ const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
           <Button
             disableLoad
             variant="base"
-            onClick={() =>
+            onClick={() => {
+              console.log();
               toggleReaction.mutate(
                 {
                   submissionId: submission.id,
@@ -196,8 +200,8 @@ const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
                     });
                   },
                 },
-              )
-            }
+              );
+            }}
             className={cn(
               'bg-border/50 text-primary/50',
               isActive && reactionIndicatorVariants({ icon: reaction.id }),

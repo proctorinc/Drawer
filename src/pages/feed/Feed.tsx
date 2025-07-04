@@ -36,8 +36,9 @@ const Feed = () => {
         </>
       )}
       {(hasPromptBeenCompleted || isNoPrompt) && (
-        <Banner>
-          Next Prompt in <CountDownTimer />
+        <Banner className="flex flex-col gap-1 rounded-full text-2xl">
+          <CountDownTimer />
+          <span className="text-sm text-primary">Next Prompt</span>
         </Banner>
       )}
       {!dailyPrompt && (

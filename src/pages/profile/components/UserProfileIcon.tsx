@@ -10,9 +10,9 @@ const userProfileIconVariants = cva(
   {
     variants: {
       size: {
-        sm: 'w-9 h-9 text-sm',
-        lg: 'w-12 h-12 text-lg',
-        xl: 'w-20 h-20 text-3xl',
+        sm: 'w-9 h-9 text-sm shadow-[2px_2px_0_0_rgba(0,0,0,0.2)]',
+        lg: 'w-12 h-12 text-lg shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]',
+        xl: 'w-20 h-20 text-3xl shadow-[4px_4px_0_0_rgba(0,0,0,0.2)]',
       },
     },
     defaultVariants: {
@@ -67,7 +67,7 @@ export const UserProfileIcon: FC<Props> = ({
     >
       <div
         className={cn(
-          'font-bold shadow-sm font-cursive tracking-widest',
+          'font-bold shadow-secondary/50 font-accent tracking-widest',
           userProfileIconVariants({ size }),
         )}
         style={{
@@ -81,7 +81,7 @@ export const UserProfileIcon: FC<Props> = ({
       {showTooltip && (
         <div
           className={cn(
-            'absolute right-full top-1/2 -translate-y-1/2 mr-2 bg-card text-card-foreground rounded-full text-lg whitespace-nowrap transition-opacity duration-200 pointer-events-none px-4 py-2 font-bold',
+            'absolute font-accent right-full top-1/2 -translate-y-1/2 mr-2 bg-card text-card-foreground rounded-full text-lg whitespace-nowrap transition-opacity duration-200 pointer-events-none px-4 py-2 font-bold',
             isTooltipVisible ? 'opacity-100' : 'opacity-0',
           )}
           style={{

@@ -10,7 +10,7 @@ const Card: FC<CardProps> = ({ className, children, ...props }) => {
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 bg-card border-2 border-border rounded-2xl w-full',
+        'flex flex-col gap-4 bg-card border-2 border-border rounded-xl w-full shadow-[4px_4px_0_0_rgba(0,0,0,0.2)] shadow-border',
         className,
       )}
       {...props}
