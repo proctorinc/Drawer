@@ -611,32 +611,41 @@ func GetReactionsForComment(repo *sql.DB, ctx context.Context, commentID string)
 	return reactions, nil
 }
 
-// ToggleReaction adds or removes a reaction for a user
+// ToggleReaction adds or removes a reaction for a user using atomic SQL operation
 func ToggleReaction(repo *sql.DB, ctx context.Context, userID, contentType, contentID, reactionID string) error {
-	// Check if reaction already exists
-	checkQuery := `
-		SELECT id FROM reactions 
-		WHERE user_id = ? AND content_type = ? AND content_id = ? AND reaction_id = ?
+	// Try to insert the reaction first
+	insertQuery := `
+		INSERT INTO reactions (user_id, content_type, content_id, reaction_id)
+		VALUES (?, ?, ?, ?)
 	`
 	
-	var existingID string
-	err := repo.QueryRowContext(ctx, checkQuery, userID, contentType, contentID, reactionID).Scan(&existingID)
-	
-	if err == sql.ErrNoRows {
-		// Reaction doesn't exist, add it
-		insertQuery := `
-			INSERT INTO reactions (user_id, content_type, content_id, reaction_id)
-			VALUES (?, ?, ?, ?)
-		`
-		_, err = repo.ExecContext(ctx, insertQuery, userID, contentType, contentID, reactionID)
-		if err != nil {
-			return fmt.Errorf("error adding reaction: %w", err)
+	result, err := repo.ExecContext(ctx, insertQuery, userID, contentType, contentID, reactionID)
+	if err != nil {
+		// If insert fails due to unique constraint violation, the reaction exists
+		// Check if it's a constraint violation error
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			// Reaction exists, remove it
+			deleteQuery := `
+				DELETE FROM reactions 
+				WHERE user_id = ? AND content_type = ? AND content_id = ? AND reaction_id = ?
+			`
+			_, err = repo.ExecContext(ctx, deleteQuery, userID, contentType, contentID, reactionID)
+			if err != nil {
+				return fmt.Errorf("error removing reaction: %w", err)
+			}
+			return nil
 		}
-		return nil
-	} else if err != nil {
-		return fmt.Errorf("error checking existing reaction: %w", err)
-	} else {
-		// Reaction exists, remove it
+		return fmt.Errorf("error adding reaction: %w", err)
+	}
+	
+	// Check if insert actually happened (affected rows > 0)
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error checking rows affected: %w", err)
+	}
+	
+	if rowsAffected == 0 {
+		// Insert didn't happen, so reaction must exist - remove it
 		deleteQuery := `
 			DELETE FROM reactions 
 			WHERE user_id = ? AND content_type = ? AND content_id = ? AND reaction_id = ?
@@ -645,8 +654,9 @@ func ToggleReaction(repo *sql.DB, ctx context.Context, userID, contentType, cont
 		if err != nil {
 			return fmt.Errorf("error removing reaction: %w", err)
 		}
-		return nil
 	}
+	
+	return nil
 }
 
 // GetReactionCountsForSubmission fetches reaction counts by type for a submission
