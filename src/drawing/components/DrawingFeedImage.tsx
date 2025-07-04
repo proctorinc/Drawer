@@ -41,13 +41,17 @@ function hasUserReactedAny(submission: UserPromptSubmission, userId: string) {
 }
 
 const DrawingFeedImage: FC<Props> = ({ submission }) => {
+  const { userProfile } = useProfile();
+
   return (
     <Card
       key={`${submission.user.id}-${submission.day}`}
       className="flex items-center relative bg-card rounded-2xl border-2 border-border"
     >
       <DrawingImage imageUrl={submission.imageUrl} className="rounded-xl" />
-      <ReactionButton submission={submission} />
+      {submission.user.id !== userProfile?.user.id && (
+        <ReactionButton submission={submission} />
+      )}
       <div className="flex flex-col gap-2 absolute top-2 right-2">
         <UserProfileIcon showTooltip user={submission.user} />
         <FriendReactions submission={submission} />
@@ -117,7 +121,7 @@ type FriendReactionsProps = {
 
 const FriendReactions: FC<FriendReactionsProps> = ({ submission }) => {
   return (
-    <div className="flex flex-col gap-1 h-[500px]">
+    <div className="flex flex-col gap-1">
       {submission.counts.map((reactionCounts) => (
         <FriendReactionIndicator data={reactionCounts} />
       ))}
@@ -161,6 +165,12 @@ const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
                   onSuccess: () => {
                     queryClient.invalidateQueries({
                       queryKey: queryKeys.userProfile,
+                    });
+                    queryClient.invalidateQueries({
+                      queryKey: queryKeys.promptSubmission(submission.id),
+                    });
+                    queryClient.invalidateQueries({
+                      queryKey: queryKeys.activityFeed,
                     });
                   },
                 },

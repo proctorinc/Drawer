@@ -22,7 +22,7 @@ const SubmissionComments: FC<Props> = ({ submissionId, comments }) => {
         </div>
       )}
       <button
-        className="flex gap-1.5 items-center"
+        className="ml-2 flex gap-1.5 items-center"
         onClick={() => navigate({ to: `/app/submission/${submissionId}` })}
       >
         <FontAwesomeIcon icon={faComment} />

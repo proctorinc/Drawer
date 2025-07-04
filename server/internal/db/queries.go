@@ -614,39 +614,61 @@ func GetReactionsForComment(repo *sql.DB, ctx context.Context, commentID string)
 
 // ToggleReaction adds or removes a reaction for a user using atomic SQL operation
 func ToggleReaction(repo *sql.DB, ctx context.Context, userID, contentType, contentID, reactionID string) error {
-	// Try to insert the reaction first
-	insertQuery := `
-		INSERT INTO reactions (user_id, content_type, content_id, reaction_id)
-		VALUES (?, ?, ?, ?)
-	`
-	
-	result, err := repo.ExecContext(ctx, insertQuery, userID, contentType, contentID, reactionID)
+	// First, validate that the user exists
+	userExistsQuery := `SELECT 1 FROM users WHERE id = ?`
+	var userExists int
+	err := repo.QueryRowContext(ctx, userExistsQuery, userID).Scan(&userExists)
 	if err != nil {
-		// If insert fails due to unique constraint violation, the reaction exists
-		// Check if it's a constraint violation error
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
-			// Reaction exists, remove it
-			deleteQuery := `
-				DELETE FROM reactions 
-				WHERE user_id = ? AND content_type = ? AND content_id = ? AND reaction_id = ?
-			`
-			_, err = repo.ExecContext(ctx, deleteQuery, userID, contentType, contentID, reactionID)
-			if err != nil {
-				return fmt.Errorf("error removing reaction: %w", err)
-			}
-			return nil
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("user %s does not exist", userID)
 		}
-		return fmt.Errorf("error adding reaction: %w", err)
+		return fmt.Errorf("error checking if user exists: %w", err)
 	}
-	
-	// Check if insert actually happened (affected rows > 0)
-	rowsAffected, err := result.RowsAffected()
+
+	// Validate that the content exists based on content type
+	var contentExistsQuery string
+	switch contentType {
+	case "submission":
+		contentExistsQuery = `SELECT 1 FROM user_submissions WHERE id = ?`
+	case "comment":
+		contentExistsQuery = `SELECT 1 FROM comments WHERE id = ?`
+	default:
+		return fmt.Errorf("invalid content type: %s", contentType)
+	}
+
+	var contentExists int
+	err = repo.QueryRowContext(ctx, contentExistsQuery, contentID).Scan(&contentExists)
 	if err != nil {
-		return fmt.Errorf("error checking rows affected: %w", err)
+		if errors.Is(err, sql.ErrNoRows) {
+			return fmt.Errorf("%s %s does not exist", contentType, contentID)
+		}
+		return fmt.Errorf("error checking if %s exists: %w", contentType, err)
 	}
+
+	// Check if the reaction already exists
+	existsQuery := `
+		SELECT 1 FROM reactions 
+		WHERE user_id = ? AND content_type = ? AND content_id = ? AND reaction_id = ?
+	`
+	var exists int
+	err = repo.QueryRowContext(ctx, existsQuery, userID, contentType, contentID, reactionID).Scan(&exists)
 	
-	if rowsAffected == 0 {
-		// Insert didn't happen, so reaction must exist - remove it
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("error checking if reaction exists: %w", err)
+	}
+
+	if errors.Is(err, sql.ErrNoRows) {
+		// Reaction doesn't exist, insert it
+		insertQuery := `
+			INSERT INTO reactions (user_id, content_type, content_id, reaction_id)
+			VALUES (?, ?, ?, ?)
+		`
+		_, err = repo.ExecContext(ctx, insertQuery, userID, contentType, contentID, reactionID)
+		if err != nil {
+			return fmt.Errorf("error adding reaction: %w", err)
+		}
+	} else {
+		// Reaction exists, remove it
 		deleteQuery := `
 			DELETE FROM reactions 
 			WHERE user_id = ? AND content_type = ? AND content_id = ? AND reaction_id = ?

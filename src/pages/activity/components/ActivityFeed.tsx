@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Card } from '@/components/Card';
+import { Card, CardContent } from '@/components/Card';
 import { useActivityFeed, useMarkActivityRead } from '@/api/Api';
 import {
   cn,
@@ -34,8 +34,9 @@ export const ActivityFeed = () => {
   }, [activities, markActivityRead]);
 
   if (isLoading) {
-    return <div className="p-8 text-center">Loading activity...</div>;
+    return <></>;
   }
+
   if (isError) {
     return (
       <div className="p-8 text-center text-red-500">
@@ -66,54 +67,51 @@ export const ActivityFeed = () => {
         return (
           <Card
             key={activity.id}
-            className="flex items-start gap-3 p-4 relative"
             onClick={() =>
               navigate({ to: `/app/submission/${activity.submission.id}` })
             }
           >
-            <div className="flex flex-col w-full">
+            <CardContent>
               <div className="flex items-center gap-2 justify-between">
-                <div className="flex flex-col gap-3 w-full">
-                  <div className="flex gap-3 items-center">
+                <div className="flex flex-col min-h-20 justify-between gap-3 w-full">
+                  <div className="flex flex-grow gap-3 items-center">
                     <UserProfileIcon user={activity.user} size="sm" />
-                    <span className="text-secondary font-bold">
-                      {activity.action === 'comment' ? 'Commented' : 'Reacted'}
-                      {' - '}
-                      {timeAgo(activity.date)}
-                    </span>
+                    <div className="flex justify-between items-center">
+                      {activity.action === 'comment' && activity.comment && (
+                        <span className="font-semibold text-primary">
+                          {activity.comment.text}
+                        </span>
+                      )}
+                      {activity.action === 'reaction' && activity.reaction && (
+                        <span className="flex gap-2 font-semibold items-center text-primary">
+                          Reacted with
+                          <Button
+                            disableLoad
+                            variant="base"
+                            size="sm"
+                            className={cn(
+                              'font-accent',
+                              reactionIndicatorVariants({
+                                icon: activity.reaction.reactionId,
+                              }),
+                            )}
+                          >
+                            {icon && <FontAwesomeIcon icon={icon} />}
+                          </Button>
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    {activity.action === 'comment' && activity.comment && (
-                      <span className="font-semibold text-primary-foreground">
-                        {activity.comment.text}
-                      </span>
-                    )}
-                    {activity.action === 'reaction' && activity.reaction && (
-                      <span className="flex gap-2 items-center text-primary-foreground">
-                        Reacted with
-                        <Button
-                          disableLoad
-                          variant="base"
-                          size="sm"
-                          className={cn(
-                            'font-accent',
-                            reactionIndicatorVariants({
-                              icon: activity.reaction.reactionId,
-                            }),
-                          )}
-                        >
-                          {icon && <FontAwesomeIcon icon={icon} />}
-                        </Button>
-                      </span>
-                    )}
-                  </div>
+                  <span className="text-xs text-secondary font-bold">
+                    {timeAgo(activity.date)}
+                  </span>
                 </div>
                 <DrawingImage
                   imageUrl={activity.submission.imageUrl}
                   className="h-20 w-20 border-2 border-border"
                 />
               </div>
-            </div>
+            </CardContent>
           </Card>
         );
       })}

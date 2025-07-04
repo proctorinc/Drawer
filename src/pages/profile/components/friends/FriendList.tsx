@@ -30,9 +30,7 @@ export const FriendList = () => {
                   style={{ backgroundColor: secondary }}
                 >
                   <UserProfileIcon user={friend} size="sm" />
-                  <h3 className="font-accent tracking-widest text-primary font-bold">
-                    {friend.username}
-                  </h3>
+                  <h3 className="text-primary font-bold">{friend.username}</h3>
                 </div>
               );
             })}

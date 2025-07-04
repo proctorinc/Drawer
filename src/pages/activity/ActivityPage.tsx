@@ -1,12 +1,19 @@
 import Layout from '@/components/Layout';
 import { useProfile } from '@/pages/profile/UserProfileContext';
 import ActivityFeed from './components/ActivityFeed';
+import LoadingScreen from '@/components/LoadingScreen';
+import { useActivityFeed } from '@/api/Api';
 
 const ActivityPage = () => {
   const { userProfile } = useProfile();
+  const { isLoading } = useActivityFeed();
 
   if (!userProfile) {
     return <></>;
+  }
+
+  if (isLoading) {
+    return <LoadingScreen />;
   }
 
   return (

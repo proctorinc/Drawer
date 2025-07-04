@@ -100,6 +100,8 @@ export const queryKeys = {
   daily: ['daily'] as const,
   userProfile: ['userProfile'] as const,
   user: (id: string) => ['user', id] as const,
+  promptSubmission: (id: string) => ['promptSubmission', id] as const,
+  activityFeed: ['activityFeed'] as const,
 };
 
 // Queries
@@ -151,7 +153,7 @@ export function useUser(userId: string) {
 
 export function usePromptSubmission(submissionId: string) {
   return useQuery({
-    queryKey: ['promptSubmission', submissionId],
+    queryKey: queryKeys.promptSubmission(submissionId),
     queryFn: async () => {
       const response = await fetchAPI('GET', `/submission/${submissionId}`);
       if (!response.ok) {
@@ -364,7 +366,7 @@ export function useToggleCommentReaction() {
 // Activity Feed Hooks
 export function useActivityFeed() {
   return useQuery<Activity[]>({
-    queryKey: ['activityFeed'],
+    queryKey: queryKeys.activityFeed,
     queryFn: async () => {
       const response = await fetchAPI('GET', '/activity');
       if (!response.ok) {
