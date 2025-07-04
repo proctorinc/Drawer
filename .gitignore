@@ -15,3 +15,7 @@ server/uploads/*
 *.db*
 *.sample.sql
 /server/goscripts
+drawer
+drawer-server
+server.log
+build-errors.log

@@ -8,6 +8,7 @@ import Button from '@/components/Button';
 import { useState, type FormEvent } from 'react';
 import { faPlusCircle } from '@fortawesome/free-solid-svg-icons';
 import { useAddFriend } from '@/api/Api';
+import SubmissionCalendar from './SubmissionCalendar';
 
 const UserProfilePage = () => {
   const { userProfile } = useProfile();
@@ -46,6 +47,7 @@ const UserProfilePage = () => {
           </div>
         </div>
       )}
+      <SubmissionCalendar />
       <FriendList />
       <Card>
         <form onSubmit={handleAddFriend}>
@@ -57,7 +59,7 @@ const UserProfilePage = () => {
                 placeholder="Username"
                 className="font-bold border-2 text-primary border-border w-full p-4 rounded-2xl"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => setUsername(e.target.value.toLowerCase())}
                 required
               />
               <Button

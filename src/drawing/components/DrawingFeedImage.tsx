@@ -6,43 +6,24 @@ import {
   queryKeys,
   useToggleSubmissionReaction,
   type ReactionCount,
-  type ReactionId,
   type UserPromptSubmission,
 } from '@/api/Api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faFaceGrinSquintTears,
-  faFaceMeh,
-  faHeart,
-  faFire,
-  type IconDefinition,
-} from '@fortawesome/free-solid-svg-icons';
+import { faHeart } from '@fortawesome/free-solid-svg-icons';
 import Tooltip from '@/components/Tooltip';
 import Button from '@/components/Button';
-import { cn } from '@/utils';
-import { cva } from 'class-variance-authority';
+import {
+  cn,
+  getReactionIcon,
+  reactionIndicatorVariants,
+  reactions,
+} from '@/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useProfile } from '@/pages/profile/UserProfileContext';
 
 type Props = {
   submission: UserPromptSubmission;
 };
-
-type ReactionItem = {
-  id: ReactionId;
-  icon: IconDefinition;
-};
-
-const reactions: ReactionItem[] = [
-  { id: 'heart', icon: faHeart },
-  { id: 'cry-laugh', icon: faFaceGrinSquintTears },
-  { id: 'fire', icon: faFire },
-  { id: 'face-meh', icon: faFaceMeh },
-];
-
-function getReactionIcon(reactionId: string) {
-  return reactions.find((reaction) => reaction.id === reactionId);
-}
 
 function hasUserReacted(
   submission: UserPromptSubmission,
@@ -105,23 +86,6 @@ const ReactionButton: FC<ReactionButtonProps> = ({ submission }) => {
     </div>
   );
 };
-
-const reactionIndicatorVariants = cva(
-  'z-20 bg-base gap-1 text-sm w-12 h-8 text-card-foreground rounded-full whitespace-nowrap transition-opacity duration-200 font-bold shadow-[2px_2px_0_0_rgba(0,0,0,0.2)]',
-  {
-    variants: {
-      icon: {
-        heart: 'text-red-500/50 bg-red-400/40 shadow-red-500/50',
-        'cry-laugh': 'text-blue-600/50 bg-blue-400/40 shadow-blue-500/50',
-        fire: 'text-orange-600/50 bg-orange-400/40 shadow-orange-500/50',
-        'face-meh': 'text-purple-600/50 bg-purple-400/40 shadow-purple-500/50',
-      },
-    },
-    defaultVariants: {
-      icon: 'heart',
-    },
-  },
-);
 
 type FriendReactionIndicatorProps = {
   data: ReactionCount;

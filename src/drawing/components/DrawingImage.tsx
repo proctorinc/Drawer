@@ -4,9 +4,14 @@ import { cn } from '@/utils';
 type Props = {
   imageUrl: string;
   className?: string;
+  onClick?: () => void;
 };
 
-export const DrawingImage: FC<Props> = ({ imageUrl, className = '' }) => {
+export const DrawingImage: FC<Props> = ({
+  imageUrl,
+  className = '',
+  onClick,
+}) => {
   const [isLoading, setIsLoading] = useState(true);
   const hasLoadedBefore = useRef(false);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -38,6 +43,7 @@ export const DrawingImage: FC<Props> = ({ imageUrl, className = '' }) => {
       src={isInView ? imageUrl : ''}
       loading="lazy"
       crossOrigin="anonymous"
+      onClick={onClick}
       onLoad={() => {
         setIsLoading(false);
         hasLoadedBefore.current = true;

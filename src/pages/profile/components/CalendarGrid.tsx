@@ -90,7 +90,7 @@ const CalendarGrid = ({ onCellClick, currentDate }: Props) => {
               <div
                 className={cn(
                   'w-full h-full rounded-lg',
-                  isBeforeUserCreation ? 'bg-card' : 'bg-border',
+                  isBeforeUserCreation ? 'bg-card' : 'bg-base',
                   isMissedDay && 'bg-secondary/50',
                 )}
               />

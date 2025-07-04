@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useParams, useRouter } from '@tanstack/react-router';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { Card, CardContent } from '@/components/Card';
 import { UserProfileIcon } from '../profile/components/UserProfileIcon';
@@ -11,7 +11,7 @@ import { timeAgo } from '@/utils';
 import { useQueryClient } from '@tanstack/react-query';
 
 const PromptSubmissionPage = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { submissionId } = useParams({ strict: false }) as {
     submissionId: string;
@@ -41,7 +41,7 @@ const PromptSubmissionPage = () => {
             className="w-10"
             icon={faArrowLeft}
             disableLoad
-            onClick={() => navigate({ to: '/app' })}
+            onClick={() => router.history.back()}
           />
           <div className="w-full font-bold">
             <h2 className="text-2xl text-primary">{submission.prompt}</h2>
@@ -78,7 +78,7 @@ const PromptSubmissionPage = () => {
               {submission.comments.length > 0 &&
                 submission.comments.map((comment) => (
                   <div className="flex justify-between items-center font-semibold">
-                    <div className="flex gap-2 items-center">
+                    <div className="flex gap-4 items-center">
                       <UserProfileIcon size="sm" user={comment.user} />{' '}
                       {comment.text}
                     </div>

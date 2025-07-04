@@ -20,9 +20,9 @@ import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/components/UserProfilePage.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import CalendarPage from './pages/calendar/CalendarPage.tsx';
 import AuthProvider from './auth/AuthProvider.tsx';
 import PromptSubmissionPage from './pages/feed/PromptSubmissionPage';
+import ActivityPage from './pages/activity/ActivityPage.tsx';
 
 const queryClient = new QueryClient();
 
@@ -58,8 +58,8 @@ const userProfileRoute = createRoute({
 
 const calendarRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/app/calendar',
-  component: () => <CalendarPage />,
+  path: '/app/activity',
+  component: () => <ActivityPage />,
 });
 
 const createProfileRoute = createRoute({

@@ -26,6 +26,23 @@ export interface ReactionResponse {
   counts: ReactionCount[];
 }
 
+export type ActivityAction = 'comment' | 'reaction';
+
+export interface Activity {
+  id: string;
+  user: User;
+  action: ActivityAction;
+  date: Date;
+  isRead: boolean;
+  comment?: Comment;
+  reaction?: Reaction;
+  submission: {
+    id: string;
+    prompt: string;
+    imageUrl: string;
+  };
+}
+
 export interface Comment {
   id: string;
   user: User;
@@ -41,6 +58,7 @@ export interface Reaction {
   reactionId: ReactionId;
   user: User;
   icon: IconDefinition;
+  createdAt: Date;
 }
 
 export interface UserPromptSubmission extends DailyPrompt {
@@ -339,6 +357,47 @@ export function useToggleCommentReaction() {
         throw new Error(data.error || 'Failed to toggle reaction');
       }
       return response.json() as Promise<ReactionResponse>;
+    },
+  });
+}
+
+// Activity Feed Hooks
+export function useActivityFeed() {
+  return useQuery<Activity[]>({
+    queryKey: ['activityFeed'],
+    queryFn: async () => {
+      const response = await fetchAPI('GET', '/activity');
+      if (!response.ok) {
+        throw new Error(`Error fetching activity feed: ${response.statusText}`);
+      }
+      const data = await response.json();
+      // Convert date strings to Date objects
+      return (data.activities as Activity[]).map((a) => ({
+        ...a,
+        date: new Date(a.date),
+        comment: a.comment
+          ? { ...a.comment, createdAt: new Date(a.comment.createdAt) }
+          : undefined,
+        reaction: a.reaction
+          ? { ...a.reaction, createdAt: new Date(a.reaction.createdAt) }
+          : undefined,
+      }));
+    },
+  });
+}
+
+export function useMarkActivityRead() {
+  return useMutation({
+    mutationFn: async (activityId: string) => {
+      const response = await fetchAPI('POST', '/activity', {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activityId }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to mark activity as read');
+      }
+      return response.json();
     },
   });
 }

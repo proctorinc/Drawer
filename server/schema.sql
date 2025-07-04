@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS schema_migrations;
 DROP TABLE IF EXISTS reactions;
+DROP TABLE IF EXISTS activity_reads;
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
