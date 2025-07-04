@@ -7,8 +7,7 @@ import Layout from '@/components/Layout';
 import Banner from '@/components/Banner';
 
 const Feed = () => {
-  const { isLoading, dailyPrompt } = useDailyPrompt();
-
+  const { dailyPrompt } = useDailyPrompt();
   const formattedDate = dailyPrompt
     ? new Date(dailyPrompt.day).toLocaleDateString('en-US', {
         month: 'long',
@@ -41,14 +40,12 @@ const Feed = () => {
           Next Prompt in <CountDownTimer />
         </Banner>
       )}
-      {!isLoading && !dailyPrompt && (
+      {!dailyPrompt && (
         <Banner icon={faFrown}>
           <p className="text-sm">Sorry, there's no prompt for today</p>
         </Banner>
       )}
-      {(isLoading || hasPromptBeenCompleted || isNoPrompt) && (
-        <SubmissionFeedList />
-      )}
+      {(hasPromptBeenCompleted || isNoPrompt) && <SubmissionFeedList />}
       <PromptCanvas />
     </Layout>
   );

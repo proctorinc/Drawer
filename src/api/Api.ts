@@ -1,4 +1,5 @@
 import { Config } from '@/config/Config';
+import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 export interface DailyPrompt {
@@ -15,10 +16,31 @@ export interface User {
   createdAt: Date;
 }
 
+export interface ReactionCount {
+  reactionId: ReactionId;
+  count: number;
+}
+
+export interface ReactionResponse {
+  reactions: Reaction[];
+  counts: ReactionCount[];
+}
+
 export interface Comment {
+  id: string;
   user: User;
   text: string;
   createdAt: Date;
+  reactions: Reaction[];
+  counts: ReactionCount[];
+}
+
+export type ReactionId = 'heart' | 'cry-laugh' | 'face-meh' | 'fire';
+export interface Reaction {
+  id: number;
+  reactionId: ReactionId;
+  user: User;
+  icon: IconDefinition;
 }
 
 export interface UserPromptSubmission extends DailyPrompt {
@@ -26,6 +48,8 @@ export interface UserPromptSubmission extends DailyPrompt {
   imageUrl: string;
   user: User;
   comments: Comment[];
+  reactions: Reaction[];
+  counts: ReactionCount[];
 }
 
 export interface UserStats {
@@ -263,6 +287,58 @@ export function useAddComment() {
         throw new Error(data.error || 'Failed to add comment');
       }
       return response.json();
+    },
+  });
+}
+
+export function useToggleSubmissionReaction() {
+  return useMutation({
+    mutationFn: async ({
+      submissionId,
+      reactionId,
+    }: {
+      submissionId: string;
+      reactionId: ReactionId;
+    }) => {
+      const response = await fetchAPI(
+        'POST',
+        `/submission/${submissionId}/reaction`,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reactionId }),
+        },
+      );
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to toggle reaction');
+      }
+      return response.json() as Promise<ReactionResponse>;
+    },
+  });
+}
+
+export function useToggleCommentReaction() {
+  return useMutation({
+    mutationFn: async ({
+      commentId,
+      reactionId,
+    }: {
+      commentId: string;
+      reactionId: ReactionId;
+    }) => {
+      const response = await fetchAPI(
+        'POST',
+        `/comment/${commentId}/reaction`,
+        {
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reactionId }),
+        },
+      );
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to toggle reaction');
+      }
+      return response.json() as Promise<ReactionResponse>;
     },
   });
 }

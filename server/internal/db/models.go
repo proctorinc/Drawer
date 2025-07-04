@@ -26,22 +26,47 @@ type User struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+// Reaction represents a user's reaction to content
+type Reaction struct {
+	ID        string    `json:"id"`
+	User      User      `json:"user"`
+	ReactionID string   `json:"reactionId"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+// ReactionCount represents the count of a specific reaction type
+type ReactionCount struct {
+	ReactionID string `json:"reactionId"`
+	Count      int    `json:"count"`
+}
+
+// ReactionResponse represents the complete reaction data for content
+type ReactionResponse struct {
+	Reactions []Reaction     `json:"reactions"`
+	Counts    []ReactionCount `json:"counts"`
+}
+
 // Comment represents a comment on a prompt submission.
 type Comment struct {
-	User User   `json:"user"`
-	Text string `json:"text"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID        string          `json:"id"`
+	User      User            `json:"user"`
+	Text      string          `json:"text"`
+	CreatedAt time.Time       `json:"createdAt"`
+	Reactions []Reaction      `json:"reactions"`
+	Counts    []ReactionCount `json:"counts"`
 }
 
 // UserPromptSubmission combines the daily prompt details with the user's submitted canvas data.
 type UserPromptSubmission struct {
-	ID         string    `json:"id"`
-	Day        string    `json:"day"`
-	Colors     []string  `json:"colors"`
-	Prompt     string    `json:"prompt"`
-	User       User      `json:"user"`
-	ImageUrl   string    `json:"imageUrl"`
-	Comments   []Comment `json:"comments"`
+	ID         string          `json:"id"`
+	Day        string          `json:"day"`
+	Colors     []string        `json:"colors"`
+	Prompt     string          `json:"prompt"`
+	User       User            `json:"user"`
+	ImageUrl   string          `json:"imageUrl"`
+	Comments   []Comment       `json:"comments"`
+	Reactions  []Reaction      `json:"reactions"`
+	Counts     []ReactionCount `json:"counts"`
 }
 
 type UserStats struct {

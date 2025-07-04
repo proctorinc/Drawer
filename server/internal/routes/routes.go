@@ -57,6 +57,8 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			authGroup.PUT("/update-username", handlers.HandleUpdateUsername)
 			authGroup.GET("/submission/:id", handlers.HandleGetPromptSubmissionByID)
 			authGroup.POST("/submission/:id/comment", handlers.HandleAddCommentToSubmission)
+			authGroup.POST("/submission/:id/reaction", handlers.HandleToggleSubmissionReaction)
+			authGroup.POST("/comment/:id/reaction", handlers.HandleToggleCommentReaction)
 		}
 	}
 
