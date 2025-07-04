@@ -3,6 +3,7 @@ import { useProfile } from '../../profile/UserProfileContext';
 import SubmissionComments from './SubmissionComments';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { UserProfileIcon } from '@/pages/profile/components/UserProfileIcon';
+import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
 
 export const SubmissionFeedList = () => {
   const { userProfile } = useProfile();
@@ -38,17 +39,7 @@ export const SubmissionFeedList = () => {
               key={`${submission.user.id}-${submission.day}`}
               className="flex flex-col gap-3"
             >
-              <Card className="flex items-center relative bg-card rounded-2xl overflow-hidden border-2 border-border">
-                <DrawingImage
-                  imageUrl={submission.imageUrl}
-                  className="rounded-2xl"
-                />
-                <UserProfileIcon
-                  showTooltip
-                  user={submission.user}
-                  className="absolute top-2 right-2"
-                />
-              </Card>
+              <DrawingFeedImage submission={submission} />
               <SubmissionComments
                 submissionId={submission.id}
                 comments={submission.comments}

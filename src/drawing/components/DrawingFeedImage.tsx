@@ -2,49 +2,62 @@ import { Card } from '@/components/Card';
 import type { FC } from 'react';
 import { DrawingImage } from './DrawingImage';
 import { UserProfileIcon } from '@/pages/profile/components/UserProfileIcon';
-import type { UserPromptSubmission } from '@/api/Api';
+import {
+  queryKeys,
+  useToggleSubmissionReaction,
+  type ReactionCount,
+  type ReactionId,
+  type UserPromptSubmission,
+} from '@/api/Api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faCrow,
-  faCrown,
-  faFaceGrinTears,
+  faFaceGrinSquintTears,
+  faFaceMeh,
   faHeart,
-  faThumbsUp,
+  faFire,
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
 import Tooltip from '@/components/Tooltip';
 import Button from '@/components/Button';
 import { cn } from '@/utils';
 import { cva } from 'class-variance-authority';
+import { useQueryClient } from '@tanstack/react-query';
+import { useProfile } from '@/pages/profile/UserProfileContext';
 
 type Props = {
   submission: UserPromptSubmission;
 };
 
-type ReactionId = 'heart' | 'cry-laugh' | 'crown' | 'thumbs-up' | 'borg';
-type Reaction = {
+type ReactionItem = {
   id: ReactionId;
   icon: IconDefinition;
 };
-type FriendReaction = {
-  count: number;
-} & Reaction;
 
-const friendReactions: FriendReaction[] = [
-  { id: 'heart', count: 2, icon: faHeart },
-  { id: 'cry-laugh', count: 1, icon: faFaceGrinTears },
-  { id: 'crown', count: 3, icon: faCrown },
-  { id: 'thumbs-up', count: 4, icon: faThumbsUp },
-  { id: 'borg', count: 1, icon: faCrow },
-];
-
-const reactions: Reaction[] = [
+const reactions: ReactionItem[] = [
   { id: 'heart', icon: faHeart },
-  { id: 'cry-laugh', icon: faFaceGrinTears },
-  { id: 'crown', icon: faCrown },
-  { id: 'thumbs-up', icon: faThumbsUp },
-  { id: 'borg', icon: faCrow },
+  { id: 'cry-laugh', icon: faFaceGrinSquintTears },
+  { id: 'fire', icon: faFire },
+  { id: 'face-meh', icon: faFaceMeh },
 ];
+
+function getReactionIcon(reactionId: string) {
+  return reactions.find((reaction) => reaction.id === reactionId);
+}
+
+function hasUserReacted(
+  submission: UserPromptSubmission,
+  reactionId: string,
+  userId: string,
+) {
+  return submission.reactions.some(
+    (reaction) =>
+      reaction.user.id === userId && reaction.reactionId === reactionId,
+  );
+}
+
+function hasUserReactedAny(submission: UserPromptSubmission, userId: string) {
+  return submission.reactions.some((reaction) => reaction.user.id === userId);
+}
 
 const DrawingFeedImage: FC<Props> = ({ submission }) => {
   return (
@@ -53,24 +66,39 @@ const DrawingFeedImage: FC<Props> = ({ submission }) => {
       className="flex items-center relative bg-card rounded-2xl border-2 border-border"
     >
       <DrawingImage imageUrl={submission.imageUrl} className="rounded-2xl" />
-      <ReactionButton />
+      <ReactionButton submission={submission} />
       <div className="flex flex-col gap-2 absolute top-2 right-2">
         <UserProfileIcon showTooltip user={submission.user} />
-        <FriendReactions />
+        <FriendReactions submission={submission} />
       </div>
     </Card>
   );
 };
 
-const ReactionButton = () => {
+type ReactionButtonProps = {
+  submission: UserPromptSubmission;
+};
+
+const ReactionButton: FC<ReactionButtonProps> = ({ submission }) => {
+  const { userProfile } = useProfile();
+
+  if (!userProfile) {
+    return <></>;
+  }
+
   return (
     <Tooltip
       className="absolute bottom-2 left-2"
-      // tooltipClassName="-ml-10"
       location="right"
-      content={<TooltipContent />}
+      content={<TooltipContent submission={submission} />}
     >
-      <div className="flex justify-center items-center h-12 w-12 rounded-full bg-base/50 text-primary hover:scale-110 transition-all duration-300">
+      <div
+        className={cn(
+          'flex justify-center items-center text-xl h-12 w-12 rounded-full bg-base/50 text-primary/50 hover:scale-110 transition-all duration-300',
+          hasUserReactedAny(submission, userProfile?.user.id) &&
+            'text-red-400/50 bg-red-200/50',
+        )}
+      >
         <FontAwesomeIcon icon={faHeart} />
       </div>
     </Tooltip>
@@ -82,11 +110,10 @@ const reactionIndicatorVariants = cva(
   {
     variants: {
       icon: {
-        heart: 'text-red-500 bg-red-400/50',
-        'cry-laugh': 'text-orange-500 bg-orange-400/50',
-        crown: 'text-yellow-500 bg-yellow-400/50',
-        'thumbs-up': 'text-blue-500 bg-blue-400/50',
-        borg: 'text-purple-500 bg-purple-400/50',
+        heart: 'text-red-500/50 bg-red-400/40',
+        'cry-laugh': 'text-blue-600/50 bg-blue-400/40',
+        fire: 'text-orange-600/50 bg-orange-400/40',
+        'face-meh': 'text-purple-600/50 bg-purple-400/40',
       },
     },
     defaultVariants: {
@@ -96,12 +123,13 @@ const reactionIndicatorVariants = cva(
 );
 
 type FriendReactionIndicatorProps = {
-  data: FriendReaction;
+  data: ReactionCount;
 };
 
 const FriendReactionIndicator: FC<FriendReactionIndicatorProps> = ({
   data: reaction,
 }) => {
+  const icon = getReactionIcon(reaction.reactionId)?.icon;
   return (
     // <Tooltip
     //   // tooltipClassName="-ml-10"
@@ -112,71 +140,79 @@ const FriendReactionIndicator: FC<FriendReactionIndicatorProps> = ({
       disableLoad
       variant="base"
       size="sm"
-      onClick={() => console.log('BORG')}
-      className={cn(reactionIndicatorVariants({ icon: reaction.id }))}
+      className={cn(reactionIndicatorVariants({ icon: reaction.reactionId }))}
     >
-      {reaction.count > 1 && `${reaction.count} `}
-      <FontAwesomeIcon icon={reaction.icon} />
+      {reaction.count}
+      {icon && <FontAwesomeIcon icon={icon} />}
     </Button>
     // </Tooltip>
   );
 };
 
-const FriendReactions = () => {
+type FriendReactionsProps = {
+  submission: UserPromptSubmission;
+};
+
+const FriendReactions: FC<FriendReactionsProps> = ({ submission }) => {
   return (
     <div className="flex flex-col gap-1 h-[500px]">
-      {friendReactions.map((reaction) => (
-        <FriendReactionIndicator data={reaction} />
+      {submission.counts.map((reactionCounts) => (
+        <FriendReactionIndicator data={reactionCounts} />
       ))}
     </div>
   );
 };
 
-const TooltipContent = () => {
+type TooltipContentProps = {
+  submission: UserPromptSubmission;
+};
+
+const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
+  const toggleReaction = useToggleSubmissionReaction();
+  const queryClient = useQueryClient();
+  const { userProfile } = useProfile();
+
+  if (!userProfile) {
+    return <></>;
+  }
+
   return (
     <div className="flex px-3 py-2 gap-2">
-      {reactions.map((reaction) => (
-        <Button
-          disableLoad
-          variant="base"
-          onClick={() => console.log('HEART')}
-          className="text-red-500 bg-red-400/50 rounded-full w-12 h-12 hover:scale-110 transition-all duration-300"
-        >
-          <FontAwesomeIcon icon={reaction.icon} />
-        </Button>
-      ))}
-      {/* <Button
-        disableLoad
-        variant="base"
-        onClick={() => console.log('LAUGH')}
-        className="text-orange-500 bg-orange-400/50 rounded-full w-12 h-12 hover:scale-110 transition-all duration-300"
-      >
-        <FontAwesomeIcon icon={faFaceGrinTears} />
-      </Button>
-      <Button
-        disableLoad
-        variant="base"
-        onClick={() => console.log('CROWN')}
-        className="text-yellow-500 bg-yellow-400/50 rounded-full w-12 h-12 hover:scale-110 transition-all duration-300"
-      >
-        <FontAwesomeIcon icon={faCrown} />
-      </Button>
-      <Button
-        disableLoad
-        variant="base"
-        onClick={() => console.log('CROWN')}
-        className="text-blue-500 bg-blue-400/50 rounded-full w-12 h-12 hover:scale-110 transition-all duration-300"
-      >
-        <FontAwesomeIcon icon={faThumbsUp} />
-      </Button>
-      <Button
-        disableLoad
-        variant="base"
-        onClick={() => console.log('BORG')}
-        className="text-purple-500 bg-purple-400/50 rounded-full w-12 h-12 hover:scale-110 transition-all duration-300"
-      >
-        <FontAwesomeIcon icon={faCrow} />
-      </Button> */}
+      {reactions.map((reaction) => {
+        const isActive = hasUserReacted(
+          submission,
+          reaction.id,
+          userProfile.user.id,
+        );
+        return (
+          <Button
+            disableLoad
+            variant="base"
+            onClick={() =>
+              toggleReaction.mutate(
+                {
+                  submissionId: submission.id,
+                  reactionId: reaction.id,
+                },
+                {
+                  onSuccess: () => {
+                    queryClient.invalidateQueries({
+                      queryKey: queryKeys.userProfile,
+                    });
+                  },
+                },
+              )
+            }
+            className={cn(
+              'bg-border/50 text-primary/50',
+              isActive && reactionIndicatorVariants({ icon: reaction.id }),
+              'rounded-full h-12 w-12 text-xl',
+            )}
+          >
+            <FontAwesomeIcon icon={reaction.icon} />
+          </Button>
+        );
+      })}
     </div>
   );
 };

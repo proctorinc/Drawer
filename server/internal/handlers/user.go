@@ -6,6 +6,7 @@ import (
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -265,7 +266,7 @@ func HandleGetPromptSubmissionByID(c *gin.Context) {
 
 	// Query comments for this submission
 	commentsQuery := `
-		SELECT c.text, u.id, u.username, u.email, u.created_at, c.created_at
+		SELECT c.id, c.text, u.id, u.username, u.email, u.created_at, c.created_at
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
 		WHERE c.submission_id = ?
@@ -279,14 +280,15 @@ func HandleGetPromptSubmissionByID(c *gin.Context) {
 	defer rows.Close()
 	comments := []db.Comment{}
 	for rows.Next() {
-		var commentText, commentUserID, commentUsername, commentUserEmail string
+		var commentID, commentText, commentUserID, commentUsername, commentUserEmail string
 		var commentUserCreatedAt, commentCreatedAt sql.NullTime
-		err := rows.Scan(&commentText, &commentUserID, &commentUsername, &commentUserEmail, &commentUserCreatedAt, &commentCreatedAt)
+		err := rows.Scan(&commentID, &commentText, &commentUserID, &commentUsername, &commentUserEmail, &commentUserCreatedAt, &commentCreatedAt)
 		if err != nil {
 			log.Printf("Error scanning comment row: %v", err)
 			continue
 		}
 		comments = append(comments, db.Comment{
+			ID: commentID,
 			User: db.User{
 				ID:        commentUserID,
 				Username:  commentUsername,
@@ -300,6 +302,40 @@ func HandleGetPromptSubmissionByID(c *gin.Context) {
 
 	imageUrl := utils.GetImageUrl(cfg, utils.GetImageFilename(userID, subID))
 
+	// Get reactions and counts for submission
+	submissionReactions, err := db.GetReactionsForSubmission(repo, c.Request.Context(), subID)
+	if err != nil {
+		log.Printf("Error fetching reactions for submission %s: %v", subID, err)
+		// Continue without reactions rather than failing
+		submissionReactions = []db.Reaction{}
+	}
+
+	submissionCounts, err := db.GetReactionCountsForSubmission(repo, c.Request.Context(), subID)
+	if err != nil {
+		log.Printf("Error fetching reaction counts for submission %s: %v", subID, err)
+		// Continue without counts rather than failing
+		submissionCounts = []db.ReactionCount{}
+	}
+
+	// Get reactions and counts for each comment
+	for i := range comments {
+		commentReactions, err := db.GetReactionsForComment(repo, c.Request.Context(), comments[i].ID)
+		if err != nil {
+			log.Printf("Error fetching reactions for comment %s: %v", comments[i].ID, err)
+			// Continue without reactions rather than failing
+			commentReactions = []db.Reaction{}
+		}
+		comments[i].Reactions = commentReactions
+
+		commentCounts, err := db.GetReactionCountsForComment(repo, c.Request.Context(), comments[i].ID)
+		if err != nil {
+			log.Printf("Error fetching reaction counts for comment %s: %v", comments[i].ID, err)
+			// Continue without counts rather than failing
+			commentCounts = []db.ReactionCount{}
+		}
+		comments[i].Counts = commentCounts
+	}
+
 	resp := db.UserPromptSubmission{
 		ID:       subID,
 		Day:      day,
@@ -311,8 +347,10 @@ func HandleGetPromptSubmissionByID(c *gin.Context) {
 			Email:     email,
 			CreatedAt: userCreatedAt.Time,
 		},
-		ImageUrl: imageUrl,
-		Comments: comments,
+		ImageUrl:  imageUrl,
+		Comments:  comments,
+		Reactions: submissionReactions,
+		Counts:    submissionCounts,
 	}
 
 	c.JSON(http.StatusOK, resp)
@@ -350,15 +388,140 @@ func HandleAddCommentToSubmission(c *gin.Context) {
 	}
 
 	resp := db.Comment{
+		ID: fmt.Sprintf("%d", commentID),
 		User: db.User{
 			ID:        user.ID,
 			Username:  user.Username,
 			Email:     user.Email,
 			CreatedAt: user.CreatedAt,
 		},
-		Text: body.Text,
+		Text:      body.Text,
 		CreatedAt: createdAt,
+		Reactions: []db.Reaction{},
+		Counts:    []db.ReactionCount{},
 	}
 
 	c.JSON(http.StatusOK, resp)
+}
+
+func HandleToggleSubmissionReaction(c *gin.Context) {
+	submissionID := c.Param("id")
+	if submissionID == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Submission ID is required"})
+		return
+	}
+
+	var body struct {
+		ReactionID string `json:"reactionId" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.ReactionID == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Reaction ID is required"})
+		return
+	}
+
+	// Validate reaction ID
+	validReactions := map[string]bool{
+		"heart":      true,
+		"cry-laugh":  true,
+		"face-meh":   true,
+		"fire":  true,
+	}
+	if !validReactions[body.ReactionID] {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid reaction ID"})
+		return
+	}
+
+	repo := middleware.GetDB(c)
+	user := middleware.GetUser(c)
+
+	// Toggle the reaction
+	err := db.ToggleReaction(repo, c.Request.Context(), user.ID, "submission", submissionID, body.ReactionID)
+	if err != nil {
+		log.Printf("Error toggling reaction for submission %s by user %s: %v", submissionID, user.ID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to toggle reaction"})
+		return
+	}
+
+	// Get updated reactions and counts
+	reactions, err := db.GetReactionsForSubmission(repo, c.Request.Context(), submissionID)
+	if err != nil {
+		log.Printf("Error fetching reactions for submission %s: %v", submissionID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reactions"})
+		return
+	}
+
+	counts, err := db.GetReactionCountsForSubmission(repo, c.Request.Context(), submissionID)
+	if err != nil {
+		log.Printf("Error fetching reaction counts for submission %s: %v", submissionID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reaction counts"})
+		return
+	}
+
+	response := db.ReactionResponse{
+		Reactions: reactions,
+		Counts:    counts,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func HandleToggleCommentReaction(c *gin.Context) {
+	commentID := c.Param("id")
+	if commentID == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Comment ID is required"})
+		return
+	}
+
+	var body struct {
+		ReactionID string `json:"reactionId" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || body.ReactionID == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Reaction ID is required"})
+		return
+	}
+
+	// Validate reaction ID
+	validReactions := map[string]bool{
+		"heart":      true,
+		"cry-laugh":  true,
+		"face-meh":   true,
+		"thumbs-up":  true,
+	}
+	if !validReactions[body.ReactionID] {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid reaction ID"})
+		return
+	}
+
+	repo := middleware.GetDB(c)
+	user := middleware.GetUser(c)
+
+	// Toggle the reaction
+	err := db.ToggleReaction(repo, c.Request.Context(), user.ID, "comment", commentID, body.ReactionID)
+	if err != nil {
+		log.Printf("Error toggling reaction for comment %s by user %s: %v", commentID, user.ID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to toggle reaction"})
+		return
+	}
+
+	// Get updated reactions and counts
+	reactions, err := db.GetReactionsForComment(repo, c.Request.Context(), commentID)
+	if err != nil {
+		log.Printf("Error fetching reactions for comment %s: %v", commentID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reactions"})
+		return
+	}
+
+	counts, err := db.GetReactionCountsForComment(repo, c.Request.Context(), commentID)
+	if err != nil {
+		log.Printf("Error fetching reaction counts for comment %s: %v", commentID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reaction counts"})
+		return
+	}
+
+	response := db.ReactionResponse{
+		Reactions: reactions,
+		Counts:    counts,
+	}
+
+	c.JSON(http.StatusOK, response)
 }

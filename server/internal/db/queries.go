@@ -278,6 +278,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			u.email,
 			u.created_at,
 			us.created_at as submission_created_at,
+			c.id as comment_id,
 			c.text as comment_text,
 			cu.id as comment_user_id,
 			cu.username as comment_username,
@@ -308,7 +309,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		var (
 			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail string
 			subUserCreatedAt, subCreatedAt time.Time
-			commentText, commentUserID, commentUsername, commentUserEmail sql.NullString
+			commentID, commentText, commentUserID, commentUsername, commentUserEmail sql.NullString
 			commentUserCreatedAt, commentCreatedAt sql.NullTime
 		)
 		err := rows.Scan(
@@ -321,6 +322,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			&subUserEmail,
 			&subUserCreatedAt,
 			&subCreatedAt,
+			&commentID,
 			&commentText,
 			&commentUserID,
 			&commentUsername,
@@ -348,8 +350,10 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 					Email:     subUserEmail,
 					CreatedAt: subUserCreatedAt,
 				},
-				ImageUrl: utils.GetImageUrl(cfg, utils.GetImageFilename(subUserID, subID)),
-				Comments: []Comment{},
+				ImageUrl:  utils.GetImageUrl(cfg, utils.GetImageFilename(subUserID, subID)),
+				Comments:  []Comment{},
+				Reactions: []Reaction{},
+				Counts:    []ReactionCount{},
 			}
 			subMap[subID] = &submission
 			// Add to feed as a flat list
@@ -361,16 +365,19 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			sub = &submission
 		}
 		// Add comment if present
-		if commentText.Valid && commentUserID.Valid && commentUsername.Valid && commentUserEmail.Valid && commentUserCreatedAt.Valid && commentCreatedAt.Valid {
+		if commentID.Valid && commentText.Valid && commentUserID.Valid && commentUsername.Valid && commentUserEmail.Valid && commentUserCreatedAt.Valid && commentCreatedAt.Valid {
 			comment := Comment{
+				ID: commentID.String,
 				User: User{
 					ID:        commentUserID.String,
 					Username:  commentUsername.String,
 					Email:     commentUserEmail.String,
 					CreatedAt: commentUserCreatedAt.Time,
 				},
-				Text: commentText.String,
+				Text:      commentText.String,
 				CreatedAt: commentCreatedAt.Time,
+				Reactions: []Reaction{},
+				Counts:    []ReactionCount{},
 			}
 			sub.Comments = append(sub.Comments, comment)
 		}
@@ -380,7 +387,70 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		return GetMeResponse{}, err
 	}
 
-	// 4. Get user stats
+	// 4. Fetch reactions and counts for all submissions and comments
+	for _, submission := range response.Feed {
+		// Get reactions and counts for submission
+		reactions, err := GetReactionsForSubmission(repo, ctx, submission.ID)
+		if err != nil {
+			log.Printf("Error fetching reactions for submission %s: %v", submission.ID, err)
+			submission.Reactions = []Reaction{}
+		} else {
+			submission.Reactions = reactions
+		}
+		
+		// Debug: Check if reactions is nil
+		if submission.Reactions == nil {
+			log.Printf("WARNING: submission.Reactions is nil for submission %s, setting to empty array", submission.ID)
+			submission.Reactions = []Reaction{}
+		}
+
+		counts, err := GetReactionCountsForSubmission(repo, ctx, submission.ID)
+		if err != nil {
+			log.Printf("Error fetching reaction counts for submission %s: %v", submission.ID, err)
+			submission.Counts = []ReactionCount{}
+		} else {
+			submission.Counts = counts
+		}
+		
+		// Debug: Check if counts is nil
+		if submission.Counts == nil {
+			log.Printf("WARNING: submission.Counts is nil for submission %s, setting to empty array", submission.ID)
+			submission.Counts = []ReactionCount{}
+		}
+
+		// Get reactions and counts for each comment
+		for i := range submission.Comments {
+			commentReactions, err := GetReactionsForComment(repo, ctx, submission.Comments[i].ID)
+			if err != nil {
+				log.Printf("Error fetching reactions for comment: %v", err)
+				submission.Comments[i].Reactions = []Reaction{}
+			} else {
+				submission.Comments[i].Reactions = commentReactions
+			}
+			
+			// Debug: Check if comment reactions is nil
+			if submission.Comments[i].Reactions == nil {
+				log.Printf("WARNING: comment.Reactions is nil for comment %s, setting to empty array", submission.Comments[i].ID)
+				submission.Comments[i].Reactions = []Reaction{}
+			}
+
+			commentCounts, err := GetReactionCountsForComment(repo, ctx, submission.Comments[i].ID)
+			if err != nil {
+				log.Printf("Error fetching reaction counts for comment: %v", err)
+				submission.Comments[i].Counts = []ReactionCount{}
+			} else {
+				submission.Comments[i].Counts = commentCounts
+			}
+			
+			// Debug: Check if comment counts is nil
+			if submission.Comments[i].Counts == nil {
+				log.Printf("WARNING: comment.Counts is nil for comment %s, setting to empty array", submission.Comments[i].ID)
+				submission.Comments[i].Counts = []ReactionCount{}
+			}
+		}
+	}
+
+	// 5. Get user stats
 	totalDrawingsQuery := `SELECT COUNT(*) FROM user_submissions WHERE user_id = ?`
 	var totalDrawings int
 	err = repo.QueryRowContext(ctx, totalDrawingsQuery, userID).Scan(&totalDrawings)
@@ -435,4 +505,220 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 	}
 
 	return response, nil
+}
+
+// GetReactionsForSubmission fetches all reactions for a submission
+func GetReactionsForSubmission(repo *sql.DB, ctx context.Context, submissionID string) ([]Reaction, error) {
+	query := `
+		SELECT 
+			r.id,
+			r.reaction_id,
+			r.created_at,
+			u.id,
+			u.username,
+			u.email,
+			u.created_at
+		FROM reactions r
+		JOIN users u ON r.user_id = u.id
+		WHERE r.content_type = 'submission' AND r.content_id = ?
+		ORDER BY r.created_at ASC
+	`
+	
+	rows, err := repo.QueryContext(ctx, query, submissionID)
+	if err != nil {
+		return []Reaction{}, fmt.Errorf("error fetching reactions for submission: %w", err)
+	}
+	defer rows.Close()
+
+	reactions := []Reaction{}
+	for rows.Next() {
+		var reaction Reaction
+		var user User
+		err := rows.Scan(
+			&reaction.ID,
+			&reaction.ReactionID,
+			&reaction.CreatedAt,
+			&user.ID,
+			&user.Username,
+			&user.Email,
+			&user.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("Error scanning reaction row: %v", err)
+			continue
+		}
+		reaction.User = user
+		reactions = append(reactions, reaction)
+	}
+
+	// Ensure we always return a non-nil slice
+	if reactions == nil {
+		reactions = []Reaction{}
+	}
+	
+	return reactions, nil
+}
+
+// GetReactionsForComment fetches all reactions for a comment
+func GetReactionsForComment(repo *sql.DB, ctx context.Context, commentID string) ([]Reaction, error) {
+	query := `
+		SELECT 
+			r.id,
+			r.reaction_id,
+			r.created_at,
+			u.id,
+			u.username,
+			u.email,
+			u.created_at
+		FROM reactions r
+		JOIN users u ON r.user_id = u.id
+		WHERE r.content_type = 'comment' AND r.content_id = ?
+		ORDER BY r.created_at ASC
+	`
+	
+	rows, err := repo.QueryContext(ctx, query, commentID)
+	if err != nil {
+		return []Reaction{}, fmt.Errorf("error fetching reactions for comment: %w", err)
+	}
+	defer rows.Close()
+
+	reactions := []Reaction{}
+	for rows.Next() {
+		var reaction Reaction
+		var user User
+		err := rows.Scan(
+			&reaction.ID,
+			&reaction.ReactionID,
+			&reaction.CreatedAt,
+			&user.ID,
+			&user.Username,
+			&user.Email,
+			&user.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("Error scanning reaction row: %v", err)
+			continue
+		}
+		reaction.User = user
+		reactions = append(reactions, reaction)
+	}
+
+	// Ensure we always return a non-nil slice
+	if reactions == nil {
+		reactions = []Reaction{}
+	}
+	
+	return reactions, nil
+}
+
+// ToggleReaction adds or removes a reaction for a user
+func ToggleReaction(repo *sql.DB, ctx context.Context, userID, contentType, contentID, reactionID string) error {
+	// Check if reaction already exists
+	checkQuery := `
+		SELECT id FROM reactions 
+		WHERE user_id = ? AND content_type = ? AND content_id = ? AND reaction_id = ?
+	`
+	
+	var existingID string
+	err := repo.QueryRowContext(ctx, checkQuery, userID, contentType, contentID, reactionID).Scan(&existingID)
+	
+	if err == sql.ErrNoRows {
+		// Reaction doesn't exist, add it
+		insertQuery := `
+			INSERT INTO reactions (user_id, content_type, content_id, reaction_id)
+			VALUES (?, ?, ?, ?)
+		`
+		_, err = repo.ExecContext(ctx, insertQuery, userID, contentType, contentID, reactionID)
+		if err != nil {
+			return fmt.Errorf("error adding reaction: %w", err)
+		}
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("error checking existing reaction: %w", err)
+	} else {
+		// Reaction exists, remove it
+		deleteQuery := `
+			DELETE FROM reactions 
+			WHERE user_id = ? AND content_type = ? AND content_id = ? AND reaction_id = ?
+		`
+		_, err = repo.ExecContext(ctx, deleteQuery, userID, contentType, contentID, reactionID)
+		if err != nil {
+			return fmt.Errorf("error removing reaction: %w", err)
+		}
+		return nil
+	}
+}
+
+// GetReactionCountsForSubmission fetches reaction counts by type for a submission
+func GetReactionCountsForSubmission(repo *sql.DB, ctx context.Context, submissionID string) ([]ReactionCount, error) {
+	query := `
+		SELECT 
+			reaction_id,
+			COUNT(*) as count
+		FROM reactions
+		WHERE content_type = 'submission' AND content_id = ?
+		GROUP BY reaction_id
+		ORDER BY count DESC, reaction_id ASC
+	`
+	
+	rows, err := repo.QueryContext(ctx, query, submissionID)
+	if err != nil {
+		return []ReactionCount{}, fmt.Errorf("error fetching reaction counts for submission: %w", err)
+	}
+	defer rows.Close()
+
+	counts := []ReactionCount{}
+	for rows.Next() {
+		var count ReactionCount
+		err := rows.Scan(&count.ReactionID, &count.Count)
+		if err != nil {
+			log.Printf("Error scanning reaction count row: %v", err)
+			continue
+		}
+		counts = append(counts, count)
+	}
+
+	// Ensure we always return a non-nil slice
+	if counts == nil {
+		counts = []ReactionCount{}
+	}
+
+	return counts, nil
+}
+
+// GetReactionCountsForComment fetches reaction counts by type for a comment
+func GetReactionCountsForComment(repo *sql.DB, ctx context.Context, commentID string) ([]ReactionCount, error) {
+	query := `
+		SELECT 
+			reaction_id,
+			COUNT(*) as count
+		FROM reactions
+		WHERE content_type = 'comment' AND content_id = ?
+		GROUP BY reaction_id
+		ORDER BY count DESC, reaction_id ASC
+	`
+	
+	rows, err := repo.QueryContext(ctx, query, commentID)
+	if err != nil {
+		return []ReactionCount{}, fmt.Errorf("error fetching reaction counts for comment: %w", err)
+	}
+	defer rows.Close()
+
+	counts := []ReactionCount{}
+	for rows.Next() {
+		var count ReactionCount
+		err := rows.Scan(&count.ReactionID, &count.Count)
+		if err != nil {
+			log.Printf("Error scanning reaction count row: %v", err)
+			continue
+		}
+		counts = append(counts, count)
+	}
+
+	// Ensure we always return a non-nil slice
+	if counts == nil {
+		counts = []ReactionCount{}
+	}
+
+	return counts, nil
 }

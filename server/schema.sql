@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS daily_prompts;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS schema_migrations;
+DROP TABLE IF EXISTS reactions;
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
