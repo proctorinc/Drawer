@@ -18,8 +18,8 @@ const Navbar = () => {
   }
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 flex justify-center items-center">
-      <div className="z-50 flex justify-around w-full max-w-md bg-primary-foreground rounded-t-2xl p-4 pb-8">
+    <div className="z-50 fixed bottom-0 left-0 right-0 flex justify-center items-center">
+      <div className="flex justify-around w-full max-w-md bg-primary-foreground rounded-t-2xl p-4 pb-8">
         <button
           onClick={() => navigate({ to: '/app/calendar' })}
           className={cn(

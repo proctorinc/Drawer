@@ -3,7 +3,7 @@ import { useState, type FC, type ReactNode } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const tooltipVariants = cva(
-  'z-30 absolute bg-base text-card-foreground rounded-full text-lg whitespace-nowrap transition-opacity duration-200 font-bold shadow-lg',
+  'z-10 absolute bg-base text-card-foreground rounded-full text-lg whitespace-nowrap transition-opacity duration-200 font-bold shadow-lg',
   {
     variants: {
       location: {

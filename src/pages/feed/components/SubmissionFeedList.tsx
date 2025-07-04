@@ -19,7 +19,7 @@ export const SubmissionFeedList = () => {
         </div>
       ) : (
         feed?.map((submission, i) => (
-          <div key={submission.id} className="flex flex-col gap-3">
+          <div key={submission.id} className="flex flex-col gap-3 pb-10">
             {(i === 0 || submission.day !== feed[i - 1].day) && (
               <div className="pl-1 font-bold">
                 <h2 className="text-2xl text-primary">{submission.prompt}</h2>

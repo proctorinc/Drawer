@@ -87,21 +87,22 @@ const ReactionButton: FC<ReactionButtonProps> = ({ submission }) => {
   }
 
   return (
-    <Tooltip
-      className="absolute bottom-2 left-2"
-      location="right"
-      content={<TooltipContent submission={submission} />}
-    >
-      <div
-        className={cn(
-          'flex justify-center items-center text-xl h-12 w-12 rounded-full bg-base/50 text-primary/50 hover:scale-110 transition-all duration-300',
-          hasUserReactedAny(submission, userProfile?.user.id) &&
-            'text-red-400/50 bg-red-200/50',
-        )}
+    <div className="absolute bottom-2 left-2">
+      <Tooltip
+        location="right"
+        content={<TooltipContent submission={submission} />}
       >
-        <FontAwesomeIcon icon={faHeart} />
-      </div>
-    </Tooltip>
+        <div
+          className={cn(
+            'flex justify-center items-center text-xl h-12 w-12 rounded-full bg-base/80 text-primary/50 hover:scale-110 transition-all duration-300',
+            hasUserReactedAny(submission, userProfile?.user.id) &&
+              'text-red-400/50 bg-red-200/50',
+          )}
+        >
+          <FontAwesomeIcon icon={faHeart} />
+        </div>
+      </Tooltip>
+    </div>
   );
 };
 
@@ -131,11 +132,6 @@ const FriendReactionIndicator: FC<FriendReactionIndicatorProps> = ({
 }) => {
   const icon = getReactionIcon(reaction.reactionId)?.icon;
   return (
-    // <Tooltip
-    //   // tooltipClassName="-ml-10"
-    //   location="left"
-    //   content={reaction.count}
-    // >
     <Button
       disableLoad
       variant="base"
@@ -145,7 +141,6 @@ const FriendReactionIndicator: FC<FriendReactionIndicatorProps> = ({
       {reaction.count}
       {icon && <FontAwesomeIcon icon={icon} />}
     </Button>
-    // </Tooltip>
   );
 };
 

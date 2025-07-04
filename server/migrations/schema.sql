@@ -13,7 +13,6 @@ CREATE TABLE comments (
     FOREIGN KEY (submission_id) REFERENCES user_submissions(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-CREATE TABLE sqlite_sequence(name,seq);
 CREATE TABLE reactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id TEXT NOT NULL,
