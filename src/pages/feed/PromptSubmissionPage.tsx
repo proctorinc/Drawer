@@ -9,6 +9,7 @@ import Layout from '@/components/Layout';
 import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { timeAgo } from '@/utils';
 import { useQueryClient } from '@tanstack/react-query';
+import LoadingScreen from '@/components/LoadingScreen';
 
 const PromptSubmissionPage = () => {
   const router = useRouter();
@@ -26,7 +27,7 @@ const PromptSubmissionPage = () => {
   const [comment, setComment] = useState('');
 
   if (isLoading) {
-    return <div className="p-8 text-center">Loading...</div>;
+    return <LoadingScreen />;
   }
   if (error || !submission) {
     return <div className="p-8 text-center">Submission not found.</div>;

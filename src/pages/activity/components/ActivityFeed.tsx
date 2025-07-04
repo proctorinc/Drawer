@@ -49,8 +49,8 @@ export const ActivityFeed = () => {
         <h2 className="text-primary-foreground font-bold text-xl">
           No Activity Yet
         </h2>
-        <p className="font-bold text-primary">
-          No one has commented or reacted to your submissions yet.
+        <p className="font-bold text-secondary">
+          Wait for a friend to comment or react!
         </p>
       </Card>
     );
@@ -76,7 +76,7 @@ export const ActivityFeed = () => {
                 <div className="flex flex-col gap-3 w-full">
                   <div className="flex gap-3 items-center">
                     <UserProfileIcon user={activity.user} size="sm" />
-                    <span className="text-secondary font-bold text-xs">
+                    <span className="text-secondary font-bold">
                       {activity.action === 'comment' ? 'Commented' : 'Reacted'}
                       {' - '}
                       {timeAgo(activity.date)}
@@ -84,7 +84,7 @@ export const ActivityFeed = () => {
                   </div>
                   <div className="flex justify-between items-center">
                     {activity.action === 'comment' && activity.comment && (
-                      <span className="text-primary-foreground">
+                      <span className="font-semibold text-primary-foreground">
                         {activity.comment.text}
                       </span>
                     )}

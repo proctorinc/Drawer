@@ -40,9 +40,6 @@ const UserProfilePage = () => {
               <h2 className="text-2xl text-primary">
                 Hi, {userProfile.user.username}
               </h2>
-              <p className="text-secondary">
-                You've done {userProfile.stats.totalDrawings} doodles!
-              </p>
             </div>
           </div>
         </div>

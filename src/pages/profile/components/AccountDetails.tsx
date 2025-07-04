@@ -3,20 +3,28 @@ import { useProfile } from '../UserProfileContext';
 import Button from '@/components/Button';
 import { Card, CardContent, CardHeader } from '@/components/Card';
 import { useState, type FormEvent } from 'react';
-import { useUpdateUsername } from '@/api/Api';
+import { queryKeys, useUpdateUsername } from '@/api/Api';
+import { useQueryClient } from '@tanstack/react-query';
 
 const AccountDetails = () => {
   const { userProfile, logout, reloadUser } = useProfile();
   const [username, setUsername] = useState(userProfile?.user.username || '');
   const [error, setError] = useState('');
   const updateUsernameMutation = useUpdateUsername();
+  const queryClient = useQueryClient();
 
   function handleUpdateProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
 
     updateUsernameMutation
-      .mutateAsync(username)
+      .mutateAsync(username, {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.userProfile,
+          });
+        },
+      })
       .then(() => {
         reloadUser();
       })
