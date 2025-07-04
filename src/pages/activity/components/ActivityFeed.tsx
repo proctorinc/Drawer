@@ -68,7 +68,7 @@ export const ActivityFeed = () => {
           <Card
             key={activity.id}
             onClick={() =>
-              navigate({ to: `/app/submission/${activity.submission.id}` })
+              navigate({ to: `/app/submission/${activity.submission?.id}` })
             }
           >
             <CardContent>
@@ -107,7 +107,7 @@ export const ActivityFeed = () => {
                   </span>
                 </div>
                 <DrawingImage
-                  imageUrl={activity.submission.imageUrl}
+                  imageUrl={activity.submission?.imageUrl ?? ''}
                   className="h-20 w-20 border-2 border-border"
                 />
               </div>

@@ -36,7 +36,7 @@ export interface Activity {
   isRead: boolean;
   comment?: Comment;
   reaction?: Reaction;
-  submission: {
+  submission?: {
     id: string;
     prompt: string;
     imageUrl: string;

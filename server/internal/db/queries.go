@@ -614,17 +614,6 @@ func GetReactionsForComment(repo *sql.DB, ctx context.Context, commentID string)
 
 // ToggleReaction adds or removes a reaction for a user using atomic SQL operation
 func ToggleReaction(repo *sql.DB, ctx context.Context, userID, contentType, contentID, reactionID string) error {
-	// First, validate that the user exists
-	userExistsQuery := `SELECT 1 FROM users WHERE id = ?`
-	var userExists int
-	err := repo.QueryRowContext(ctx, userExistsQuery, userID).Scan(&userExists)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return fmt.Errorf("user %s does not exist", userID)
-		}
-		return fmt.Errorf("error checking if user exists: %w", err)
-	}
-
 	// Validate that the content exists based on content type
 	var contentExistsQuery string
 	switch contentType {
@@ -637,7 +626,7 @@ func ToggleReaction(repo *sql.DB, ctx context.Context, userID, contentType, cont
 	}
 
 	var contentExists int
-	err = repo.QueryRowContext(ctx, contentExistsQuery, contentID).Scan(&contentExists)
+	err := repo.QueryRowContext(ctx, contentExistsQuery, contentID).Scan(&contentExists)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("%s %s does not exist", contentType, contentID)
@@ -772,11 +761,11 @@ type Activity struct {
 	IsRead    bool           `json:"isRead"`
 	Comment   *Comment       `json:"comment,omitempty"`
 	Reaction  *Reaction      `json:"reaction,omitempty"`
-	Submission struct {
+	Submission *struct {
 		ID       string `json:"id"`
 		Prompt   string `json:"prompt"`
 		ImageUrl string `json:"imageUrl"`
-	} `json:"submission"`
+	} `json:"submission,omitempty"`
 }
 
 // GetActivityFeed returns all activity (comments and reactions) on the user's submissions from the last 7 days
@@ -866,7 +855,7 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 					Text:      cText,
 					CreatedAt: cCreatedAt,
 				},
-				Submission: struct {
+				Submission: &struct {
 					ID       string `json:"id"`
 					Prompt   string `json:"prompt"`
 					ImageUrl string `json:"imageUrl"`
@@ -911,7 +900,7 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 					ReactionID: rReactionID,
 					CreatedAt:  rCreatedAt,
 				},
-				Submission: struct {
+				Submission: &struct {
 					ID       string `json:"id"`
 					Prompt   string `json:"prompt"`
 					ImageUrl string `json:"imageUrl"`
