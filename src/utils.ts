@@ -74,10 +74,10 @@ export const reactionIndicatorVariants = cva(
   {
     variants: {
       icon: {
-        heart: 'text-red-500/50 bg-red-400/40 shadow-red-500/50',
-        'cry-laugh': 'text-blue-600/50 bg-blue-400/40 shadow-blue-500/50',
-        fire: 'text-orange-600/50 bg-orange-400/40 shadow-orange-500/50',
-        'face-meh': 'text-purple-600/50 bg-purple-400/40 shadow-purple-500/50',
+        heart: 'text-red-500/50 bg-red-300 shadow-red-400/80',
+        'cry-laugh': 'text-blue-600/50 bg-blue-300 shadow-blue-400/80',
+        fire: 'text-orange-600/50 bg-orange-300 shadow-orange-400/80',
+        'face-meh': 'text-purple-600/50 bg-purple-300 shadow-purple-400/80',
       },
     },
     defaultVariants: {
