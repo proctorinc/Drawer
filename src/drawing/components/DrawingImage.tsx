@@ -55,8 +55,8 @@ export const DrawingImage: FC<Props> = ({
       className={cn(
         'w-full transition-all duration-200 aspect-square h-full rounded-lg',
         isLoading && !hasLoadedBefore.current
-          ? 'opacity-70 blur-lg scale-105'
-          : 'opacity-100 blur-0 scale-100',
+          ? 'opacity-70 blur-sm'
+          : 'opacity-100 blur-0',
         className,
       )}
     />

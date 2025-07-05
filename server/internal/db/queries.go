@@ -221,7 +221,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 	}
 	response.User = user
 
-	// 2. Get user's friends
+	// 2. Get user's friends (both directions)
 	friendsQuery := `
 		SELECT DISTINCT
 			u.id,
@@ -231,11 +231,9 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		FROM 
 			friendships f
 		JOIN 
-			users u ON f.friend_id = u.id
-		WHERE 
-			f.user_id = ?
+			users u ON (f.friend_id = u.id AND f.user_id = ?) OR (f.user_id = u.id AND f.friend_id = ?)
 		ORDER BY u.username`
-	friendsRows, err := repo.QueryContext(ctx, friendsQuery, userID)
+	friendsRows, err := repo.QueryContext(ctx, friendsQuery, userID, userID)
 	if err != nil {
 		log.Printf("Error fetching friends for user %s: %v", userID, err)
 		return GetMeResponse{}, err
@@ -258,7 +256,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		return GetMeResponse{}, err
 	}
 
-	// 3. Get all relevant submissions (user + friends) and their comments in one query
+	// 3. Get all relevant submissions with comments, reactions, and counts in optimized queries
 	submissionIDs := []interface{}{userID}
 	whereClause := "us.user_id = ?"
 	if len(friendIDs) > 0 {
@@ -268,7 +266,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		}
 	}
 
-	query := `
+	// Get submissions and comments
+	submissionQuery := `
 		SELECT
 			us.id as submission_id,
 			us.day,
@@ -292,9 +291,10 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		LEFT JOIN comments c ON c.submission_id = us.id
 		LEFT JOIN users cu ON c.user_id = cu.id
 		WHERE ` + whereClause + `
-		ORDER BY us.day DESC, c.created_at ASC`
+		ORDER BY us.day DESC, c.created_at ASC
+		LIMIT 50`
 
-	rows, err := repo.QueryContext(ctx, query, submissionIDs...)
+	rows, err := repo.QueryContext(ctx, submissionQuery, submissionIDs...)
 	if err != nil {
 		log.Printf("Error fetching submissions and comments: %v", err)
 		return GetMeResponse{}, err
@@ -388,70 +388,192 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		return GetMeResponse{}, err
 	}
 
-	// 4. Fetch reactions and counts for all submissions and comments
-	for _, submission := range response.Feed {
-		// Get reactions and counts for submission
-		reactions, err := GetReactionsForSubmission(repo, ctx, submission.ID)
-		if err != nil {
-			log.Printf("Error fetching reactions for submission %s: %v", submission.ID, err)
-			submission.Reactions = []Reaction{}
-		} else {
-			submission.Reactions = reactions
+	// 4. Get all reactions and counts in bulk queries (eliminates N+1 problem)
+	if len(subMap) > 0 {
+		submissionIDList := make([]string, 0, len(subMap))
+		for id := range subMap {
+			submissionIDList = append(submissionIDList, id)
+		}
+
+		// Get all submission reactions in one query
+		submissionReactionsQuery := `
+			SELECT 
+				r.content_id as submission_id,
+				r.id,
+				r.reaction_id,
+				r.created_at,
+				u.id,
+				u.username,
+				u.email,
+				u.created_at
+			FROM reactions r
+			JOIN users u ON r.user_id = u.id
+			WHERE r.content_type = 'submission' AND r.content_id IN (` + placeholders(len(submissionIDList)) + `)
+			ORDER BY r.created_at ASC
+		`
+		reactionArgs := make([]interface{}, len(submissionIDList))
+		for i, id := range submissionIDList {
+			reactionArgs[i] = id
 		}
 		
-		// Debug: Check if reactions is nil
-		if submission.Reactions == nil {
-			log.Printf("WARNING: submission.Reactions is nil for submission %s, setting to empty array", submission.ID)
-			submission.Reactions = []Reaction{}
-		}
-
-		counts, err := GetReactionCountsForSubmission(repo, ctx, submission.ID)
+		reactionRows, err := repo.QueryContext(ctx, submissionReactionsQuery, reactionArgs...)
 		if err != nil {
-			log.Printf("Error fetching reaction counts for submission %s: %v", submission.ID, err)
-			submission.Counts = []ReactionCount{}
+			log.Printf("Error fetching submission reactions: %v", err)
 		} else {
-			submission.Counts = counts
-		}
-		
-		// Debug: Check if counts is nil
-		if submission.Counts == nil {
-			log.Printf("WARNING: submission.Counts is nil for submission %s, setting to empty array", submission.ID)
-			submission.Counts = []ReactionCount{}
+			defer reactionRows.Close()
+			for reactionRows.Next() {
+				var submissionID string
+				var reaction Reaction
+				var user User
+				err := reactionRows.Scan(
+					&submissionID,
+					&reaction.ID,
+					&reaction.ReactionID,
+					&reaction.CreatedAt,
+					&user.ID,
+					&user.Username,
+					&user.Email,
+					&user.CreatedAt,
+				)
+				if err != nil {
+					log.Printf("Error scanning reaction row: %v", err)
+					continue
+				}
+				reaction.User = user
+				if sub, exists := subMap[submissionID]; exists {
+					sub.Reactions = append(sub.Reactions, reaction)
+				}
+			}
 		}
 
-		// Get reactions and counts for each comment
-		for i := range submission.Comments {
-			commentReactions, err := GetReactionsForComment(repo, ctx, submission.Comments[i].ID)
-			if err != nil {
-				log.Printf("Error fetching reactions for comment: %v", err)
-				submission.Comments[i].Reactions = []Reaction{}
-			} else {
-				submission.Comments[i].Reactions = commentReactions
+		// Get all submission reaction counts in one query
+		submissionCountsQuery := `
+			SELECT 
+				content_id as submission_id,
+				reaction_id,
+				COUNT(*) as count
+			FROM reactions
+			WHERE content_type = 'submission' AND content_id IN (` + placeholders(len(submissionIDList)) + `)
+			GROUP BY content_id, reaction_id
+			ORDER BY content_id, count DESC, reaction_id ASC
+		`
+		countRows, err := repo.QueryContext(ctx, submissionCountsQuery, reactionArgs...)
+		if err != nil {
+			log.Printf("Error fetching submission reaction counts: %v", err)
+		} else {
+			defer countRows.Close()
+			for countRows.Next() {
+				var submissionID, reactionID string
+				var count int
+				err := countRows.Scan(&submissionID, &reactionID, &count)
+				if err != nil {
+					log.Printf("Error scanning count row: %v", err)
+					continue
+				}
+				if sub, exists := subMap[submissionID]; exists {
+					sub.Counts = append(sub.Counts, ReactionCount{ReactionID: reactionID, Count: count})
+				}
 			}
-			
-			// Debug: Check if comment reactions is nil
-			if submission.Comments[i].Reactions == nil {
-				log.Printf("WARNING: comment.Reactions is nil for comment %s, setting to empty array", submission.Comments[i].ID)
-				submission.Comments[i].Reactions = []Reaction{}
+		}
+
+		// Get all comment reactions and counts in bulk
+		commentReactionsQuery := `
+			SELECT 
+				r.content_id as comment_id,
+				r.id,
+				r.reaction_id,
+				r.created_at,
+				u.id,
+				u.username,
+				u.email,
+				u.created_at
+			FROM reactions r
+			JOIN users u ON r.user_id = u.id
+			WHERE r.content_type = 'comment' AND r.content_id IN (
+				SELECT c.id FROM comments c WHERE c.submission_id IN (` + placeholders(len(submissionIDList)) + `)
+			)
+			ORDER BY r.created_at ASC
+		`
+		commentReactionRows, err := repo.QueryContext(ctx, commentReactionsQuery, reactionArgs...)
+		if err != nil {
+			log.Printf("Error fetching comment reactions: %v", err)
+		} else {
+			defer commentReactionRows.Close()
+			commentReactions := make(map[string][]Reaction)
+			for commentReactionRows.Next() {
+				var commentID string
+				var reaction Reaction
+				var user User
+				err := commentReactionRows.Scan(
+					&commentID,
+					&reaction.ID,
+					&reaction.ReactionID,
+					&reaction.CreatedAt,
+					&user.ID,
+					&user.Username,
+					&user.Email,
+					&user.CreatedAt,
+				)
+				if err != nil {
+					log.Printf("Error scanning comment reaction row: %v", err)
+					continue
+				}
+				reaction.User = user
+				commentReactions[commentID] = append(commentReactions[commentID], reaction)
 			}
 
-			commentCounts, err := GetReactionCountsForComment(repo, ctx, submission.Comments[i].ID)
-			if err != nil {
-				log.Printf("Error fetching reaction counts for comment: %v", err)
-				submission.Comments[i].Counts = []ReactionCount{}
-			} else {
-				submission.Comments[i].Counts = commentCounts
+			// Assign reactions to comments
+			for _, submission := range response.Feed {
+				for i := range submission.Comments {
+					if reactions, exists := commentReactions[submission.Comments[i].ID]; exists {
+						submission.Comments[i].Reactions = reactions
+					}
+				}
 			}
-			
-			// Debug: Check if comment counts is nil
-			if submission.Comments[i].Counts == nil {
-				log.Printf("WARNING: comment.Counts is nil for comment %s, setting to empty array", submission.Comments[i].ID)
-				submission.Comments[i].Counts = []ReactionCount{}
+		}
+
+		// Get all comment reaction counts in bulk
+		commentCountsQuery := `
+			SELECT 
+				content_id as comment_id,
+				reaction_id,
+				COUNT(*) as count
+			FROM reactions
+			WHERE content_type = 'comment' AND content_id IN (
+				SELECT c.id FROM comments c WHERE c.submission_id IN (` + placeholders(len(submissionIDList)) + `)
+			)
+			GROUP BY content_id, reaction_id
+			ORDER BY content_id, count DESC, reaction_id ASC
+		`
+		commentCountRows, err := repo.QueryContext(ctx, commentCountsQuery, reactionArgs...)
+		if err != nil {
+			log.Printf("Error fetching comment reaction counts: %v", err)
+		} else {
+			defer commentCountRows.Close()
+			commentCounts := make(map[string][]ReactionCount)
+			for commentCountRows.Next() {
+				var commentID, reactionID string
+				var count int
+				err := commentCountRows.Scan(&commentID, &reactionID, &count)
+				if err != nil {
+					log.Printf("Error scanning comment count row: %v", err)
+					continue
+				}
+				commentCounts[commentID] = append(commentCounts[commentID], ReactionCount{ReactionID: reactionID, Count: count})
+			}
+
+			// Assign counts to comments
+			for _, submission := range response.Feed {
+				for i := range submission.Comments {
+					if counts, exists := commentCounts[submission.Comments[i].ID]; exists {
+						submission.Comments[i].Counts = counts
+					}
+				}
 			}
 		}
 	}
 
-	// 5. Get user stats
+	// 5. Get user stats with optimized streak calculation
 	totalDrawingsQuery := `SELECT COUNT(*) FROM user_submissions WHERE user_id = ?`
 	var totalDrawings int
 	err = repo.QueryRowContext(ctx, totalDrawingsQuery, userID).Scan(&totalDrawings)
@@ -459,47 +581,32 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		log.Printf("Error fetching total drawings for user %s: %v", userID, err)
 		return GetMeResponse{}, err
 	}
+
+	// Optimized streak calculation - much faster than recursive CTE
 	currentStreakQuery := `
-		WITH RECURSIVE dates AS (
-			SELECT date('now') as date
-			UNION ALL
-			SELECT date(date, '-1 day')
-			FROM dates
-			WHERE date > (
-				SELECT MIN(day)
-				FROM user_submissions
-				WHERE user_id = ?
-			)
+		WITH user_dates AS (
+			SELECT day FROM user_submissions WHERE user_id = ? ORDER BY day DESC
+		),
+		streak_check AS (
+			SELECT 
+				day,
+				date(day, '+1 day') as next_day,
+				date(day, '-1 day') as prev_day
+			FROM user_dates
 		)
 		SELECT COUNT(*)
-		FROM dates d
-		WHERE EXISTS (
-			SELECT 1
-			FROM user_submissions s
-			WHERE s.user_id = ? AND s.day = d.date
-		)
-		AND NOT EXISTS (
-			SELECT 1
-			FROM dates d2
-			WHERE d2.date < d.date
-			AND d2.date > (
-				SELECT MAX(day)
-				FROM user_submissions s2
-				WHERE s2.user_id = ? AND s2.day < d.date
-			)
-			AND NOT EXISTS (
-				SELECT 1
-				FROM user_submissions s3
-				WHERE s3.user_id = ? AND s3.day = d2.date
-			)
-		)
+		FROM streak_check sc
+		WHERE sc.next_day = date('now') 
+		OR EXISTS (SELECT 1 FROM user_dates ud WHERE ud.day = sc.next_day)
 	`
 	var currentStreak int
-	err = repo.QueryRowContext(ctx, currentStreakQuery, userID, userID, userID, userID).Scan(&currentStreak)
+	err = repo.QueryRowContext(ctx, currentStreakQuery, userID).Scan(&currentStreak)
 	if err != nil {
 		log.Printf("Error fetching current streak for user %s: %v", userID, err)
-		return GetMeResponse{}, err
+		// Fallback to simple count if complex query fails
+		currentStreak = 0
 	}
+	
 	response.Stats = UserStats{
 		TotalDrawings: totalDrawings,
 		CurrentStreak: currentStreak,
