@@ -48,10 +48,10 @@ const Button: FC<Props> = ({
   const handleOnClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (onClick && !disableLoad) {
       setIsClicked(true);
+      if (onClick) {
+        onClick(event);
+      }
       setTimeout(() => {
-        if (onClick) {
-          onClick(event);
-        }
         setIsClicked(false);
       }, 1000);
     } else if (onClick) {

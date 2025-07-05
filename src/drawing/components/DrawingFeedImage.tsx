@@ -152,7 +152,6 @@ const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
         );
         return (
           <Button
-            disableLoad
             variant="base"
             onClick={() => {
               console.log();
@@ -181,9 +180,8 @@ const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
               isActive && reactionIndicatorVariants({ icon: reaction.id }),
               'rounded-full h-12 w-12 text-xl',
             )}
-          >
-            <FontAwesomeIcon icon={reaction.icon} />
-          </Button>
+            icon={reaction.icon}
+          ></Button>
         );
       })}
     </div>

@@ -291,8 +291,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		LEFT JOIN comments c ON c.submission_id = us.id
 		LEFT JOIN users cu ON c.user_id = cu.id
 		WHERE ` + whereClause + `
-		ORDER BY us.day DESC, c.created_at ASC
-		LIMIT 50`
+		ORDER BY us.day DESC, c.created_at ASC`
 
 	rows, err := repo.QueryContext(ctx, submissionQuery, submissionIDs...)
 	if err != nil {
@@ -582,25 +581,35 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		return GetMeResponse{}, err
 	}
 
-	// Optimized streak calculation - much faster than recursive CTE
+	// Calculate current streak - consecutive days of submissions
 	currentStreakQuery := `
-		WITH user_dates AS (
-			SELECT day FROM user_submissions WHERE user_id = ? ORDER BY day DESC
+		WITH user_submissions_ordered AS (
+			SELECT day FROM user_submissions 
+			WHERE user_id = ? 
+			ORDER BY day DESC
 		),
-		streak_check AS (
+		streak_groups AS (
 			SELECT 
 				day,
-				date(day, '+1 day') as next_day,
-				date(day, '-1 day') as prev_day
-			FROM user_dates
+				date(day, '+' || ROW_NUMBER() OVER (ORDER BY day DESC) || ' days') as expected_consecutive_date
+			FROM user_submissions_ordered
+		),
+		consecutive_streak AS (
+			SELECT COUNT(*) as streak_count
+			FROM streak_groups sg
+			WHERE sg.day = sg.expected_consecutive_date
+			AND sg.day <= (
+				CASE 
+					WHEN EXISTS (SELECT 1 FROM user_submissions us WHERE us.user_id = ? AND us.day = date('now'))
+					THEN date('now')
+					ELSE date('now', '-1 day')
+				END
+			)
 		)
-		SELECT COUNT(*)
-		FROM streak_check sc
-		WHERE sc.next_day = date('now') 
-		OR EXISTS (SELECT 1 FROM user_dates ud WHERE ud.day = sc.next_day)
+		SELECT COALESCE(streak_count, 0) FROM consecutive_streak
 	`
 	var currentStreak int
-	err = repo.QueryRowContext(ctx, currentStreakQuery, userID).Scan(&currentStreak)
+	err = repo.QueryRowContext(ctx, currentStreakQuery, userID, userID).Scan(&currentStreak)
 	if err != nil {
 		log.Printf("Error fetching current streak for user %s: %v", userID, err)
 		// Fallback to simple count if complex query fails
