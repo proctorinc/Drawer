@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"gopkg.in/gomail.v2"
+	"github.com/resendlabs/resend-go"
 )
 
 func SendVerificationEmail(cfg *config.Config, toEmail string, token string) error {
@@ -22,26 +22,28 @@ func SendVerificationEmail(cfg *config.Config, toEmail string, token string) err
 		<html>
 			<body>
 				<h2>Welcome to Daily Doodle!</h2>
-				<p>Please click the link below to verify your email address:</p>
-				<p><a href="%s">Verify Email</a></p>
+				<p>Please click the link below to login to the Daily Doodle:</p>
+				<p><a href="%s">Log in</a></p>
 				<p>This link will expire in 1 hour.</p>
 				<p>If you didn't request this verification, you can safely ignore this email.</p>
 			</body>
 		</html>
 	`, verifyURL)
 
-	// Create new message
-	m := gomail.NewMessage()
-	m.SetHeader("From", cfg.FromEmail)
-	m.SetHeader("To", toEmail)
-	m.SetHeader("Subject", "Verify your Drawer account")
-	m.SetBody("text/html", html)
+	// Create Resend client
+	client := resend.NewClient(cfg.ResendAPIKey)
 
-	// Create dialer
-	d := gomail.NewDialer("smtp.gmail.com", 587, cfg.FromEmail, cfg.GmailAppPassword)
+	// Create email params
+	params := &resend.SendEmailRequest{
+		From:    cfg.FromEmail,
+		To:      []string{toEmail},
+		Subject: "Log in to Daily Doodle!",
+		Html:    html,
+	}
 
 	// Send email
-	if err := d.DialAndSend(m); err != nil {
+	_, err := client.Emails.Send(params)
+	if err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 

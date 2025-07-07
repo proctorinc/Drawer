@@ -15,7 +15,7 @@ type Config struct {
 	Env              string
 	FromEmail        string
 	BaseURL          string
-	GmailAppPassword string
+	ResendAPIKey     string
 	S3BucketName     string
 	S3BucketRegion   string
 	AwsAccessKey     string
@@ -52,7 +52,7 @@ func LoadConfig() *Config {
 		Env:              env,
 		FromEmail:        getEnv("FROM_EMAIL", "your.email@gmail.com"),
 		BaseURL:          getEnv("BASE_URL", "http://localhost:3000"),
-		GmailAppPassword: getEnv("GMAIL_APP_PASSWORD", ""),
+		ResendAPIKey:     getEnv("RESEND_API_KEY", ""),
 		S3BucketName:     getEnv("S3_BUCKET_NAME", ""),
 		S3BucketRegion:   getEnv("S3_BUCKET_REGION", ""),
 		AwsAccessKey:     getEnv("AWS_ACCESS_KEY_ID", ""),
