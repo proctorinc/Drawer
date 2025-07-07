@@ -291,7 +291,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		LEFT JOIN comments c ON c.submission_id = us.id
 		LEFT JOIN users cu ON c.user_id = cu.id
 		WHERE ` + whereClause + `
-		ORDER BY us.day DESC, c.created_at ASC`
+		ORDER BY us.day ASC`
 
 	rows, err := repo.QueryContext(ctx, submissionQuery, submissionIDs...)
 	if err != nil {
