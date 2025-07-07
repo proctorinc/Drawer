@@ -6,6 +6,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  Navigate,
 } from '@tanstack/react-router';
 
 import './styles.css';
@@ -38,6 +39,13 @@ const rootRoute = createRootRoute({
       </UserProfileProvider>
     </QueryClientProvider>
   ),
+});
+
+// Root route that redirects to /app
+const rootRedirectRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  component: () => <Navigate to="/app" replace />,
 });
 
 const indexRoute = createRoute({
@@ -81,6 +89,7 @@ const promptSubmissionRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
+  rootRedirectRoute,
   indexRoute,
   userProfileRoute,
   calendarRoute,
