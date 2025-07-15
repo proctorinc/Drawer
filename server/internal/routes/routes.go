@@ -54,7 +54,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			userGroup.PUT("/me/username", handlers.HandleUpdateUsername)
 			userGroup.GET("/me/profile", handlers.HandleGetUserProfile)
 			userGroup.GET("/:id/profile", handlers.HandleGetUserByID)
-			userGroup.POST(":id/add-friend", handlers.HandleAddFriend)
+			userGroup.POST("/add-friend", handlers.HandleAddFriend)
 
 
 			submissionGroup := authGroup.Group("/submission")
@@ -64,12 +64,14 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			submissionGroup.GET("/:id", handlers.HandleGetPromptSubmissionByID)
 			submissionGroup.POST("/:id/comment", handlers.HandleAddCommentToSubmission)
 			submissionGroup.POST("/:id/reaction", handlers.HandleToggleSubmissionReaction)
+			submissionGroup.POST("/:id/favorite", handlers.HandleToggleFavoriteSubmission)
 			submissionGroup.POST(":id/comment/:id/reaction", handlers.HandleToggleCommentReaction)
 
 			// activityGroup := authGroup.Group("/activity")
 
 			authGroup.GET("/activity", handlers.HandleGetActivity)
 			authGroup.POST("/activity/view", handlers.HandlePostActivity)
+			authGroup.POST("/favorite/swap", handlers.HandleSwapFavoriteOrder)
 
 			authGroup.POST("/auth/logout", handlers.HandleLogout)
 		}

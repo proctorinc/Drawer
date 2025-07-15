@@ -67,6 +67,7 @@ type UserPromptSubmission struct {
 	Comments   []Comment       `json:"comments"`
 	Reactions  []Reaction      `json:"reactions"`
 	Counts     []ReactionCount `json:"counts"`
+	IsFavorite bool			   `json:"isFavorite"`
 }
 
 type UserStats struct {
@@ -81,4 +82,12 @@ type GetMeResponse struct {
 	Feed    []*UserPromptSubmission `json:"feed"`
 	Friends []User                  `json:"friends"`
 	Stats   UserStats               `json:"stats"`
+	Favorites []*FavoriteSubmission `json:"favorites"`
+}
+
+type FavoriteSubmission struct {
+	ID           string    `json:"id"`
+	Submission UserPromptSubmission    `json:"submission"`
+	CreatedAt    time.Time `json:"createdAt"`
+	OrderNum     int       `json:"orderNum"`
 }

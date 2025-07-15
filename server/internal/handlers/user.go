@@ -355,6 +355,16 @@ func HandleGetPromptSubmissionByID(c *gin.Context) {
 		Counts:    submissionCounts,
 	}
 
+	// Set isFavorite if the requester is the owner and the submission is favorited
+	requester := middleware.GetUser(c)
+	if requester.ID == userID {
+		var favID string
+		err := repo.QueryRowContext(c.Request.Context(), "SELECT id FROM user_favorite_submissions WHERE user_id = ? AND submission_id = ?", requester.ID, subID).Scan(&favID)
+		if err == nil {
+			resp.IsFavorite = true
+		}
+	}
+
 	c.JSON(http.StatusOK, resp)
 }
 
@@ -526,4 +536,27 @@ func HandleToggleCommentReaction(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+}
+
+func HandleSwapFavoriteOrder(c *gin.Context) {
+	repo := middleware.GetDB(c)
+	user := middleware.GetUser(c)
+	var req struct {
+		ID1 string `json:"id1"`
+		ID2 string `json:"id2"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+	if req.ID1 == "" || req.ID2 == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Both id1 and id2 are required"})
+		return
+	}
+	err := db.SwapFavoriteOrder(repo, c.Request.Context(), user.ID, req.ID1, req.ID2)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true})
 }

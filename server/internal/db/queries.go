@@ -621,6 +621,48 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		CurrentStreak: currentStreak,
 	}
 
+	// After populating subMap, response.Feed, and response.Prompts:
+	// 6. Get user's favorite submissions (ordered by order_num desc)
+	favQuery := `SELECT id, submission_id, created_at, order_num FROM user_favorite_submissions WHERE user_id = ? ORDER BY order_num DESC`
+	favRows, err := repo.QueryContext(ctx, favQuery, userID)
+	if err != nil {
+		log.Printf("Error fetching favorites for user %s: %v", userID, err)
+		response.Favorites = []*FavoriteSubmission{}
+	} else {
+		defer favRows.Close()
+		response.Favorites = []*FavoriteSubmission{}
+		favoriteSet := make(map[string]struct{})
+		for favRows.Next() {
+			var favID, favSubmissionID string
+			var favCreatedAt time.Time
+			var favOrderNum int
+			err := favRows.Scan(&favID, &favSubmissionID, &favCreatedAt, &favOrderNum)
+			if err != nil {
+				log.Printf("Error scanning favorite row: %v", err)
+				continue
+			}
+			// Find the full UserPromptSubmission in subMap
+			sub, exists := subMap[favSubmissionID]
+			if !exists {
+				continue // skip if not found
+			}
+			favoriteSet[favSubmissionID] = struct{}{}
+			fav := &FavoriteSubmission{
+				ID:        favID,
+				Submission: *sub,
+				CreatedAt:  favCreatedAt,
+				OrderNum:   favOrderNum,
+			}
+			response.Favorites = append(response.Favorites, fav)
+		}
+		// Set IsFavorite only for user's own submissions
+		for _, sub := range response.Prompts {
+			if _, ok := favoriteSet[sub.ID]; ok {
+				sub.IsFavorite = true
+			}
+		}
+	}
+
 	return response, nil
 }
 
@@ -1035,6 +1077,48 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 	response.Stats = UserStats{
 		TotalDrawings: totalDrawings,
 		CurrentStreak: currentStreak,
+	}
+
+	// After populating subMap, response.Feed, and response.Prompts:
+	// 6. Get user's favorite submissions (ordered by order_num desc)
+	favQuery := `SELECT id, submission_id, created_at, order_num FROM user_favorite_submissions WHERE user_id = ? ORDER BY order_num DESC`
+	favRows, err := repo.QueryContext(ctx, favQuery, userID)
+	if err != nil {
+		log.Printf("Error fetching favorites for user %s: %v", userID, err)
+		response.Favorites = []*FavoriteSubmission{}
+	} else {
+		defer favRows.Close()
+		response.Favorites = []*FavoriteSubmission{}
+		favoriteSet := make(map[string]struct{})
+		for favRows.Next() {
+			var favID, favSubmissionID string
+			var favCreatedAt time.Time
+			var favOrderNum int
+			err := favRows.Scan(&favID, &favSubmissionID, &favCreatedAt, &favOrderNum)
+			if err != nil {
+				log.Printf("Error scanning favorite row: %v", err)
+				continue
+			}
+			// Find the full UserPromptSubmission in subMap
+			sub, exists := subMap[favSubmissionID]
+			if !exists {
+				continue // skip if not found
+			}
+			favoriteSet[favSubmissionID] = struct{}{}
+			fav := &FavoriteSubmission{
+				ID:        favID,
+				Submission: *sub,
+				CreatedAt:  favCreatedAt,
+				OrderNum:   favOrderNum,
+			}
+			response.Favorites = append(response.Favorites, fav)
+		}
+		// Set IsFavorite only for user's own submissions
+		for _, sub := range response.Prompts {
+			if _, ok := favoriteSet[sub.ID]; ok {
+				sub.IsFavorite = true
+			}
+		}
 	}
 
 	return response, nil
@@ -1485,6 +1569,79 @@ func SetLastReadActivityID(repo *sql.DB, ctx context.Context, userID, activityID
 	query := `INSERT INTO activity_reads (user_id, last_read_activity_id, last_read_date) VALUES (?, ?, CURRENT_TIMESTAMP)
 		ON CONFLICT(user_id) DO UPDATE SET last_read_activity_id = excluded.last_read_activity_id, last_read_date = excluded.last_read_date`
 	_, err := repo.ExecContext(ctx, query, userID, activityID)
+	return err
+}
+
+// ToggleFavoriteSubmission toggles a favorite for a user's own submission.
+func ToggleFavoriteSubmission(repo *sql.DB, ctx context.Context, userID, submissionID string) (added bool, err error) {
+	// Check if the submission belongs to the user
+	var ownerID string
+	err = repo.QueryRowContext(ctx, "SELECT user_id FROM user_submissions WHERE id = ?", submissionID).Scan(&ownerID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, errors.New("submission not found")
+		}
+		return false, err
+	}
+	if ownerID != userID {
+		return false, errors.New("can only favorite your own submission")
+	}
+
+	// Check if already favorited
+	var favID string
+	err = repo.QueryRowContext(ctx, "SELECT id FROM user_favorite_submissions WHERE user_id = ? AND submission_id = ?", userID, submissionID).Scan(&favID)
+	if err == nil {
+		// Already favorited, so remove
+		_, delErr := repo.ExecContext(ctx, "DELETE FROM user_favorite_submissions WHERE id = ?", favID)
+		if delErr != nil {
+			return false, delErr
+		}
+		return false, nil // removed
+	} else if err != sql.ErrNoRows {
+		return false, err
+	}
+
+	// Not favorited, so add
+	// Get next order_num
+	var nextOrder int
+	err = repo.QueryRowContext(ctx, "SELECT COALESCE(MAX(order_num), 0) + 1 FROM user_favorite_submissions WHERE user_id = ?", userID).Scan(&nextOrder)
+	if err != nil {
+		return false, err
+	}
+	_, insErr := repo.ExecContext(ctx, `INSERT INTO user_favorite_submissions (id, user_id, submission_id, order_num) VALUES (lower(hex(randomblob(16))), ?, ?, ?)`, userID, submissionID, nextOrder)
+	if insErr != nil {
+		return false, insErr
+	}
+	return true, nil // added
+}
+
+// SwapFavoriteOrder swaps the order_num of two user_favorite_submissions for a user
+func SwapFavoriteOrder(repo *sql.DB, ctx context.Context, userID, favID1, favID2 string) error {
+	tx, err := repo.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+
+	var order1, order2 int
+	// Get order_num for both favorites and check ownership
+	row := tx.QueryRowContext(ctx, `SELECT order_num FROM user_favorite_submissions WHERE id = ? AND user_id = ?`, favID1, userID)
+	if err = row.Scan(&order1); err != nil {
+		return err
+	}
+	row = tx.QueryRowContext(ctx, `SELECT order_num FROM user_favorite_submissions WHERE id = ? AND user_id = ?`, favID2, userID)
+	if err = row.Scan(&order2); err != nil {
+		return err
+	}
+
+	// Swap the order_num values
+	_, err = tx.ExecContext(ctx, `UPDATE user_favorite_submissions SET order_num = CASE WHEN id = ? THEN ? WHEN id = ? THEN ? END WHERE id IN (?, ?) AND user_id = ?`, favID1, order2, favID2, order1, favID1, favID2, userID)
 	return err
 }
 

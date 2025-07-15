@@ -168,3 +168,19 @@ func HandlePostDaily(c *gin.Context) {
 		"id":       submissionID,
 	})
 }
+
+func HandleToggleFavoriteSubmission(c *gin.Context) {
+	repo := middleware.GetDB(c)
+	userID := middleware.GetUserID(c)
+	submissionID := c.Param("id")
+	if submissionID == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Missing submission id"})
+		return
+	}
+	added, err := db.ToggleFavoriteSubmission(repo, c.Request.Context(), userID, submissionID)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"favorited": added})
+}
