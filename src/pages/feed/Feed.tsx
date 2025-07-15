@@ -5,12 +5,10 @@ import PromptCanvas from './components/PromptCanvas';
 import { SubmissionFeedList } from './components/SubmissionFeedList';
 import Layout from '@/components/Layout';
 import Banner from '@/components/Banner';
-import { useState } from 'react';
-import Button from '@/components/Button';
+import Disclaimer, { DisclaimerItem } from '@/components/Disclaimer';
 
 const Feed = () => {
   const { dailyPrompt } = useDailyPrompt();
-  const [isUpdateOpen, setIsUpdateOpen] = useState(false);
 
   const formattedDate = dailyPrompt
     ? new Date(dailyPrompt.day).toLocaleDateString('en-US', {
@@ -25,13 +23,22 @@ const Feed = () => {
   const isNoPrompt = !dailyPrompt;
 
   return (
-    <Layout>
+    <Layout
+      header={
+        (hasPromptBeenCompleted || isNoPrompt) && (
+          <div className="flex flex-col items-center gap-1 rounded-full text-2xl w-full max-w-sm mb-6">
+            <CountDownTimer className="font-cursive text-5xl text-secondary" />
+            <span className="font-bold text-primary">Next Doodle</span>
+          </div>
+        )
+      }
+    >
       {promptNotCompleted && !isNoPrompt && (
         <>
           <Banner icon={faInfoCircle}>
             Use today's colors to draw the prompt
           </Banner>
-          <div className="flex flex-col items-center w-full -mb-4">
+          <div className="flex flex-col items-center w-full -my-4">
             <h3 className="text-xl font-bold text-primary">
               Draw {dailyPrompt.prompt.toLowerCase()}
             </h3>
@@ -39,43 +46,34 @@ const Feed = () => {
           </div>
         </>
       )}
-      {(hasPromptBeenCompleted || isNoPrompt) && (
-        <Banner className="flex flex-col gap-1 rounded-full text-2xl">
-          <CountDownTimer />
-          <span className="text-sm text-primary">Next Doodle</span>
-        </Banner>
-      )}
       {!dailyPrompt && (
         <Banner icon={faFrown}>
           <p className="text-sm">Sorry, there's no prompt for today</p>
         </Banner>
       )}
       {(hasPromptBeenCompleted || isNoPrompt) && (
-        <Banner className="flex flex-col gap-2 bg-base border-2 border-border text-secondary">
-          <span className="py-2">Updates! User profiles, favorite doodles</span>
-          {isUpdateOpen && (
-            <>
-              <span>
-                You can now view other user's profiles by clicking on their
-                icons.
-              </span>
-              <span>
-                You can also choose 3 favorite doodles to display on your own
-                profile. Click the star icon to favorite one of your drawings.
-              </span>
-            </>
-          )}
-          <Button
-            disableLoad
-            onClick={() => setIsUpdateOpen((prev) => !prev)}
-            size="sm"
-          >
-            {isUpdateOpen ? 'hide' : 'show more'}
-          </Button>
-        </Banner>
+        <Disclaimer title="Updates! User profiles, favorite doodles">
+          <DisclaimerItem>
+            You can now view other user's profiles by clicking on their icons.
+          </DisclaimerItem>
+          <DisclaimerItem>
+            You can also choose 3 favorite doodles to display on your own
+            profile. Click the star icon to favorite one of your drawings.
+          </DisclaimerItem>
+        </Disclaimer>
       )}
       {(hasPromptBeenCompleted || isNoPrompt) && <SubmissionFeedList />}
       <PromptCanvas />
+      {!hasPromptBeenCompleted && !isNoPrompt && (
+        <Disclaimer title="Rules, you say?">
+          <DisclaimerItem>
+            Just kidding - no rules, but here's a tip
+          </DisclaimerItem>
+          <DisclaimerItem>
+            Don't write text, just draw and let people guess!
+          </DisclaimerItem>
+        </Disclaimer>
+      )}
     </Layout>
   );
 };

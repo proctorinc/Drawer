@@ -104,7 +104,7 @@ const MyProfilePage = () => {
           disableLoad
           onClick={() => router.history.back()}
         />
-        <div className="flex w-full gap-2 justify-center items-center">
+        <div className="flex w-full gap-2 justify-end items-center">
           <ShareButton
             urlPath={`/draw/profile/${profile?.user.id}`}
             text="Checkout my daily doodle profile!"

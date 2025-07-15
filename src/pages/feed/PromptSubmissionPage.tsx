@@ -74,7 +74,20 @@ const PromptSubmissionPage = () => {
 
   return (
     <>
-      <Layout>
+      <Layout
+        header={
+          <div className="flex flex-col gap-4 max-w-sm w-full pb-6">
+            <DrawingFeedImage submission={submission} />
+            <div className="flex justify-end w-full">
+              <ShareButton
+                text={`Checkout ${submission.user.id === currentUser.id ? 'my' : `${submission.user.username}'s`} doodle of ${submission.prompt.toLowerCase()}!`}
+              >
+                Share
+              </ShareButton>
+            </div>
+          </div>
+        }
+      >
         <div className="flex w-full">
           <Button
             variant="base"
@@ -93,14 +106,6 @@ const PromptSubmissionPage = () => {
               })}
             </p>
           </div>
-        </div>
-        <DrawingFeedImage submission={submission} />
-        <div className="flex justify-end w-full">
-          <ShareButton
-            text={`Checkout ${submission.user.id === currentUser.id ? 'my' : `${submission.user.username}'s`} doodle of ${submission.prompt.toLowerCase()}!`}
-          >
-            Share
-          </ShareButton>
         </div>
         <div className="flex flex-col w-full gap-4 pb-20">
           <Card>

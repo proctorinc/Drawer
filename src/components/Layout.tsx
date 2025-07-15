@@ -13,7 +13,7 @@ const Layout: FC<Props> = ({ header, children }) => {
 
   return (
     <div className=" flex flex-col items-center justify-center">
-      <div className="-z-10 sticky top-0 flex flex-col max-w-md w-full gap-6 md:p-2">
+      <div className="-z-10 sticky top-0 flex flex-col items-center max-w-md w-full gap-6 md:p-2">
         <Header />
         {header}
       </div>

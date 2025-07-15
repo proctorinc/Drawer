@@ -15,7 +15,7 @@ import {
 import { Card, CardContent } from '@/components/Card';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Button from '@/components/Button';
-import { useRouter } from '@tanstack/react-router';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import { ShareButton } from './components/friends/ShareButton';
 import { isFriend } from '@/utils';
 import useUser from '@/auth/hooks/useUser';
@@ -26,6 +26,7 @@ import Tooltip from '@/components/Tooltip';
 
 const UserProfilePage = () => {
   const router = useRouter();
+  const navigate = useNavigate();
   const currentUser = useUser();
   const queryClient = useQueryClient();
   const { userProfile } = useProfile();
@@ -139,7 +140,14 @@ const UserProfilePage = () => {
         <div className="flex flex-row gap-4 w-full justify-between">
           {userProfile.favorites.slice(0, 3).map((favorite) => (
             <Card className="w-1/3">
-              <DrawingImage imageUrl={favorite.submission.imageUrl} />
+              <DrawingImage
+                imageUrl={favorite.submission.imageUrl}
+                onClick={() =>
+                  navigate({
+                    to: `/draw/submission/${favorite.submission.id}`,
+                  })
+                }
+              />
             </Card>
           ))}
           {userProfile.favorites.length === 0 && (

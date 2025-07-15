@@ -1,7 +1,11 @@
 import useAuth from '@/auth/hooks/useAuth';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FC } from 'react';
 
-export const CountDownTimer = () => {
+type Props = {
+  className?: string;
+};
+
+export const CountDownTimer: FC<Props> = ({ className }) => {
   const [time, setTime] = useState(0);
   const { reloadUser } = useAuth();
 
@@ -51,5 +55,5 @@ export const CountDownTimer = () => {
     return `${hours}:${minutes}:${secs}`;
   };
 
-  return <>{formatTime(time)}</>;
+  return <span className={className}>{formatTime(time)}</span>;
 };
