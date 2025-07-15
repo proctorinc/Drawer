@@ -40,13 +40,13 @@ export const FriendList: FC<Props> = ({ user, friends }) => {
               return (
                 <div
                   key={friend.id}
-                  className="flex items-center gap-2 rounded-2xl w-full px-4 py-2"
+                  className="flex items-center gap-3 rounded-2xl w-full px-4 py-2"
                   style={{ backgroundColor: secondary }}
                 >
                   <UserProfileIcon user={friend} />
                   <div className="flex justify-between items-center w-full">
                     <h3 className="text-primary font-bold">
-                      {friend.username}
+                      @{friend.username}
                     </h3>
                     <Button
                       size="sm"
