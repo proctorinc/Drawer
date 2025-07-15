@@ -10,7 +10,7 @@ import (
 
 func SendVerificationEmail(cfg *config.Config, toEmail string, token string) error {
 	// Create verification URL
-	verifyURL := fmt.Sprintf("%s/api/v1/verify?token=%s", cfg.BaseURL, token)
+	verifyURL := fmt.Sprintf("%s/api/v1/auth/verify?token=%s", cfg.BaseURL, token)
 
 	if cfg.Env != "production" {
 		log.Printf("Skipping email sending in development mode. Verify URL: %s", verifyURL)
