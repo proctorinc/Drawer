@@ -30,7 +30,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			// If the request path doesn't match any route and isn't a static file, return a 404
 			c.Status(http.StatusNotFound)
 		})
-		frontendGroup := router.Group("/app")
+		frontendGroup := router.Group("/draw")
 		frontendGroup.GET("/*filepath", func(c *gin.Context) {
 			c.File("./frontend/index.html")
 		})
@@ -40,27 +40,38 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 	apiGroup := router.Group("/api/v1")
 	{
 		// Auth routes
-		apiGroup.POST("/register", handlers.HandleRegister)
-		apiGroup.POST("/login", handlers.HandleLogin)
-		apiGroup.GET("/verify", handlers.HandleVerifyEmail)
+		apiGroup.POST("/auth/register", handlers.HandleRegister)
+		apiGroup.POST("/auth/login", handlers.HandleLogin)
+		apiGroup.GET("/auth/verify", handlers.HandleVerifyEmail)
 
 		// Authenticated routes
 		authGroup := apiGroup.Group("/")
 		authGroup.Use(middleware.AuthMiddleware(repo))
 		{
-			authGroup.POST("/logout", handlers.HandleLogout)
-			authGroup.POST("/add-friend", handlers.HandleAddFriend)
-			authGroup.GET("/daily", handlers.HandleGetDaily)
-			authGroup.POST("/daily", handlers.HandlePostDaily)
-			authGroup.GET("/me", handlers.HandleGetUser)
-			authGroup.GET("/user/:id", handlers.HandleGetUserByID)
-			authGroup.PUT("/update-username", handlers.HandleUpdateUsername)
-			authGroup.GET("/submission/:id", handlers.HandleGetPromptSubmissionByID)
-			authGroup.POST("/submission/:id/comment", handlers.HandleAddCommentToSubmission)
-			authGroup.POST("/submission/:id/reaction", handlers.HandleToggleSubmissionReaction)
-			authGroup.POST("/comment/:id/reaction", handlers.HandleToggleCommentReaction)
+			userGroup := authGroup.Group("/user")
+
+			userGroup.GET("/me", handlers.HandleGetUser)
+			userGroup.PUT("/me/username", handlers.HandleUpdateUsername)
+			userGroup.GET("/me/profile", handlers.HandleGetUserProfile)
+			userGroup.GET("/:id/profile", handlers.HandleGetUserByID)
+			userGroup.POST(":id/add-friend", handlers.HandleAddFriend)
+
+
+			submissionGroup := authGroup.Group("/submission")
+
+			submissionGroup.GET("/daily", handlers.HandleGetDaily)
+			submissionGroup.POST("/daily", handlers.HandlePostDaily)
+			submissionGroup.GET("/:id", handlers.HandleGetPromptSubmissionByID)
+			submissionGroup.POST("/:id/comment", handlers.HandleAddCommentToSubmission)
+			submissionGroup.POST("/:id/reaction", handlers.HandleToggleSubmissionReaction)
+			submissionGroup.POST(":id/comment/:id/reaction", handlers.HandleToggleCommentReaction)
+
+			// activityGroup := authGroup.Group("/activity")
+
 			authGroup.GET("/activity", handlers.HandleGetActivity)
-			authGroup.POST("/activity", handlers.HandlePostActivity)
+			authGroup.POST("/activity/view", handlers.HandlePostActivity)
+
+			authGroup.POST("/auth/logout", handlers.HandleLogout)
 		}
 	}
 

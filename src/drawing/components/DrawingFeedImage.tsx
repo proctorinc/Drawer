@@ -9,7 +9,7 @@ import {
   type UserPromptSubmission,
 } from '@/api/Api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faHeart, faStar } from '@fortawesome/free-solid-svg-icons';
 import Tooltip from '@/components/Tooltip';
 import Button from '@/components/Button';
 import {
@@ -19,7 +19,7 @@ import {
   reactions,
 } from '@/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import { useProfile } from '@/pages/profile/UserProfileContext';
+import useUser from '@/auth/hooks/useUser';
 
 type Props = {
   submission: UserPromptSubmission;
@@ -41,7 +41,7 @@ function hasUserReactedAny(submission: UserPromptSubmission, userId: string) {
 }
 
 const DrawingFeedImage: FC<Props> = ({ submission }) => {
-  const { userProfile } = useProfile();
+  const user = useUser();
 
   return (
     <Card
@@ -49,8 +49,11 @@ const DrawingFeedImage: FC<Props> = ({ submission }) => {
       className="flex items-center relative bg-card rounded-2xl border-2 border-border"
     >
       <DrawingImage imageUrl={submission.imageUrl} className="rounded-xl" />
-      {submission.user.id !== userProfile?.user.id && (
+      {submission.user.id !== user.id && (
         <ReactionButton submission={submission} />
+      )}
+      {submission.user.id === user.id && (
+        <FavoriteButton submission={submission} />
       )}
       <div className="flex flex-col gap-2 absolute top-2 right-2">
         <UserProfileIcon showTooltip user={submission.user} />
@@ -65,11 +68,7 @@ type ReactionButtonProps = {
 };
 
 const ReactionButton: FC<ReactionButtonProps> = ({ submission }) => {
-  const { userProfile } = useProfile();
-
-  if (!userProfile) {
-    return <></>;
-  }
+  const user = useUser();
 
   return (
     <div className="absolute bottom-2 left-2">
@@ -79,14 +78,32 @@ const ReactionButton: FC<ReactionButtonProps> = ({ submission }) => {
       >
         <div
           className={cn(
-            'flex justify-center items-center text-xl h-12 w-12 rounded-full bg-base/80 text-primary/50 hover:scale-110 transition-all duration-300',
-            hasUserReactedAny(submission, userProfile?.user.id) &&
-              'text-red-400/50 bg-red-200/50',
+            'flex justify-center items-center text-xl h-12 w-12 rounded-full bg-base/90 text-primary/80 hover:scale-110 transition-all duration-300',
+            hasUserReactedAny(submission, user.id) &&
+              'text-red-400/80 bg-red-200/80',
           )}
         >
           <FontAwesomeIcon icon={faHeart} />
         </div>
       </Tooltip>
+    </div>
+  );
+};
+
+const FavoriteButton: FC<ReactionButtonProps> = ({ submission }) => {
+  const user = useUser();
+
+  return (
+    <div className="absolute bottom-2 right-2">
+      <div
+        className={cn(
+          'flex justify-center items-center text-xl h-12 w-12 rounded-full bg-base/90 text-primary/80 hover:scale-110 transition-all duration-300',
+          hasUserReactedAny(submission, user.id) &&
+            'text-yellow-400/80 bg-yellow-200/80',
+        )}
+      >
+        <FontAwesomeIcon icon={faStar} />
+      </div>
     </div>
   );
 };
@@ -136,20 +153,12 @@ type TooltipContentProps = {
 const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
   const toggleReaction = useToggleSubmissionReaction();
   const queryClient = useQueryClient();
-  const { userProfile } = useProfile();
-
-  if (!userProfile) {
-    return <></>;
-  }
+  const user = useUser();
 
   return (
     <div className="flex px-3 py-2 gap-2">
       {reactions.map((reaction) => {
-        const isActive = hasUserReacted(
-          submission,
-          reaction.id,
-          userProfile.user.id,
-        );
+        const isActive = hasUserReacted(submission, reaction.id, user.id);
         return (
           <Button
             variant="base"
@@ -163,7 +172,7 @@ const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
                 {
                   onSuccess: () => {
                     queryClient.invalidateQueries({
-                      queryKey: queryKeys.userProfile,
+                      queryKey: queryKeys.myProfile,
                     });
                     queryClient.invalidateQueries({
                       queryKey: queryKeys.promptSubmission(submission.id),

@@ -68,7 +68,7 @@ export const ActivityFeed = () => {
           <Card
             key={activity.id}
             onClick={() =>
-              navigate({ to: `/app/submission/${activity.submission?.id}` })
+              navigate({ to: `/draw/submission/${activity.submission?.id}` })
             }
           >
             <CardContent>

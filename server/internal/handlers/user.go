@@ -18,11 +18,25 @@ import (
 func HandleGetUser(c *gin.Context) {
 	user := middleware.GetUser(c)
 	repo := middleware.GetDB(c)
-	cfg := middleware.GetConfig(c)
 
-	response, err := db.GetUserDataFromDB(repo, c.Request.Context(), user.ID, cfg)
+	response, err := db.GetUserByID(repo, c.Request.Context(), user.ID)
 	if err != nil {
 		log.Printf("Error querying user data for userId: %s (email: %s): %v", user.ID, utils.MaskEmail(user.Email), err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare user response"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, response)
+}
+
+func HandleGetUserProfile(c *gin.Context) {
+	user := middleware.GetUser(c)
+	repo := middleware.GetDB(c)
+	cfg := middleware.GetConfig(c)
+
+	response, err := db.GetUserProfileFromDB(repo, c.Request.Context(), user.ID, cfg)
+	if err != nil {
+		log.Printf("Error querying user profile data for userId: %s (email: %s): %v", user.ID, utils.MaskEmail(user.Email), err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to prepare user response"})
 		return
 	}
@@ -118,27 +132,15 @@ func HandleGetUserByID(c *gin.Context) {
 	}
 
 	repo := middleware.GetDB(c)
+	cfg := middleware.GetConfig(c)
 
 	// Query the user from the database
-	var user db.User
-	query := `
-		SELECT id, email, username
-		FROM users
-		WHERE id = ?
-	`
-	err := repo.QueryRowContext(c.Request.Context(), query, userID).Scan(
-		&user.ID,
-		&user.Email,
-		&user.Username,
-	)
+	user, err := db.GetUserProfileFromDB(repo, c.Request.Context(), userID, cfg)
+
 	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Printf("User ID '%s' not found", userID)
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "User not found"})
-			return
-		}
-		log.Printf("Error fetching user ID '%s': %v", userID, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch user"})
+		log.Printf("Error retrieving user (ID: %s): %v",
+			userID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to add friend"})
 		return
 	}
 
@@ -270,7 +272,7 @@ func HandleGetPromptSubmissionByID(c *gin.Context) {
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
 		WHERE c.submission_id = ?
-		ORDER BY c.created_at ASC`
+		ORDER BY c.created_at DESC`
 	rows, err := repo.QueryContext(c.Request.Context(), commentsQuery, submissionID)
 	if err != nil {
 		log.Printf("Error fetching comments for submission %s: %v", submissionID, err)

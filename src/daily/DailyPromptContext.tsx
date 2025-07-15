@@ -5,7 +5,7 @@ import {
   useSubmitDailyPrompt,
   type DailyPrompt,
 } from '@/api/Api';
-import type { ReactNode } from '@tanstack/react-router';
+import { type ReactNode } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 
 type DailyPromptContextType = {

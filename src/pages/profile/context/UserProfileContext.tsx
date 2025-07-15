@@ -1,12 +1,13 @@
 import { createContext, useContext, type FC, type ReactNode } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import type { GetMeResponse } from '@/api/Api';
 import {
   useLogoutUser,
-  useGetUserProfile,
   useCreateUser,
   useLoginUser,
+  useGetUserProfile,
 } from '@/api/Api';
+import useUser from '@/auth/hooks/useUser';
 
 type UserProfileContextType = {
   userProfile?: GetMeResponse;
@@ -29,7 +30,13 @@ type Props = {
 };
 
 export const UserProfileProvider: FC<Props> = ({ children }) => {
-  const { data, isLoading, refetch: refetchUserProfile } = useGetUserProfile();
+  const user = useUser();
+  const { userId } = useParams({ from: '/draw/profile/$userId' });
+  const {
+    data,
+    isLoading,
+    refetch: refetchUserProfile,
+  } = useGetUserProfile(userId);
   const loginMutation = useLoginUser();
   const logoutMutation = useLogoutUser();
   const createUserMutation = useCreateUser();
@@ -56,9 +63,13 @@ export const UserProfileProvider: FC<Props> = ({ children }) => {
   const logout = async () => {
     await logoutMutation.mutateAsync().then(() => {
       reloadUser();
-      navigate({ to: '/app/login' });
+      navigate({ to: '/auth/login' });
     });
   };
+
+  if (userId === user.id) {
+    navigate({ to: '/draw/profile/me' });
+  }
 
   const contextData: UserProfileContextType = {
     userProfile: data,

@@ -14,84 +14,120 @@ import reportWebVitals from './reportWebVitals.ts';
 
 import App from './pages/feed/Feed.tsx';
 import CreateProfilePage from './pages/auth/CreateProfilePage.tsx';
-import { UserProfileProvider } from './pages/profile/UserProfileContext.tsx';
+import { UserProfileProvider } from './pages/profile/context/UserProfileContext.tsx';
 import { DailyPromptProvider } from './daily/DailyPromptContext.tsx';
 import { DrawingProvider } from './drawing/DrawingContext.tsx';
 import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
-import UserProfilePage from './pages/profile/components/UserProfilePage.tsx';
+import UserProfilePage from './pages/profile/UserProfilePage.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import AuthProvider from './auth/AuthProvider.tsx';
 import PromptSubmissionPage from './pages/feed/PromptSubmissionPage';
 import ActivityPage from './pages/activity/ActivityPage.tsx';
+import { AuthProvider } from './auth/AuthContext.tsx';
+import MyProfilePage from './pages/profile/MyProfilePage.tsx';
+import { MyProfilePageProvider } from './pages/profile/context/MyProfileContext.tsx';
+import AuthRoute from './auth/AuthRoute.tsx';
 
 const queryClient = new QueryClient();
 
 const rootRoute = createRootRoute({
   component: () => (
     <QueryClientProvider client={queryClient}>
-      <UserProfileProvider>
+      <AuthProvider>
         <DailyPromptProvider>
-          <AuthProvider>
-            <Outlet />
-          </AuthProvider>
+          <Outlet />
         </DailyPromptProvider>
-      </UserProfileProvider>
+      </AuthProvider>
     </QueryClientProvider>
   ),
 });
 
-// Root route that redirects to /app
+// Root route that redirects to /draw
 const rootRedirectRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: () => <Navigate to="/app" replace />,
+  component: () => (
+    <AuthRoute>
+      <Navigate to="/draw" replace />
+    </AuthRoute>
+  ),
 });
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/app',
+  path: '/draw',
   component: () => (
-    <DrawingProvider>
-      <App />
-    </DrawingProvider>
+    <AuthRoute>
+      <MyProfilePageProvider>
+        <DrawingProvider>
+          <App />
+        </DrawingProvider>
+      </MyProfilePageProvider>
+    </AuthRoute>
   ),
 });
 
 const userProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/app/user-profile',
-  component: () => <UserProfilePage />,
+  path: '/draw/profile/me',
+  component: () => (
+    <AuthRoute>
+      <MyProfilePageProvider>
+        <MyProfilePage />
+      </MyProfilePageProvider>
+    </AuthRoute>
+  ),
+});
+
+const friendProfileRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/profile/$userId',
+  component: () => (
+    <AuthRoute>
+      <UserProfileProvider>
+        <UserProfilePage />
+      </UserProfileProvider>
+    </AuthRoute>
+  ),
 });
 
 const calendarRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/app/activity',
-  component: () => <ActivityPage />,
+  path: '/draw/activity',
+  component: () => (
+    <AuthRoute>
+      <ActivityPage />
+    </AuthRoute>
+  ),
+});
+
+const promptSubmissionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/submission/$submissionId',
+  component: () => (
+    <AuthRoute>
+      <PromptSubmissionPage />
+    </AuthRoute>
+  ),
 });
 
 const createProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/app/create-profile',
+  path: '/auth/sign-up',
   component: () => <CreateProfilePage />,
 });
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/app/login',
+  path: '/auth/login',
   component: () => <LoginPage />,
-});
-
-const promptSubmissionRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/app/submission/$submissionId',
-  component: () => <PromptSubmissionPage />,
 });
 
 const routeTree = rootRoute.addChildren([
   rootRedirectRoute,
   indexRoute,
   userProfileRoute,
+  friendProfileRoute,
   calendarRoute,
   createProfileRoute,
   loginRoute,

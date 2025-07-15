@@ -1,12 +1,12 @@
-import { useProfile } from '../UserProfileContext'; // Adjust the path as needed
+import { useMyProfilePage } from '../context/MyProfileContext';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 
 const SubmissionList = () => {
-  const { userProfile } = useProfile();
+  const { profile } = useMyProfilePage();
 
   return (
     <div className="flex flex-col w-full max-w-md gap-4">
-      {userProfile?.prompts.length === 0 ? (
+      {profile?.prompts.length === 0 ? (
         <div className="flex flex-col h-64 justify-center text-center border-border bg-border rounded-2xl p-4">
           <h2 className="text-primary-foreground font-bold text-xl">
             No Submissions Yet
@@ -17,7 +17,7 @@ const SubmissionList = () => {
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
-          {userProfile?.prompts.map((submission) => {
+          {profile?.prompts.map((submission) => {
             const formattedDate = new Date(submission.day).toLocaleDateString(
               'en-US',
               {

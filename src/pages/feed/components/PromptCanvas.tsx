@@ -5,17 +5,17 @@ import { useDailyPrompt } from '@/daily/DailyPromptContext';
 import Canvas from '@/drawing/Canvas';
 import { useDrawing } from '@/drawing/DrawingContext';
 import { Toolbar } from '@/drawing/Toolbar';
-import { useProfile } from '@/pages/profile/UserProfileContext';
 import { cn } from '@/utils';
+import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
 
 const PromptCanvas = () => {
-  const { userProfile } = useProfile();
+  const { profile } = useMyProfilePage();
   const { dailyPrompt, submitPrompt } = useDailyPrompt();
   const { canvasRef, canUndo, clearCanvas, getCanvasData } = useDrawing();
   const [error, setError] = useState('');
   const downloadEnabled = false;
 
-  const isLoading = !userProfile || !dailyPrompt;
+  const isLoading = !profile || !dailyPrompt;
 
   function handleSubmitCanvas() {
     const canvasData = getCanvasData();

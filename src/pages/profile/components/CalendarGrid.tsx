@@ -1,12 +1,13 @@
 import { cn } from '@/utils';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import type { UserPromptSubmission } from '@/api/Api';
-import { useProfile } from '@/pages/profile/UserProfileContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faStar, faX } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
 type Props = {
+  prompts?: Array<UserPromptSubmission>;
+  userCreatedAt?: Date;
   onCellClick: (
     drawing: UserPromptSubmission | undefined,
     event: React.MouseEvent<HTMLDivElement>,
@@ -14,15 +15,15 @@ type Props = {
   currentDate: Date;
 };
 
-const CalendarGrid = ({ onCellClick, currentDate }: Props) => {
+const CalendarGrid = ({
+  prompts,
+  userCreatedAt,
+  onCellClick,
+  currentDate,
+}: Props) => {
   const today = new Date();
-  const { userProfile } = useProfile();
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-
-  if (!userProfile) {
-    return <></>;
-  }
 
   const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -55,16 +56,17 @@ const CalendarGrid = ({ onCellClick, currentDate }: Props) => {
             ).getDay() +
             i,
         );
-        const drawing = userProfile.prompts.find(
+        const drawing = prompts?.find(
           (prompt) =>
             new Date(prompt.day).toDateString() === date.toDateString(),
         );
+        const createdAtDate = userCreatedAt
+          ? new Date(userCreatedAt)
+          : new Date();
         const isToday = date.toDateString() === today.toDateString();
-        const isBeforeUserCreation =
-          date < new Date(userProfile.user.createdAt);
+        const isBeforeUserCreation = date < createdAtDate;
         const isUserCreationDay =
-          date.toDateString() ===
-          new Date(userProfile.user.createdAt).toDateString();
+          date.toDateString() === createdAtDate.toDateString();
         const isMissedDay =
           !isBeforeUserCreation && !drawing && date < today && !isToday;
 

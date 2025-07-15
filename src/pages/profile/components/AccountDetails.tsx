@@ -1,14 +1,16 @@
 import { faCircleCheck, faDoorOpen } from '@fortawesome/free-solid-svg-icons';
-import { useProfile } from '../UserProfileContext';
 import Button from '@/components/Button';
 import { Card, CardContent, CardHeader } from '@/components/Card';
 import { useState, type FormEvent } from 'react';
 import { queryKeys, useUpdateUsername } from '@/api/Api';
 import { useQueryClient } from '@tanstack/react-query';
+import useAuth from '@/auth/hooks/useAuth';
+import useUser from '@/auth/hooks/useUser';
 
 const AccountDetails = () => {
-  const { userProfile, logout, reloadUser } = useProfile();
-  const [username, setUsername] = useState(userProfile?.user.username || '');
+  const user = useUser();
+  const { logout, reloadUser } = useAuth();
+  const [username, setUsername] = useState(user.username || '');
   const [error, setError] = useState('');
   const updateUsernameMutation = useUpdateUsername();
   const queryClient = useQueryClient();
@@ -21,7 +23,7 @@ const AccountDetails = () => {
       .mutateAsync(username, {
         onSuccess: () => {
           queryClient.invalidateQueries({
-            queryKey: queryKeys.userProfile,
+            queryKey: queryKeys.myProfile,
           });
         },
       })
@@ -55,8 +57,7 @@ const AccountDetails = () => {
             <Button
               type="submit"
               disabled={
-                username === userProfile?.user.username ||
-                updateUsernameMutation.isPending
+                username === user.username || updateUsernameMutation.isPending
               }
               icon={faCircleCheck}
               className="disabled:bg-base"

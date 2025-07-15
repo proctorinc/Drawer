@@ -1,11 +1,11 @@
 import { Card } from '@/components/Card';
-import { useProfile } from '../../profile/UserProfileContext';
 import SubmissionComments from './SubmissionComments';
 import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
+import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
 
 export const SubmissionFeedList = () => {
-  const { userProfile } = useProfile();
-  const feed = userProfile?.feed;
+  const { profile } = useMyProfilePage();
+  const feed = profile?.feed;
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-md pb-40">

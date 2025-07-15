@@ -1,19 +1,23 @@
-import { useState } from 'react';
-import { useProfile } from '@/pages/profile/UserProfileContext';
+import { useState, type FC } from 'react';
 import DrawingModal from '@/components/DrawingModal';
-import type { UserPromptSubmission } from '@/api/Api';
+import type { GetMeResponse, UserPromptSubmission } from '@/api/Api';
 import {
   faChevronLeft,
   faChevronRight,
-  faFire,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Card, CardContent } from '@/components/Card';
-import Banner from '@/components/Banner';
+import { Card, CardContent, CardHeader } from '@/components/Card';
 import CalendarGrid from '@/pages/profile/components/CalendarGrid';
+import { useNavigate } from '@tanstack/react-router';
+import useUser from '@/auth/hooks/useUser';
 
-const SubmissionCalendar = () => {
-  const { userProfile } = useProfile();
+type Props = {
+  profile?: GetMeResponse;
+};
+
+const SubmissionCalendar: FC<Props> = ({ profile }) => {
+  const navigate = useNavigate();
+  const currentUser = useUser();
   const [selectedDrawing, setSelectedDrawing] =
     useState<UserPromptSubmission | null>(null);
   const [clickPosition, setClickPosition] = useState<{
@@ -31,16 +35,10 @@ const SubmissionCalendar = () => {
     drawing: UserPromptSubmission | undefined,
     event: React.MouseEvent<HTMLDivElement>,
   ) => {
-    if (!drawing) return;
-
-    const rect = event.currentTarget.getBoundingClientRect();
-    setClickPosition({
-      x: rect.left,
-      y: rect.top,
-      width: rect.width,
-      height: rect.height,
-    });
-    setSelectedDrawing(drawing);
+    event.preventDefault();
+    if (drawing?.id) {
+      navigate({ to: `/draw/submission/${drawing.id}` });
+    }
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -55,15 +53,8 @@ const SubmissionCalendar = () => {
     return date.toLocaleString('default', { month: 'long', year: 'numeric' });
   };
 
-  if (!userProfile) {
-    return <></>;
-  }
-
   return (
     <>
-      <Banner icon={faFire}>
-        You're on a {userProfile.stats.currentStreak} day streak!
-      </Banner>
       {/* <div className="flex gap-2 w-full">
         <Button
           className="w-full bg-secondary/50 border-base disabled:bg-card disabled:ring-3 disabled:ring-border/50"
@@ -87,7 +78,10 @@ const SubmissionCalendar = () => {
       {/* {displayMode === 'calendar' && ( */}
       <Card>
         <CardContent>
+          <CardHeader title="All Drawings" />
           <CalendarGrid
+            userCreatedAt={profile?.user.createdAt}
+            prompts={profile?.prompts}
             onCellClick={handleCellClick}
             currentDate={currentDate}
           />

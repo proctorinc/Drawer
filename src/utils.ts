@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { ClassValue } from 'clsx';
-import type { ReactionId } from './api/Api';
+import type { ReactionId, User } from './api/Api';
 import {
   faFaceGrinSquintTears,
   faFaceMeh,
@@ -16,13 +16,13 @@ export function cn(...inputs: Array<ClassValue>) {
 }
 
 export function nameToColor(name: string) {
-  const letters = getTwoCapitalLetters(name);
+  // const letters = getTwoCapitalLetters(name);
   let hash = 0;
-  for (let i = 0; i < letters.length; i++) {
-    hash = letters.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
 
-  const hue = ((hash % 360) + 360) % 360;
+  const hue = ((hash % 360) + 240) % 360;
   const saturation = 50;
   const lightness = 70;
 
@@ -31,6 +31,10 @@ export function nameToColor(name: string) {
     secondary: `hsl(${hue}, ${saturation}%, 90%)`,
     text: `hsl(${hue}, ${saturation}%, 30%)`,
   };
+}
+
+export function isFriend(userId: string, friends: Array<User>) {
+  return friends?.some((friend) => friend.id === userId);
 }
 
 export function getTwoCapitalLetters(input: string): string {

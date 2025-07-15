@@ -42,7 +42,7 @@ func HandleVerifyEmail(c *gin.Context) {
 	setAuthCookie(c, user.ID)
 
 	// Redirect to the app
-	c.Redirect(http.StatusSeeOther, "/app/")
+	c.Redirect(http.StatusSeeOther, "/draw/")
 }
 
 func HandleLogin(c *gin.Context) {
@@ -78,7 +78,7 @@ func HandleLogin(c *gin.Context) {
 	// Skip email verification for development environment
 	if cfg.Env != "production" {
 		setAuthCookie(c, user.ID)
-		c.Redirect(http.StatusSeeOther, "/app/")
+		c.Redirect(http.StatusSeeOther, "/draw/")
 		return
 	}
 
@@ -164,7 +164,7 @@ func HandleRegister(c *gin.Context) {
 	// Skip email verification for development environment
 	if cfg.Env != "production" {
 		setAuthCookie(c, user.ID)
-		c.Redirect(http.StatusSeeOther, "/app/")
+		c.Redirect(http.StatusSeeOther, "/draw/")
 		return
 	}
 

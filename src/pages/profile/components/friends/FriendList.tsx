@@ -1,36 +1,64 @@
 import { Card, CardContent, CardHeader } from '@/components/Card';
-import { useProfile } from '../../UserProfileContext';
 import { UserProfileIcon } from '../UserProfileIcon';
 import { ShareButton } from './ShareButton';
 import { nameToColor } from '@/utils';
 import Banner from '@/components/Banner';
+import type { User } from '@/api/Api';
+import type { FC } from 'react';
+import useUser from '@/auth/hooks/useUser';
+import Button from '@/components/Button';
+import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
+import { useNavigate } from '@tanstack/react-router';
 
-export const FriendList = () => {
-  const { userProfile } = useProfile();
+type Props = {
+  user?: User;
+  friends?: Array<User>;
+};
+
+export const FriendList: FC<Props> = ({ user, friends }) => {
+  const currentUser = useUser();
+  const navigate = useNavigate();
+
+  const isMe = user?.id === currentUser.id;
 
   return (
     <Card>
       <CardContent>
-        <CardHeader title="Friend list" subtitle="My friends">
-          <ShareButton />
-        </CardHeader>
+        <CardHeader title="Friend list"></CardHeader>
         <div className="flex flex-col gap-2 w-full max-w-md">
-          {userProfile?.friends.length === 0 && (
+          {friends?.length === 0 && (
+            <Banner className="bg-base border-none p-4">No friends</Banner>
+          )}
+          {friends?.length === 0 && isMe && (
             <Banner className="bg-base border-none p-4">
               Share a link to add friends!
             </Banner>
           )}
-          {userProfile &&
-            userProfile.friends.length > 0 &&
-            userProfile.friends.map((friend) => {
-              const { secondary } = nameToColor(friend.username);
+          {friends &&
+            friends.length > 0 &&
+            friends.map((friend) => {
+              const { primary, secondary, text } = nameToColor(friend.username);
               return (
                 <div
                   className="flex items-center gap-2 rounded-2xl w-full px-4 py-2"
                   style={{ backgroundColor: secondary }}
                 >
-                  <UserProfileIcon user={friend} size="sm" />
-                  <h3 className="text-primary font-bold">{friend.username}</h3>
+                  <UserProfileIcon user={friend} />
+                  <div className="flex justify-between items-center w-full">
+                    <h3 className="text-primary font-bold">
+                      {friend.username}
+                    </h3>
+                    <Button
+                      size="sm"
+                      style={{ backgroundColor: primary, color: text }}
+                      icon={faAngleRight}
+                      onClick={() =>
+                        navigate({ to: `/draw/profile/${friend.id}` })
+                      }
+                    >
+                      view
+                    </Button>
+                  </div>
                 </div>
               );
             })}

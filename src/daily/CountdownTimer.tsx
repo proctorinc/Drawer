@@ -1,9 +1,9 @@
-import { useProfile } from '@/pages/profile/UserProfileContext';
+import useAuth from '@/auth/hooks/useAuth';
 import { useEffect, useState } from 'react';
 
 export const CountDownTimer = () => {
   const [time, setTime] = useState(0);
-  const { reloadUser } = useProfile();
+  const { reloadUser } = useAuth();
 
   useEffect(() => {
     const calculateTimeRemaining = () => {

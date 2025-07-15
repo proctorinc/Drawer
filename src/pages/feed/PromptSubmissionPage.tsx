@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, useRouter } from '@tanstack/react-router';
+import { useNavigate, useParams, useRouter } from '@tanstack/react-router';
 import { Card, CardContent } from '@/components/Card';
 import { UserProfileIcon } from '../profile/components/UserProfileIcon';
 import Button from '@/components/Button';
@@ -18,12 +18,13 @@ import LoadingScreen from '@/components/LoadingScreen';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart as EmptyHeart } from '@fortawesome/free-regular-svg-icons';
 import { faHeart as FilledHeart } from '@fortawesome/free-solid-svg-icons';
-import { useProfile } from '../profile/UserProfileContext';
 import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
+import useUser from '@/auth/hooks/useUser';
 
 const PromptSubmissionPage = () => {
   const router = useRouter();
-  const { userProfile } = useProfile();
+  const navigate = useNavigate();
+  const user = useUser();
   const queryClient = useQueryClient();
   const { submissionId } = useParams({ strict: false }) as {
     submissionId: string;
@@ -39,9 +40,7 @@ const PromptSubmissionPage = () => {
   const [comment, setComment] = useState('');
 
   function hasReacted(comment: Comment) {
-    return comment.reactions.some(
-      (reaction) => reaction.user.id === userProfile?.user.id,
-    );
+    return comment.reactions.some((reaction) => reaction.user.id === user.id);
   }
 
   function heartComment(comment: Comment) {
@@ -108,14 +107,22 @@ const PromptSubmissionPage = () => {
                   return (
                     <div className="flex justify-between items-center font-semibold">
                       <div className="flex gap-4 items-center">
-                        <UserProfileIcon size="sm" user={comment.user} />{' '}
+                        <UserProfileIcon
+                          size="sm"
+                          user={comment.user}
+                          onClick={() =>
+                            navigate({
+                              to: `/draw/profile/${comment.user.id}`,
+                            })
+                          }
+                        />{' '}
                         {comment.text}
                       </div>
                       <div className="flex flex-col gap-2 items-end">
                         <span className="text-xs text-secondary ml-2 whitespace-nowrap">
                           {timeAgo(comment.createdAt)}
                         </span>
-                        {comment.user.id !== userProfile?.user.id && (
+                        {comment.user.id !== user.id && (
                           <button onClick={() => heartComment(comment)}>
                             <FontAwesomeIcon
                               className={cn(activeHeart && 'text-red-400')}
@@ -146,7 +153,7 @@ const PromptSubmissionPage = () => {
                 {
                   onSuccess: () => {
                     queryClient.invalidateQueries({
-                      queryKey: queryKeys.userProfile,
+                      queryKey: queryKeys.myProfile,
                     });
                     queryClient.invalidateQueries({
                       queryKey: queryKeys.promptSubmission(submissionId),

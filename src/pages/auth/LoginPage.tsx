@@ -6,29 +6,29 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Link, useNavigate } from '@tanstack/react-router';
 import React, { useEffect, useState } from 'react';
-import { useProfile } from '@/pages/profile/UserProfileContext';
 import Button from '@/components/Button';
 import Layout from '@/components/Layout';
 import { Card, CardContent } from '@/components/Card';
+import useAuth from '@/auth/hooks/useAuth';
 
 const LoginPage: React.FC = () => {
-  const { userProfile, loginUserProfile } = useProfile();
+  const navigate = useNavigate();
+  const { user, login } = useAuth();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    if (userProfile) {
-      navigate({ to: '/app' });
+    if (user) {
+      navigate({ to: '/draw' });
     }
-  }, [userProfile]);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     try {
-      await loginUserProfile(email);
+      await login(email);
       setIsSubmitted(true);
     } catch (err) {
       setError((err as Error).message);
@@ -97,7 +97,7 @@ const LoginPage: React.FC = () => {
           <p className="text-sm">
             Don't have an account?{' '}
             <Link
-              to="/app/create-profile"
+              to="/auth/sign-up"
               search={(currentSearch) => ({
                 ...currentSearch,
               })}
