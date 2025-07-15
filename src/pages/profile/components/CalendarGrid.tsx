@@ -2,7 +2,7 @@ import { cn } from '@/utils';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import type { UserPromptSubmission } from '@/api/Api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStar, faX } from '@fortawesome/free-solid-svg-icons';
+import { faX } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
 
 type Props = {
@@ -96,11 +96,6 @@ const CalendarGrid = ({
                   isMissedDay && 'bg-secondary/50',
                 )}
               />
-            )}
-            {isUserCreationDay && (
-              <div className="absolute -top-[8px] -right-[8px] text-primary">
-                <FontAwesomeIcon icon={faStar} />
-              </div>
             )}
             <div
               className={cn(

@@ -64,7 +64,7 @@ const MyProfilePage = () => {
                 disableLoad
                 variant="base"
                 size="sm"
-                className="font-accent text-blue-600/80 bg-blue-300 shadow-blue-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+                className="font-accent text-primary bg-border shadow-secondary rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
               >
                 {profile?.prompts.length}
                 <FontAwesomeIcon icon={faPalette} />
@@ -75,7 +75,7 @@ const MyProfilePage = () => {
                 disableLoad
                 variant="base"
                 size="sm"
-                className="font-accent text-orange-600/80 bg-orange-300 shadow-orange-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+                className="font-accent text-primary bg-border shadow-secondary rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
               >
                 {profile?.stats.currentStreak}
                 <FontAwesomeIcon icon={faFire} />
@@ -86,7 +86,7 @@ const MyProfilePage = () => {
                 disableLoad
                 variant="base"
                 size="sm"
-                className="font-accent  text-purple-600/80 bg-purple-300 shadow-purple-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+                className="font-accent  text-primary bg-border shadow-secondary rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
               >
                 {profile?.friends.length}
                 <FontAwesomeIcon icon={faUsers} />

@@ -581,39 +581,55 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		return GetMeResponse{}, err
 	}
 
-	// Calculate current streak - consecutive days of submissions
-	currentStreakQuery := `
-		WITH user_submissions_ordered AS (
-			SELECT day FROM user_submissions 
-			WHERE user_id = ? 
-			ORDER BY day DESC
-		),
-		streak_groups AS (
-			SELECT 
-				day,
-				date(day, '+' || ROW_NUMBER() OVER (ORDER BY day DESC) || ' days') as expected_consecutive_date
-			FROM user_submissions_ordered
-		),
-		consecutive_streak AS (
-			SELECT COUNT(*) as streak_count
-			FROM streak_groups sg
-			WHERE sg.day = sg.expected_consecutive_date
-			AND sg.day <= (
-				CASE 
-					WHEN EXISTS (SELECT 1 FROM user_submissions us WHERE us.user_id = ? AND us.day = date('now'))
-					THEN date('now')
-					ELSE date('now', '-1 day')
-				END
-			)
-		)
-		SELECT COALESCE(streak_count, 0) FROM consecutive_streak
-	`
+	// Calculate current streak - consecutive days of submissions (Go implementation)
 	var currentStreak int
-	err = repo.QueryRowContext(ctx, currentStreakQuery, userID, userID).Scan(&currentStreak)
+	rows, err = repo.QueryContext(ctx, `
+		SELECT day FROM user_submissions
+		WHERE user_id = ?
+		ORDER BY day DESC
+	`, userID)
 	if err != nil {
-		log.Printf("Error fetching current streak for user %s: %v", userID, err)
-		// Fallback to simple count if complex query fails
+		log.Printf("Error fetching submission days for streak: %v", err)
 		currentStreak = 0
+	} else {
+		defer rows.Close()
+		var days []string
+		for rows.Next() {
+			var day string
+			if err := rows.Scan(&day); err == nil {
+				days = append(days, day)
+			}
+		}
+		streak := 0
+		if len(days) > 0 {
+			today := time.Now().UTC().Truncate(24 * time.Hour)
+			firstDay, _ := time.Parse("2006-01-02", days[0])
+			var streakStart time.Time
+			if firstDay.Equal(today) {
+				streakStart = today
+			} else {
+				streakStart = today.AddDate(0, 0, -1)
+			}
+			for _, dayStr := range days {
+				d, err := time.Parse("2006-01-02", dayStr)
+				if err != nil {
+					log.Printf("Streak: skipping unparsable day string: %s", dayStr)
+					continue
+				}
+				d = d.Truncate(24 * time.Hour)
+				if d.Equal(streakStart) {
+					log.Printf("Streak: day %s matches streakStart %s, streak continues", d.Format("2006-01-02"), streakStart.Format("2006-01-02"))
+					streak++
+					streakStart = streakStart.AddDate(0, 0, -1)
+				} else if d.Before(streakStart) {
+					log.Printf("Streak: day %s is before streakStart %s, streak breaks here", d.Format("2006-01-02"), streakStart.Format("2006-01-02"))
+					break
+				} else if d.After(streakStart) {
+					log.Printf("Streak: day %s is after streakStart %s (should not happen if days are sorted desc)", d.Format("2006-01-02"), streakStart.Format("2006-01-02"))
+				}
+			}
+		}
+		currentStreak = streak
 	}
 	
 	response.Stats = UserStats{
@@ -1039,39 +1055,51 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 		return GetMeResponse{}, err
 	}
 
-	// Calculate current streak - consecutive days of submissions
-	currentStreakQuery := `
-		WITH user_submissions_ordered AS (
-			SELECT day FROM user_submissions 
-			WHERE user_id = ? 
-			ORDER BY day DESC
-		),
-		streak_groups AS (
-			SELECT 
-				day,
-				date(day, '+' || ROW_NUMBER() OVER (ORDER BY day DESC) || ' days') as expected_consecutive_date
-			FROM user_submissions_ordered
-		),
-		consecutive_streak AS (
-			SELECT COUNT(*) as streak_count
-			FROM streak_groups sg
-			WHERE sg.day = sg.expected_consecutive_date
-			AND sg.day <= (
-				CASE 
-					WHEN EXISTS (SELECT 1 FROM user_submissions us WHERE us.user_id = ? AND us.day = date('now'))
-					THEN date('now')
-					ELSE date('now', '-1 day')
-				END
-			)
-		)
-		SELECT COALESCE(streak_count, 0) FROM consecutive_streak
-	`
+	// Calculate current streak - consecutive days of submissions (Go implementation)
 	var currentStreak int
-	err = repo.QueryRowContext(ctx, currentStreakQuery, userID, userID).Scan(&currentStreak)
+	rows, err = repo.QueryContext(ctx, `
+		SELECT day FROM user_submissions
+		WHERE user_id = ?
+		ORDER BY day DESC
+	`, userID)
 	if err != nil {
-		log.Printf("Error fetching current streak for user %s: %v", userID, err)
-		// Fallback to simple count if complex query fails
+		log.Printf("Error fetching submission days for streak: %v", err)
 		currentStreak = 0
+	} else {
+		defer rows.Close()
+		var days []string
+		for rows.Next() {
+			var day string
+			if err := rows.Scan(&day); err == nil {
+				days = append(days, day)
+			}
+		}
+		streak := 0
+		if len(days) > 0 {
+			today := time.Now().UTC().Truncate(24 * time.Hour)
+			firstDay, _ := time.Parse("2006-01-02", days[0])
+			var streakStart time.Time
+			if firstDay.Equal(today) {
+				streakStart = today
+			} else {
+				streakStart = today.AddDate(0, 0, -1)
+			}
+			for _, dayStr := range days {
+				d, err := time.Parse("2006-01-02", dayStr)
+				if err != nil {
+					log.Printf("Streak: skipping unparsable day string: %s", dayStr)
+					continue
+				}
+				d = d.Truncate(24 * time.Hour)
+				if d.Equal(streakStart) {
+					streak++
+					streakStart = streakStart.AddDate(0, 0, -1)
+				} else if d.Before(streakStart) {
+					break
+				}
+			}
+		}
+		currentStreak = streak
 	}
 	
 	response.Stats = UserStats{
@@ -1361,30 +1389,7 @@ func GetReactionCountsForComment(repo *sql.DB, ctx context.Context, commentID st
 	return counts, nil
 }
 
-// ActivityAction is either 'comment' or 'reaction'
-type ActivityAction string
 
-const (
-	ActivityActionComment  ActivityAction = "comment"
-	ActivityActionReaction ActivityAction = "reaction"
-)
-
-type Activity struct {
-	ID        string         `json:"id"`
-	User      User           `json:"user"`
-	Action    ActivityAction `json:"action"`
-	Date      time.Time      `json:"date"`
-	IsRead    bool           `json:"isRead"`
-	Comment   *Comment       `json:"comment,omitempty"`
-	Reaction  *Reaction      `json:"reaction,omitempty"`
-	Submission *struct {
-		ID       string `json:"id"`
-		Prompt   string `json:"prompt"`
-		ImageUrl string `json:"imageUrl"`
-	} `json:"submission,omitempty"`
-}
-
-// GetActivityFeed returns all activity (comments and reactions) on the user's submissions from the last 7 days
 func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadID string, cfg *config.Config) ([]Activity, error) {
 	// 1. Get all direct friends (either direction)
 	friendQuery := `

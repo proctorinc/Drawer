@@ -165,7 +165,9 @@ func initializeDevData(db *sql.DB) error {
 			('sub5', 'user2', date('now', '-6 days'), ''),
 			('sub6', 'user2', date('now', '-4 days'), ''),
 			('sub7', 'user2', date('now', '-3 days'), ''),
-			('sub8', 'user2', date('now', '-2 days'), '');
+			('sub8', 'user2', date('now', '-2 days'), ''),
+			('sub9', 'user1', date('now', '-1 days'), ''),
+			('sub10', 'user1', date('now'), '');
 
 		-- Add comments on submissions (let id auto-increment)
 		INSERT INTO comments (submission_id, user_id, text, created_at) VALUES

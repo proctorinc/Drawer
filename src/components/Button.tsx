@@ -12,7 +12,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary: 'bg-border text-primary hover:scale-105 disabled:scale-100',
-        base: 'bg-base text-primary',
+        base: 'bg-base text-primary shadow-none',
       },
       size: {
         sm: 'text-sm px-4 py-2',

@@ -91,3 +91,25 @@ type FavoriteSubmission struct {
 	CreatedAt    time.Time `json:"createdAt"`
 	OrderNum     int       `json:"orderNum"`
 }
+
+type ActivityAction string
+
+const (
+	ActivityActionComment  ActivityAction = "comment"
+	ActivityActionReaction ActivityAction = "reaction"
+)
+
+type Activity struct {
+	ID        string         `json:"id"`
+	User      User           `json:"user"`
+	Action    ActivityAction `json:"action"`
+	Date      time.Time      `json:"date"`
+	IsRead    bool           `json:"isRead"`
+	Comment   *Comment       `json:"comment,omitempty"`
+	Reaction  *Reaction      `json:"reaction,omitempty"`
+	Submission *struct {
+		ID       string `json:"id"`
+		Prompt   string `json:"prompt"`
+		ImageUrl string `json:"imageUrl"`
+	} `json:"submission,omitempty"`
+}
