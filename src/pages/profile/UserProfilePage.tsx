@@ -69,7 +69,7 @@ const UserProfilePage = () => {
                 disableLoad
                 variant="base"
                 size="sm"
-                className="font-accent text-blue-600/80 bg-blue-300 shadow-blue-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+                className="font-accent text-emerald-600/80 bg-emerald-300 shadow-emerald-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
               >
                 {userProfile.prompts.length}
                 <FontAwesomeIcon icon={faPalette} />
