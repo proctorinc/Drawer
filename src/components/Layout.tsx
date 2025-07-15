@@ -4,15 +4,19 @@ import Header from './Header';
 import useAuth from '@/auth/hooks/useAuth';
 
 type Props = {
+  header?: ReactNode;
   children: ReactNode;
 };
 
-const Layout: FC<Props> = ({ children }) => {
+const Layout: FC<Props> = ({ header, children }) => {
   const { isAuthenticated } = useAuth();
 
   return (
     <div className="flex flex-col items-center justify-center">
-      <Header />
+      <div className="sticky top-0 flex flex-col max-w-md w-full gap-6 md:p-2">
+        <Header />
+        {header}
+      </div>
       <div className="relative flex flex-col flex-grow w-full items-center p-6 md:p-2 gap-6 bg-base min-h-screen overflow-y-auto overflow-x-hidden pb-30 max-w-md rounded-t-3xl border-2 border-border">
         {children}
         {isAuthenticated && <Navbar />}

@@ -30,7 +30,7 @@ type Props = {
 };
 
 export const UserProfileProvider: FC<Props> = ({ children }) => {
-  const user = useUser();
+  const currentUser = useUser();
   const { userId } = useParams({ from: '/draw/profile/$userId' });
   const {
     data,
@@ -67,7 +67,7 @@ export const UserProfileProvider: FC<Props> = ({ children }) => {
     });
   };
 
-  if (userId === user.id) {
+  if (userId === currentUser.id) {
     navigate({ to: '/draw/profile/me' });
   }
 

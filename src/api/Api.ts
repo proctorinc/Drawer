@@ -68,6 +68,14 @@ export interface UserPromptSubmission extends DailyPrompt {
   comments: Comment[];
   reactions: Reaction[];
   counts: ReactionCount[];
+  isFavorite?: boolean;
+}
+
+export interface FavoriteSubmission {
+  id: string;
+  submission: UserPromptSubmission; // JSON key is 'submission'
+  createdAt: Date;
+  orderNum: number;
 }
 
 export interface UserStats {
@@ -81,6 +89,7 @@ export interface GetMeResponse {
   feed: Array<UserPromptSubmission>;
   friends: Array<User>;
   stats: UserStats;
+  favorites: Array<FavoriteSubmission>;
 }
 
 // Query keys
@@ -211,6 +220,20 @@ export function useToggleCommentReaction() {
       commentId: string;
       reactionId: ReactionId;
     }) => apiClient.toggleCommentReaction(commentId, reactionId),
+  });
+}
+
+export function useToggleSubmissionFavorite() {
+  return useMutation({
+    mutationFn: (submissionId: string) =>
+      apiClient.toggleFavoriteSubmission(submissionId),
+  });
+}
+
+export function useSwapFavoriteOrder() {
+  return useMutation({
+    mutationFn: ({ id1, id2 }: { id1: string; id2: string }) =>
+      apiClient.swapFavoriteOrder(id1, id2),
   });
 }
 

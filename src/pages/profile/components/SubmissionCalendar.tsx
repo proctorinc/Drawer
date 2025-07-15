@@ -6,10 +6,9 @@ import {
   faChevronRight,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { Card, CardContent, CardHeader } from '@/components/Card';
+import { Card, CardContent } from '@/components/Card';
 import CalendarGrid from '@/pages/profile/components/CalendarGrid';
 import { useNavigate } from '@tanstack/react-router';
-import useUser from '@/auth/hooks/useUser';
 
 type Props = {
   profile?: GetMeResponse;
@@ -17,7 +16,6 @@ type Props = {
 
 const SubmissionCalendar: FC<Props> = ({ profile }) => {
   const navigate = useNavigate();
-  const currentUser = useUser();
   const [selectedDrawing, setSelectedDrawing] =
     useState<UserPromptSubmission | null>(null);
   const [clickPosition, setClickPosition] = useState<{
@@ -78,7 +76,6 @@ const SubmissionCalendar: FC<Props> = ({ profile }) => {
       {/* {displayMode === 'calendar' && ( */}
       <Card>
         <CardContent>
-          <CardHeader title="All Drawings" />
           <CalendarGrid
             userCreatedAt={profile?.user.createdAt}
             prompts={profile?.prompts}

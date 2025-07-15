@@ -1,6 +1,5 @@
 import { Card, CardContent, CardHeader } from '@/components/Card';
 import { UserProfileIcon } from '../UserProfileIcon';
-import { ShareButton } from './ShareButton';
 import { nameToColor } from '@/utils';
 import Banner from '@/components/Banner';
 import type { User } from '@/api/Api';
@@ -40,6 +39,7 @@ export const FriendList: FC<Props> = ({ user, friends }) => {
               const { primary, secondary, text } = nameToColor(friend.username);
               return (
                 <div
+                  key={friend.id}
                   className="flex items-center gap-2 rounded-2xl w-full px-4 py-2"
                   style={{ backgroundColor: secondary }}
                 >
@@ -55,9 +55,7 @@ export const FriendList: FC<Props> = ({ user, friends }) => {
                       onClick={() =>
                         navigate({ to: `/draw/profile/${friend.id}` })
                       }
-                    >
-                      view
-                    </Button>
+                    ></Button>
                   </div>
                 </div>
               );

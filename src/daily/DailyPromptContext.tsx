@@ -38,7 +38,7 @@ export const DailyPromptProvider: FC<Props> = ({ children }) => {
       onSuccess: (response) => {
         onSuccess(response.imageUrl);
         queryClient.invalidateQueries({ queryKey: queryKeys.daily });
-        queryClient.invalidateQueries({ queryKey: queryKeys.userProfile });
+        queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
       },
     });
   };

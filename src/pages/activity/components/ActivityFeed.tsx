@@ -1,6 +1,5 @@
-import { useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/Card';
-import { useActivityFeed, useMarkActivityRead } from '@/api/Api';
+import { useActivityFeed } from '@/api/Api';
 import {
   cn,
   getReactionIcon,
@@ -16,22 +15,6 @@ import Button from '@/components/Button';
 export const ActivityFeed = () => {
   const navigate = useNavigate();
   const { data: activities, isLoading, isError } = useActivityFeed();
-  const markActivityRead = useMarkActivityRead();
-  const hasMarkedRead = useRef(false);
-
-  // Mark as read after activities are fetched, only once
-  useEffect(() => {
-    if (
-      activities &&
-      activities.length > 0 &&
-      !hasMarkedRead.current &&
-      markActivityRead.status === 'idle'
-    ) {
-      const mostRecentId = activities[0].id;
-      markActivityRead.mutate(mostRecentId);
-      hasMarkedRead.current = true;
-    }
-  }, [activities, markActivityRead]);
 
   if (isLoading) {
     return <></>;
@@ -65,12 +48,7 @@ export const ActivityFeed = () => {
           : null;
 
         return (
-          <Card
-            key={activity.id}
-            onClick={() =>
-              navigate({ to: `/draw/submission/${activity.submission?.id}` })
-            }
-          >
+          <Card key={activity.id}>
             <CardContent>
               <div className="flex items-center gap-2 justify-between text-sm">
                 <div className="flex flex-grow gap-3 items-center">
@@ -109,6 +87,11 @@ export const ActivityFeed = () => {
                 <DrawingImage
                   imageUrl={activity.submission?.imageUrl ?? ''}
                   className="h-14 w-14 border-2 border-border"
+                  onClick={() =>
+                    navigate({
+                      to: `/draw/submission/${activity.submission?.id}`,
+                    })
+                  }
                 />
               </div>
             </CardContent>

@@ -1,5 +1,5 @@
-import { createContext, useEffect, type FC, type ReactNode } from 'react';
-import { useLocation, useNavigate } from '@tanstack/react-router';
+import { createContext, type FC, type ReactNode } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import {
   useLogoutUser,
   useCreateUser,
@@ -16,6 +16,7 @@ type AuthContextType = {
   logout: () => Promise<void>;
   reloadUser: () => Promise<void>;
   isLoading: boolean;
+  isFetching: boolean;
 };
 
 export const AuthProviderContext = createContext<AuthContextType | undefined>(
@@ -28,15 +29,12 @@ type Props = {
 
 export const AuthProvider: FC<Props> = ({ children }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { data: user, isLoading, refetch: refetchMe } = useGetMe();
+  const { data: user, isLoading, isFetching, refetch: refetchMe } = useGetMe();
   const loginMutation = useLoginUser();
   const logoutMutation = useLogoutUser();
   const createUserMutation = useCreateUser();
 
   const isAuthenticated = !!user;
-
-  const isPrivateRoute = !location.pathname.startsWith('/auth');
 
   async function reloadUser() {
     await refetchMe();
@@ -63,11 +61,11 @@ export const AuthProvider: FC<Props> = ({ children }) => {
     });
   };
 
-  useEffect(() => {
-    if (!isAuthenticated && isPrivateRoute) {
-      navigate({ to: '/auth/login' });
-    }
-  }, [isAuthenticated]);
+  // useEffect(() => {
+  //   if (!isAuthenticated && isPrivateRoute) {
+  //     navigate({ to: '/auth/login' });
+  //   }
+  // }, [isAuthenticated]);
 
   const contextData: AuthContextType = {
     user,
@@ -77,6 +75,7 @@ export const AuthProvider: FC<Props> = ({ children }) => {
     logout,
     reloadUser,
     isLoading,
+    isFetching,
   };
 
   return (

@@ -1,26 +1,33 @@
 import { faShareAlt } from '@fortawesome/free-solid-svg-icons';
 import Button from '@/components/Button';
 import { useLocation } from '@tanstack/react-router';
+import type { FC, ReactNode } from 'react';
 
-export const ShareButton = () => {
+type Props = {
+  text: string;
+  urlPath?: string;
+  children?: ReactNode;
+};
+
+export const ShareButton: FC<Props> = ({ text, urlPath, children }) => {
   const location = useLocation();
 
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        text: 'Come doodle with me!',
-        url: `${window.location.origin}${location.pathname}`,
+        text,
+        url: `${window.location.origin}${urlPath ?? location.pathname}`,
       });
     } else {
       navigator.clipboard.writeText(
-        `Come doodle with me! ${window.location.origin}/draw`,
+        `${text} ${window.location.origin}${urlPath ?? location.pathname}`,
       );
     }
   };
 
   return (
     <Button size="sm" icon={faShareAlt} onClick={handleShare}>
-      Share Profile
+      {children}
     </Button>
   );
 };

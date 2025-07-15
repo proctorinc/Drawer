@@ -1,5 +1,5 @@
 import { cn } from '@/utils';
-import { useState, type FC, type ReactNode } from 'react';
+import { useState, type FC, type ReactNode, useEffect } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const tooltipVariants = cva(
@@ -36,6 +36,18 @@ const Tooltip: FC<Props> = ({
   className,
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (isTooltipVisible) {
+      timer = setTimeout(() => {
+        setIsTooltipVisible(false);
+      }, 3000);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isTooltipVisible]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();

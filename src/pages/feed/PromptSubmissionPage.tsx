@@ -20,11 +20,12 @@ import { faHeart as EmptyHeart } from '@fortawesome/free-regular-svg-icons';
 import { faHeart as FilledHeart } from '@fortawesome/free-solid-svg-icons';
 import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
 import useUser from '@/auth/hooks/useUser';
+import { ShareButton } from '../profile/components/friends/ShareButton';
 
 const PromptSubmissionPage = () => {
   const router = useRouter();
   const navigate = useNavigate();
-  const user = useUser();
+  const currentUser = useUser();
   const queryClient = useQueryClient();
   const { submissionId } = useParams({ strict: false }) as {
     submissionId: string;
@@ -40,7 +41,9 @@ const PromptSubmissionPage = () => {
   const [comment, setComment] = useState('');
 
   function hasReacted(comment: Comment) {
-    return comment.reactions.some((reaction) => reaction.user.id === user.id);
+    return comment.reactions.some(
+      (reaction) => reaction.user.id === currentUser.id,
+    );
   }
 
   function heartComment(comment: Comment) {
@@ -92,6 +95,13 @@ const PromptSubmissionPage = () => {
           </div>
         </div>
         <DrawingFeedImage submission={submission} />
+        <div className="flex justify-end w-full">
+          <ShareButton
+            text={`Checkout ${submission.user.id === currentUser.id ? 'my' : `${submission.user.username}'s`} doodle of ${submission.prompt.toLowerCase()}!`}
+          >
+            Share
+          </ShareButton>
+        </div>
         <div className="flex flex-col w-full gap-4 pb-20">
           <Card>
             <CardContent>
@@ -105,7 +115,10 @@ const PromptSubmissionPage = () => {
                   const activeHeart = hasReacted(comment);
 
                   return (
-                    <div className="flex justify-between items-center font-semibold">
+                    <div
+                      key={comment.id}
+                      className="flex justify-between items-center font-semibold"
+                    >
                       <div className="flex gap-4 items-center">
                         <UserProfileIcon
                           size="sm"
@@ -122,7 +135,7 @@ const PromptSubmissionPage = () => {
                         <span className="text-xs text-secondary ml-2 whitespace-nowrap">
                           {timeAgo(comment.createdAt)}
                         </span>
-                        {comment.user.id !== user.id && (
+                        {comment.user.id !== currentUser.id && (
                           <button onClick={() => heartComment(comment)}>
                             <FontAwesomeIcon
                               className={cn(activeHeart && 'text-red-400')}

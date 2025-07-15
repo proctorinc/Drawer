@@ -2,8 +2,8 @@ import { cva } from 'class-variance-authority';
 import type { VariantProps } from 'class-variance-authority';
 import type { User } from '@/api/Api';
 import type { FC } from 'react';
+import { useEffect, useState } from 'react';
 import { cn, getTwoCapitalLetters, nameToColor } from '@/utils';
-import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import useUser from '@/auth/hooks/useUser';
 
@@ -27,7 +27,6 @@ const userProfileIconVariants = cva(
 type Props = {
   user?: User;
   className?: string;
-  showTooltip?: boolean;
   onClick?: () => void;
 } & VariantProps<typeof userProfileIconVariants>;
 
@@ -35,12 +34,16 @@ export const UserProfileIcon: FC<Props> = ({
   user,
   className,
   size,
-  showTooltip = false,
   onClick,
 }) => {
   const navigate = useNavigate();
   const currentUser = useUser();
-  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    // Trigger the scale-down animation after mount
+    setIsLoaded(true);
+  }, []);
 
   if (!user) {
     return (
@@ -58,9 +61,6 @@ export const UserProfileIcon: FC<Props> = ({
   const { primary, text: textColor } = nameToColor(user.username);
 
   const handleClick = () => {
-    if (showTooltip) {
-      setIsTooltipVisible(!isTooltipVisible);
-    }
     if (onClick) {
       onClick();
     } else if (user.id === currentUser.id) {
@@ -71,11 +71,7 @@ export const UserProfileIcon: FC<Props> = ({
   };
 
   return (
-    <div
-      className={cn('relative group', className)}
-      onMouseEnter={() => showTooltip && setIsTooltipVisible(true)}
-      onMouseLeave={() => showTooltip && setIsTooltipVisible(false)}
-    >
+    <div className={cn('relative group', className)}>
       <div
         className={cn(
           'font-bold shadow-border/80 font-accent tracking-widest',
@@ -84,25 +80,13 @@ export const UserProfileIcon: FC<Props> = ({
         style={{
           backgroundColor: primary,
           color: textColor,
+          transform: isLoaded ? 'scale(1)' : 'scale(1.25)',
+          transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
         }}
         onClick={handleClick}
       >
         {name}
       </div>
-      {showTooltip && (
-        <div
-          className={cn(
-            'absolute font-accent right-full top-1/2 -translate-y-1/2 mr-2 bg-card text-card-foreground rounded-full text-lg whitespace-nowrap transition-opacity duration-200 pointer-events-none px-4 py-2 font-bold',
-            isTooltipVisible ? 'opacity-100' : 'opacity-0',
-          )}
-          style={{
-            backgroundColor: primary,
-            color: textColor,
-          }}
-        >
-          {user.username}
-        </div>
-      )}
     </div>
   );
 };

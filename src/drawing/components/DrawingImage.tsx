@@ -1,17 +1,18 @@
 import { useState, useRef, useEffect, type FC } from 'react';
 import { cn } from '@/utils';
-import { Config } from '@/config/Config';
 
 type Props = {
   imageUrl: string;
   className?: string;
   onClick?: () => void;
+  style?: React.CSSProperties;
 };
 
 export const DrawingImage: FC<Props> = ({
   imageUrl,
   className = '',
   onClick,
+  style,
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const hasLoadedBefore = useRef(false);
@@ -38,19 +39,10 @@ export const DrawingImage: FC<Props> = ({
     return () => observer.disconnect();
   }, []);
 
-  function getSrc() {
-    if (isInView) {
-      return imageUrl;
-    } else if (Config.ENV === 'development') {
-      return 'https://proctorinc-drawer-s3.s3.us-east-2.amazonaws.com/ea0de815bd830a2159827840cdb53919/8ca84223c7494d6b5a853cfb0a373019.png';
-    }
-    return '';
-  }
-
   return (
     <img
       ref={imgRef}
-      src={getSrc()}
+      src={isInView ? imageUrl : ''}
       loading="lazy"
       crossOrigin="anonymous"
       onClick={onClick}
@@ -69,6 +61,7 @@ export const DrawingImage: FC<Props> = ({
           : 'opacity-100 blur-0',
         className,
       )}
+      style={style}
     />
   );
 };

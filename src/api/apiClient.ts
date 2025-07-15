@@ -147,7 +147,7 @@ export const apiClient = {
 
   // User management
   addFriend: async (username: string): Promise<{ message: string }> => {
-    const response = await fetchAPI('POST', '/add-friend', {
+    const response = await fetchAPI('POST', '/user/add-friend', {
       body: JSON.stringify({ username }),
     });
     if (!response.ok) {
@@ -289,6 +289,36 @@ export const apiClient = {
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       throw new Error(data.error || 'Failed to mark activity as read');
+    }
+    return response.json();
+  },
+
+  // Favorite Submission
+  toggleFavoriteSubmission: async (
+    submissionId: string,
+  ): Promise<{ favorited: boolean }> => {
+    const response = await fetchAPI(
+      'POST',
+      `/submission/${submissionId}/favorite`,
+    );
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to toggle favorite');
+    }
+    return response.json();
+  },
+
+  swapFavoriteOrder: async (
+    id1: string,
+    id2: string,
+  ): Promise<{ success: boolean }> => {
+    const response = await fetchAPI('POST', '/favorite/swap', {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id1, id2 }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to swap favorites');
     }
     return response.json();
   },

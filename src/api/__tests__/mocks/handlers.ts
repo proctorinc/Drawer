@@ -161,7 +161,7 @@ export const handlers = [
   // Comments
   http.post(
     `${baseUrl}/submission/:submissionId/comment`,
-    async ({ request, params }) => {
+    async ({ request }) => {
       const body = (await request.json()) as { text?: string };
       if (!body?.text) {
         return HttpResponse.json(
@@ -184,7 +184,7 @@ export const handlers = [
   // Reactions
   http.post(
     `${baseUrl}/submission/:submissionId/reaction`,
-    async ({ request, params }) => {
+    async ({ request }) => {
       const body = (await request.json()) as { reactionId?: string };
       if (!body?.reactionId) {
         return HttpResponse.json(
@@ -212,35 +212,32 @@ export const handlers = [
     },
   ),
 
-  http.post(
-    `${baseUrl}/comment/:commentId/reaction`,
-    async ({ request, params }) => {
-      const body = (await request.json()) as { reactionId?: string };
-      if (!body?.reactionId) {
-        return HttpResponse.json(
-          { error: 'Reaction ID is required' },
-          { status: 400 },
-        );
-      }
+  http.post(`${baseUrl}/comment/:commentId/reaction`, async ({ request }) => {
+    const body = (await request.json()) as { reactionId?: string };
+    if (!body?.reactionId) {
+      return HttpResponse.json(
+        { error: 'Reaction ID is required' },
+        { status: 400 },
+      );
+    }
 
-      return HttpResponse.json({
-        reactions: [
-          {
-            id: 1,
-            reactionId: body.reactionId,
-            user: mockUser,
-            createdAt: new Date().toISOString(),
-          },
-        ],
-        counts: [
-          {
-            reactionId: body.reactionId,
-            count: 1,
-          },
-        ],
-      });
-    },
-  ),
+    return HttpResponse.json({
+      reactions: [
+        {
+          id: 1,
+          reactionId: body.reactionId,
+          user: mockUser,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+      counts: [
+        {
+          reactionId: body.reactionId,
+          count: 1,
+        },
+      ],
+    });
+  }),
 
   // Activity
   http.get(`${baseUrl}/activity`, () => {

@@ -4,6 +4,7 @@ import { DrawingImage } from './DrawingImage';
 import { UserProfileIcon } from '@/pages/profile/components/UserProfileIcon';
 import {
   queryKeys,
+  useToggleSubmissionFavorite,
   useToggleSubmissionReaction,
   type ReactionCount,
   type UserPromptSubmission,
@@ -56,7 +57,7 @@ const DrawingFeedImage: FC<Props> = ({ submission }) => {
         <FavoriteButton submission={submission} />
       )}
       <div className="flex flex-col gap-2 absolute top-2 right-2">
-        <UserProfileIcon showTooltip user={submission.user} />
+        <UserProfileIcon user={submission.user} />
         <FriendReactions submission={submission} />
       </div>
     </Card>
@@ -80,7 +81,7 @@ const ReactionButton: FC<ReactionButtonProps> = ({ submission }) => {
           className={cn(
             'flex justify-center items-center text-xl h-12 w-12 rounded-full bg-base/90 text-primary/80 hover:scale-110 transition-all duration-300',
             hasUserReactedAny(submission, user.id) &&
-              'text-red-400/80 bg-red-200/80',
+              'text-red-400/80 bg-red-200/90',
           )}
         >
           <FontAwesomeIcon icon={faHeart} />
@@ -91,16 +92,32 @@ const ReactionButton: FC<ReactionButtonProps> = ({ submission }) => {
 };
 
 const FavoriteButton: FC<ReactionButtonProps> = ({ submission }) => {
-  const user = useUser();
+  const queryClient = useQueryClient();
+  const favoriteSubmission = useToggleSubmissionFavorite();
 
   return (
     <div className="absolute bottom-2 right-2">
       <div
         className={cn(
           'flex justify-center items-center text-xl h-12 w-12 rounded-full bg-base/90 text-primary/80 hover:scale-110 transition-all duration-300',
-          hasUserReactedAny(submission, user.id) &&
-            'text-yellow-400/80 bg-yellow-200/80',
+          submission.isFavorite && 'text-yellow-600/80 bg-yellow-300/90',
         )}
+        onClick={() =>
+          favoriteSubmission.mutate(submission.id, {
+            onSuccess: () => {
+              queryClient.invalidateQueries({ queryKey: queryKeys.daily });
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.activityFeed,
+              });
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.myProfile,
+              });
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.promptSubmission(submission.id),
+              });
+            },
+          })
+        }
       >
         <FontAwesomeIcon icon={faStar} />
       </div>
@@ -140,7 +157,10 @@ const FriendReactions: FC<FriendReactionsProps> = ({ submission }) => {
   return (
     <div className="flex flex-col gap-1">
       {submission.counts.map((reactionCounts) => (
-        <FriendReactionIndicator data={reactionCounts} />
+        <FriendReactionIndicator
+          key={reactionCounts.reactionId}
+          data={reactionCounts}
+        />
       ))}
     </div>
   );
@@ -161,6 +181,7 @@ const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
         const isActive = hasUserReacted(submission, reaction.id, user.id);
         return (
           <Button
+            key={reaction.id}
             variant="base"
             onClick={() => {
               console.log();
