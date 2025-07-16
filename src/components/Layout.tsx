@@ -1,4 +1,4 @@
-import type { FC, ReactNode } from 'react';
+import type { FC, HTMLAttributes, ReactNode } from 'react';
 import Navbar from './Navbar';
 import useAuth from '@/auth/hooks/useAuth';
 import Button from './Button';
@@ -9,16 +9,30 @@ type Props = {
   header?: ReactNode;
   back?: boolean;
   children: ReactNode;
+  backgroundProps?: HTMLAttributes<HTMLDivElement>;
+  headerProps?: HTMLAttributes<HTMLDivElement>;
 };
 
-const Layout: FC<Props> = ({ header, back, children }) => {
+const Layout: FC<Props> = ({
+  header,
+  back,
+  children,
+  headerProps,
+  backgroundProps,
+}) => {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className=" flex flex-col items-center justify-center">
-      <div className="z-0 sticky top-0 flex flex-col items-center max-w-md w-full gap-6 md:p-2">
-        <div className="sticky top-0 flex justify-center items-center text-center border-2 border-primary-foreground bg-primary-foreground rounded-2xl pb-6 pt-8 w-full">
+    <div
+      className="flex flex-col items-center justify-center"
+      {...backgroundProps}
+    >
+      <div
+        className="z-0 sticky top-0 flex flex-col items-center max-w-md w-full gap-6 md:p-2"
+        {...headerProps}
+      >
+        <div className="sticky top-0 flex justify-center items-center text-center pb-6 pt-8 w-full">
           {back && (
             <Button
               variant="base"

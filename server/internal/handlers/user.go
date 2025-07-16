@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"drawer-service-backend/internal/db"
 	"drawer-service-backend/internal/middleware"
+	"drawer-service-backend/internal/notifications"
 	"drawer-service-backend/internal/utils"
 	"encoding/json"
 	"fmt"
@@ -88,7 +89,7 @@ func HandleAddFriend(c *gin.Context) {
 
 	// Check if friendship already exists
 	var exists bool
-	err = repo.QueryRowContext(c.Request.Context(), 
+	err = repo.QueryRowContext(c.Request.Context(),
 		"SELECT EXISTS(SELECT 1 FROM friendships WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?))",
 		requester.ID, friendID, friendID, requester.ID).Scan(&exists)
 	if err != nil {
@@ -238,7 +239,7 @@ func HandleGetPromptSubmissionByID(c *gin.Context) {
 	`
 	var (
 		subID, day, colorsJSON, prompt, userID, username, email, canvasData string
-		userCreatedAt, submissionCreatedAt sql.NullTime
+		userCreatedAt, submissionCreatedAt                                  sql.NullTime
 	)
 	err := repo.QueryRowContext(c.Request.Context(), query, submissionID).Scan(
 		&subID,
@@ -297,7 +298,7 @@ func HandleGetPromptSubmissionByID(c *gin.Context) {
 				Email:     commentUserEmail,
 				CreatedAt: commentUserCreatedAt.Time,
 			},
-			Text: commentText,
+			Text:      commentText,
 			CreatedAt: commentCreatedAt.Time,
 		})
 	}
@@ -339,10 +340,10 @@ func HandleGetPromptSubmissionByID(c *gin.Context) {
 	}
 
 	resp := db.UserPromptSubmission{
-		ID:       subID,
-		Day:      day,
-		Colors:   colors,
-		Prompt:   prompt,
+		ID:     subID,
+		Day:    day,
+		Colors: colors,
+		Prompt: prompt,
 		User: db.User{
 			ID:        userID,
 			Username:  username,
@@ -387,6 +388,14 @@ func HandleAddCommentToSubmission(c *gin.Context) {
 	repo := middleware.GetDB(c)
 	user := middleware.GetUser(c)
 
+	// Get submission owner for notification
+	var submissionOwnerID string
+	err := repo.QueryRowContext(c.Request.Context(), "SELECT user_id FROM user_submissions WHERE id = ?", submissionID).Scan(&submissionOwnerID)
+	if err != nil {
+		log.Printf("Error getting submission owner for notification: %v", err)
+		// Continue without notification rather than failing the comment
+	}
+
 	insertSQL := `
 		INSERT INTO comments (submission_id, user_id, text)
 		VALUES (?, ?, ?)
@@ -394,7 +403,7 @@ func HandleAddCommentToSubmission(c *gin.Context) {
 	`
 	var commentID int64
 	var createdAt time.Time
-	err := repo.QueryRowContext(c.Request.Context(), insertSQL, submissionID, user.ID, body.Text).Scan(&commentID, &createdAt)
+	err = repo.QueryRowContext(c.Request.Context(), insertSQL, submissionID, user.ID, body.Text).Scan(&commentID, &createdAt)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to add comment"})
 		return
@@ -412,6 +421,16 @@ func HandleAddCommentToSubmission(c *gin.Context) {
 		CreatedAt: createdAt,
 		Reactions: []db.Reaction{},
 		Counts:    []db.ReactionCount{},
+	}
+
+	// Send notification to submission owner (in background)
+	if submissionOwnerID != "" && submissionOwnerID != user.ID {
+		go func() {
+			cfg := middleware.GetConfig(c)
+			if err := notifications.NotifyUserOfComment(repo, user.ID, user.Username, submissionOwnerID, submissionID, cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey); err != nil {
+				log.Printf("Failed to send comment notification: %v", err)
+			}
+		}()
 	}
 
 	c.JSON(http.StatusOK, resp)
@@ -434,10 +453,10 @@ func HandleToggleSubmissionReaction(c *gin.Context) {
 
 	// Validate reaction ID
 	validReactions := map[string]bool{
-		"heart":      true,
-		"cry-laugh":  true,
-		"face-meh":   true,
-		"fire":  true,
+		"heart":     true,
+		"cry-laugh": true,
+		"face-meh":  true,
+		"fire":      true,
 	}
 	if !validReactions[body.ReactionID] {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid reaction ID"})
@@ -447,8 +466,16 @@ func HandleToggleSubmissionReaction(c *gin.Context) {
 	repo := middleware.GetDB(c)
 	user := middleware.GetUser(c)
 
+	// Get submission owner for notification
+	var submissionOwnerID string
+	err := repo.QueryRowContext(c.Request.Context(), "SELECT user_id FROM user_submissions WHERE id = ?", submissionID).Scan(&submissionOwnerID)
+	if err != nil {
+		log.Printf("Error getting submission owner for notification: %v", err)
+		// Continue without notification rather than failing the reaction
+	}
+
 	// Toggle the reaction
-	err := db.ToggleReaction(repo, c.Request.Context(), user.ID, "submission", submissionID, body.ReactionID)
+	err = db.ToggleReaction(repo, c.Request.Context(), user.ID, "submission", submissionID, body.ReactionID)
 	if err != nil {
 		log.Printf("Error toggling reaction for submission %s by user %s: %v", submissionID, user.ID, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to toggle reaction"})
@@ -475,6 +502,16 @@ func HandleToggleSubmissionReaction(c *gin.Context) {
 		Counts:    counts,
 	}
 
+	// Send notification to submission owner (in background)
+	if submissionOwnerID != "" && submissionOwnerID != user.ID {
+		go func() {
+			cfg := middleware.GetConfig(c)
+			if err := notifications.NotifyUserOfReaction(repo, user.ID, user.Username, submissionOwnerID, submissionID, body.ReactionID, "submission", cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey); err != nil {
+				log.Printf("Failed to send reaction notification: %v", err)
+			}
+		}()
+	}
+
 	c.JSON(http.StatusOK, response)
 }
 
@@ -495,10 +532,10 @@ func HandleToggleCommentReaction(c *gin.Context) {
 
 	// Validate reaction ID
 	validReactions := map[string]bool{
-		"heart":      true,
-		"cry-laugh":  true,
-		"face-meh":   true,
-		"thumbs-up":  true,
+		"heart":     true,
+		"cry-laugh": true,
+		"face-meh":  true,
+		"thumbs-up": true,
 	}
 	if !validReactions[body.ReactionID] {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid reaction ID"})

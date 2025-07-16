@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"drawer-service-backend/internal/db"
 	"drawer-service-backend/internal/middleware"
+	"drawer-service-backend/internal/notifications"
 	"drawer-service-backend/internal/utils"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func HandleGetDaily(c *gin.Context) {
@@ -69,6 +71,7 @@ func HandlePostDaily(c *gin.Context) {
 	}
 
 	user := middleware.GetUser(c)
+	cfg := middleware.GetConfig(c)
 
 	now := time.Now()
 	todayStr := utils.GetFormattedDate(now)
@@ -138,11 +141,11 @@ func HandlePostDaily(c *gin.Context) {
 	// Insert into the database
 	insertSQL := `
         INSERT INTO user_submissions (id, user_id, day, canvas_data)
-        VALUES (lower(hex(randomblob(16))), ?, ?, ?)
+        VALUES (?, ?, ?, ?)
         RETURNING id
     `
 	var submissionID string
-	err = repo.QueryRowContext(ctx, insertSQL, userID, todayStr, string(buf)).Scan(&submissionID)
+	err = repo.QueryRowContext(ctx, insertSQL, uuid.New().String(), userID, todayStr, string(buf)).Scan(&submissionID)
 	if err != nil {
 		log.Printf("Failed to insert submission record for user %s (email: %s), day %s: %v",
 			userID, utils.MaskEmail(user.Email), todayStr, err)
@@ -150,17 +153,34 @@ func HandlePostDaily(c *gin.Context) {
 		return
 	}
 
-	// Upload to S3
-	imageURL, err := storageService.UploadImage(userID, submissionID, buf)
-	if err != nil {
-		log.Printf("Error uploading image to S3 for user %s (email: %s): %v",
-			userID, utils.MaskEmail(user.Email), err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error uploading image"})
-		return
+	var imageURL string
+
+	if cfg.Env != "development" {
+		// Upload to S3
+		url, err := storageService.UploadImage(userID, submissionID, buf)
+		if err != nil {
+			log.Printf("Error uploading image to S3 for user %s (email: %s): %v",
+				userID, utils.MaskEmail(user.Email), err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Error uploading image"})
+			return
+		}
+
+		imageURL = url
+	} else {
+		imageURL = "development.url"
 	}
 
 	log.Printf("User %s (email: %s) successfully submitted drawing for %s",
 		userID, utils.MaskEmail(user.Email), todayStr)
+	
+	// Send notifications to friends (in background, don't block response)
+	go func() {
+		cfg := middleware.GetConfig(c)
+		if err := notifications.NotifyFriendsOfSubmission(repo, userID, user.Username, submissionID, cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey); err != nil {
+			log.Printf("Failed to send friend notifications for user %s: %v", userID, err)
+		}
+	}()
+	
 	c.JSON(http.StatusCreated, gin.H{
 		"message":  "Drawing submitted successfully for today.",
 		"day":      todayStr,

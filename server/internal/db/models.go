@@ -20,18 +20,18 @@ type DailyPromptWithCompletion struct {
 
 // User represents basic user profile information.
 type User struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
 // Reaction represents a user's reaction to content
 type Reaction struct {
-	ID        string    `json:"id"`
-	User      User      `json:"user"`
-	ReactionID string   `json:"reactionId"`
-	CreatedAt time.Time `json:"createdAt"`
+	ID         string    `json:"id"`
+	User       User      `json:"user"`
+	ReactionID string    `json:"reactionId"`
+	CreatedAt  time.Time `json:"createdAt"`
 }
 
 // ReactionCount represents the count of a specific reaction type
@@ -42,7 +42,7 @@ type ReactionCount struct {
 
 // ReactionResponse represents the complete reaction data for content
 type ReactionResponse struct {
-	Reactions []Reaction     `json:"reactions"`
+	Reactions []Reaction      `json:"reactions"`
 	Counts    []ReactionCount `json:"counts"`
 }
 
@@ -67,30 +67,30 @@ type UserPromptSubmission struct {
 	Comments   []Comment       `json:"comments"`
 	Reactions  []Reaction      `json:"reactions"`
 	Counts     []ReactionCount `json:"counts"`
-	IsFavorite bool			   `json:"isFavorite"`
+	IsFavorite bool            `json:"isFavorite"`
 	CreatedAt  time.Time       `json:"createdAt"`
 }
 
 type UserStats struct {
-	TotalDrawings int			`json:"totalDrawings"`
-	CurrentStreak int			`json:"currentStreak"`
+	TotalDrawings int `json:"totalDrawings"`
+	CurrentStreak int `json:"currentStreak"`
 }
 
 // GetMeResponse is the structure for the /me endpoint response.
 type GetMeResponse struct {
-	User    User                    `json:"user"`
-	Prompts []*UserPromptSubmission `json:"prompts"`
-	Feed    []*UserPromptSubmission `json:"feed"`
-	Friends []User                  `json:"friends"`
-	Stats   UserStats               `json:"stats"`
-	Favorites []*FavoriteSubmission `json:"favorites"`
+	User      User                    `json:"user"`
+	Prompts   []*UserPromptSubmission `json:"prompts"`
+	Feed      []*UserPromptSubmission `json:"feed"`
+	Friends   []User                  `json:"friends"`
+	Stats     UserStats               `json:"stats"`
+	Favorites []*FavoriteSubmission   `json:"favorites"`
 }
 
 type FavoriteSubmission struct {
-	ID           string    `json:"id"`
-	Submission UserPromptSubmission    `json:"submission"`
-	CreatedAt    time.Time `json:"createdAt"`
-	OrderNum     int       `json:"orderNum"`
+	ID         string               `json:"id"`
+	Submission UserPromptSubmission `json:"submission"`
+	CreatedAt  time.Time            `json:"createdAt"`
+	OrderNum   int                  `json:"orderNum"`
 }
 
 type ActivityAction string
@@ -101,16 +101,41 @@ const (
 )
 
 type Activity struct {
-	ID        string         `json:"id"`
-	User      User           `json:"user"`
-	Action    ActivityAction `json:"action"`
-	Date      time.Time      `json:"date"`
-	IsRead    bool           `json:"isRead"`
-	Comment   *Comment       `json:"comment,omitempty"`
-	Reaction  *Reaction      `json:"reaction,omitempty"`
+	ID         string         `json:"id"`
+	User       User           `json:"user"`
+	Action     ActivityAction `json:"action"`
+	Date       time.Time      `json:"date"`
+	IsRead     bool           `json:"isRead"`
+	Comment    *Comment       `json:"comment,omitempty"`
+	Reaction   *Reaction      `json:"reaction,omitempty"`
 	Submission *struct {
 		ID       string `json:"id"`
 		Prompt   string `json:"prompt"`
 		ImageUrl string `json:"imageUrl"`
 	} `json:"submission,omitempty"`
+}
+
+
+type PushSubscription struct {
+	Endpoint string
+	P256dh   string
+	Auth     string
+}
+
+type NotificationType string
+
+const (
+	NotificationTypeFriendSubmission NotificationType = "friend_submission"
+	NotificationTypeReaction         NotificationType = "reaction"
+	NotificationTypeComment          NotificationType = "comment"
+)
+
+type NotificationData struct {
+	Type      NotificationType `json:"type"`
+	Title     string           `json:"title"`
+	Body      string           `json:"body"`
+	URL       string           `json:"url,omitempty"`
+	UserID    string           `json:"userId,omitempty"`
+	Username  string           `json:"username,omitempty"`
+	Action    string           `json:"action,omitempty"`
 }

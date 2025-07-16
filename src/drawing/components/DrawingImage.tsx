@@ -42,7 +42,7 @@ export const DrawingImage: FC<Props> = ({
   return (
     <img
       ref={imgRef}
-      src={isInView ? imageUrl : ''}
+      src={isInView ? imageUrl : undefined}
       loading="lazy"
       crossOrigin="anonymous"
       onClick={onClick}

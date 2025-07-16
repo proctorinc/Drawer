@@ -56,6 +56,7 @@ CREATE TABLE comments (
     FOREIGN KEY (submission_id) REFERENCES user_submissions(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+CREATE TABLE sqlite_sequence(name,seq);
 CREATE TABLE activity_reads (
     user_id TEXT PRIMARY KEY,
     last_read_activity_id TEXT,
@@ -75,4 +76,13 @@ CREATE TABLE user_favorite_submissions (
     FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (submission_id) REFERENCES user_submissions(id),
     UNIQUE(user_id, submission_id)
+);
+CREATE TABLE push_subscriptions (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );

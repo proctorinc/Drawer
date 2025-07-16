@@ -5,6 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faX } from '@fortawesome/free-solid-svg-icons';
 
 type Props = {
+  today: Date;
   prompts?: Array<UserPromptSubmission>;
   userCreatedAt?: Date;
   onCellClick: (
@@ -15,13 +16,12 @@ type Props = {
 };
 
 const CalendarGrid = ({
+  today,
   prompts,
   userCreatedAt,
   onCellClick,
   currentDate,
 }: Props) => {
-  const today = new Date();
-
   return (
     <div className="grid grid-cols-7 gap-1 relative">
       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (

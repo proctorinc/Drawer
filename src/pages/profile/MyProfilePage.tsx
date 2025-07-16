@@ -18,6 +18,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ShareButton } from './components/friends/ShareButton';
 import FavoriteSubmissions from './components/FavoriteSubmissions';
 import LoadingScreen from '@/components/LoadingScreen';
+import NotificationSettings from './components/NotificationSettings';
 
 const MyProfilePage = () => {
   const { profile } = useMyProfilePage();
@@ -53,7 +54,7 @@ const MyProfilePage = () => {
               <UserProfileIcon user={profile.user} size="2xl" />
               <div className="flex gap-2 justify-center items-center text-center font-bold w-full max-w-md">
                 <div className="pl-1 font-bold">
-                  <h2 className="text-2xl text-secondary font-cursive">
+                  <h2 className="text-3xl text-secondary font-cursive">
                     {profile.user.username}
                   </h2>
                 </div>
@@ -128,6 +129,7 @@ const MyProfilePage = () => {
           </CardContent>
         </form>
       </Card>
+      <NotificationSettings />
       <AccountDetails />
     </Layout>
   );

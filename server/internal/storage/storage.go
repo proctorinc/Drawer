@@ -20,7 +20,7 @@ type StorageService struct {
 
 func NewStorageService(cfg *config.Config) *StorageService {
 	ctx := context.Background()
-	
+
 	// Create custom credentials provider
 	credentials := aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
 		return aws.Credentials{

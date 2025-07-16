@@ -256,3 +256,15 @@ export function useMarkActivityRead() {
     mutationFn: apiClient.markActivityRead,
   });
 }
+
+export function useSubscribePush() {
+  return useMutation({
+    mutationFn: apiClient.subscribePush,
+  });
+}
+
+export function useUnsubscribePush() {
+  return useMutation({
+    mutationFn: apiClient.unsubscribePush,
+  });
+}

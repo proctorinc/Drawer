@@ -91,7 +91,7 @@ const PromptSubmissionPage = () => {
           <div className="flex flex-col gap-4 max-w-3/4 w-full pb-6 -mt-6">
             <DrawingFeedImage
               submission={submission}
-              className="border-secondary shadow-secondary"
+              className="border-primary shadow-primary"
             />
           </div>
         }

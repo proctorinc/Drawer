@@ -9,17 +9,19 @@ import (
 )
 
 type Config struct {
-	Port             string
-	DatabaseURL      string
-	AllowedOrigin    string
-	Env              string
-	FromEmail        string
-	BaseURL          string
-	ResendAPIKey     string
-	S3BucketName     string
-	S3BucketRegion   string
-	AwsAccessKey     string
-	AwsSecretKey     string
+	Port            string
+	DatabaseURL     string
+	AllowedOrigin   string
+	Env             string
+	FromEmail       string
+	BaseURL         string
+	ResendAPIKey    string
+	S3BucketName    string
+	S3BucketRegion  string
+	AwsAccessKey    string
+	AwsSecretKey    string
+	VAPIDPrivateKey string
+	VAPIDPublicKey  string
 }
 
 func LoadConfig() *Config {
@@ -46,17 +48,19 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		Port:             getEnv("PORT", "8080"),
-		DatabaseURL:      dbURL,
-		AllowedOrigin:    getEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
-		Env:              env,
-		FromEmail:        getEnv("FROM_EMAIL", "your.email@gmail.com"),
-		BaseURL:          getEnv("BASE_URL", "http://localhost:3000"),
-		ResendAPIKey:     getEnv("RESEND_API_KEY", ""),
-		S3BucketName:     getEnv("S3_BUCKET_NAME", ""),
-		S3BucketRegion:   getEnv("S3_BUCKET_REGION", ""),
-		AwsAccessKey:     getEnv("AWS_ACCESS_KEY_ID", ""),
-		AwsSecretKey:     getEnv("AWS_SECRET_ACCESS_KEY", ""),
+		Port:            getEnv("PORT", "8080"),
+		DatabaseURL:     dbURL,
+		AllowedOrigin:   getEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
+		Env:             env,
+		FromEmail:       getEnv("FROM_EMAIL", "your.email@gmail.com"),
+		BaseURL:         getEnv("BASE_URL", "http://localhost:3000"),
+		ResendAPIKey:    getEnv("RESEND_API_KEY", ""),
+		S3BucketName:    getEnv("S3_BUCKET_NAME", ""),
+		S3BucketRegion:  getEnv("S3_BUCKET_REGION", ""),
+		AwsAccessKey:    getEnv("AWS_ACCESS_KEY_ID", ""),
+		AwsSecretKey:    getEnv("AWS_SECRET_ACCESS_KEY", ""),
+		VAPIDPrivateKey: getEnv("VAPID_PRIVATE_KEY", ""),
+		VAPIDPublicKey:  getEnv("VAPID_PUBLIC_KEY", ""),
 	}
 }
 

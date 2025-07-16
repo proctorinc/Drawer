@@ -327,4 +327,25 @@ export const apiClient = {
     }
     return response.json();
   },
+
+  // Push notification subscriptions
+  subscribePush: async (subscription: any): Promise<void> => {
+    const response = await fetchAPI('POST', '/notifications/subscribe', {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(subscription),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to subscribe to push notifications');
+    }
+  },
+
+  unsubscribePush: async (endpoint: string): Promise<void> => {
+    const response = await fetchAPI('POST', '/notifications/unsubscribe', {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to unsubscribe from push notifications');
+    }
+  },
 };

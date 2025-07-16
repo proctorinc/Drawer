@@ -15,6 +15,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 func GetUserFromDB(repo *sql.DB, ctx context.Context, userID string) (User, error) {
@@ -120,10 +122,10 @@ func CreateUser(repo *sql.DB, ctx context.Context, username string, email string
 	var user User
 	insertSQL := `
         INSERT INTO users (id, username, email)
-        VALUES (lower(hex(randomblob(16))), ?, ?)
+        VALUES (?, ?, ?)
         RETURNING id, username, email
     `
-	err := repo.QueryRowContext(ctx, insertSQL, username, email).Scan(&user.ID, &user.Username, &user.Email)
+	err := repo.QueryRowContext(ctx, insertSQL, uuid.New().String(), username, email).Scan(&user.ID, &user.Username, &user.Email)
 
 	return &user, err
 }
@@ -304,10 +306,10 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 
 	for rows.Next() {
 		var (
-			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail string
-			subUserCreatedAt, subCreatedAt time.Time
+			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail     string
+			subUserCreatedAt, subCreatedAt                                           time.Time
 			commentID, commentText, commentUserID, commentUsername, commentUserEmail sql.NullString
-			commentUserCreatedAt, commentCreatedAt sql.NullTime
+			commentUserCreatedAt, commentCreatedAt                                   sql.NullTime
 		)
 		err := rows.Scan(
 			&subID,
@@ -337,10 +339,10 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			var colors []string
 			_ = json.Unmarshal([]byte(colorsJSON), &colors)
 			submission := UserPromptSubmission{
-				ID:       subID,
-				Day:      day,
-				Colors:   colors,
-				Prompt:   prompt,
+				ID:     subID,
+				Day:    day,
+				Colors: colors,
+				Prompt: prompt,
 				User: User{
 					ID:        subUserID,
 					Username:  subUsername,
@@ -410,7 +412,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		for i, id := range submissionIDList {
 			reactionArgs[i] = id
 		}
-		
+
 		reactionRows, err := repo.QueryContext(ctx, submissionReactionsQuery, reactionArgs...)
 		if err != nil {
 			log.Printf("Error fetching submission reactions: %v", err)
@@ -626,7 +628,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		}
 		currentStreak = streak
 	}
-	
+
 	response.Stats = UserStats{
 		TotalDrawings: totalDrawings,
 		CurrentStreak: currentStreak,
@@ -657,7 +659,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			}
 			favoriteSet[favSubmissionID] = struct{}{}
 			fav := &FavoriteSubmission{
-				ID:        favID,
+				ID:         favID,
 				Submission: *sub,
 				CreatedAt:  favCreatedAt,
 				OrderNum:   favOrderNum,
@@ -771,10 +773,10 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 
 	for rows.Next() {
 		var (
-			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail string
-			subUserCreatedAt, subCreatedAt time.Time
+			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail     string
+			subUserCreatedAt, subCreatedAt                                           time.Time
 			commentID, commentText, commentUserID, commentUsername, commentUserEmail sql.NullString
-			commentUserCreatedAt, commentCreatedAt sql.NullTime
+			commentUserCreatedAt, commentCreatedAt                                   sql.NullTime
 		)
 		err := rows.Scan(
 			&subID,
@@ -804,10 +806,10 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 			var colors []string
 			_ = json.Unmarshal([]byte(colorsJSON), &colors)
 			submission := UserPromptSubmission{
-				ID:       subID,
-				Day:      day,
-				Colors:   colors,
-				Prompt:   prompt,
+				ID:     subID,
+				Day:    day,
+				Colors: colors,
+				Prompt: prompt,
 				User: User{
 					ID:        subUserID,
 					Username:  subUsername,
@@ -878,7 +880,7 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 		for i, id := range submissionIDList {
 			reactionArgs[i] = id
 		}
-		
+
 		reactionRows, err := repo.QueryContext(ctx, submissionReactionsQuery, reactionArgs...)
 		if err != nil {
 			log.Printf("Error fetching submission reactions: %v", err)
@@ -1090,7 +1092,7 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 		}
 		currentStreak = streak
 	}
-	
+
 	response.Stats = UserStats{
 		TotalDrawings: totalDrawings,
 		CurrentStreak: currentStreak,
@@ -1121,7 +1123,7 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 			}
 			favoriteSet[favSubmissionID] = struct{}{}
 			fav := &FavoriteSubmission{
-				ID:        favID,
+				ID:         favID,
 				Submission: *sub,
 				CreatedAt:  favCreatedAt,
 				OrderNum:   favOrderNum,
@@ -1155,7 +1157,7 @@ func GetReactionsForSubmission(repo *sql.DB, ctx context.Context, submissionID s
 		WHERE r.content_type = 'submission' AND r.content_id = ?
 		ORDER BY r.created_at ASC
 	`
-	
+
 	rows, err := repo.QueryContext(ctx, query, submissionID)
 	if err != nil {
 		return []Reaction{}, fmt.Errorf("error fetching reactions for submission: %w", err)
@@ -1187,7 +1189,7 @@ func GetReactionsForSubmission(repo *sql.DB, ctx context.Context, submissionID s
 	if reactions == nil {
 		reactions = []Reaction{}
 	}
-	
+
 	return reactions, nil
 }
 
@@ -1207,7 +1209,7 @@ func GetReactionsForComment(repo *sql.DB, ctx context.Context, commentID string)
 		WHERE r.content_type = 'comment' AND r.content_id = ?
 		ORDER BY r.created_at ASC
 	`
-	
+
 	rows, err := repo.QueryContext(ctx, query, commentID)
 	if err != nil {
 		return []Reaction{}, fmt.Errorf("error fetching reactions for comment: %w", err)
@@ -1239,7 +1241,7 @@ func GetReactionsForComment(repo *sql.DB, ctx context.Context, commentID string)
 	if reactions == nil {
 		reactions = []Reaction{}
 	}
-	
+
 	return reactions, nil
 }
 
@@ -1272,7 +1274,7 @@ func ToggleReaction(repo *sql.DB, ctx context.Context, userID, contentType, cont
 	`
 	var exists int
 	err = repo.QueryRowContext(ctx, existsQuery, userID, contentType, contentID, reactionID).Scan(&exists)
-	
+
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		return fmt.Errorf("error checking if reaction exists: %w", err)
 	}
@@ -1298,7 +1300,7 @@ func ToggleReaction(repo *sql.DB, ctx context.Context, userID, contentType, cont
 			return fmt.Errorf("error removing reaction: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -1313,7 +1315,7 @@ func GetReactionCountsForSubmission(repo *sql.DB, ctx context.Context, submissio
 		GROUP BY reaction_id
 		ORDER BY count DESC, reaction_id ASC
 	`
-	
+
 	rows, err := repo.QueryContext(ctx, query, submissionID)
 	if err != nil {
 		return []ReactionCount{}, fmt.Errorf("error fetching reaction counts for submission: %w", err)
@@ -1350,7 +1352,7 @@ func GetReactionCountsForComment(repo *sql.DB, ctx context.Context, commentID st
 		GROUP BY reaction_id
 		ORDER BY count DESC, reaction_id ASC
 	`
-	
+
 	rows, err := repo.QueryContext(ctx, query, commentID)
 	if err != nil {
 		return []ReactionCount{}, fmt.Errorf("error fetching reaction counts for comment: %w", err)
@@ -1375,7 +1377,6 @@ func GetReactionCountsForComment(repo *sql.DB, ctx context.Context, commentID st
 
 	return counts, nil
 }
-
 
 func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadID string, cfg *config.Config) ([]Activity, error) {
 	friendQuery := `
@@ -1407,15 +1408,15 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 	}
 	defer subRows.Close()
 	subMap := map[string]struct {
-		Prompt   string
-		UserID   string
-	}{ }
+		Prompt string
+		UserID string
+	}{}
 	for subRows.Next() {
 		var id, prompt, subUserID string
 		if err := subRows.Scan(&id, &prompt, &subUserID); err == nil {
 			subMap[id] = struct {
-				Prompt   string
-				UserID   string
+				Prompt string
+				UserID string
 			}{Prompt: prompt, UserID: subUserID}
 		}
 	}
@@ -1446,8 +1447,12 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 		var cID, cUserID, cUsername, cEmail, cText, cSubmissionID string
 		var cUserCreatedAt, cCreatedAt time.Time
 		if err := commentRows.Scan(&cID, &cUserID, &cUsername, &cEmail, &cUserCreatedAt, &cText, &cCreatedAt, &cSubmissionID); err == nil {
-			if cUserID == userID { continue } // skip own actions
-			if !friendIDs[cUserID] { continue } // only friends' actions
+			if cUserID == userID {
+				continue
+			} // skip own actions
+			if !friendIDs[cUserID] {
+				continue
+			} // only friends' actions
 			info := subMap[cSubmissionID]
 			activities = append(activities, Activity{
 				ID:     "comment-" + cID,
@@ -1465,8 +1470,8 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 					Prompt   string `json:"prompt"`
 					ImageUrl string `json:"imageUrl"`
 				}{
-					ID: cSubmissionID,
-					Prompt: info.Prompt,
+					ID:       cSubmissionID,
+					Prompt:   info.Prompt,
 					ImageUrl: utils.GetImageUrl(cfg, utils.GetImageFilename(info.UserID, cSubmissionID)),
 				},
 			})
@@ -1490,8 +1495,12 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 		var rID, rUserID, rUsername, rEmail, rReactionID, rContentID string
 		var rUserCreatedAt, rCreatedAt time.Time
 		if err := reactionRows.Scan(&rID, &rUserID, &rUsername, &rEmail, &rUserCreatedAt, &rReactionID, &rCreatedAt, &rContentID); err == nil {
-			if rUserID == userID { continue } // skip own actions
-			if !friendIDs[rUserID] { continue } // only friends' actions
+			if rUserID == userID {
+				continue
+			} // skip own actions
+			if !friendIDs[rUserID] {
+				continue
+			} // only friends' actions
 			info := subMap[rContentID]
 			activities = append(activities, Activity{
 				ID:     "reaction-" + rID,
@@ -1509,8 +1518,8 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 					Prompt   string `json:"prompt"`
 					ImageUrl string `json:"imageUrl"`
 				}{
-					ID: rContentID,
-					Prompt: info.Prompt,
+					ID:       rContentID,
+					Prompt:   info.Prompt,
 					ImageUrl: utils.GetImageUrl(cfg, utils.GetImageFilename(info.UserID, rContentID)),
 				},
 			})
@@ -1593,7 +1602,7 @@ func ToggleFavoriteSubmission(repo *sql.DB, ctx context.Context, userID, submiss
 	if err != nil {
 		return false, err
 	}
-	_, insErr := repo.ExecContext(ctx, `INSERT INTO user_favorite_submissions (id, user_id, submission_id, order_num) VALUES (lower(hex(randomblob(16))), ?, ?, ?)`, userID, submissionID, nextOrder)
+	_, insErr := repo.ExecContext(ctx, `INSERT INTO user_favorite_submissions (id, user_id, submission_id, order_num) VALUES (?, ?, ?, ?)`, uuid.New().String(), userID, submissionID, nextOrder)
 	if insErr != nil {
 		return false, insErr
 	}
@@ -1628,6 +1637,75 @@ func SwapFavoriteOrder(repo *sql.DB, ctx context.Context, userID, favID1, favID2
 	// Swap the order_num values
 	_, err = tx.ExecContext(ctx, `UPDATE user_favorite_submissions SET order_num = CASE WHEN id = ? THEN ? WHEN id = ? THEN ? END WHERE id IN (?, ?) AND user_id = ?`, favID1, order2, favID2, order1, favID1, favID2, userID)
 	return err
+}
+
+// GetUserFriends gets all friends of a user
+func GetUserFriends(repo *sql.DB, ctx context.Context, userID string) ([]string, error) {
+	query := `
+		SELECT friend_id FROM friendships 
+		WHERE user_id = ?
+		UNION
+		SELECT user_id FROM friendships 
+		WHERE friend_id = ?
+	`
+	rows, err := repo.QueryContext(ctx, query, userID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var friends []string
+	for rows.Next() {
+		var friendID string
+		if err := rows.Scan(&friendID); err != nil {
+			return nil, err
+		}
+		friends = append(friends, friendID)
+	}
+	return friends, nil
+}
+
+// GetUserPushSubscriptions gets all push subscriptions for a user
+func GetUserPushSubscriptions(repo *sql.DB, ctx context.Context, userID string) ([]struct {
+	Endpoint string
+	P256dh   string
+	Auth     string
+}, error) {
+	query := `SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?`
+	rows, err := repo.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var subscriptions []struct {
+		Endpoint string
+		P256dh   string
+		Auth     string
+	}
+	for rows.Next() {
+		var sub struct {
+			Endpoint string
+			P256dh   string
+			Auth     string
+		}
+		if err := rows.Scan(&sub.Endpoint, &sub.P256dh, &sub.Auth); err != nil {
+			return nil, err
+		}
+		subscriptions = append(subscriptions, sub)
+	}
+	return subscriptions, nil
+}
+
+// GetSubmissionOwner gets the user ID who owns a submission
+func GetSubmissionOwner(repo *sql.DB, ctx context.Context, submissionID string) (string, error) {
+	query := `SELECT user_id FROM user_submissions WHERE id = ?`
+	var ownerID string
+	err := repo.QueryRowContext(ctx, query, submissionID).Scan(&ownerID)
+	if err != nil {
+		return "", err
+	}
+	return ownerID, nil
 }
 
 // placeholders returns a string of ?,?,? for IN queries

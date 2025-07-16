@@ -27,6 +27,7 @@ import { AuthProvider } from './auth/AuthContext.tsx';
 import MyProfilePage from './pages/profile/MyProfilePage.tsx';
 import { MyProfilePageProvider } from './pages/profile/context/MyProfileContext.tsx';
 import AuthRoute from './auth/AuthRoute.tsx';
+import { NotificationProvider } from './notifications/NotificationContext.tsx';
 
 const queryClient = new QueryClient();
 
@@ -34,9 +35,11 @@ const rootRoute = createRootRoute({
   component: () => (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <DailyPromptProvider>
-          <Outlet />
-        </DailyPromptProvider>
+        <NotificationProvider>
+          <DailyPromptProvider>
+            <Outlet />
+          </DailyPromptProvider>
+        </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
   ),

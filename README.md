@@ -53,7 +53,7 @@ turso db shell drawer-db < server/schema.sql
 - To run on dev db:
 
 ```bash
-DATABASE_URL="sqlite://./server/drawer.db" geni <COMMAND>
+DATABASE_URL="sqlite://./drawer.db" geni <COMMAND>
 ```
 
 To create a migration
@@ -111,3 +111,36 @@ npm run check
 ## Routing
 
 This project uses [TanStack Router](https://tanstack.com/router). The initial setup is a code based router. Which means that the routes are defined in code (in the `./src/main.tsx` file). If you like you can also use a file based routing setup by following the [File Based Routing](https://tanstack.com/router/latest/docs/framework/react/guide/file-based-routing) guide.
+
+## Generating VAPID Keys for Push Notifications
+
+To enable web push notifications, you need a VAPID public/private key pair. These are used to authenticate your server and encrypt push messages.
+
+### 1. Install web-push globally (requires Node.js)
+
+```sh
+npm install -g web-push
+```
+
+### 2. Generate VAPID keys
+
+```sh
+web-push generate-vapid-keys
+```
+
+You will see output like:
+
+```
+Public Key:
+BExxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+Private Key:
+8xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### 3. Usage
+
+- **Frontend:** Use the public key (e.g., as an environment variable `VITE_VAPID_PUBLIC_KEY`) for subscribing to push notifications.
+- **Backend:** Use both the public and private keys to sign and send push notifications.
+
+**Keep your private key secure and do not expose it to the frontend.**

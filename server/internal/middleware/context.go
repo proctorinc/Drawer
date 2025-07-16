@@ -9,8 +9,8 @@ import (
 )
 
 type AppContext struct {
-	DB     *sql.DB
-	Config *config.Config
+	DB      *sql.DB
+	Config  *config.Config
 	Storage *storage.StorageService
 }
 
@@ -29,7 +29,6 @@ func ContextMiddleware(cfg *config.Config, db *sql.DB) gin.HandlerFunc {
 		c.Next()
 	}
 }
-
 
 func GetConfig(ctx *gin.Context) *config.Config {
 	appContext := ctx.MustGet(string(AppContextKey)).(*AppContext)

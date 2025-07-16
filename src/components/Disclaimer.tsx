@@ -12,7 +12,7 @@ const Disclaimer: FC<Props> = ({ title, children }) => {
 
   return (
     <Banner className="flex flex-col gap-2 border-2 border-border text-secondary bg-base">
-      <span className="py-2 text-primary">{title}</span>
+      <span className="py-2 text-primary text-center">{title}</span>
       {isOpen && (
         <div className="flex flex-col gap-2 text-left">{children}</div>
       )}

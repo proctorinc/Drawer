@@ -9,6 +9,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Card, CardContent } from '@/components/Card';
 import CalendarGrid from '@/pages/profile/components/CalendarGrid';
 import { useNavigate } from '@tanstack/react-router';
+import { useDailyPrompt } from '@/daily/DailyPromptContext';
 
 type Props = {
   profile?: GetMeResponse;
@@ -18,6 +19,7 @@ const SubmissionCalendar: FC<Props> = ({ profile }) => {
   const navigate = useNavigate();
   const [selectedDrawing, setSelectedDrawing] =
     useState<UserPromptSubmission | null>(null);
+  const { dailyPrompt } = useDailyPrompt();
   const [clickPosition, setClickPosition] = useState<{
     x: number;
     y: number;
@@ -56,18 +58,8 @@ const SubmissionCalendar: FC<Props> = ({ profile }) => {
       ? new Date(profile?.user.createdAt)
       : new Date();
 
-    console.log('createdAt:', userCreatedAt);
-
     const previousMonth = new Date(currentDate);
     previousMonth.setMonth(currentDate.getMonth() - 1);
-
-    console.log('previousMonth:', previousMonth);
-
-    console.log(
-      'result:',
-      previousMonth.getMonth() < userCreatedAt.getMonth() ||
-        previousMonth.getFullYear() < userCreatedAt.getFullYear(),
-    );
 
     return (
       previousMonth.getMonth() < userCreatedAt.getMonth() ||
@@ -78,18 +70,8 @@ const SubmissionCalendar: FC<Props> = ({ profile }) => {
   function checkForward() {
     const today = new Date();
 
-    console.log('today:', today);
-
     const previousMonth = new Date(currentDate);
     previousMonth.setMonth(currentDate.getMonth() + 1);
-
-    console.log('nextMonth:', previousMonth);
-
-    console.log(
-      'result:',
-      previousMonth.getMonth() > today.getMonth() ||
-        previousMonth.getFullYear() > today.getFullYear(),
-    );
 
     return (
       previousMonth.getMonth() > today.getMonth() ||
@@ -123,6 +105,7 @@ const SubmissionCalendar: FC<Props> = ({ profile }) => {
       <Card>
         <CardContent>
           <CalendarGrid
+            today={dailyPrompt ? new Date(dailyPrompt.day) : new Date()}
             userCreatedAt={profile?.user.createdAt}
             prompts={profile?.prompts}
             onCellClick={handleCellClick}

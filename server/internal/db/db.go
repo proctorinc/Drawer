@@ -117,14 +117,14 @@ func initializeDevData(db *sql.DB) error {
 	demoData := `
 		-- Insert demo users
 		INSERT OR IGNORE INTO users (id, username, email, created_at) VALUES 
-			('user1', 'tankard_wellington', 'demo1@example.com', date('now', '-63 days')),
-			('user2', 'wifey_p', 'demo2@example.com', date('now', '-13 days')),
-			('user3', 'matty_p', 'demo3@example.com', date('now', '-13 days')),
-			('user4', 'jimbo', 'demo4@example.com', date('now', '-13 days')),
-			('user5', 'jonny_p', 'demo5@example.com', date('now', '-13 days')),
-			('user6', 'ubebae', 'demo6@example.com', date('now', '-13 days')),
-			('user7', 'bufy', 'demo7@example.com', date('now', '-13 days')),
-			('user8', 'pro_tractor', 'demo8@example.com', date('now', '-13 days'));
+			('user1', 'tankard_wellington', 'user1@example.com', date('now', '-63 days')),
+			('user2', 'wifey_p', 'user2@example.com', date('now', '-13 days')),
+			('user3', 'matty_p', 'user3@example.com', date('now', '-13 days')),
+			('user4', 'jimbo', 'user4@example.com', date('now', '-13 days')),
+			('user5', 'jonny_p', 'user5@example.com', date('now', '-13 days')),
+			('user6', 'ubebae', 'user6@example.com', date('now', '-13 days')),
+			('user7', 'bufy', 'user7@example.com', date('now', '-13 days')),
+			('user8', 'pro_tractor', 'user8@example.com', date('now', '-13 days'));
 
 		-- Make them friends
 		INSERT OR IGNORE INTO friendships (user_id, friend_id) VALUES 
