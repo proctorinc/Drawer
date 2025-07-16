@@ -43,7 +43,7 @@ func SendNotificationToUser(repo *sql.DB, userID string, data db.NotificationDat
 		return err
 	}
 	
-	for i, sub := range subscriptions {
+	for _, sub := range subscriptions {
 		pushSub := db.PushSubscription{
 			Endpoint: sub.Endpoint,
 			P256dh:   sub.P256dh,
