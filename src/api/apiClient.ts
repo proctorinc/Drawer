@@ -245,13 +245,18 @@ export const apiClient = {
   },
 
   toggleCommentReaction: async (
+    submissionId: string,
     commentId: string,
     reactionId: string,
   ): Promise<ReactionResponse> => {
-    const response = await fetchAPI('POST', `/comment/${commentId}/reaction`, {
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reactionId }),
-    });
+    const response = await fetchAPI(
+      'POST',
+      `/submission/${submissionId}/comment/${commentId}/reaction`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reactionId }),
+      },
+    );
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
       throw new Error(data.error || 'Failed to toggle reaction');

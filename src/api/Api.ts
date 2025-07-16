@@ -69,6 +69,7 @@ export interface UserPromptSubmission extends DailyPrompt {
   reactions: Reaction[];
   counts: ReactionCount[];
   isFavorite?: boolean;
+  createdAt: Date;
 }
 
 export interface FavoriteSubmission {
@@ -146,6 +147,9 @@ export function usePromptSubmission(submissionId: string) {
   return useQuery({
     queryKey: queryKeys.promptSubmission(submissionId),
     queryFn: () => apiClient.getPromptSubmission(submissionId),
+    retry: () => {
+      return false;
+    },
     enabled: !!submissionId,
   });
 }
@@ -214,12 +218,14 @@ export function useToggleSubmissionReaction() {
 export function useToggleCommentReaction() {
   return useMutation({
     mutationFn: ({
+      submissionId,
       commentId,
       reactionId,
     }: {
+      submissionId: string;
       commentId: string;
       reactionId: ReactionId;
-    }) => apiClient.toggleCommentReaction(commentId, reactionId),
+    }) => apiClient.toggleCommentReaction(submissionId, commentId, reactionId),
   });
 }
 

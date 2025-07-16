@@ -1,5 +1,5 @@
 import { http, HttpResponse } from 'msw';
-import { Config } from '@/config/Config';
+import { Config } from '../../../config/Config';
 
 const baseUrl = Config.API_BASE_URL;
 

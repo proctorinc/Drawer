@@ -1,23 +1,40 @@
 import type { FC, ReactNode } from 'react';
 import Navbar from './Navbar';
-import Header from './Header';
 import useAuth from '@/auth/hooks/useAuth';
+import Button from './Button';
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { useRouter } from '@tanstack/react-router';
 
 type Props = {
   header?: ReactNode;
+  back?: boolean;
   children: ReactNode;
 };
 
-const Layout: FC<Props> = ({ header, children }) => {
+const Layout: FC<Props> = ({ header, back, children }) => {
+  const router = useRouter();
   const { isAuthenticated } = useAuth();
 
   return (
     <div className=" flex flex-col items-center justify-center">
-      <div className="-z-10 sticky top-0 flex flex-col items-center max-w-md w-full gap-6 md:p-2">
-        <Header />
+      <div className="z-0 sticky top-0 flex flex-col items-center max-w-md w-full gap-6 md:p-2">
+        <div className="sticky top-0 flex justify-center items-center text-center border-2 border-primary-foreground bg-primary-foreground rounded-2xl pb-6 pt-8 w-full">
+          {back && (
+            <Button
+              variant="base"
+              className="absolute left-4 top-6 w-10 bg-primary-foreground text-secondary"
+              icon={faArrowLeft}
+              disableLoad
+              onClick={() => router.history.back()}
+            />
+          )}
+          <h1 className="text-xl font-cursive font-extrabold tracking-widest text-border">
+            The Daily Doodle
+          </h1>
+        </div>
         {header}
       </div>
-      <div className="z-0 relative flex flex-col flex-grow w-full items-center p-6 md:p-2 gap-6 bg-base min-h-screen overflow-y-auto overflow-x-hidden pb-30 max-w-md rounded-t-3xl border-2 border-border">
+      <div className="z-10 relative flex flex-col flex-grow w-full items-center p-6 md:p-2 gap-6 bg-base min-h-screen overflow-y-auto overflow-x-hidden pb-30 max-w-md rounded-t-3xl border-2 border-border">
         {children}
         {isAuthenticated && <Navbar />}
       </div>

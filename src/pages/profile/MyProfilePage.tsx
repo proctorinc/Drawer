@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader } from '@/components/Card';
 import Button from '@/components/Button';
 import { useState, type FormEvent } from 'react';
 import {
-  faArrowLeft,
   faFire,
   faPalette,
   faPlusCircle,
@@ -15,14 +14,12 @@ import { useAddFriend } from '@/api/Api';
 import SubmissionCalendar from './components/SubmissionCalendar';
 import { useMyProfilePage } from './context/MyProfileContext';
 import { FriendList } from './components/friends/FriendList';
-import Tooltip from '@/components/Tooltip';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ShareButton } from './components/friends/ShareButton';
-import { useRouter } from '@tanstack/react-router';
 import FavoriteSubmissions from './components/FavoriteSubmissions';
+import LoadingScreen from '@/components/LoadingScreen';
 
 const MyProfilePage = () => {
-  const router = useRouter();
   const { profile } = useMyProfilePage();
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
@@ -42,80 +39,67 @@ const MyProfilePage = () => {
       });
   }
 
+  if (!profile?.user) {
+    return <LoadingScreen />;
+  }
+
   return (
     <Layout
+      back
       header={
         <>
           <div className="relative w-full">
             <div className="flex flex-col items-center gap-3">
-              <UserProfileIcon user={profile?.user} size="2xl" />
+              <UserProfileIcon user={profile.user} size="2xl" />
               <div className="flex gap-2 justify-center items-center text-center font-bold w-full max-w-md">
                 <div className="pl-1 font-bold">
-                  <h2 className="text-2xl text-secondary">
-                    {profile?.user.username}
+                  <h2 className="text-2xl text-secondary font-cursive">
+                    {profile.user.username}
                   </h2>
                 </div>
               </div>
             </div>
+            <ShareButton
+              urlPath={`/draw/profile/${profile.user.id}`}
+              text="Checkout my daily doodle profile!"
+              className="absolute right-8 top-14 bg-primary text-secondary"
+            ></ShareButton>
           </div>
           <div className="flex gap-4 w-full justify-center pb-6">
-            <Tooltip content="doodles" location="top">
-              <Button
-                disableLoad
-                variant="base"
-                size="sm"
-                className="font-accent text-emerald-600/80 bg-emerald-300 shadow-emerald-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
-              >
-                {profile?.prompts.length}
-                <FontAwesomeIcon icon={faPalette} />
-              </Button>
-            </Tooltip>
-            <Tooltip content="streak" location="top">
-              <Button
-                disableLoad
-                variant="base"
-                size="sm"
-                className="font-accent text-orange-600/80 bg-orange-300 shadow-orange-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
-              >
-                {profile?.stats.currentStreak}
-                <FontAwesomeIcon icon={faFire} />
-              </Button>
-            </Tooltip>
-            <Tooltip content="friends" location="top">
-              <Button
-                disableLoad
-                variant="base"
-                size="sm"
-                className="font-accent text-purple-600/80 bg-purple-300 shadow-purple-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
-              >
-                {profile?.friends.length}
-                <FontAwesomeIcon icon={faUsers} />
-              </Button>
-            </Tooltip>
+            <Button
+              disableLoad
+              variant="base"
+              size="sm"
+              className="font-accent text-emerald-600/80 bg-emerald-300 shadow-emerald-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+            >
+              {profile.prompts.length}
+              <FontAwesomeIcon icon={faPalette} />
+            </Button>
+            <Button
+              disableLoad
+              variant="base"
+              size="sm"
+              className="font-accent text-orange-600/80 bg-orange-300 shadow-orange-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+            >
+              {profile.stats.currentStreak}
+              <FontAwesomeIcon icon={faFire} />
+            </Button>
+            <Button
+              disableLoad
+              variant="base"
+              size="sm"
+              className="font-accent text-purple-600/80 bg-purple-300 shadow-purple-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+            >
+              {profile.friends.length}
+              <FontAwesomeIcon icon={faUsers} />
+            </Button>
           </div>
         </>
       }
     >
-      <div className="relative flex w-full h-10">
-        <Button
-          variant="base"
-          className="absolute left-0 top-0 w-10"
-          icon={faArrowLeft}
-          disableLoad
-          onClick={() => router.history.back()}
-        />
-        <div className="flex w-full gap-2 justify-end items-center">
-          <ShareButton
-            urlPath={`/draw/profile/${profile?.user.id}`}
-            text="Checkout my daily doodle profile!"
-          >
-            Share
-          </ShareButton>
-        </div>
-      </div>
-      <FavoriteSubmissions favorites={profile?.favorites} />
+      <FavoriteSubmissions favorites={profile.favorites} />
       <SubmissionCalendar profile={profile} />
-      <FriendList user={profile?.user} friends={profile?.friends} />
+      <FriendList user={profile.user} friends={profile.friends} />
       <Card>
         <form onSubmit={handleAddFriend}>
           <CardContent>

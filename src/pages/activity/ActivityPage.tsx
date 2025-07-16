@@ -13,7 +13,7 @@ const ActivityPage = () => {
   return (
     <Layout>
       <div className="pl-1 font-bold">
-        <h2 className="text-2xl text-primary">Recent Activity</h2>
+        <h2 className="text-xl text-primary">Recent Activity</h2>
       </div>
       <ActivityFeed />
     </Layout>

@@ -51,6 +51,52 @@ const SubmissionCalendar: FC<Props> = ({ profile }) => {
     return date.toLocaleString('default', { month: 'long', year: 'numeric' });
   };
 
+  const checkBack = () => {
+    const userCreatedAt = profile?.user
+      ? new Date(profile?.user.createdAt)
+      : new Date();
+
+    console.log('createdAt:', userCreatedAt);
+
+    const previousMonth = new Date(currentDate);
+    previousMonth.setMonth(currentDate.getMonth() - 1);
+
+    console.log('previousMonth:', previousMonth);
+
+    console.log(
+      'result:',
+      previousMonth.getMonth() < userCreatedAt.getMonth() ||
+        previousMonth.getFullYear() < userCreatedAt.getFullYear(),
+    );
+
+    return (
+      previousMonth.getMonth() < userCreatedAt.getMonth() ||
+      previousMonth.getFullYear() < userCreatedAt.getFullYear()
+    );
+  };
+
+  function checkForward() {
+    const today = new Date();
+
+    console.log('today:', today);
+
+    const previousMonth = new Date(currentDate);
+    previousMonth.setMonth(currentDate.getMonth() + 1);
+
+    console.log('nextMonth:', previousMonth);
+
+    console.log(
+      'result:',
+      previousMonth.getMonth() > today.getMonth() ||
+        previousMonth.getFullYear() > today.getFullYear(),
+    );
+
+    return (
+      previousMonth.getMonth() > today.getMonth() ||
+      previousMonth.getFullYear() > today.getFullYear()
+    );
+  }
+
   return (
     <>
       {/* <div className="flex gap-2 w-full">
@@ -84,19 +130,21 @@ const SubmissionCalendar: FC<Props> = ({ profile }) => {
           />
           <div className="flex justify-center items-center gap-4 w-full">
             <button
+              disabled={checkBack()}
               onClick={() => navigateMonth('prev')}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-primary/20 transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-primary rounded-full hover:bg-primary/20 transition-colors disabled:invisible"
             >
-              <FontAwesomeIcon icon={faChevronLeft} className="text-primary" />
+              <FontAwesomeIcon icon={faChevronLeft} />
             </button>
             <span className="font-semibold text-primary min-w-[120px] text-center">
               {formatMonthYear(currentDate)}
             </span>
             <button
+              disabled={checkForward()}
               onClick={() => navigateMonth('next')}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-primary/20 transition-colors"
+              className="w-8 h-8 flex items-center justify-center text-primary rounded-full hover:bg-primary/20 transition-colors  disabled:invisible"
             >
-              <FontAwesomeIcon icon={faChevronRight} className="text-primary" />
+              <FontAwesomeIcon icon={faChevronRight} />
             </button>
           </div>
         </CardContent>

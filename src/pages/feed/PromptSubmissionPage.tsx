@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, useParams, useRouter } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import { Card, CardContent } from '@/components/Card';
 import { UserProfileIcon } from '../profile/components/UserProfileIcon';
 import Button from '@/components/Button';
@@ -11,7 +11,7 @@ import {
   useToggleCommentReaction,
 } from '@/api/Api';
 import Layout from '@/components/Layout';
-import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { faArrowRight, faHeart } from '@fortawesome/free-solid-svg-icons';
 import { cn, timeAgo } from '@/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -21,15 +21,15 @@ import { faHeart as FilledHeart } from '@fortawesome/free-solid-svg-icons';
 import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
 import useUser from '@/auth/hooks/useUser';
 import { ShareButton } from '../profile/components/friends/ShareButton';
+import Tooltip from '@/components/Tooltip';
 
 const PromptSubmissionPage = () => {
-  const router = useRouter();
   const navigate = useNavigate();
   const currentUser = useUser();
   const queryClient = useQueryClient();
-  const { submissionId } = useParams({ strict: false }) as {
-    submissionId: string;
-  };
+  const { submissionId } = useParams({
+    from: '/draw/submission/$submissionId',
+  });
   const toggleReaction = useToggleCommentReaction();
   const {
     data: submission,
@@ -47,48 +47,56 @@ const PromptSubmissionPage = () => {
   }
 
   function heartComment(comment: Comment) {
-    toggleReaction.mutate(
-      {
-        commentId: comment.id,
-        reactionId: 'heart',
-      },
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.promptSubmission(submissionId),
-          });
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.activityFeed,
-          });
+    if (submission) {
+      toggleReaction.mutate(
+        {
+          submissionId: submission.id,
+          commentId: comment.id,
+          reactionId: 'heart',
         },
-      },
-    );
+        {
+          onSuccess: () => {
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.promptSubmission(submissionId),
+            });
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.activityFeed,
+            });
+          },
+        },
+      );
+    }
   }
 
   if (isLoading) {
     return <LoadingScreen />;
   }
+
   if (error || !submission) {
-    return <div className="p-8 text-center">Submission not found.</div>;
+    return (
+      <Layout back>
+        <h1 className="p-8 text-center text-primary font-bold text-xl">
+          I'm sorry, it looks like this doodle doesn't exist
+        </h1>
+        <Button onClick={() => navigate({ to: '/draw' })}>Go back</Button>
+      </Layout>
+    );
   }
 
   return (
     <>
       <Layout
+        back
         header={
           <div className="flex flex-col gap-4 max-w-3/4 w-full pb-6 -mt-6">
-            <DrawingFeedImage submission={submission} />
+            <DrawingFeedImage
+              submission={submission}
+              className="border-secondary shadow-secondary"
+            />
           </div>
         }
       >
-        <div className="flex w-full">
-          <Button
-            variant="base"
-            className="w-10"
-            icon={faArrowLeft}
-            disableLoad
-            onClick={() => router.history.back()}
-          />
+        <div className="flex justify-between gap-2 w-full items-center">
           <div className="w-full font-bold">
             <h2 className="text-2xl text-primary">{submission.prompt}</h2>
             <p className="text-secondary">
@@ -99,17 +107,13 @@ const PromptSubmissionPage = () => {
               })}
             </p>
           </div>
+          <ShareButton
+            text={`Checkout ${submission.user.id === currentUser.id ? 'my' : `${submission.user.username}'s`} doodle of ${submission.prompt.toLowerCase()}!`}
+          ></ShareButton>
         </div>
-        <div className="flex flex-col w-full gap-4 pb-20">
-          <div className="flex justify-end w-full">
-            <ShareButton
-              text={`Checkout ${submission.user.id === currentUser.id ? 'my' : `${submission.user.username}'s`} doodle of ${submission.prompt.toLowerCase()}!`}
-            >
-              Share
-            </ShareButton>
-          </div>
+        <div className="flex flex-col w-full gap-4">
           <Card>
-            <CardContent>
+            <CardContent className="gap-2">
               {submission.comments.length === 0 && (
                 <span className="font-bold text-center text-secondary">
                   Be the first to comment!
@@ -120,89 +124,130 @@ const PromptSubmissionPage = () => {
                   const activeHeart = hasReacted(comment);
 
                   return (
-                    <div
-                      key={comment.id}
-                      className="flex justify-between items-center font-semibold"
-                    >
-                      <div className="flex gap-4 items-center">
-                        <UserProfileIcon
-                          size="sm"
-                          user={comment.user}
-                          onClick={() =>
-                            navigate({
-                              to: `/draw/profile/${comment.user.id}`,
-                            })
+                    <div key={comment.id} className="flex flex-col gap-1">
+                      <div className="flex justify-between items-center font-semibold">
+                        <div className="flex gap-4 items-center">
+                          <UserProfileIcon
+                            size="sm"
+                            user={comment.user}
+                            onClick={() =>
+                              navigate({
+                                to: `/draw/profile/${comment.user.id}`,
+                              })
+                            }
+                          />{' '}
+                          {comment.text}
+                        </div>
+                        <div className="flex flex-col gap-2 items-end">
+                          <span className="text-xs text-secondary ml-2 whitespace-nowrap">
+                            {timeAgo(comment.createdAt)}
+                          </span>
+                          {comment.user.id !== currentUser.id && (
+                            <button onClick={() => heartComment(comment)}>
+                              <FontAwesomeIcon
+                                className={cn(activeHeart && 'text-red-400')}
+                                icon={activeHeart ? FilledHeart : EmptyHeart}
+                              />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      {comment.reactions.length > 0 && (
+                        <Tooltip
+                          location="bottom"
+                          show={comment.reactions.length > 1}
+                          content={
+                            <div className="flex flex-col w-full text-sm text-center">
+                              {comment.reactions.map((reaction) => (
+                                <div className="flex gap-2 items-center">
+                                  <FontAwesomeIcon
+                                    icon={faHeart}
+                                    className="text-red-400"
+                                  />
+                                  <span>
+                                    {reaction.user.id === currentUser.id
+                                      ? 'you'
+                                      : reaction.user.username}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           }
-                        />{' '}
-                        {comment.text}
-                      </div>
-                      <div className="flex flex-col gap-2 items-end">
-                        <span className="text-xs text-secondary ml-2 whitespace-nowrap">
-                          {timeAgo(comment.createdAt)}
-                        </span>
-                        {comment.user.id !== currentUser.id && (
-                          <button onClick={() => heartComment(comment)}>
-                            <FontAwesomeIcon
-                              className={cn(activeHeart && 'text-red-400')}
-                              icon={activeHeart ? FilledHeart : EmptyHeart}
-                            />
-                          </button>
-                        )}
-                      </div>
+                        >
+                          <div className="flex align-right w-full pr-2">
+                            <h3 className="w-fit p-1 text-xs font-semibold text-secondary whitespace-nowrap">
+                              Loved by{' '}
+                              {comment.reactions[0].user.id === currentUser.id
+                                ? 'you'
+                                : comment.reactions[0].user.username}{' '}
+                              {comment.reactions.length > 1 &&
+                                `+ ${comment.reactions.length - 1} more`}
+                            </h3>
+                          </div>
+                        </Tooltip>
+                      )}
                     </div>
                   );
                 })}
+              <form
+                className="flex gap-2 pt-4 items-center"
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!comment.trim()) return;
+                  try {
+                    await addComment.mutateAsync(
+                      {
+                        submissionId,
+                        text: comment,
+                      },
+                      {
+                        onSuccess: () => {
+                          queryClient.invalidateQueries({
+                            queryKey: queryKeys.myProfile,
+                          });
+                          queryClient.invalidateQueries({
+                            queryKey: queryKeys.promptSubmission(submissionId),
+                          });
+                          queryClient.invalidateQueries({
+                            queryKey: queryKeys.activityFeed,
+                          });
+                        },
+                      },
+                    );
+                    setComment('');
+                    refetch();
+                  } catch (err) {
+                    // Optionally show error
+                  }
+                }}
+              >
+                <input
+                  className="font-bold border-2 text-primary border-border w-full p-4 rounded-2xl"
+                  placeholder="Add a comment..."
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                />
+                <Button
+                  className="h-full"
+                  size="sm"
+                  icon={faArrowRight}
+                  type="submit"
+                  disabled={!comment.trim()}
+                ></Button>
+              </form>
             </CardContent>
           </Card>
         </div>
+        <div className="text-left w-full">
+          <span className="text-xs font-semibold text-secondary pl-2">
+            Drawn by {submission.user.username} at{' '}
+            {new Date(submission.createdAt).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+            })}
+          </span>
+        </div>
       </Layout>
-      <div className="fixed bottom-24 left-0 flex justify-center w-full">
-        <form
-          className="bg-base p-4 flex gap-2 items-center max-w-md w-full"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!comment.trim()) return;
-            try {
-              await addComment.mutateAsync(
-                {
-                  submissionId,
-                  text: comment,
-                },
-                {
-                  onSuccess: () => {
-                    queryClient.invalidateQueries({
-                      queryKey: queryKeys.myProfile,
-                    });
-                    queryClient.invalidateQueries({
-                      queryKey: queryKeys.promptSubmission(submissionId),
-                    });
-                    queryClient.invalidateQueries({
-                      queryKey: queryKeys.activityFeed,
-                    });
-                  },
-                },
-              );
-              setComment('');
-              refetch();
-            } catch (err) {
-              // Optionally show error
-            }
-          }}
-        >
-          <input
-            className="font-bold border-2 bg-base text-primary border-border w-full p-4 rounded-2xl"
-            placeholder="Add a comment..."
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
-          <Button
-            className="h-full"
-            icon={faArrowRight}
-            type="submit"
-            disabled={!comment.trim()}
-          ></Button>
-        </form>
-      </div>
     </>
   );
 };

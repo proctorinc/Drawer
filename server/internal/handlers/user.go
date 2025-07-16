@@ -353,6 +353,7 @@ func HandleGetPromptSubmissionByID(c *gin.Context) {
 		Comments:  comments,
 		Reactions: submissionReactions,
 		Counts:    submissionCounts,
+		CreatedAt: submissionCreatedAt.Time,
 	}
 
 	// Set isFavorite if the requester is the owner and the submission is favorited
@@ -478,7 +479,7 @@ func HandleToggleSubmissionReaction(c *gin.Context) {
 }
 
 func HandleToggleCommentReaction(c *gin.Context) {
-	commentID := c.Param("id")
+	commentID := c.Param("reactionId")
 	if commentID == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Comment ID is required"})
 		return

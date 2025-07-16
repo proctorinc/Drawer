@@ -24,6 +24,7 @@ import useUser from '@/auth/hooks/useUser';
 
 type Props = {
   submission: UserPromptSubmission;
+  className?: string;
 };
 
 function hasUserReacted(
@@ -41,13 +42,16 @@ function hasUserReactedAny(submission: UserPromptSubmission, userId: string) {
   return submission.reactions.some((reaction) => reaction.user.id === userId);
 }
 
-const DrawingFeedImage: FC<Props> = ({ submission }) => {
+const DrawingFeedImage: FC<Props> = ({ submission, className }) => {
   const user = useUser();
 
   return (
     <Card
       key={`${submission.user.id}-${submission.day}`}
-      className="flex items-center relative bg-card rounded-2xl border-2 border-border"
+      className={cn(
+        'flex items-center relative bg-card rounded-2xl border-2 border-border',
+        className,
+      )}
     >
       <DrawingImage imageUrl={submission.imageUrl} className="rounded-xl" />
       {submission.user.id !== user.id && (

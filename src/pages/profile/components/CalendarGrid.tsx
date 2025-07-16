@@ -3,7 +3,6 @@ import { DrawingImage } from '@/drawing/components/DrawingImage';
 import type { UserPromptSubmission } from '@/api/Api';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faX } from '@fortawesome/free-solid-svg-icons';
-import { useState } from 'react';
 
 type Props = {
   prompts?: Array<UserPromptSubmission>;
@@ -22,17 +21,6 @@ const CalendarGrid = ({
   currentDate,
 }: Props) => {
   const today = new Date();
-  const [isTooltipVisible, setIsTooltipVisible] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-
-  const handleMouseEnter = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setTooltipPosition({
-      x: rect.left + rect.width / 2,
-      y: rect.bottom + 8,
-    });
-    setIsTooltipVisible(true);
-  };
 
   return (
     <div className="grid grid-cols-7 gap-1 relative">
@@ -80,8 +68,6 @@ const CalendarGrid = ({
               isUserCreationDay && 'ring-3 ring-border',
             )}
             onClick={(e) => onCellClick(drawing, e)}
-            onMouseEnter={isUserCreationDay ? handleMouseEnter : undefined}
-            onMouseLeave={() => isUserCreationDay && setIsTooltipVisible(false)}
           >
             {drawing ? (
               <DrawingImage
@@ -117,18 +103,6 @@ const CalendarGrid = ({
           </div>
         );
       })}
-      {isTooltipVisible && (
-        <div
-          className="fixed z-[100] px-4 py-2 bg-card border-2 border-border text-primary font-bold rounded-full text-sm whitespace-nowrap shadow-sm"
-          style={{
-            left: tooltipPosition.x,
-            top: tooltipPosition.y,
-            transform: 'translateX(-50%)',
-          }}
-        >
-          your first day
-        </div>
-      )}
     </div>
   );
 };
