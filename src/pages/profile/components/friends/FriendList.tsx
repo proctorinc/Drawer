@@ -46,7 +46,7 @@ export const FriendList: FC<Props> = ({ user, friends }) => {
                   <UserProfileIcon user={friend} />
                   <div className="flex justify-between items-center w-full">
                     <h3 className="text-primary font-bold">
-                      @{friend.username}
+                      {friend.username}
                     </h3>
                     <Button
                       size="sm"
