@@ -76,7 +76,7 @@ const PromptSubmissionPage = () => {
     <>
       <Layout
         header={
-          <div className="flex flex-col gap-4 max-w-sm w-full pb-6">
+          <div className="flex flex-col gap-4 max-w-3/4 w-full pb-6">
             <DrawingFeedImage submission={submission} />
             <div className="flex justify-end w-full">
               <ShareButton
