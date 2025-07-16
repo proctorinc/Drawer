@@ -11,10 +11,10 @@
   --color-border: #d4cfc1;
 
   --color-primary: #635d4d;
-  --color-primary-foreground: #363229;
+  --color-primary-foreground: #423d34;
   --color-secondary: #bab4a4;
 }
 
 body {
-  background-color: #363229;
+  background-color: #423d34;
 }
