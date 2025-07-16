@@ -65,7 +65,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			submissionGroup.POST("/:id/comment", handlers.HandleAddCommentToSubmission)
 			submissionGroup.POST("/:id/reaction", handlers.HandleToggleSubmissionReaction)
 			submissionGroup.POST("/:id/favorite", handlers.HandleToggleFavoriteSubmission)
-			submissionGroup.POST(":id/comment/:id/reaction", handlers.HandleToggleCommentReaction)
+			submissionGroup.POST(":id/comment/:reactionId/reaction", handlers.HandleToggleCommentReaction)
 
 			// activityGroup := authGroup.Group("/activity")
 

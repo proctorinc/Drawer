@@ -211,7 +211,6 @@ func VerifyToken(repo *sql.DB, ctx context.Context, token string) (*User, error)
 func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *config.Config) (GetMeResponse, error) {
 	var response GetMeResponse
 
-	// 1. Get main user info
 	userQuery := `SELECT id, username, email, created_at FROM users WHERE id = ?`
 	var user User
 	err := repo.QueryRowContext(ctx, userQuery, userID).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
@@ -221,7 +220,6 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 	}
 	response.User = user
 
-	// 2. Get user's friends (both directions)
 	friendsQuery := `
 		SELECT DISTINCT
 			u.id,
@@ -256,7 +254,6 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		return GetMeResponse{}, err
 	}
 
-	// 3. Get all relevant submissions with comments, reactions, and counts in optimized queries
 	submissionIDs := []interface{}{userID}
 	whereClause := "us.user_id = ?"
 	if len(friendIDs) > 0 {
@@ -387,7 +384,6 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		return GetMeResponse{}, err
 	}
 
-	// 4. Get all reactions and counts in bulk queries (eliminates N+1 problem)
 	if len(subMap) > 0 {
 		submissionIDList := make([]string, 0, len(subMap))
 		for id := range subMap {
@@ -572,7 +568,6 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		}
 	}
 
-	// 5. Get user stats with optimized streak calculation
 	totalDrawingsQuery := `SELECT COUNT(*) FROM user_submissions WHERE user_id = ?`
 	var totalDrawings int
 	err = repo.QueryRowContext(ctx, totalDrawingsQuery, userID).Scan(&totalDrawings)
@@ -637,8 +632,6 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		CurrentStreak: currentStreak,
 	}
 
-	// After populating subMap, response.Feed, and response.Prompts:
-	// 6. Get user's favorite submissions (ordered by order_num desc)
 	favQuery := `SELECT id, submission_id, created_at, order_num FROM user_favorite_submissions WHERE user_id = ? ORDER BY order_num DESC`
 	favRows, err := repo.QueryContext(ctx, favQuery, userID)
 	if err != nil {
@@ -685,7 +678,6 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *config.Config) (GetMeResponse, error) {
 	var response GetMeResponse
 
-	// 1. Get main user info
 	userQuery := `SELECT id, username, email, created_at FROM users WHERE id = ?`
 	var user User
 	err := repo.QueryRowContext(ctx, userQuery, userID).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
@@ -695,7 +687,6 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 	}
 	response.User = user
 
-	// 2. Get user's friends (both directions)
 	friendsQuery := `
 		SELECT DISTINCT
 			u.id,
@@ -730,7 +721,6 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 		return GetMeResponse{}, err
 	}
 
-	// 3. Get all relevant submissions with comments, reactions, and counts in optimized queries
 	submissionIDs := []interface{}{userID}
 	whereClause := "us.user_id = ?"
 	if len(friendIDs) > 0 {
@@ -1046,7 +1036,6 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 		}
 	}
 
-	// 5. Get user stats with optimized streak calculation
 	totalDrawingsQuery := `SELECT COUNT(*) FROM user_submissions WHERE user_id = ?`
 	var totalDrawings int
 	err = repo.QueryRowContext(ctx, totalDrawingsQuery, userID).Scan(&totalDrawings)
@@ -1107,8 +1096,6 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 		CurrentStreak: currentStreak,
 	}
 
-	// After populating subMap, response.Feed, and response.Prompts:
-	// 6. Get user's favorite submissions (ordered by order_num desc)
 	favQuery := `SELECT id, submission_id, created_at, order_num FROM user_favorite_submissions WHERE user_id = ? ORDER BY order_num DESC`
 	favRows, err := repo.QueryContext(ctx, favQuery, userID)
 	if err != nil {
@@ -1391,7 +1378,6 @@ func GetReactionCountsForComment(repo *sql.DB, ctx context.Context, commentID st
 
 
 func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadID string, cfg *config.Config) ([]Activity, error) {
-	// 1. Get all direct friends (either direction)
 	friendQuery := `
 		SELECT DISTINCT CASE WHEN user_id = ? THEN friend_id ELSE user_id END AS friend_id
 		FROM friendships
@@ -1410,7 +1396,6 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 	}
 	friendIDs[userID] = true // include self for submission ownership
 
-	// 2. Get all submissions by you or your friends
 	subQuery := `SELECT id, prompt, user_id FROM user_submissions us JOIN daily_prompts dp ON us.day = dp.day WHERE us.user_id IN (` + placeholders(len(friendIDs)) + `)`
 	subArgs := make([]interface{}, 0, len(friendIDs))
 	for id := range friendIDs {
@@ -1438,7 +1423,6 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 		return []Activity{}, nil
 	}
 
-	// 3. Get all comments on these submissions from the last 7 days, by friends (not you)
 	commentQuery := `
 		SELECT c.id, c.user_id, u.username, u.email, u.created_at, c.text, c.created_at, c.submission_id
 		FROM comments c
@@ -1489,7 +1473,6 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 		}
 	}
 
-	// 4. Get all reactions on these submissions from the last 7 days, by friends (not you)
 	reactionQuery := `
 		SELECT r.id, r.user_id, u.username, u.email, u.created_at, r.reaction_id, r.created_at, r.content_id
 		FROM reactions r
@@ -1534,15 +1517,12 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 		}
 	}
 
-	// 5. Sort all activities by date descending
-	// (already sorted in each query, but need to merge)
 	if len(activities) > 1 {
 		sort.Slice(activities, func(i, j int) bool {
 			return activities[i].Date.After(activities[j].Date)
 		})
 	}
 
-	// 6. Mark isRead based on lastReadID (all before and including are read)
 	for i := range activities {
 		if lastReadID != "" && activities[i].ID <= lastReadID {
 			activities[i].IsRead = true

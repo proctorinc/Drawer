@@ -117,8 +117,8 @@ func initializeDevData(db *sql.DB) error {
 	demoData := `
 		-- Insert demo users
 		INSERT OR IGNORE INTO users (id, username, email, created_at) VALUES 
-			('user1', 'tankard_wellington', 'demo1@example.com', date('now', '-13 days')),
-			('user2', 'wifeyp', 'demo2@example.com', date('now', '-13 days')),
+			('user1', 'tankard_wellington', 'demo1@example.com', date('now', '-63 days')),
+			('user2', 'wifey_p', 'demo2@example.com', date('now', '-13 days')),
 			('user3', 'matty_p', 'demo3@example.com', date('now', '-13 days')),
 			('user4', 'jimbo', 'demo4@example.com', date('now', '-13 days')),
 			('user5', 'jonny_p', 'demo5@example.com', date('now', '-13 days')),
@@ -141,7 +141,6 @@ func initializeDevData(db *sql.DB) error {
 			('user1', 'user7'),
 			('user7', 'user1');;
 
-		-- Add prompts for the last 2 days and today
 		INSERT OR IGNORE INTO daily_prompts (day, colors, prompt) VALUES 
 			(date('now', '-13 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A sunset over mountains'),
 			(date('now', '-8 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A test thing'),
@@ -156,8 +155,9 @@ func initializeDevData(db *sql.DB) error {
 			(date('now', '+1 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A tangerine'),
 			(date('now', '+2 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'An orange banana');
 
-		-- Add submissions for the last 2 days
 		INSERT OR IGNORE INTO user_submissions (id, user_id, day, canvas_data) VALUES 
+			('sub00', 'user1', date('now', '-60 days'), ''),	
+			('sub0', 'user1', date('now', '-30 days'), ''),	
 			('sub1', 'user1', date('now', '-6 days'), ''),
 			('sub2', 'user1', date('now', '-4 days'), ''),
 			('sub3', 'user1', date('now', '-3 days'), ''),
@@ -169,7 +169,6 @@ func initializeDevData(db *sql.DB) error {
 			('sub9', 'user1', date('now', '-1 days'), ''),
 			('sub10', 'user1', date('now'), '');
 
-		-- Add comments on submissions (let id auto-increment)
 		INSERT INTO comments (submission_id, user_id, text, created_at) VALUES
 			('sub1', 'user2', 'Nice drawing!', date('now', '-6 days')),
 			('sub1', 'user3', 'Love the colors!', date('now', '-6 days')),
@@ -180,7 +179,6 @@ func initializeDevData(db *sql.DB) error {
 			('sub4', 'user2', 'So creative!', date('now', '-2 days')),
 			('sub4', 'user3', 'Wow!', date('now', '-2 days'));
 
-		-- Add reactions on submissions (let id auto-increment)
 		INSERT INTO reactions (user_id, content_type, content_id, reaction_id, created_at) VALUES
 			('user2', 'submission', 'sub1', 'fire', date('now', '-6 days')),
 			('user3', 'submission', 'sub1', 'heart', date('now', '-6 days')),

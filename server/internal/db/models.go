@@ -68,6 +68,7 @@ type UserPromptSubmission struct {
 	Reactions  []Reaction      `json:"reactions"`
 	Counts     []ReactionCount `json:"counts"`
 	IsFavorite bool			   `json:"isFavorite"`
+	CreatedAt  time.Time       `json:"createdAt"`
 }
 
 type UserStats struct {
