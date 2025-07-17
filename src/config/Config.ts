@@ -9,3 +9,6 @@ export const Config = {
   CANVAS_HEIGHT: 370,
   LOCAL_STORAGE_KEY: 'drawingPaths',
 };
+
+console.log('Loaded Config:');
+console.log(Config);
