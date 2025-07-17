@@ -96,6 +96,9 @@ const DrawingFeedImage: FC<Props> = ({ submission, className }) => {
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerLeave}
+      onContextMenu={(e) => e.preventDefault()}
+      onTouchEnd={handlePointerUp}
+      onTouchCancel={handlePointerUp}
     >
       <DrawingImage
         imageUrl={submission.imageUrl}
