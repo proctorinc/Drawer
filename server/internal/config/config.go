@@ -29,7 +29,7 @@ func LoadConfig() *Config {
 		log.Println("No .env file found, using environment variables")
 	}
 
-	env := getEnv("ENV", "development")
+	env := getEnv("ENV", "production")
 	var dbURL string
 	if env == "production" {
 		// For production, use Turso

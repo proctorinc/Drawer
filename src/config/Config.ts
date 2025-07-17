@@ -1,5 +1,5 @@
 export const Config = {
-  ENV: import.meta.env.VITE_ENV || 'development',
+  ENV: import.meta.env.VITE_ENV || 'production',
   API_BASE_URL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
   VAPID_PUBLIC_KEY: import.meta.env.VITE_VAPID_PUBLIC_KEY || '',
   APP_NAME: 'The Daily Doodle',
