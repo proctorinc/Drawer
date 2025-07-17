@@ -29,7 +29,7 @@ const Layout: FC<Props> = ({
       {...backgroundProps}
     >
       <div
-        className="z-0 sticky top-0 flex flex-col items-center max-w-md w-full gap-6 md:p-2"
+        className="z-0 sticky top-0 flex flex-col items-center max-w-md w-full gap-6 px-6 md:p-2"
         {...headerProps}
       >
         <div className="sticky top-0 flex justify-center items-center text-center pb-6 pt-8 w-full">

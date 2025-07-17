@@ -21,6 +21,8 @@ import {
 } from '@/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import useUser from '@/auth/hooks/useUser';
+import { useState, useRef } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 
 type Props = {
   submission: UserPromptSubmission;
@@ -42,8 +44,47 @@ function hasUserReactedAny(submission: UserPromptSubmission, userId: string) {
   return submission.reactions.some((reaction) => reaction.user.id === userId);
 }
 
+const LONG_PRESS_DURATION = 400; // ms
+
 const DrawingFeedImage: FC<Props> = ({ submission, className }) => {
+  const navigate = useNavigate();
   const user = useUser();
+  const [overlaysVisible, setOverlaysVisible] = useState(true);
+  const longPressTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressTriggered = useRef(false);
+
+  // Handlers for pointer events
+  const handlePointerDown = () => {
+    longPressTriggered.current = false;
+    longPressTimeout.current = setTimeout(() => {
+      setOverlaysVisible(false);
+      longPressTriggered.current = true;
+    }, LONG_PRESS_DURATION);
+  };
+
+  const handlePointerUp = (e?: React.PointerEvent) => {
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+      longPressTimeout.current = null;
+    }
+    if (longPressTriggered.current) {
+      setOverlaysVisible(true);
+      // Don't trigger click
+    } else {
+      // Trigger click if not a long press
+      navigate({ to: `/draw/submission/${submission.id}` });
+    }
+  };
+
+  const handlePointerLeave = (e: React.PointerEvent) => {
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+      longPressTimeout.current = null;
+    }
+    if (e.pointerType !== 'touch') {
+      setOverlaysVisible(true);
+    }
+  };
 
   return (
     <Card
@@ -52,17 +93,45 @@ const DrawingFeedImage: FC<Props> = ({ submission, className }) => {
         'flex items-center relative bg-card rounded-2xl border-2 border-border',
         className,
       )}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerLeave}
     >
-      <DrawingImage imageUrl={submission.imageUrl} className="rounded-xl" />
-      {submission.user.id !== user.id && (
-        <ReactionButton submission={submission} />
-      )}
-      {submission.user.id === user.id && (
-        <FavoriteButton submission={submission} />
-      )}
-      <div className="flex flex-col gap-2 absolute top-2 right-2">
-        <UserProfileIcon user={submission.user} />
-        <FriendReactions submission={submission} />
+      <DrawingImage
+        imageUrl={submission.imageUrl}
+        className={cn(
+          'rounded-xl select-none',
+          !overlaysVisible && 'pointer-events-none',
+        )}
+        draggable={false}
+      />
+      {/* Unified overlays container */}
+      <div
+        className={cn(
+          'absolute inset-0 transition-opacity duration-200',
+          !overlaysVisible && 'opacity-0 pointer-events-none',
+        )}
+        style={{ zIndex: 2 }}
+      >
+        {/* Reaction or Favorite button */}
+        {submission.user.id !== user.id && (
+          <div className="absolute bottom-2 left-2 pointer-events-auto">
+            <ReactionButton submission={submission} />
+          </div>
+        )}
+        {submission.user.id === user.id && (
+          <div className="absolute bottom-2 right-2 pointer-events-auto">
+            <FavoriteButton submission={submission} />
+          </div>
+        )}
+        {/* Top right overlays */}
+        <div
+          id="hoverings"
+          className="flex flex-col gap-2 absolute top-2 right-2 pointer-events-auto"
+        >
+          <UserProfileIcon user={submission.user} />
+          <FriendReactions submission={submission} />
+        </div>
       </div>
     </Card>
   );

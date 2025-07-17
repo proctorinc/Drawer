@@ -88,10 +88,10 @@ const PromptSubmissionPage = () => {
       <Layout
         back
         header={
-          <div className="flex flex-col gap-4 max-w-3/4 w-full pb-6 -mt-6">
+          <div className="flex flex-col gap-4 w-full pb-6 -mt-6">
             <DrawingFeedImage
               submission={submission}
-              className="border-primary shadow-primary"
+              className="border-secondary shadow-secondary"
             />
           </div>
         }
@@ -238,7 +238,7 @@ const PromptSubmissionPage = () => {
             </CardContent>
           </Card>
         </div>
-        <div className="text-left w-full">
+        <div className="text-left w-full -mt-4">
           <span className="text-xs font-semibold text-secondary pl-2">
             Drawn by {submission.user.username} at{' '}
             {new Date(submission.createdAt).toLocaleTimeString('en-US', {

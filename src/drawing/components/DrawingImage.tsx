@@ -6,13 +6,14 @@ type Props = {
   className?: string;
   onClick?: () => void;
   style?: React.CSSProperties;
-};
+} & React.ImgHTMLAttributes<HTMLImageElement>;
 
 export const DrawingImage: FC<Props> = ({
   imageUrl,
   className = '',
   onClick,
   style,
+  ...imgProps
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const hasLoadedBefore = useRef(false);
@@ -62,6 +63,7 @@ export const DrawingImage: FC<Props> = ({
         className,
       )}
       style={style}
+      {...imgProps}
     />
   );
 };
