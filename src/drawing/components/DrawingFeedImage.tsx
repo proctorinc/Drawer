@@ -22,11 +22,11 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import useUser from '@/auth/hooks/useUser';
 import { useState, useRef } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 
 type Props = {
   submission: UserPromptSubmission;
   className?: string;
+  onClick?: () => void;
 };
 
 function hasUserReacted(
@@ -44,10 +44,9 @@ function hasUserReactedAny(submission: UserPromptSubmission, userId: string) {
   return submission.reactions.some((reaction) => reaction.user.id === userId);
 }
 
-const LONG_PRESS_DURATION = 100; // ms
+const LONG_PRESS_DURATION = 200; // ms
 
-const DrawingFeedImage: FC<Props> = ({ submission, className }) => {
-  const navigate = useNavigate();
+const DrawingFeedImage: FC<Props> = ({ submission, onClick, className }) => {
   const user = useUser();
   const [overlaysVisible, setOverlaysVisible] = useState(true);
   const longPressTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,7 +71,7 @@ const DrawingFeedImage: FC<Props> = ({ submission, className }) => {
       // Don't trigger click
     } else {
       // Trigger click if not a long press
-      navigate({ to: `/draw/submission/${submission.id}` });
+      onClick?.();
     }
   };
 
