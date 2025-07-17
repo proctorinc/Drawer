@@ -62,7 +62,7 @@ const DrawingFeedImage: FC<Props> = ({ submission, className }) => {
     }, LONG_PRESS_DURATION);
   };
 
-  const handlePointerUp = (e?: React.PointerEvent) => {
+  const handlePointerUp = () => {
     if (longPressTimeout.current) {
       clearTimeout(longPressTimeout.current);
       longPressTimeout.current = null;
