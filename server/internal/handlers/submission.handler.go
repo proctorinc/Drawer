@@ -37,16 +37,15 @@ func HandleGetSubmissionByID(c *gin.Context) {
 			u.username,
 			u.email,
 			u.created_at,
-			us.created_at as submission_created_at,
-			us.canvas_data
+			us.created_at as submission_created_at
 		FROM user_submissions us
 		JOIN daily_prompts dp ON us.day = dp.day
 		JOIN users u ON us.user_id = u.id
 		WHERE us.id = ?
 	`
 	var (
-		subID, day, colorsJSON, prompt, userID, username, email, canvasData string
-		userCreatedAt, submissionCreatedAt                                  sql.NullTime
+		subID, day, colorsJSON, prompt, userID, username, email string
+		userCreatedAt, submissionCreatedAt                      sql.NullTime
 	)
 	err := appCtx.DB.QueryRowContext(c.Request.Context(), query, submissionID).Scan(
 		&subID,
@@ -58,7 +57,6 @@ func HandleGetSubmissionByID(c *gin.Context) {
 		&email,
 		&userCreatedAt,
 		&submissionCreatedAt,
-		&canvasData,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
