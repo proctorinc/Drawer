@@ -90,7 +90,7 @@ const DrawingFeedImage: FC<Props> = ({ submission, className }) => {
     <Card
       key={`${submission.user.id}-${submission.day}`}
       className={cn(
-        'flex items-center relative bg-card rounded-2xl border-2 border-border',
+        'flex items-center relative bg-card rounded-2xl border-2 border-border select-none pointer-events-none',
         className,
       )}
       onPointerDown={handlePointerDown}
