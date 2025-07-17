@@ -35,7 +35,7 @@ func GetImageUrl(cfg *config.Config, imageFilename string) string {
 		return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", cfg.S3BucketName, cfg.S3BucketRegion, imageFilename)
 	}
 
-	return fmt.Sprintf("/uploads/%s", imageFilename)
+	return "/example.png"
 }
 
 func GetImageFilename(userId string, submissionId string) string {

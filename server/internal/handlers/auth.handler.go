@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"database/sql"
-	"drawer-service-backend/internal/db"
+	"drawer-service-backend/internal/context"
+	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/email"
-	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
 	"errors"
 	"log"
@@ -21,6 +21,8 @@ type RegisterRequest struct {
 }
 
 func HandleVerifyEmail(c *gin.Context) {
+	appCtx := context.GetCtx(c)
+
 	token := c.Query("token")
 	if token == "" {
 		log.Printf("Missing verification token in request")
@@ -28,11 +30,8 @@ func HandleVerifyEmail(c *gin.Context) {
 		return
 	}
 
-	// Get database connection from context
-	repo := middleware.GetDB(c)
-
 	// Verify the token
-	user, err := db.VerifyToken(repo, c.Request.Context(), token)
+	user, err := queries.VerifyToken(appCtx.DB, c.Request.Context(), token)
 	if err != nil {
 		log.Printf("Token verification failed for token %s: %v", token, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired verification token"})
@@ -46,7 +45,8 @@ func HandleVerifyEmail(c *gin.Context) {
 }
 
 func HandleLogin(c *gin.Context) {
-	cfg := middleware.GetConfig(c)
+	appCtx := context.GetCtx(c)
+	ctx := c.Request.Context()
 
 	var loginReq struct {
 		Email string `json:"email" binding:"required,email"`
@@ -58,12 +58,8 @@ func HandleLogin(c *gin.Context) {
 		return
 	}
 
-	// Get database connection
-	repo := middleware.GetDB(c)
-	ctx := c.Request.Context()
-
 	// Get user
-	user, err := db.GetUserByEmail(repo, ctx, loginReq.Email)
+	user, err := queries.GetUserByEmail(appCtx.DB, ctx, loginReq.Email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Printf("No account found for email: %s", utils.MaskEmail(loginReq.Email))
@@ -76,25 +72,27 @@ func HandleLogin(c *gin.Context) {
 	}
 
 	// Skip email verification for development environment
-	if cfg.Env != "production" {
+	if appCtx.Config.Env != "production" {
 		setAuthCookie(c, user.ID)
 		c.Redirect(http.StatusSeeOther, "/draw/")
 		return
 	}
 
 	// Create verification token
-	token, err := db.CreateVerificationToken(repo, ctx, user.ID, user.Email)
+	token, err := queries.CreateVerificationToken(appCtx.DB, ctx, user.ID, user.Email)
 	if err != nil {
 		log.Printf("Failed to create verification token for user %s: %v", user.ID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create verification token"})
 		return
 	}
 
-	// Send verification email
-	if err := email.SendVerificationEmail(cfg, user.Email, token); err != nil {
-		log.Printf("Failed to send verification email: %v", err)
-		// Don't return error to user, just log it
-	}
+	go func() {
+		// Send verification email
+		if err := email.SendVerificationEmail(appCtx.Config, user.Email, token); err != nil {
+			log.Printf("Failed to send verification email: %v", err)
+			// Don't return error to user, just log it
+		}
+	}()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Verification email sent. Please check your inbox to log in.",
@@ -102,12 +100,8 @@ func HandleLogin(c *gin.Context) {
 }
 
 func HandleRegister(c *gin.Context) {
-	defer func() {
-		if r := recover(); r != nil {
-			log.Printf("Recovered from panic in HandleRegister: %v", r)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
-		}
-	}()
+	appCtx := context.GetCtx(c)
+	ctx := c.Request.Context()
 
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -133,12 +127,8 @@ func HandleRegister(c *gin.Context) {
 		return
 	}
 
-	// Get database connection
-	repo := middleware.GetDB(c)
-	ctx := c.Request.Context()
-
 	// Check if user already exists
-	existingUser, err := db.GetUserByEmail(repo, ctx, req.Email)
+	existingUser, err := queries.GetUserByEmail(appCtx.DB, ctx, req.Email)
 	if err != nil && err != sql.ErrNoRows {
 		log.Printf("Database error checking existing user: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error checking user"})
@@ -152,35 +142,35 @@ func HandleRegister(c *gin.Context) {
 	}
 
 	// Create user
-	user, err := db.CreateUser(repo, ctx, req.Username, req.Email)
+	user, err := queries.CreateUser(appCtx.DB, ctx, req.Username, req.Email)
 	if err != nil {
 		log.Printf("Failed to create user: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
-	cfg := middleware.GetConfig(c)
-
 	// Skip email verification for development environment
-	if cfg.Env != "production" {
+	if appCtx.Config.Env != "production" {
 		setAuthCookie(c, user.ID)
 		c.Redirect(http.StatusSeeOther, "/draw/")
 		return
 	}
 
 	// Create verification token
-	token, err := db.CreateVerificationToken(repo, ctx, user.ID, user.Email)
+	token, err := queries.CreateVerificationToken(appCtx.DB, ctx, user.ID, user.Email)
 	if err != nil {
 		log.Printf("Failed to create verification token: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create verification token"})
 		return
 	}
 
-	// Send verification email
-	if err := email.SendVerificationEmail(cfg, req.Email, token); err != nil {
-		log.Printf("Failed to send verification email: %v", err)
-		// Don't return error to user, just log it
-	}
+	go func() {
+		// Send verification email
+		if err := email.SendVerificationEmail(appCtx.Config, req.Email, token); err != nil {
+			log.Printf("Failed to send verification email: %v", err)
+			// Don't return error to user, just log it
+		}
+	}()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Registration successful. Please check your email to verify your account.",

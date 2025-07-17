@@ -1,4 +1,4 @@
-package db
+package models
 
 import (
 	"time"
@@ -9,13 +9,6 @@ type DailyPrompt struct {
 	Day    string   `json:"day"` // Format: YYYY-MM-DD
 	Colors []string `json:"colors"`
 	Prompt string   `json:"prompt"`
-}
-
-type DailyPromptWithCompletion struct {
-	Day         string   `json:"day"` // Format: YYYY-MM-DD
-	Colors      []string `json:"colors"`
-	Prompt      string   `json:"prompt"`
-	IsCompleted bool     `json:"isCompleted"`
 }
 
 // User represents basic user profile information.
@@ -115,7 +108,6 @@ type Activity struct {
 	} `json:"submission,omitempty"`
 }
 
-
 type PushSubscription struct {
 	Endpoint string
 	P256dh   string
@@ -131,11 +123,11 @@ const (
 )
 
 type NotificationData struct {
-	Type      NotificationType `json:"type"`
-	Title     string           `json:"title"`
-	Body      string           `json:"body"`
-	URL       string           `json:"url,omitempty"`
-	UserID    string           `json:"userId,omitempty"`
-	Username  string           `json:"username,omitempty"`
-	Action    string           `json:"action,omitempty"`
+	Type     NotificationType `json:"type"`
+	Title    string           `json:"title"`
+	Body     string           `json:"body"`
+	URL      string           `json:"url,omitempty"`
+	UserID   string           `json:"userId,omitempty"`
+	Username string           `json:"username,omitempty"`
+	Action   string           `json:"action,omitempty"`
 }

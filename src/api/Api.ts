@@ -1,6 +1,6 @@
-import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiClient } from './apiClient';
+import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
 export interface DailyPrompt {
   day: string;
@@ -22,8 +22,8 @@ export interface ReactionCount {
 }
 
 export interface ReactionResponse {
-  reactions: Reaction[];
-  counts: ReactionCount[];
+  reactions: Array<Reaction>;
+  counts: Array<ReactionCount>;
 }
 
 export type ActivityAction = 'comment' | 'reaction';
@@ -48,8 +48,8 @@ export interface Comment {
   user: User;
   text: string;
   createdAt: Date;
-  reactions: Reaction[];
-  counts: ReactionCount[];
+  reactions: Array<Reaction>;
+  counts: Array<ReactionCount>;
 }
 
 export type ReactionId = 'heart' | 'cry-laugh' | 'face-meh' | 'fire';
@@ -65,9 +65,9 @@ export interface UserPromptSubmission extends DailyPrompt {
   id: string;
   imageUrl: string;
   user: User;
-  comments: Comment[];
-  reactions: Reaction[];
-  counts: ReactionCount[];
+  comments: Array<Comment>;
+  reactions: Array<Reaction>;
+  counts: Array<ReactionCount>;
   isFavorite?: boolean;
   createdAt: Date;
 }
@@ -245,7 +245,7 @@ export function useSwapFavoriteOrder() {
 
 // Activity Feed Hooks
 export function useActivityFeed() {
-  return useQuery<Activity[]>({
+  return useQuery<Array<Activity>>({
     queryKey: queryKeys.activityFeed,
     queryFn: apiClient.getActivityFeed,
   });

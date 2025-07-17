@@ -2,7 +2,8 @@ package middleware
 
 import (
 	"database/sql"
-	"drawer-service-backend/internal/db"
+	"drawer-service-backend/internal/db/models"
+	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/utils"
 	"errors"
 	"log"
@@ -28,7 +29,7 @@ func AuthMiddleware(repo *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		user, err := db.GetUserFromDB(repo, c.Request.Context(), userID)
+		user, err := queries.GetUserFromDB(repo, c.Request.Context(), userID)
 
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
@@ -54,6 +55,6 @@ func GetUserID(ctx *gin.Context) string {
 	return ctx.MustGet(UserIDContextKey).(string)
 }
 
-func GetUser(ctx *gin.Context) db.User {
-	return ctx.MustGet(UserContextKey).(db.User)
+func GetUser(ctx *gin.Context) models.User {
+	return ctx.MustGet(UserContextKey).(models.User)
 }

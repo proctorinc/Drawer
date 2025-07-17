@@ -1,13 +1,13 @@
-import { Config } from '@/config/Config';
 import type {
-  DailyPrompt,
-  User,
-  GetMeResponse,
-  UserPromptSubmission,
-  Comment,
-  ReactionResponse,
   Activity,
+  Comment,
+  DailyPrompt,
+  GetMeResponse,
+  ReactionResponse,
+  User,
+  UserPromptSubmission,
 } from './Api';
+import { Config } from '@/config/Config';
 
 // Pure API client functions (no React Query dependencies)
 export async function fetchAPI(
@@ -188,8 +188,8 @@ export const apiClient = {
 
     // Convert to PNG
     const blob = await new Promise<Blob>((resolve) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
+      canvas.toBlob((callback) => {
+        if (callback) resolve(callback);
       }, 'image/png');
     });
 
@@ -265,14 +265,14 @@ export const apiClient = {
   },
 
   // Activity
-  getActivityFeed: async (): Promise<Activity[]> => {
+  getActivityFeed: async (): Promise<Array<Activity>> => {
     const response = await fetchAPI('GET', '/activity');
     if (!response.ok) {
       throw new Error(`Error fetching activity feed: ${response.statusText}`);
     }
     const data = await response.json();
     // Convert date strings to Date objects
-    return (data.activities as any[]).map((a: any) => ({
+    return (data.activities as Array<any>).map((a: any) => ({
       ...a,
       date: new Date(a.date),
       comment: a.comment
