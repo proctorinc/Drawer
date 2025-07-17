@@ -44,7 +44,7 @@ function hasUserReactedAny(submission: UserPromptSubmission, userId: string) {
   return submission.reactions.some((reaction) => reaction.user.id === userId);
 }
 
-const LONG_PRESS_DURATION = 400; // ms
+const LONG_PRESS_DURATION = 100; // ms
 
 const DrawingFeedImage: FC<Props> = ({ submission, className }) => {
   const navigate = useNavigate();
@@ -90,7 +90,7 @@ const DrawingFeedImage: FC<Props> = ({ submission, className }) => {
     <Card
       key={`${submission.user.id}-${submission.day}`}
       className={cn(
-        'flex items-center relative bg-card rounded-2xl border-2 border-border select-none pointer-events-none',
+        'flex items-center relative bg-card rounded-2xl border-2 border-border select-none',
         className,
       )}
       onPointerDown={handlePointerDown}
