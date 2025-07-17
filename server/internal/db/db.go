@@ -155,19 +155,19 @@ func initializeDevData(db *sql.DB) error {
 			(date('now', '+1 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A tangerine'),
 			(date('now', '+2 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'An orange banana');
 
-		INSERT OR IGNORE INTO user_submissions (id, user_id, day, canvas_data) VALUES 
-			('sub00', 'user1', date('now', '-60 days'), ''),	
-			('sub0', 'user1', date('now', '-30 days'), ''),	
-			('sub1', 'user1', date('now', '-6 days'), ''),
-			('sub2', 'user1', date('now', '-4 days'), ''),
-			('sub3', 'user1', date('now', '-3 days'), ''),
-			('sub4', 'user1', date('now', '-2 days'), ''),
-			('sub5', 'user2', date('now', '-6 days'), ''),
-			('sub6', 'user2', date('now', '-4 days'), ''),
-			('sub7', 'user2', date('now', '-3 days'), ''),
-			('sub8', 'user2', date('now', '-2 days'), ''),
-			('sub9', 'user1', date('now', '-1 days'), ''),
-			('sub10', 'user1', date('now'), '');
+		INSERT OR IGNORE INTO user_submissions (id, user_id, day) VALUES 
+			('sub00', 'user1', date('now', '-60 days')),	
+			('sub0', 'user1', date('now', '-30 days')),	
+			('sub1', 'user1', date('now', '-6 days')),
+			('sub2', 'user1', date('now', '-4 days')),
+			('sub3', 'user1', date('now', '-3 days')),
+			('sub4', 'user1', date('now', '-2 days')),
+			('sub5', 'user2', date('now', '-6 days')),
+			('sub6', 'user2', date('now', '-4 days')),
+			('sub7', 'user2', date('now', '-3 days')),
+			('sub8', 'user2', date('now', '-2 days')),
+			('sub9', 'user1', date('now', '-1 days')),
+			('sub10', 'user1', date('now'));
 
 		INSERT INTO comments (submission_id, user_id, text, created_at) VALUES
 			('sub1', 'user2', 'Nice drawing!', date('now', '-6 days')),
