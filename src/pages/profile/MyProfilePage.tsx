@@ -49,7 +49,7 @@ const MyProfilePage = () => {
       back
       header={
         <>
-          <div className="relative w-full">
+          <div className="z-0 relative w-full">
             <div className="flex flex-col items-center gap-3">
               <UserProfileIcon user={profile.user} size="2xl" />
               <div className="flex gap-2 justify-center items-center text-center font-bold w-full max-w-md">
@@ -66,7 +66,7 @@ const MyProfilePage = () => {
               className="absolute right-8 top-14 bg-primary text-secondary"
             ></ShareButton>
           </div>
-          <div className="flex gap-4 w-full justify-center pb-6">
+          <div className="z-0 flex gap-4 w-full justify-center pb-6">
             <Button
               disableLoad
               variant="base"
