@@ -89,7 +89,7 @@ export const ActivityFeed = () => {
                 </div>
                 <DrawingImage
                   imageUrl={activity.submission?.imageUrl ?? ''}
-                  className="h-14 w-14 border-2 border-border"
+                  className="h-14 w-14 rounded-lg border-2 border-border"
                   onClick={() =>
                     navigate({
                       to: `/draw/submission/${activity.submission?.id}`,

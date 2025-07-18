@@ -98,7 +98,9 @@ const PromptSubmissionPage = () => {
       >
         <div className="flex justify-between gap-2 w-full items-center">
           <div className="w-full font-bold">
-            <h2 className="text-2xl text-primary">{submission.prompt}</h2>
+            <h2 className="text-2xl text-primary text-balance">
+              {submission.prompt}
+            </h2>
             <p className="text-secondary">
               {new Date(submission.day).toLocaleDateString('en-US', {
                 month: 'long',

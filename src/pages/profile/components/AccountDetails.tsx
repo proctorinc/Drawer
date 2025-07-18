@@ -39,12 +39,12 @@ const AccountDetails = () => {
     <Card>
       <CardContent>
         <CardHeader title="Account" subtitle="Change username">
-          <Button size="sm" variant="base" icon={faDoorOpen} onClick={logout}>
+          <Button size="sm" icon={faDoorOpen} onClick={logout}>
             Log out
           </Button>
         </CardHeader>
         <form onSubmit={handleUpdateProfile} className="flex flex-col gap-2">
-          <div className="flex gap-2 rounded-2xl">
+          <div className="flex items-center gap-2 rounded-2xl">
             <input
               id="username"
               type="text"
@@ -60,7 +60,8 @@ const AccountDetails = () => {
                 username === user.username || updateUsernameMutation.isPending
               }
               icon={faCircleCheck}
-              className="disabled:bg-base"
+              size="sm"
+              className="h-fit disabled:bg-base"
             ></Button>
           </div>{' '}
           {error && (

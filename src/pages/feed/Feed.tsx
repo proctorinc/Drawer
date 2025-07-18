@@ -10,14 +10,6 @@ import Disclaimer, { DisclaimerItem } from '@/components/Disclaimer';
 const Feed = () => {
   const { dailyPrompt } = useDailyPrompt();
 
-  const formattedDate = dailyPrompt
-    ? new Date(dailyPrompt.day).toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : '';
-
   const hasPromptBeenCompleted = dailyPrompt && dailyPrompt.isCompleted;
   const promptNotCompleted = dailyPrompt && !dailyPrompt.isCompleted;
   const isNoPrompt = !dailyPrompt;
@@ -27,8 +19,10 @@ const Feed = () => {
       header={
         (hasPromptBeenCompleted || isNoPrompt) && (
           <div className="flex flex-col items-center gap-1 rounded-full text-2xl w-full max-w-sm mb-6">
-            <CountDownTimer className="font-cursive text-5xl text-secondary" />
-            <span className="font-bold text-primary">Next Doodle</span>
+            <CountDownTimer className="font-cursive text-5xl" />
+            <span className="text-sm font-extrabold tracking-wide text-secondary">
+              Next Doodle
+            </span>
           </div>
         )
       }
@@ -39,10 +33,9 @@ const Feed = () => {
             Use today's colors to draw the prompt
           </Banner>
           <div className="flex flex-col items-center w-full -my-4">
-            <h3 className="text-xl font-bold text-primary">
+            <h3 className="text-xl text-balance font-bold text-primary">
               Draw {dailyPrompt.prompt.toLowerCase()}
             </h3>
-            <p className="font-bold text-secondary">{formattedDate}</p>
           </div>
         </>
       )}

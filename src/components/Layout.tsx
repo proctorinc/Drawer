@@ -27,7 +27,7 @@ const Layout: FC<Props> = ({
 
   return (
     <div
-      className="flex flex-col items-center justify-center"
+      className="flex flex-col items-center justify-center bg-gradient-to-tr from-primary to-primary-foreground"
       {...backgroundProps}
     >
       <div
@@ -38,7 +38,7 @@ const Layout: FC<Props> = ({
           {back && canGoBack && (
             <Button
               variant="base"
-              className="absolute left-0 top-6 w-10 bg-primary-foreground text-secondary"
+              className="absolute left-0 top-6 w-10 bg-transparent text-secondary"
               icon={faArrowLeft}
               disableLoad
               onClick={() => router.history.back()}
@@ -47,19 +47,19 @@ const Layout: FC<Props> = ({
           {back && !canGoBack && (
             <Button
               variant="base"
-              className="absolute left-0 top-6 w-10 bg-primary-foreground text-secondary"
+              className="absolute left-0 top-6 w-10 bg-transparent text-secondary"
               icon={faHome}
               disableLoad
               onClick={() => navigate({ to: '/draw' })}
             />
           )}
-          <h1 className="text-xl font-cursive font-extrabold tracking-widest text-border">
+          <h1 className="text-xl font-cursive font-extrabold tracking-widest text-border/80">
             The Daily Doodle
           </h1>
         </div>
         {header}
       </div>
-      <div className="z-10 relative flex flex-col flex-grow w-full items-center p-6 md:p-2 gap-6 bg-base min-h-screen overflow-y-auto overflow-x-hidden pb-30 max-w-md rounded-t-3xl border-2 border-border">
+      <div className="z-10 relative flex flex-col flex-grow w-full items-center p-6 md:p-2 gap-6 bg-base min-h-screen overflow-y-auto overflow-x-hidden pb-30 max-w-md rounded-t-4xl border-2 border-border">
         {children}
         {isAuthenticated && <Navbar />}
       </div>

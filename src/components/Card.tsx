@@ -10,7 +10,7 @@ const Card: FC<CardProps> = ({ className, children, ...props }) => {
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 bg-card border-2 border-border rounded-xl w-full shadow-[4px_4px_0_0_rgba(0,0,0,0.2)] shadow-border',
+        'flex flex-col gap-4 overflow-clip bg-card border-2 border-border rounded-2xl w-full shadow-[4px_4px_0_0_rgba(0,0,0,0.2)] shadow-border',
         className,
       )}
       {...props}
@@ -49,7 +49,7 @@ const CardHeader: FC<CardHeaderProps> = ({ title, subtitle, children }) => {
     <div className="flex justify-between items-center">
       <div>
         <h3 className="text-lg font-bold text-primary">{title}</h3>
-        <p className="text-sm font-bold text-secondary">{subtitle}</p>
+        <p className="text-sm font-semibold text-secondary">{subtitle}</p>
       </div>
       {children}
     </div>

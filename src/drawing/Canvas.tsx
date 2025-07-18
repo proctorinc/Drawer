@@ -2,7 +2,7 @@ import React, { forwardRef } from 'react';
 import { useDrawing } from './DrawingContext'; // Adjust the path as needed
 import { createCursorImage } from './utils';
 import { Config } from '@/config/Config';
-import { cn } from '@/utils';
+import { Card } from '@/components/Card';
 
 const Canvas = forwardRef<
   HTMLCanvasElement,
@@ -16,12 +16,7 @@ const Canvas = forwardRef<
   };
 
   return (
-    <div
-      className={cn(
-        'bg-card rounded-2xl border-2 border-border w-fit',
-        className,
-      )}
-    >
+    <Card className={className}>
       <canvas
         id="drawingCanvas"
         ref={ref}
@@ -31,7 +26,7 @@ const Canvas = forwardRef<
         style={{ ...cursorStyle }}
         {...otherProps}
       />
-    </div>
+    </Card>
   );
 });
 

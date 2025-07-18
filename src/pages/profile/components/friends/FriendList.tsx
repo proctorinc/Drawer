@@ -23,15 +23,12 @@ export const FriendList: FC<Props> = ({ user, friends }) => {
   return (
     <Card>
       <CardContent>
-        <CardHeader title="Friend list"></CardHeader>
+        <CardHeader
+          title={isMe ? 'My friends' : `${user?.username}'s friends`}
+        />
         <div className="flex flex-col gap-2 w-full max-w-md">
           {friends?.length === 0 && (
             <Banner className="bg-base border-none p-4">No friends</Banner>
-          )}
-          {friends?.length === 0 && isMe && (
-            <Banner className="bg-base border-none p-4">
-              Share a link to add friends!
-            </Banner>
           )}
           {friends &&
             friends.length > 0 &&
@@ -42,6 +39,7 @@ export const FriendList: FC<Props> = ({ user, friends }) => {
                   key={friend.id}
                   className="flex items-center gap-3 rounded-2xl w-full px-4 py-2"
                   style={{ backgroundColor: secondary }}
+                  onClick={() => navigate({ to: `/draw/profile/${friend.id}` })}
                 >
                   <UserProfileIcon user={friend} />
                   <div className="flex justify-between items-center w-full">
@@ -52,9 +50,6 @@ export const FriendList: FC<Props> = ({ user, friends }) => {
                       size="sm"
                       style={{ backgroundColor: primary, color: text }}
                       icon={faAngleRight}
-                      onClick={() =>
-                        navigate({ to: `/draw/profile/${friend.id}` })
-                      }
                     ></Button>
                   </div>
                 </div>

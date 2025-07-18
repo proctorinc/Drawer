@@ -12,7 +12,7 @@ const Navbar = () => {
 
   return (
     <div className="z-50 fixed bottom-0 left-0 right-0 flex justify-center items-center">
-      <div className="flex justify-around w-full max-w-md bg-primary-foreground rounded-t-3xl p-4 pb-8">
+      <div className="flex justify-around w-full max-w-md bg-primary-foreground rounded-t-4xl p-4 pb-8">
         <button
           onClick={() => navigate({ to: '/draw/activity' })}
           className={cn(

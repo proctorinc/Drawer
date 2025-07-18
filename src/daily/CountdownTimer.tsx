@@ -1,4 +1,5 @@
 import useAuth from '@/auth/hooks/useAuth';
+import { cn } from '@/utils';
 import { useEffect, useState, type FC } from 'react';
 
 type Props = {
@@ -55,5 +56,11 @@ export const CountDownTimer: FC<Props> = ({ className }) => {
     return `${hours}:${minutes}:${secs}`;
   };
 
-  return <span className={className}>{formatTime(time)}</span>;
+  return (
+    <div className="bg-gradient-to-br from-base via-secondary to-primary bg-clip-text">
+      <span className={cn('text-transparent', className)}>
+        {formatTime(time)}
+      </span>
+    </div>
+  );
 };

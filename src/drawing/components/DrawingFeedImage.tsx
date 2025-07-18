@@ -101,10 +101,7 @@ const DrawingFeedImage: FC<Props> = ({ submission, onClick, className }) => {
     >
       <DrawingImage
         imageUrl={submission.imageUrl}
-        className={cn(
-          'rounded-xl select-none',
-          !overlaysVisible && 'pointer-events-none',
-        )}
+        className={cn('select-none', !overlaysVisible && 'pointer-events-none')}
         draggable={false}
       />
       {/* Unified overlays container */}
