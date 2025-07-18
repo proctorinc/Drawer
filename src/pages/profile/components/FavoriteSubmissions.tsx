@@ -28,8 +28,9 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const swapFavorites = useSwapFavoriteOrder();
 
-  const isMe = currentUser.id === profile?.user.id;
   const favorites = profile?.favorites;
+  const isMe = currentUser.id === profile?.user.id;
+  const canEdit = !!favorites?.length && favorites?.length > 0 && isMe;
 
   function handleEditToggle() {
     setIsEditing((prev) => !prev);
@@ -57,8 +58,7 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
   return (
     <div className="relative flex flex-col gap-2 w-full">
       <div className="flex justify-between text-lg font-bold text-primary text-left w-full">
-        {/* <h2>Favorite doodles</h2> */}
-        {favorites?.length && favorites?.length > 0 && isMe && (
+        {canEdit && (
           <Button
             size="sm"
             className="absolute top-0 right-0"
