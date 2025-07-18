@@ -18,7 +18,7 @@ func SendVerificationEmail(cfg *config.Config, toEmail string, token string) err
 	}
 
 	// Create email HTML
-	html := `
+	html := fmt.Sprintf(`
 		<html>
 			<head>
 				<meta charset="UTF-8" />
@@ -143,7 +143,7 @@ func SendVerificationEmail(cfg *config.Config, toEmail string, token string) err
 				</table>
 			</body>
 		</html>
-	`
+	`, verifyURL)
 
 	// Create Resend client
 	client := resend.NewClient(cfg.ResendAPIKey)
