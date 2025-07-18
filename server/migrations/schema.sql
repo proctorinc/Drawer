@@ -55,7 +55,7 @@ CREATE TABLE comments (
     FOREIGN KEY (submission_id) REFERENCES user_submissions(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-CREATE TABLE sqlite_sequence(name,seq);
+-- CREATE TABLE sqlite_sequence(name,seq);
 CREATE TABLE activity_reads (
     user_id TEXT PRIMARY KEY,
     last_read_activity_id TEXT,

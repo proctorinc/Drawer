@@ -12,3 +12,4 @@ export const Config = {
 
 console.log('Loaded Config:');
 console.log(Config);
+console.log(import.meta.env);
