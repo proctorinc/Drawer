@@ -36,7 +36,7 @@ func SendVerificationEmail(cfg *config.Config, toEmail string, token string) err
 				"
 			>
 				<table
-				width="100%"
+				width="100%%"
 				cellpadding="0"
 				cellspacing="0"
 				style="background: #423d34; min-height: 100vh"
@@ -44,7 +44,7 @@ func SendVerificationEmail(cfg *config.Config, toEmail string, token string) err
 				<tr>
 					<td align="center">
 					<table
-						width="100%"
+						width="100%%"
 						cellpadding="0"
 						cellspacing="0"
 						style="
@@ -69,7 +69,7 @@ func SendVerificationEmail(cfg *config.Config, toEmail string, token string) err
 								style="
 								display: block;
 								margin: 0 auto;
-								border-radius: 50%;
+								border-radius: 50%%;
 								background: #edeae1;
 								border: 2px solid #d4cfc1;
 								"
