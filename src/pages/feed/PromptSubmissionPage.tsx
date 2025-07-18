@@ -108,6 +108,7 @@ const PromptSubmissionPage = () => {
             </p>
           </div>
           <ShareButton
+            imageUrl={submission.imageUrl}
             text={`Checkout ${submission.user.id === currentUser.id ? 'my' : `${submission.user.username}'s`} doodle of ${submission.prompt.toLowerCase()}!`}
           ></ShareButton>
         </div>

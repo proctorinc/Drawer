@@ -82,7 +82,7 @@ export const ActivityFeed = () => {
                           )}
                       </div>
                       <span className="text-xs text-secondary font-bold">
-                        {timeAgo(activity.date)} - {activity.action}
+                        {timeAgo(activity.date)}
                       </span>
                     </div>
                   </div>

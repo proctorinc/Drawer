@@ -6,6 +6,7 @@ import { cn } from '@/utils';
 
 type Props = {
   text: string;
+  imageUrl?: string;
   urlPath?: string;
   children?: ReactNode;
   className?: string;
@@ -13,11 +14,27 @@ type Props = {
 
 export const ShareButton: FC<Props> = ({
   text,
+  imageUrl,
   urlPath,
   children,
   className,
 }) => {
   const location = useLocation();
+
+  const handleShareWithImage = async (fileUrl: string) => {
+    if (navigator.share) {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+
+      const imageFile = new File([blob], 'logo.png', { type: blob.type });
+
+      navigator.share({
+        text,
+        url: `${window.location.origin}${urlPath ?? location.pathname}`,
+        files: [imageFile],
+      });
+    }
+  };
 
   const handleShare = () => {
     if (navigator.share) {
@@ -37,7 +54,9 @@ export const ShareButton: FC<Props> = ({
       size="sm"
       className={cn('h-fit', className)}
       icon={faShareAlt}
-      onClick={handleShare}
+      onClick={() =>
+        imageUrl ? handleShareWithImage(imageUrl) : handleShare()
+      }
     >
       {children}
     </Button>
