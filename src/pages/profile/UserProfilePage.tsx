@@ -63,7 +63,7 @@ const UserProfilePage = () => {
             </div>
             <ShareButton
               urlPath={`/draw/profile/${userProfile?.user.id}`}
-              text="Checkout my daily doodle profile!"
+              text={`Checkout ${userProfile.user.username}'s daily doodle profile!`}
               className="absolute right-8 top-14 bg-primary text-secondary"
             ></ShareButton>
             {isAlreadyFriend && (
