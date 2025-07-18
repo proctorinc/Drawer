@@ -49,39 +49,42 @@ export const ActivityFeed = () => {
 
         return (
           <Card key={activity.id}>
-            <CardContent>
-              <div className="flex items-center gap-2 justify-between text-sm">
-                <div className="flex flex-grow gap-3 items-center">
-                  <div className="flex flex-col gap-2 items-center">
+            <CardContent className="p-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex w-full h-full min-h-14">
+                  <div className="flex flex-grow gap-3 items-center pl-2">
                     <UserProfileIcon user={activity.user} size="sm" />
-                    <span className="text-xs text-secondary font-bold">
-                      {timeAgo(activity.date)}
-                    </span>
-                  </div>
-                  <div className="flex items-start">
-                    {activity.action === 'comment' && activity.comment && (
-                      <span className="font-semibold text-primary">
-                        {activity.comment.text}
-                      </span>
-                    )}
-                    {activity.action === 'reaction' && activity.reaction && (
-                      <span className="flex gap-2 font-semibold items-center text-primary">
-                        Reacted with
-                        <Button
-                          disableLoad
-                          variant="base"
-                          size="sm"
-                          className={cn(
-                            'font-accent',
-                            reactionIndicatorVariants({
-                              icon: activity.reaction.reactionId,
-                            }),
+                    <div className="flex flex-col items-start">
+                      <div className="flex items-center min-h-9">
+                        {activity.action === 'comment' && activity.comment && (
+                          <p className="font-semibold text-primary mb-1">
+                            {activity.comment.text}
+                          </p>
+                        )}
+                        {activity.action === 'reaction' &&
+                          activity.reaction && (
+                            <span className="flex gap-2 font-semibold items-center text-primary">
+                              Reacted with
+                              <Button
+                                disableLoad
+                                variant="base"
+                                size="sm"
+                                className={cn(
+                                  'font-accent',
+                                  reactionIndicatorVariants({
+                                    icon: activity.reaction.reactionId,
+                                  }),
+                                )}
+                              >
+                                {icon && <FontAwesomeIcon icon={icon} />}
+                              </Button>
+                            </span>
                           )}
-                        >
-                          {icon && <FontAwesomeIcon icon={icon} />}
-                        </Button>
+                      </div>
+                      <span className="text-xs text-secondary font-bold">
+                        {timeAgo(activity.date)} - {activity.action}
                       </span>
-                    )}
+                    </div>
                   </div>
                 </div>
                 <DrawingImage

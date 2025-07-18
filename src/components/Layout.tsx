@@ -2,8 +2,8 @@ import type { FC, HTMLAttributes, ReactNode } from 'react';
 import Navbar from './Navbar';
 import useAuth from '@/auth/hooks/useAuth';
 import Button from './Button';
-import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
-import { useRouter } from '@tanstack/react-router';
+import { faArrowLeft, faHome } from '@fortawesome/free-solid-svg-icons';
+import { useCanGoBack, useNavigate, useRouter } from '@tanstack/react-router';
 
 type Props = {
   header?: ReactNode;
@@ -21,6 +21,8 @@ const Layout: FC<Props> = ({
   backgroundProps,
 }) => {
   const router = useRouter();
+  const canGoBack = useCanGoBack();
+  const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
 
   return (
@@ -33,13 +35,22 @@ const Layout: FC<Props> = ({
         {...headerProps}
       >
         <div className="sticky top-0 flex justify-center items-center text-center pb-6 pt-8 w-full">
-          {back && (
+          {back && canGoBack && (
             <Button
               variant="base"
-              className="absolute left-4 top-6 w-10 bg-primary-foreground text-secondary"
+              className="absolute left-0 top-6 w-10 bg-primary-foreground text-secondary"
               icon={faArrowLeft}
               disableLoad
               onClick={() => router.history.back()}
+            />
+          )}
+          {back && !canGoBack && (
+            <Button
+              variant="base"
+              className="absolute left-0 top-6 w-10 bg-primary-foreground text-secondary"
+              icon={faHome}
+              disableLoad
+              onClick={() => navigate({ to: '/draw' })}
             />
           )}
           <h1 className="text-xl font-cursive font-extrabold tracking-widest text-border">

@@ -177,7 +177,9 @@ func initializeDevData(db *sql.DB) error {
 			('sub3', 'user3', 'Amazing!', date('now', '-3 days')),
 			('sub3', 'user1', 'Thank you!', date('now', '-3 days')),
 			('sub4', 'user2', 'So creative!', date('now', '-2 days')),
-			('sub4', 'user3', 'Wow!', date('now', '-2 days'));
+			('sub4', 'user3', 'Wow!', date('now', '-2 days')),
+			('sub4', 'user1', 'Thanks guys', date('now')),
+			('sub4', 'user1', 'I am a design', date('now'));
 
 		INSERT INTO reactions (user_id, content_type, content_id, reaction_id, created_at) VALUES
 			('user2', 'submission', 'sub1', 'fire', date('now', '-6 days')),

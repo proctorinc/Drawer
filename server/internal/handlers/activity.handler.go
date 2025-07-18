@@ -4,7 +4,9 @@ import (
 	"drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
+	"drawer-service-backend/internal/utils"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,6 +27,25 @@ func HandleGetActivity(c *gin.Context) {
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activity feed"})
 		return
+	}
+
+	// Filter out today's activity if the user hasn't submitted today
+	hasSubmittedToday, err := queries.CheckUserSubmittedToday(appCtx.DB, ctx, userID)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to check submission status"})
+		return
+	}
+
+	if !hasSubmittedToday {
+		todayStr := utils.GetFormattedDate(time.Now())
+		filtered := activities[:0]
+
+		for _, act := range activities {
+			if utils.GetFormattedDate(act.Date) != todayStr {
+				filtered = append(filtered, act)
+			}
+		}
+		activities = filtered
 	}
 
 	c.JSON(http.StatusOK, gin.H{"activities": activities})

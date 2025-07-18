@@ -53,8 +53,6 @@ const CalendarGrid = ({
           : new Date();
         const isToday = date.toDateString() === today.toDateString();
         const isBeforeUserCreation = date < createdAtDate;
-        const isUserCreationDay =
-          date.toDateString() === createdAtDate.toDateString();
         const isMissedDay =
           !isBeforeUserCreation && !drawing && date < today && !isToday;
 
@@ -65,7 +63,6 @@ const CalendarGrid = ({
               'aspect-square rounded-lg relative cursor-pointer hover:scale-105 transition-all duration-300',
               isToday ? 'ring-2 ring-primary' : '',
               date.getMonth() !== currentDate.getMonth() ? 'opacity-50' : '',
-              isUserCreationDay && 'ring-3 ring-border',
             )}
             onClick={(e) => onCellClick(drawing, e)}
           >
