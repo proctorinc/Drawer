@@ -20,7 +20,7 @@ const Feed = () => {
         (hasPromptBeenCompleted || isNoPrompt) && (
           <div className="flex flex-col items-center gap-1 rounded-full text-2xl w-full max-w-sm mb-6">
             <CountDownTimer className="font-cursive text-5xl" />
-            <span className="text-sm font-extrabold tracking-wide text-secondary">
+            <span className="text-sm font-extrabold tracking-wide text-secondary/80">
               Next Doodle
             </span>
           </div>

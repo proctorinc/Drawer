@@ -57,8 +57,8 @@ export const CountDownTimer: FC<Props> = ({ className }) => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-base via-secondary to-primary bg-clip-text">
-      <span className={cn('text-transparent', className)}>
+    <div className="bg-base/80 bg-clip-text">
+      <span className={cn('text-transparent font-extrabold', className)}>
         {formatTime(time)}
       </span>
     </div>
