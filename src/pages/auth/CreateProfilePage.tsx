@@ -122,7 +122,7 @@ const CreateProfilePage: React.FC = () => {
           <div className="flex text-sm gap-1">
             <h4>Already have an account?</h4>{' '}
             <Link
-              to="/auth/sign-up"
+              to="/auth/login"
               search={(currentSearch) => ({
                 ...currentSearch,
               })}
