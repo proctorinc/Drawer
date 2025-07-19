@@ -65,6 +65,11 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleMouseDown = useCallback(
     (event: MouseEvent | TouchEvent) => {
+      // Only allow single-finger drawing
+      if ('touches' in event && event.touches.length !== 1) {
+        setIsDrawing(false);
+        return;
+      }
       event.preventDefault();
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -101,6 +106,10 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleMouseMove = useCallback(
     (event: MouseEvent | TouchEvent) => {
+      if ('touches' in event && event.touches.length !== 1) {
+        setIsDrawing(false);
+        return;
+      }
       if (!isDrawing) return;
 
       event.preventDefault();
@@ -122,6 +131,10 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleMouseUp = useCallback(
     (event: MouseEvent | TouchEvent) => {
+      if ('changedTouches' in event && event.changedTouches.length !== 1) {
+        setIsDrawing(false);
+        return;
+      }
       if (!isDrawing) return; // Only finalize if was drawing
 
       event.preventDefault();

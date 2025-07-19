@@ -11,6 +11,7 @@ type Props = {
   children: ReactNode;
   backgroundProps?: HTMLAttributes<HTMLDivElement>;
   headerProps?: HTMLAttributes<HTMLDivElement>;
+  hideHeader?: boolean;
 };
 
 const Layout: FC<Props> = ({
@@ -19,6 +20,7 @@ const Layout: FC<Props> = ({
   children,
   headerProps,
   backgroundProps,
+  hideHeader = false,
 }) => {
   const router = useRouter();
   const canGoBack = useCanGoBack();
@@ -34,29 +36,31 @@ const Layout: FC<Props> = ({
         className="z-0 sticky top-0 flex flex-col items-center max-w-md w-full gap-6 px-6 md:p-2"
         {...headerProps}
       >
-        <div className="sticky top-0 flex justify-center items-center text-center pb-6 pt-8 w-full">
-          {back && canGoBack && (
-            <Button
-              variant="base"
-              className="absolute left-0 top-6 w-10 bg-transparent text-secondary"
-              icon={faArrowLeft}
-              disableLoad
-              onClick={() => router.history.back()}
-            />
-          )}
-          {back && !canGoBack && (
-            <Button
-              variant="base"
-              className="absolute left-0 top-6 w-10 bg-transparent text-secondary"
-              icon={faHome}
-              disableLoad
-              onClick={() => navigate({ to: '/draw' })}
-            />
-          )}
-          <h1 className="text-xl font-cursive font-extrabold tracking-widest text-border/80">
-            The Daily Doodle
-          </h1>
-        </div>
+        {!hideHeader && (
+          <div className="sticky top-0 flex justify-center items-center text-center pb-6 pt-8 w-full">
+            {back && canGoBack && (
+              <Button
+                variant="base"
+                className="absolute left-0 top-6 w-10 bg-transparent text-secondary"
+                icon={faArrowLeft}
+                disableLoad
+                onClick={() => router.history.back()}
+              />
+            )}
+            {back && !canGoBack && (
+              <Button
+                variant="base"
+                className="absolute left-0 top-6 w-10 bg-transparent text-secondary"
+                icon={faHome}
+                disableLoad
+                onClick={() => navigate({ to: '/draw' })}
+              />
+            )}
+            <h1 className="text-xl font-cursive font-extrabold tracking-widest text-border/80">
+              The Daily Doodle
+            </h1>
+          </div>
+        )}
         {header}
       </div>
       <div className="z-10 relative flex flex-col flex-grow w-full items-center p-6 md:p-2 gap-6 bg-base min-h-screen overflow-y-auto overflow-x-hidden pb-30 max-w-md rounded-t-4xl border-2 border-border">

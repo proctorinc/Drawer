@@ -16,6 +16,7 @@ const Feed = () => {
 
   return (
     <Layout
+      hideHeader={!hasPromptBeenCompleted && !!dailyPrompt}
       header={
         (hasPromptBeenCompleted || isNoPrompt) && (
           <div className="flex flex-col items-center gap-1 rounded-full text-2xl w-full max-w-sm mb-6">

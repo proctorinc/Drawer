@@ -20,7 +20,7 @@ const Canvas = forwardRef<
       <canvas
         id="drawingCanvas"
         ref={ref}
-        className="rounded-2xl"
+        className="max-w-full"
         width={Config.CANVAS_WIDTH}
         height={Config.CANVAS_HEIGHT}
         style={{ ...cursorStyle }}
