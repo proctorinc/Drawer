@@ -39,6 +39,11 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 		frontendGroup.GET("/*filepath", func(c *gin.Context) {
 			c.File("./frontend/index.html")
 		})
+
+		frontendAuthGroup := router.Group("/auth")
+		frontendAuthGroup.GET("/*filepath", func(c *gin.Context) {
+			c.File("./frontend/index.html")
+		})
 	}
 
 	// API routes

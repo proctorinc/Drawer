@@ -92,20 +92,20 @@ const LoginPage: React.FC = () => {
             </CardContent>
           </form>
         </Card>
-        <div className="flex gap-2 justify-center items-center  rounded-2xl border-2 border-border bg-border px-4 py-2 w-full max-w-md font-bold text-primary">
+        <div className="flex gap-2 justify-center items-center  rounded-2xl border-2 border-border bg-border px-4 py-2 w-full max-w-md font-bold text-primary select-none">
           <FontAwesomeIcon icon={faQuestionCircle} />
-          <p className="text-sm">
-            Don't have an account?{' '}
+          <div className="flex text-sm gap-1">
+            <h4>Don't have an account?</h4>{' '}
             <Link
               to="/auth/sign-up"
               search={(currentSearch) => ({
                 ...currentSearch,
               })}
-              className="text-primary-foreground"
+              className="text-blue-500 underline inline-block"
             >
               Create one
             </Link>
-          </p>
+          </div>
         </div>
       </div>
     </Layout>
