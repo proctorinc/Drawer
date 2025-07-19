@@ -13,11 +13,18 @@ export class Path {
   public points: Array<Point>;
   public color: string;
   public lineWidth: number;
+  public isEraser: boolean;
 
-  constructor(points: Array<Point>, color: string, lineWidth: number) {
+  constructor(
+    points: Array<Point>,
+    color: string,
+    lineWidth: number,
+    isEraser: boolean = false,
+  ) {
     this.points = [...points];
     this.color = color;
     this.lineWidth = lineWidth;
+    this.isEraser = isEraser;
   }
 
   addPoint(point: Point): Path {
@@ -28,7 +35,13 @@ export class Path {
   draw(ctx: CanvasRenderingContext2D): void {
     if (this.points.length < 2) {
       if (this.points.length === 1) {
-        ctx.fillStyle = this.color;
+        if (this.isEraser) {
+          ctx.globalCompositeOperation = 'destination-out';
+          ctx.fillStyle = 'rgba(0,0,0,1)';
+        } else {
+          ctx.globalCompositeOperation = 'source-over';
+          ctx.fillStyle = this.color;
+        }
         ctx.beginPath();
         ctx.arc(
           this.points[0].x,
@@ -38,12 +51,19 @@ export class Path {
           Math.PI * 2,
         );
         ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
       }
       return;
     }
     ctx.beginPath();
 
-    ctx.strokeStyle = this.color;
+    if (this.isEraser) {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = this.color;
+    }
     ctx.lineWidth = this.lineWidth;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -54,6 +74,7 @@ export class Path {
       ctx.lineTo(this.points[i].x, this.points[i].y);
     }
     ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
   }
 
   /**
@@ -74,6 +95,6 @@ export class Path {
    */
   static deserialize(data: SerializedPath): Path {
     // Basic validation could be added here
-    return new Path(data.points, data.color, data.lineWidth);
+    return new Path(data.points, data.color, data.lineWidth, false);
   }
 }

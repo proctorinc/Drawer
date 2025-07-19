@@ -34,7 +34,7 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
   const currentPathRef = useRef<Path | null>(null);
 
   const canUndo = paths.length > 0;
-  const isEraseMode = selectedColor === 'null';
+  const isEraseMode = selectedColor === null;
 
   const clearCanvas = useCallback(() => {
     if (canvasRef.current) {
@@ -68,9 +68,9 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
       // Only allow single-finger drawing
       if ('touches' in event && event.touches.length !== 1) {
         setIsDrawing(false);
-        return;
+        return; // Don't prevent default for multi-touch
       }
-      event.preventDefault();
+      event.preventDefault(); // Only prevent default for single touch
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -82,8 +82,9 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const path = new Path(
         [startPoint],
-        selectedColor || Config.ERASER_COLOR,
+        isEraseMode ? 'rgba(0,0,0,1)' : selectedColor || Config.ERASER_COLOR,
         Config.CURSOR_SIZE,
+        isEraseMode,
       );
       currentPathRef.current = path;
 
@@ -91,12 +92,6 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
       ctx.lineWidth = path.lineWidth;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
-
-      if (isEraseMode) {
-        ctx.globalCompositeOperation = 'destination-out';
-      } else {
-        ctx.globalCompositeOperation = 'source-over';
-      }
 
       ctx.beginPath();
       ctx.moveTo(startPoint.x, startPoint.y);
@@ -108,11 +103,10 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
     (event: MouseEvent | TouchEvent) => {
       if ('touches' in event && event.touches.length !== 1) {
         setIsDrawing(false);
-        return;
+        return; // Don't prevent default for multi-touch
       }
       if (!isDrawing) return;
-
-      event.preventDefault();
+      event.preventDefault(); // Only prevent default for single touch
 
       const canvas = canvasRef.current;
       const ctx = canvas?.getContext('2d');
@@ -149,11 +143,6 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Finalize the current path drawing (e.g., close path, final stroke)
       ctx.closePath();
-
-      // Reset composite operation if it was changed for eraser
-      if (ctx.globalCompositeOperation !== 'source-over') {
-        ctx.globalCompositeOperation = 'source-over';
-      }
 
       if (path.points.length > 1) {
         setPaths((prevPaths) => [...prevPaths, path]);
