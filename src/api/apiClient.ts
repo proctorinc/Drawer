@@ -122,7 +122,10 @@ export const apiClient = {
       body: JSON.stringify(data),
     });
     if (!response.ok) {
-      throw new Error(`Error creating user: ${response.statusText}`);
+      const data = await response.json().catch(() => ({}));
+      throw new Error(
+        data.error || `Error creating user: ${response.statusText}`,
+      );
     }
     return response.json();
   },

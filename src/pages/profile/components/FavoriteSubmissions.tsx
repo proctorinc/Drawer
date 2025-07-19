@@ -106,7 +106,10 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
                 3
               </div>
             )}
-            <Card key={favorite.id}>
+            <Card
+              key={favorite.id}
+              className="rounded-xl shadow-[2px_2px_0_0_rgba(0,0,0,0.2)]"
+            >
               <DrawingImage
                 imageUrl={favorite.submission.imageUrl}
                 onClick={() =>

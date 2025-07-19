@@ -47,11 +47,7 @@ export const UserProfileProvider: FC<Props> = ({ children }) => {
   }
 
   const createUserProfile = async (username: string, email: string) => {
-    return await createUserMutation
-      .mutateAsync({ username, email })
-      .catch(() => {
-        throw new Error('Email and Username must be unique');
-      });
+    return await createUserMutation.mutateAsync({ username, email });
   };
 
   const loginUserProfile = async (email: string) => {

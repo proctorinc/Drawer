@@ -41,17 +41,11 @@ export const AuthProvider: FC<Props> = ({ children }) => {
   }
 
   const createUser = async (username: string, email: string) => {
-    return await createUserMutation
-      .mutateAsync({ username, email })
-      .catch(() => {
-        throw new Error('Email and Username must be unique');
-      });
+    return await createUserMutation.mutateAsync({ username, email });
   };
 
   const login = async (email: string) => {
-    return loginMutation.mutateAsync(email).catch(() => {
-      throw new Error('Invalid login');
-    });
+    return loginMutation.mutateAsync(email);
   };
 
   const logout = async () => {
@@ -60,12 +54,6 @@ export const AuthProvider: FC<Props> = ({ children }) => {
       navigate({ to: '/auth/login' });
     });
   };
-
-  // useEffect(() => {
-  //   if (!isAuthenticated && isPrivateRoute) {
-  //     navigate({ to: '/auth/login' });
-  //   }
-  // }, [isAuthenticated]);
 
   const contextData: AuthContextType = {
     user,

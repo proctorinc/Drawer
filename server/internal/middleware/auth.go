@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
-	"drawer-service-backend/internal/utils"
 	"errors"
 	"log"
 	"net/http"
@@ -46,7 +45,6 @@ func AuthMiddleware(repo *sql.DB) gin.HandlerFunc {
 		c.Set(UserIDContextKey, user.ID)
 		c.Set(UserContextKey, user)
 
-		log.Printf("Auth successful for user: %s (%s)", user.ID, utils.MaskEmail(user.Email))
 		c.Next()
 	}
 }

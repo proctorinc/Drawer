@@ -12,12 +12,12 @@ import { Card, CardContent } from '@/components/Card';
 import useAuth from '@/auth/hooks/useAuth';
 
 const CreateProfilePage: React.FC = () => {
+  const navigate = useNavigate();
   const { user, createUser } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
@@ -32,7 +32,7 @@ const CreateProfilePage: React.FC = () => {
       await createUser(username, email);
       setIsSubmitted(true);
     } catch (err: any) {
-      setError(err.message);
+      setError(err.message || 'Unable to create sign up');
     }
   };
 
@@ -60,9 +60,7 @@ const CreateProfilePage: React.FC = () => {
   return (
     <Layout>
       <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
-        <h1 className="text-left text-xl font-bold text-primary">
-          Create Profile
-        </h1>
+        <h1 className="text-left text-xl font-bold text-primary">Sign Up</h1>
         <Card>
           <form onSubmit={handleSubmit}>
             <CardContent>
