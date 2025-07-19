@@ -44,7 +44,7 @@ const Feed = () => {
           <p className="text-sm">Sorry, there's no prompt for today</p>
         </Banner>
       )}
-      {(hasPromptBeenCompleted || isNoPrompt) && (
+      {/* {(hasPromptBeenCompleted || isNoPrompt) && (
         <Disclaimer title="Updates! User profiles, favorite doodles">
           <DisclaimerItem>
             You can now view other user's profiles by clicking on their icons.
@@ -54,7 +54,7 @@ const Feed = () => {
             profile. Click the star icon to favorite one of your drawings.
           </DisclaimerItem>
         </Disclaimer>
-      )}
+      )} */}
       {(hasPromptBeenCompleted || isNoPrompt) && <SubmissionFeedList />}
       <PromptCanvas />
       {!hasPromptBeenCompleted && !isNoPrompt && (
