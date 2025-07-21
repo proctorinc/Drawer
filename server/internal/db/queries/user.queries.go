@@ -18,8 +18,8 @@ import (
 
 func GetUserByID(repo *sql.DB, ctx context.Context, userID string) (*models.User, error) {
 	var user models.User
-	query := `SELECT id, username, email, created_at FROM users WHERE id = ?`
-	err := repo.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
+	query := `SELECT id, username, email, role, created_at FROM users WHERE id = ?`
+	err := repo.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
 
 	if err != nil {
 		return nil, err
@@ -30,8 +30,8 @@ func GetUserByID(repo *sql.DB, ctx context.Context, userID string) (*models.User
 
 func GetUserByEmail(repo *sql.DB, ctx context.Context, email string) (*models.User, error) {
 	var user models.User
-	query := `SELECT id, username, email, created_at FROM users WHERE email = ?`
-	err := repo.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
+	query := `SELECT id, username, email, role, created_at FROM users WHERE email = ?`
+	err := repo.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
 
 	if err != nil {
 		return nil, err
@@ -41,12 +41,12 @@ func GetUserByEmail(repo *sql.DB, ctx context.Context, email string) (*models.Us
 }
 
 func GetUserFromDB(repo *sql.DB, ctx context.Context, userID string) (models.User, error) {
-	query := `SELECT id, username, email, created_at FROM users WHERE id = ?`
+	query := `SELECT id, username, email, role, created_at FROM users WHERE id = ?`
 
 	row := repo.QueryRowContext(ctx, query, userID)
 
 	var user models.User
-	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.User{}, err
@@ -62,9 +62,9 @@ func GetUserFromDB(repo *sql.DB, ctx context.Context, userID string) (models.Use
 func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *config.Config) (models.GetMeResponse, error) {
 	var response models.GetMeResponse
 
-	userQuery := `SELECT id, username, email, created_at FROM users WHERE id = ?`
+	userQuery := `SELECT id, username, email, role, created_at FROM users WHERE id = ?`
 	var user models.User
-	err := repo.QueryRowContext(ctx, userQuery, userID).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
+	err := repo.QueryRowContext(ctx, userQuery, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
 	if err != nil {
 		log.Printf("Error fetching user info for user %s: %v", userID, err)
 		return models.GetMeResponse{}, err
@@ -531,9 +531,9 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *config.Config) (models.GetMeResponse, error) {
 	var response models.GetMeResponse
 
-	userQuery := `SELECT id, username, email, created_at FROM users WHERE id = ?`
+	userQuery := `SELECT id, username, email, role, created_at FROM users WHERE id = ?`
 	var user models.User
-	err := repo.QueryRowContext(ctx, userQuery, userID).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
+	err := repo.QueryRowContext(ctx, userQuery, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
 	if err != nil {
 		log.Printf("Error fetching user info for user %s: %v", userID, err)
 		return models.GetMeResponse{}, err
@@ -1028,3 +1028,41 @@ func CreateUser(repo *sql.DB, ctx context.Context, username string, email string
 
 	return &user, err
 }
+
+// GetAllUsers gets all users with optional username search
+func GetAllUsers(repo *sql.DB, ctx context.Context, searchQuery string) ([]models.User, error) {
+	var query string
+	var args []interface{}
+
+	if searchQuery != "" {
+		query = `SELECT id, username, email, role, created_at FROM users WHERE username LIKE ? ORDER BY username ASC`
+		args = []interface{}{"%" + searchQuery + "%"}
+	} else {
+		query = `SELECT id, username, email, role, created_at FROM users ORDER BY username ASC`
+	}
+
+	rows, err := repo.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
+		if err != nil {
+			log.Printf("Error scanning user row: %v", err)
+			continue
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+

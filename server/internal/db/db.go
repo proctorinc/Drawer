@@ -116,15 +116,15 @@ func initializeDevData(db *sql.DB) error {
 	// Add demo data
 	demoData := `
 		-- Insert demo users
-		INSERT OR IGNORE INTO users (id, username, email, created_at) VALUES 
-			('user1', 'tankard_wellington', 'user1@example.com', date('now', '-63 days')),
-			('user2', 'wifey_p', 'user2@example.com', date('now', '-13 days')),
-			('user3', 'matty_p', 'user3@example.com', date('now', '-13 days')),
-			('user4', 'jimbo', 'user4@example.com', date('now', '-13 days')),
-			('user5', 'jonny_p', 'user5@example.com', date('now', '-13 days')),
-			('user6', 'ubebae', 'user6@example.com', date('now', '-13 days')),
-			('user7', 'bufy', 'user7@example.com', date('now', '-13 days')),
-			('user8', 'pro_tractor', 'user8@example.com', date('now', '-13 days'));
+		INSERT OR IGNORE INTO users (id, username, email, role, created_at) VALUES 
+			('user1', 'tankard_wellington', 'user1@example.com', 'admin', date('now', '-63 days')),
+			('user2', 'wifey_p', 'user2@example.com', 'user', date('now', '-13 days')),
+			('user3', 'matty_p', 'user3@example.com', 'user', date('now', '-13 days')),
+			('user4', 'jimbo', 'user4@example.com', 'user', date('now', '-13 days')),
+			('user5', 'jonny_p', 'user5@example.com', 'user', date('now', '-13 days')),
+			('user6', 'ubebae', 'user6@example.com', 'user', date('now', '-13 days')),
+			('user7', 'bufy', 'user7@example.com', 'user', date('now', '-13 days')),
+			('user8', 'pro_tractor', 'user8@example.com', 'user', date('now', '-13 days'));
 
 		-- Make them friends
 		INSERT OR IGNORE INTO friendships (user_id, friend_id) VALUES 
@@ -152,8 +152,26 @@ func initializeDevData(db *sql.DB) error {
 			(date('now', '-2 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A futbol americano'),
 			(date('now', '-1 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A prank'),
 			(date('now'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A prehistoric city'),
-			(date('now', '+1 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A tangerine'),
-			(date('now', '+2 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'An orange banana');
+			(date('now', '+1 days'), '["#E74C3C", "#C0392B", "#A93226"]', 'A tangerine'),
+			-- Intentionally missing +2 days to show gap
+			(date('now', '+3 days'), '["#F39C12", "#E67E22", "#D35400"]', 'A cozy fireplace'),
+			(date('now', '+4 days'), '["#9B59B6", "#8E44AD", "#7D3C98"]', 'A magical forest'),
+			-- Intentionally missing +5 days to show gap
+			(date('now', '+6 days'), '["#3498DB", "#2980B9", "#21618C"]', 'A calm ocean wave'),
+			(date('now', '+7 days'), '["#1ABC9C", "#16A085", "#138D75"]', 'A vintage camera'),
+			(date('now', '+8 days'), '["#E67E22", "#D35400", "#BA4A00"]', 'A hot air balloon'),
+			-- Intentionally missing +9 days to show gap
+			(date('now', '+10 days'), '["#8E44AD", "#7D3C98", "#6C3483"]', 'A starry night sky'),
+			(date('now', '+11 days'), '["#27AE60", "#229954", "#1E8449"]', 'A blooming flower'),
+			(date('now', '+12 days'), '["#F1C40F", "#F39C12", "#E67E22"]', 'A golden sunset'),
+			(date('now', '+13 days'), '["#E91E63", "#C2185B", "#AD1457"]', 'A butterfly garden'),
+			-- Intentionally missing +14 days to show gap
+			(date('now', '+15 days'), '["#3F51B5", "#303F9F", "#283593"]', 'A mountain peak'),
+			(date('now', '+16 days'), '["#009688", "#00796B", "#00695C"]', 'A zen garden'),
+			(date('now', '+17 days'), '["#FF5722", "#E64A19", "#D84315"]', 'A roaring campfire'),
+			(date('now', '+18 days'), '["#673AB7", "#5E35B1", "#512DA8"]', 'A crystal cave'),
+			(date('now', '+19 days'), '["#00BCD4", "#00ACC1", "#0097A7"]', 'A tropical island'),
+			(date('now', '+20 days'), '["#4CAF50", "#43A047", "#388E3C"]', 'A peaceful meadow');
 
 		INSERT OR IGNORE INTO user_submissions (id, user_id, day) VALUES 
 			('sub00', 'user1', date('now', '-60 days')),	

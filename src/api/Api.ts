@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './apiClient';
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
@@ -91,6 +91,50 @@ export interface GetMeResponse {
   friends: Array<User>;
   stats: UserStats;
   favorites: Array<FavoriteSubmission>;
+}
+
+export interface AdminDashboardStats {
+  overall: {
+    totalUsers: number;
+    totalDrawings: number;
+    totalReactions: number;
+    totalComments: number;
+  };
+  today: {
+    drawingsToday: number;
+    reactionsToday: number;
+    commentsToday: number;
+  };
+  recentUsers: AdminDashboardRecentUser[];
+}
+
+export interface AdminDashboardRecentUser {
+  ID: string;
+  Username: string;
+  Email: string;
+  CreatedAt: string;
+}
+
+export interface AdminDashboardResponse {
+  message: string;
+  admin: {
+    id: string;
+    username: string;
+    email: string;
+  };
+  users: Array<{
+    id: string;
+    username: string;
+    email: string;
+    role: string;
+    createdAt: string;
+  }>;
+  futurePrompts: Array<{
+    day: string;
+    colors: Array<string>;
+    prompt: string;
+  }>;
+  stats: AdminDashboardStats;
 }
 
 // Query keys
@@ -266,5 +310,34 @@ export function useSubscribePush() {
 export function useUnsubscribePush() {
   return useMutation({
     mutationFn: apiClient.unsubscribePush,
+  });
+}
+
+// Admin queries
+export function useGetAdminDashboard(searchQuery?: string) {
+  return useQuery({
+    queryKey: ['admin', 'dashboard', searchQuery] as const,
+    queryFn: () => apiClient.getAdminDashboard(searchQuery),
+    retry: () => {
+      return false;
+    },
+  });
+}
+
+// Admin mutations
+export function useImpersonateUser() {
+  return useMutation({
+    mutationFn: apiClient.impersonateUser,
+  });
+}
+
+export function useCreatePrompt() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: apiClient.createPrompt,
+    onSuccess: () => {
+      // Invalidate admin dashboard to refresh future prompts
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
+    },
   });
 }
