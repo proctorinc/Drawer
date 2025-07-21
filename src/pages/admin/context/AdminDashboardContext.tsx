@@ -88,7 +88,6 @@ export const AdminDashboardProvider: FC<Props> = ({ children }) => {
     data: actionStats,
     isLoading: actionStatsLoading,
     error: actionStatsError,
-    refetch: refetchActionStats,
   } = useQuery({
     queryKey: actionStatsParams
       ? ['adminActionStats', actionStatsParams.start, actionStatsParams.end]
