@@ -16,6 +16,7 @@ type User struct {
 	ID        string    `json:"id"`
 	Username  string    `json:"username"`
 	Email     string    `json:"email"`
+	Role      string    `json:"-"` // Omitted from JSON responses
 	CreatedAt time.Time `json:"createdAt"`
 }
 
@@ -131,3 +132,5 @@ type NotificationData struct {
 	Username string           `json:"username,omitempty"`
 	Action   string           `json:"action,omitempty"`
 }
+
+

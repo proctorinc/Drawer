@@ -125,3 +125,83 @@ func GenerateAndInsertDailyPrompt(repo *sql.DB, ctx context.Context, dateStr str
 	log.Printf("Generated and inserted new prompt for date: %s", dateStr)
 	return newPrompt, nil
 }
+
+// GetFuturePrompts gets all prompts from today onwards
+func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, error) {
+	today := utils.GetFormattedDate(time.Now())
+	
+	query := `SELECT day, colors, prompt FROM daily_prompts WHERE day >= ? ORDER BY day ASC`
+	rows, err := repo.QueryContext(ctx, query, today)
+	if err != nil {
+		return nil, fmt.Errorf("error querying future prompts: %w", err)
+	}
+	defer rows.Close()
+
+	var prompts []models.DailyPrompt
+	for rows.Next() {
+		var prompt models.DailyPrompt
+		var colorsJSON string
+
+		err := rows.Scan(&prompt.Day, &colorsJSON, &prompt.Prompt)
+		if err != nil {
+			log.Printf("Error scanning future prompt row: %v", err)
+			continue
+		}
+
+		// Parse the JSON array of colors
+		err = json.Unmarshal([]byte(colorsJSON), &prompt.Colors)
+		if err != nil {
+			log.Printf("Error parsing colors JSON for day %s: %v", prompt.Day, err)
+			continue
+		}
+
+		prompts = append(prompts, prompt)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating future prompts: %w", err)
+	}
+
+	return prompts, nil
+}
+
+// CreateDailyPrompt creates a new daily prompt for a specific day
+func CreateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt string, colors []string) error {
+	colorsJSON, err := json.Marshal(colors)
+	if err != nil {
+		return fmt.Errorf("error marshaling colors to JSON: %w", err)
+	}
+
+	query := `INSERT INTO daily_prompts (day, colors, prompt) VALUES (?, ?, ?)`
+	_, err = repo.ExecContext(ctx, query, day, string(colorsJSON), prompt)
+	if err != nil {
+		return fmt.Errorf("error creating daily prompt for %s: %w", day, err)
+	}
+
+	return nil
+}
+
+// UpdateDailyPrompt updates an existing daily prompt for a specific day
+func UpdateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt string, colors []string) error {
+	colorsJSON, err := json.Marshal(colors)
+	if err != nil {
+		return fmt.Errorf("error marshaling colors to JSON: %w", err)
+	}
+
+	query := `UPDATE daily_prompts SET colors = ?, prompt = ? WHERE day = ?`
+	result, err := repo.ExecContext(ctx, query, string(colorsJSON), prompt, day)
+	if err != nil {
+		return fmt.Errorf("error updating daily prompt for %s: %w", day, err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error checking rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}

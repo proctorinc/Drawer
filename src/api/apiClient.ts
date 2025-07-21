@@ -351,4 +351,97 @@ export const apiClient = {
       throw new Error('Failed to unsubscribe from push notifications');
     }
   },
+
+  // Admin endpoints
+  getAdminDashboard: async (
+    searchQuery?: string,
+  ): Promise<{
+    message: string;
+    admin: {
+      id: string;
+      username: string;
+      email: string;
+    };
+    users: Array<{
+      id: string;
+      username: string;
+      email: string;
+      role: string;
+      createdAt: string;
+    }>;
+    futurePrompts: Array<{
+      day: string;
+      colors: Array<string>;
+      prompt: string;
+    }>;
+    stats: {
+      overall: {
+        totalUsers: number;
+        totalDrawings: number;
+        totalReactions: number;
+        totalComments: number;
+      };
+      today: {
+        drawingsToday: number;
+        reactionsToday: number;
+        commentsToday: number;
+      };
+      recentUsers: Array<{
+        ID: string;
+        Username: string;
+        Email: string;
+        CreatedAt: string;
+      }>;
+    };
+  }> => {
+    const url = searchQuery
+      ? `/admin/dashboard?search=${encodeURIComponent(searchQuery)}`
+      : '/admin/dashboard';
+    const response = await fetchAPI('GET', url);
+    if (!response.ok) {
+      throw new Error(`Error fetching admin dashboard: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  impersonateUser: async (
+    userId: string,
+  ): Promise<{
+    message: string;
+    impersonatedUser: {
+      id: string;
+      username: string;
+      email: string;
+    };
+  }> => {
+    const response = await fetchAPI('POST', '/admin/impersonate', {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(
+        data.error || `Error impersonating user: ${response.statusText}`,
+      );
+    }
+    return response.json();
+  },
+
+  createPrompt: async (data: {
+    day: string;
+    prompt: string;
+    colors: Array<string>;
+  }): Promise<{ message: string; day: string }> => {
+    const response = await fetchAPI('POST', '/admin/prompt', {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(
+        data.error || `Error creating prompt: ${response.statusText}`,
+      );
+    }
+    return response.json();
+  },
 };

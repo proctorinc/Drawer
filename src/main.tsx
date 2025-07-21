@@ -28,6 +28,8 @@ import MyProfilePage from './pages/profile/MyProfilePage.tsx';
 import { MyProfilePageProvider } from './pages/profile/context/MyProfileContext.tsx';
 import AuthRoute from './auth/AuthRoute.tsx';
 import { NotificationProvider } from './notifications/NotificationContext.tsx';
+import AdminPage from './pages/admin/AdminPage.tsx';
+import { AdminDashboardProvider } from './pages/admin/context/AdminDashboardContext.tsx';
 
 const queryClient = new QueryClient();
 
@@ -114,6 +116,18 @@ const promptSubmissionRoute = createRoute({
   ),
 });
 
+const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/admin',
+  component: () => (
+    <AuthRoute>
+      <AdminDashboardProvider>
+        <AdminPage />
+      </AdminDashboardProvider>
+    </AuthRoute>
+  ),
+});
+
 const createProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/auth/sign-up',
@@ -135,6 +149,7 @@ const routeTree = rootRoute.addChildren([
   createProfileRoute,
   loginRoute,
   promptSubmissionRoute,
+  adminRoute,
 ]);
 
 const router = createRouter({

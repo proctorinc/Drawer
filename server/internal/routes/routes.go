@@ -155,6 +155,16 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			}
 
 			authGroup.POST("/auth/logout", handlers.HandleLogout)
+
+			// Admin routes (require admin role)
+			adminGroup := authGroup.Group("/admin")
+			adminGroup.Use(middleware.AdminMiddleware(repo))
+			{
+				// Admin dashboard endpoints will be added here
+				adminGroup.GET("/dashboard", handlers.HandleGetAdminDashboard)
+				adminGroup.POST("/impersonate", handlers.HandleImpersonateUser)
+				adminGroup.POST("/prompt", handlers.HandleCreatePrompt)
+			}
 		}
 	}
 
