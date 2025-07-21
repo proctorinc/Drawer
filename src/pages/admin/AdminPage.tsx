@@ -58,11 +58,14 @@ const AdminPage = () => {
 
   return (
     <div className="flex w-full justify-center bg-base">
-      <div className="grid grid-cols-3 max-w-7xl gap-6 w-full p-6">
-        <WelcomeCard className="col-span-3" />
+      <div className="grid grid-cols-1 md:grid-cols-3 md:max-w-7xl gap-6 w-full p-6">
+        <WelcomeCard className="order-first md:col-span-3" />
         <TotalStatsCards className="h-full justify-center" />
-        <FuturePromptsCard openModal={openModal} className="col-span-2" />
-        <TodayStatsCards className="col-span-3" />
+        <FuturePromptsCard
+          openModal={openModal}
+          className=" order-first sm:order-none md:col-span-2"
+        />
+        <TodayStatsCards className="md:col-span-3" />
         <RecentUsersCard />
         {/* <RecentActivityCard className="" /> */}
         <UserManagementCard
@@ -70,7 +73,7 @@ const AdminPage = () => {
           loading={impersonateMutation.isPending}
           navigate={navigate}
           queryClient={queryClient}
-          className="col-span-2"
+          className="md:col-span-2"
         />
         <PromptModal
           isOpen={isModalOpen}
