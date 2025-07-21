@@ -44,12 +44,12 @@ const AdminPage = () => {
 
   if (error) {
     return (
-      <Layout header="Admin Dashboard" back>
+      <Layout back>
         <div className="flex flex-col items-center justify-center gap-4 text-center">
           <div className="text-6xl text-red-500">⚠️</div>
           <h2 className="text-xl font-bold text-primary">Access Denied</h2>
           <p className="text-secondary">
-            You don't have permission to access the admin dashboard.
+            You don't have permission to access this page.
           </p>
         </div>
       </Layout>

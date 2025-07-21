@@ -1,4 +1,8 @@
-import { faCircleCheck, faDoorOpen } from '@fortawesome/free-solid-svg-icons';
+import {
+  faCircleCheck,
+  faCrown,
+  faDoorOpen,
+} from '@fortawesome/free-solid-svg-icons';
 import Button from '@/components/Button';
 import { Card, CardContent, CardHeader } from '@/components/Card';
 import { useState, type FormEvent } from 'react';
@@ -6,8 +10,10 @@ import { queryKeys, useUpdateUsername } from '@/api/Api';
 import { useQueryClient } from '@tanstack/react-query';
 import useAuth from '@/auth/hooks/useAuth';
 import useUser from '@/auth/hooks/useUser';
+import { useNavigate } from '@tanstack/react-router';
 
 const AccountDetails = () => {
+  const navigate = useNavigate();
   const user = useUser();
   const { logout, reloadUser } = useAuth();
   const [username, setUsername] = useState(user.username || '');
@@ -70,6 +76,14 @@ const AccountDetails = () => {
             </p>
           )}
         </form>
+        {user.username === 'matty_p' && (
+          <Button
+            icon={faCrown}
+            onClick={() => navigate({ to: '/draw/admin' })}
+          >
+            Admin Dashboard
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
