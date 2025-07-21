@@ -164,6 +164,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				adminGroup.GET("/dashboard", handlers.HandleGetAdminDashboard)
 				adminGroup.POST("/impersonate", handlers.HandleImpersonateUser)
 				adminGroup.POST("/prompt", handlers.HandleCreatePrompt)
+				adminGroup.GET("/action-stats", handlers.HandleGetAdminActionStats)
 			}
 		}
 	}

@@ -444,4 +444,27 @@ export const apiClient = {
     }
     return response.json();
   },
+
+  getAdminActionStats: async (
+    start: string,
+    end: string,
+  ): Promise<DailyActionStat[]> => {
+    const response = await fetchAPI(
+      'GET',
+      `/admin/action-stats?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
+    );
+    if (!response.ok) {
+      throw new Error(
+        `Error fetching admin action stats: ${response.statusText}`,
+      );
+    }
+    return response.json();
+  },
+};
+
+export type DailyActionStat = {
+  date: string;
+  drawings: number;
+  reactions: number;
+  comments: number;
 };

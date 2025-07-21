@@ -6,6 +6,9 @@ import {
   type ReactNode,
 } from 'react';
 import { useGetAdminDashboard } from '@/api/Api';
+import { useQuery } from '@tanstack/react-query';
+import { apiClient } from '@/api/apiClient';
+import type { DailyActionStat } from '@/api/apiClient';
 
 type AdminDashboardContextType = {
   dashboardData:
@@ -54,6 +57,10 @@ type AdminDashboardContextType = {
   refetch: () => Promise<any>;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  actionStats: DailyActionStat[] | undefined;
+  actionStatsLoading: boolean;
+  actionStatsError: any;
+  fetchActionStats: (start: string, end: string) => void;
 };
 
 const AdminDashboardContext = createContext<
@@ -73,6 +80,34 @@ export const AdminDashboardProvider: FC<Props> = ({ children }) => {
     refetch,
   } = useGetAdminDashboard(searchQuery);
 
+  const [actionStatsParams, setActionStatsParams] = useState<{
+    start: string;
+    end: string;
+  } | null>(null);
+  const {
+    data: actionStats,
+    isLoading: actionStatsLoading,
+    error: actionStatsError,
+    refetch: refetchActionStats,
+  } = useQuery({
+    queryKey: actionStatsParams
+      ? ['adminActionStats', actionStatsParams.start, actionStatsParams.end]
+      : ['adminActionStats', 'none'],
+    queryFn: actionStatsParams
+      ? () =>
+          apiClient.getAdminActionStats(
+            actionStatsParams.start,
+            actionStatsParams.end,
+          )
+      : async () => [],
+    enabled: !!actionStatsParams,
+    staleTime: 1000 * 60, // 1 minute
+  });
+  const fetchActionStats = (start: string, end: string) => {
+    setActionStatsParams({ start, end });
+    // Optionally, you can call refetchActionStats() here if you want immediate fetch
+  };
+
   const contextValue: AdminDashboardContextType = {
     dashboardData,
     isLoading,
@@ -80,6 +115,10 @@ export const AdminDashboardProvider: FC<Props> = ({ children }) => {
     refetch,
     searchQuery,
     setSearchQuery,
+    actionStats,
+    actionStatsLoading,
+    actionStatsError,
+    fetchActionStats,
   };
 
   return (

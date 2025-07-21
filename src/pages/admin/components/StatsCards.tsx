@@ -27,7 +27,7 @@ export function TotalStatsCards({ className = '', ...props }: StatsCardsProps) {
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
       <Card>
-        <CardContent className="text-center gap-2">
+        <CardContent className="flex-row md:flex-col text-center gap-2">
           <div className="flex gap-3 w-full justify-center items-center">
             <div className="gap-3 w-12 h-12 bg-blue-500 text-shadow-white rounded-full flex items-center justify-center">
               <FontAwesomeIcon icon={faUsers} className="text-white text-lg" />
@@ -40,7 +40,7 @@ export function TotalStatsCards({ className = '', ...props }: StatsCardsProps) {
         </CardContent>
       </Card>
       <Card>
-        <CardContent className="text-center gap-2">
+        <CardContent className="flex-row md:flex-col text-center gap-2">
           <div className="flex gap-3 w-full justify-center items-center">
             <div className="gap-3 w-12 h-12 bg-green-500 text-shadow-white rounded-full flex items-center justify-center">
               <FontAwesomeIcon
@@ -56,7 +56,7 @@ export function TotalStatsCards({ className = '', ...props }: StatsCardsProps) {
         </CardContent>
       </Card>
       <Card>
-        <CardContent className="text-center gap-2">
+        <CardContent className="flex-row md:flex-col text-center gap-2">
           <div className="flex gap-3 w-full justify-center items-center">
             <div className="gap-3 w-12 h-12 bg-red-400 text-shadow-white rounded-full flex items-center justify-center">
               <FontAwesomeIcon icon={faHeart} className="text-white text-lg" />
@@ -69,7 +69,7 @@ export function TotalStatsCards({ className = '', ...props }: StatsCardsProps) {
         </CardContent>
       </Card>
       <Card>
-        <CardContent className="text-center gap-2">
+        <CardContent className="flex-row md:flex-col text-center gap-2">
           <div className="flex gap-3 w-full justify-center items-center">
             <div className="gap-3 w-12 h-12 bg-yellow-400 text-shadow-white rounded-full flex items-center justify-center">
               <FontAwesomeIcon
@@ -97,7 +97,7 @@ export function TodayStatsCards({ className = '', ...props }: StatsCardsProps) {
     <div className={className} {...props}>
       <div className="grid grid-cols-3 gap-4 mt-4">
         <Card>
-          <CardContent className="text-center gap-2">
+          <CardContent className="flex-row md:flex-col text-center gap-2">
             <div className="flex gap-3 w-full justify-center items-center">
               <div className="gap-3 w-12 h-12 bg-green-500 text-shadow-white rounded-full flex items-center justify-center">
                 <FontAwesomeIcon
@@ -113,7 +113,7 @@ export function TodayStatsCards({ className = '', ...props }: StatsCardsProps) {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="text-center gap-2">
+          <CardContent className="flex-row md:flex-col text-center gap-2">
             <div className="flex gap-3 w-full justify-center items-center">
               <div className="gap-3 w-12 h-12 bg-red-400 text-shadow-white rounded-full flex items-center justify-center">
                 <FontAwesomeIcon
@@ -131,7 +131,7 @@ export function TodayStatsCards({ className = '', ...props }: StatsCardsProps) {
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="text-center gap-2">
+          <CardContent className="flex-row md:flex-col text-center gap-2">
             <div className="flex gap-3 w-full justify-center items-center">
               <div className="gap-3 w-12 h-12 bg-yellow-400 text-shadow-white rounded-full flex items-center justify-center">
                 <FontAwesomeIcon

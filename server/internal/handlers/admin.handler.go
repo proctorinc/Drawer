@@ -179,4 +179,21 @@ func HandleCreatePrompt(c *gin.Context) {
 		"message": "Prompt created successfully",
 		"day":     req.Day,
 	})
+}
+
+// HandleGetAdminActionStats returns daily action stats for a date range
+func HandleGetAdminActionStats(c *gin.Context) {
+	appCtx := context.GetCtx(c)
+	start := c.Query("start")
+	end := c.Query("end")
+	if start == "" || end == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Missing start or end date"})
+		return
+	}
+	stats, err := queries.GetDailyActionStats(appCtx.DB, c.Request.Context(), start, end)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch action stats"})
+		return
+	}
+	c.JSON(http.StatusOK, stats)
 } 

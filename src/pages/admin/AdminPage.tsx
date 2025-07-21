@@ -7,6 +7,7 @@ import { PromptModal } from './components/PromptModal';
 import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { WelcomeCard } from './components/WelcomeCard';
+import { ActionStatsChart } from './components/ActionStatsChart';
 import { UserManagementCard } from './components/UserManagementCard';
 import { FuturePromptsCard } from './components/FuturePromptsCard';
 import { TotalStatsCards, TodayStatsCards } from './components/StatsCards';
@@ -58,14 +59,15 @@ const AdminPage = () => {
 
   return (
     <div className="flex w-full justify-center bg-base">
-      <div className="grid grid-cols-1 md:grid-cols-3 md:max-w-7xl gap-6 w-full p-6">
-        <WelcomeCard className="order-first md:col-span-3" />
-        <TotalStatsCards className="h-full justify-center" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 lg:max-w-7xl gap-6 w-full p-6">
+        <WelcomeCard className="col-span-1 lg:col-span-3" />
+        <ActionStatsChart className="col-span-1 lg:col-span-3" />
+        <TotalStatsCards />
         <FuturePromptsCard
           openModal={openModal}
-          className=" order-first sm:order-none md:col-span-2"
+          className="col-span-1 lg:col-span-2"
         />
-        <TodayStatsCards className="md:col-span-3" />
+        <TodayStatsCards className="col-span-1 lg:col-span-3" />
         <RecentUsersCard />
         {/* <RecentActivityCard className="" /> */}
         <UserManagementCard
@@ -73,7 +75,6 @@ const AdminPage = () => {
           loading={impersonateMutation.isPending}
           navigate={navigate}
           queryClient={queryClient}
-          className="md:col-span-2"
         />
         <PromptModal
           isOpen={isModalOpen}
