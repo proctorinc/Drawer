@@ -12,7 +12,44 @@ interface PromptModalProps {
   existingColors?: string[];
 }
 
-// Generate random colors using HSL
+// Utility to convert HSL to HEX
+function hslToHex(hsl: string): string {
+  const match = hsl.match(/^hsl\((\d+),\s*(\d+)%?,\s*(\d+)%?\)$/);
+  if (!match) return '#ffffff';
+  const h = Number(match[1]);
+  const s = Number(match[2]) / 100;
+  const l = Number(match[3]) / 100;
+
+  let r: number, g: number, b: number;
+
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const hue2rgb = (p: number, q: number, t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1 / 6) return p + (q - p) * 6 * t;
+      if (t < 1 / 2) return q;
+      if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h / 360 + 1 / 3);
+    g = hue2rgb(p, q, h / 360);
+    b = hue2rgb(p, q, h / 360 - 1 / 3);
+  }
+
+  const toHex = (x: number) => {
+    const hex = Math.round(x * 255)
+      .toString(16)
+      .padStart(2, '0');
+    return hex;
+  };
+
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 const generateRandomColors = (): string[] => {
   const colors: string[] = [];
 
@@ -21,8 +58,8 @@ const generateRandomColors = (): string[] => {
     const hue = Math.floor(Math.random() * 360);
     const saturation = Math.floor(Math.random() * 41) + 60; // 60-100%
     const lightness = Math.floor(Math.random() * 31) + 40; // 40-70%
-
-    colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+    const hsl = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    colors.push(hslToHex(hsl));
   }
 
   return colors;
@@ -45,10 +82,15 @@ export function PromptModal({
   // Reset form when modal opens/closes or when editing different prompt
   useEffect(() => {
     if (isOpen) {
+      if (existingColors && existingColors.length === 3) {
+        setColors(existingColors);
+      } else {
+        setColors(generateRandomColors());
+      }
       setPrompt(existingPrompt || '');
-      setColors(existingColors || generateRandomColors());
       setError('');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, existingPrompt, existingColors]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -134,12 +176,9 @@ export function PromptModal({
           </div>
 
           {/* Colors */}
-          <div>
-            <label className="block text-sm font-medium text-secondary mb-2">
-              Colors (3 required)
-            </label>
-            <div className="space-y-2">
-              {colors.map((color, index) => (
+          <div className="space-y-2">
+            {colors.map((color, index) => {
+              return (
                 <div key={index} className="flex items-center gap-2">
                   <input
                     type="color"
@@ -155,8 +194,8 @@ export function PromptModal({
                     className="flex-1 p-2 border border-border rounded bg-background text-primary placeholder-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
           {/* Color Preview */}
