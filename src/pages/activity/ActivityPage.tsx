@@ -20,7 +20,6 @@ import {
 import { Card, CardContent } from '@/components/Card';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { cn } from '@/utils';
-import Banner from '@/components/Banner';
 
 type TabState = 'activity' | 'invitations';
 
@@ -78,21 +77,23 @@ const ActivityPage = () => {
   return (
     <Layout>
       <div className="flex justify-center w-full gap-3 px-4">
-        <Button
-          icon={faComment}
-          size="sm"
-          variant={tab === 'invitations' ? 'base' : 'primary'}
-          className="w-1/2 disabled:text-primary"
-          onClick={() => setTab('activity')}
-          disableLoad
-        >
-          Activity
-        </Button>
+        <div className="w-1/2">
+          <Button
+            icon={faComment}
+            size="sm"
+            variant={tab === 'invitations' ? 'base' : 'primary'}
+            className=" disabled:text-primary w-full h-10"
+            onClick={() => setTab('activity')}
+            disableLoad
+          >
+            Activity
+          </Button>
+        </div>
         <div className="relative w-1/2">
           <Button
             icon={faEnvelope}
             size="sm"
-            className="disabled:text-primary w-full"
+            className="disabled:text-primary w-full h-10"
             variant={tab === 'activity' ? 'base' : 'primary'}
             onClick={() => setTab('invitations')}
             disableLoad
@@ -210,9 +211,11 @@ const ActivityPage = () => {
           {!invitationsLoading &&
             invitationsData?.invitee?.length === 0 &&
             invitationsData?.invited?.length === 0 && (
-              <Banner className="bg-base border-none p-4 mt-4">
-                No invitations
-              </Banner>
+              <Card>
+                <CardContent className="text-center text-secondary font-bold">
+                  No invitations
+                </CardContent>
+              </Card>
             )}
           {!invitationsLoading &&
             invitationsData?.invitee.map((invitation) => (
