@@ -80,7 +80,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		FROM
 			friendships f
 		JOIN
-			users u ON (f.friend_id = u.id AND f.user_id = ?) OR (f.user_id = u.id AND f.friend_id = ?)
+			users u ON ((f.user1 = ? AND f.user2 = u.id) OR (f.user2 = ? AND f.user1 = u.id))
+		WHERE f.state = 'accepted'
 		ORDER BY u.username`
 	friendsRows, err := repo.QueryContext(ctx, friendsQuery, userID, userID)
 	if err != nil {
@@ -528,17 +529,41 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 	return response, nil
 }
 
-func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *config.Config) (models.GetMeResponse, error) {
+func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requesterID string, cfg *config.Config) (models.GetMeResponse, error) {
 	var response models.GetMeResponse
 
-	userQuery := `SELECT id, username, email, role, created_at FROM users WHERE id = ?`
+	userQuery := `SELECT u.id, u.username, u.email, u.role, u.created_at, f.state, f.created_at,
+			inviter.id, inviter.username, inviter.email, inviter.created_at
+		FROM users u
+		LEFT JOIN friendships f ON ((f.user1 = ? AND f.user2 = u.id) OR (f.user2 = ? AND f.user1 = u.id))
+		LEFT JOIN users inviter ON inviter.id = f.inviter_id
+		WHERE u.id = ?`
 	var user models.User
-	err := repo.QueryRowContext(ctx, userQuery, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
+	var nullStatus sql.NullString
+	var nullCreatedAt, inviterCreatedAt sql.NullTime
+	var inviterID, inviterUsername, inviterEmail sql.NullString
+
+	err := repo.QueryRowContext(ctx, userQuery, requesterID, requesterID, userID, ).Scan(
+		&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &nullStatus, &nullCreatedAt,
+		&inviterID, &inviterUsername, &inviterEmail, &inviterCreatedAt)
 	if err != nil {
 		log.Printf("Error fetching user info for user %s: %v", userID, err)
 		return models.GetMeResponse{}, err
 	}
 	response.User = user
+	
+	if (nullCreatedAt.Valid && nullStatus.Valid) {
+		response.Invitation = &models.InvitationStatus{
+			Inviter: models.User{
+				ID: inviterID.String,
+				Email: inviterEmail.String,
+				Username: inviterUsername.String,
+				CreatedAt: inviterCreatedAt.Time,
+			},
+			CreatedAt: nullCreatedAt.Time,
+			Status: nullStatus.String,
+		}
+	}
 
 	friendsQuery := `
 		SELECT DISTINCT
@@ -549,7 +574,8 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 		FROM
 			friendships f
 		JOIN
-			users u ON (f.friend_id = u.id AND f.user_id = ?) OR (f.user_id = u.id AND f.friend_id = ?)
+			users u ON ((f.user1 = ? AND f.user2 = u.id) OR (f.user2 = ? AND f.user1 = u.id))
+		WHERE f.state = 'accepted'
 		ORDER BY u.username`
 	friendsRows, err := repo.QueryContext(ctx, friendsQuery, userID, userID)
 	if err != nil {
@@ -994,11 +1020,9 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, cfg 
 
 func GetUserFriends(repo *sql.DB, ctx context.Context, userID string) ([]string, error) {
 	query := `
-		SELECT friend_id FROM friendships
-		WHERE user_id = ?
+		SELECT user2 FROM friendships WHERE user1 = ? AND state = 'accepted'
 		UNION
-		SELECT user_id FROM friendships
-		WHERE friend_id = ?
+		SELECT user1 FROM friendships WHERE user2 = ? AND state = 'accepted'
 	`
 	rows, err := repo.QueryContext(ctx, query, userID, userID)
 	if err != nil {

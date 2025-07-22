@@ -101,7 +101,9 @@ const calendarRoute = createRoute({
   path: '/draw/activity',
   component: () => (
     <AuthRoute>
-      <ActivityPage />
+      <MyProfilePageProvider>
+        <ActivityPage />
+      </MyProfilePageProvider>
     </AuthRoute>
   ),
 });

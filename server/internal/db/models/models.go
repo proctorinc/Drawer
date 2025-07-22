@@ -72,12 +72,13 @@ type UserStats struct {
 
 // GetMeResponse is the structure for the /me endpoint response.
 type GetMeResponse struct {
-	User      User                    `json:"user"`
-	Prompts   []*UserPromptSubmission `json:"prompts"`
-	Feed      []*UserPromptSubmission `json:"feed"`
-	Friends   []User                  `json:"friends"`
-	Stats     UserStats               `json:"stats"`
-	Favorites []*FavoriteSubmission   `json:"favorites"`
+	User      	User                    `json:"user"`
+	Prompts   	[]*UserPromptSubmission `json:"prompts"`
+	Feed      	[]*UserPromptSubmission `json:"feed"`
+	Friends   	[]User                  `json:"friends"`
+	Stats     	UserStats               `json:"stats"`
+	Favorites 	[]*FavoriteSubmission   `json:"favorites"`
+	Invitation 	*InvitationStatus		`json:"invitation"`
 }
 
 type FavoriteSubmission struct {
@@ -133,4 +134,19 @@ type NotificationData struct {
 	Action   string           `json:"action,omitempty"`
 }
 
+type Invitation struct {
+	Inviter User `json:"inviter"`
+	Invitee User `json:"invitee"`
+	CreatedAt time.Time `json:"createdAt"`
+}
 
+type InvitationStatus struct {
+	Inviter User `json:"inviter"`
+	Status string `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type InvitationResponse struct {
+	Invitee []Invitation `json:"invitee"`
+	Invited []Invitation `json:"invited"`
+}

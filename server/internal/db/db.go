@@ -124,22 +124,18 @@ func initializeDevData(db *sql.DB) error {
 			('user5', 'jonny_p', 'user5@example.com', 'user', date('now', '-13 days')),
 			('user6', 'ubebae', 'user6@example.com', 'user', date('now', '-13 days')),
 			('user7', 'bufy', 'user7@example.com', 'user', date('now', '-13 days')),
-			('user8', 'pro_tractor', 'user8@example.com', 'user', date('now', '-13 days'));
+			('user8', 'anonymous_hippopotamus', 'user8@example.com', 'user', date('now', '-13 days')),
+			('user9', 'pro_tractor', 'user9@example.com', 'user', date('now', '-13 days'));
 
 		-- Make them friends
-		INSERT OR IGNORE INTO friendships (user_id, friend_id) VALUES 
-			('user1', 'user2'),
-			('user2', 'user1'),
-			('user1', 'user3'),
-			('user3', 'user1'),
-			('user1', 'user4'),
-			('user4', 'user1'),
-			('user1', 'user5'),
-			('user5', 'user1'),
-			('user1', 'user6'),
-			('user6', 'user1'),
-			('user1', 'user7'),
-			('user7', 'user1');;
+		INSERT OR IGNORE INTO friendships (user1, user2, inviter_id, state) VALUES 
+			('user1', 'user2', 'user1', 'accepted'),
+			('user1', 'user3', 'user1', 'accepted'),
+			('user1', 'user4', 'user1', 'accepted'),
+			('user1', 'user5', 'user1', 'accepted'),
+			('user1', 'user6', 'user1', 'accepted'),
+			('user1', 'user7', 'user1', 'pending'),
+			('user1', 'user8', 'user8', 'pending');
 
 		INSERT OR IGNORE INTO daily_prompts (day, colors, prompt) VALUES 
 			(date('now', '-13 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A sunset over mountains'),

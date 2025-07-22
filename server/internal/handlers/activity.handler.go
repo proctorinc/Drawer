@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"time"
 
+	"log"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,12 +21,14 @@ func HandleGetActivity(c *gin.Context) {
 
 	lastReadID, err := queries.GetLastReadActivityID(appCtx.DB, ctx, userID)
 	if err != nil {
+		log.Printf("HandleGetActivity: error getting lastReadID for user %s: %v", userID, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get last read activity id"})
 		return
 	}
 
 	activities, err := queries.GetActivityFeed(appCtx.DB, ctx, userID, lastReadID, appCtx.Config)
 	if err != nil {
+		log.Printf("HandleGetActivity: error getting activity feed for user %s: %v", userID, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activity feed"})
 		return
 	}
@@ -32,6 +36,7 @@ func HandleGetActivity(c *gin.Context) {
 	// Filter out today's activity if the user hasn't submitted today
 	hasSubmittedToday, err := queries.CheckUserSubmittedToday(appCtx.DB, ctx, userID)
 	if err != nil {
+		log.Printf("HandleGetActivity: error checking submission status for user %s: %v", userID, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to check submission status"})
 		return
 	}
@@ -46,9 +51,58 @@ func HandleGetActivity(c *gin.Context) {
 			}
 		}
 		activities = filtered
+		log.Printf("HandleGetActivity: filtered activities for user %s, now %d activities", userID, len(activities))
 	}
 
-	c.JSON(http.StatusOK, gin.H{"activities": activities})
+	// --- Add friends + submission status ---
+	type FriendSubmissionStatus struct {
+		User      struct {
+			ID        string    `json:"id"`
+			Username  string    `json:"username"`
+			Email     string    `json:"email"`
+			CreatedAt time.Time `json:"createdAt"`
+		} `json:"user"`
+		HasSubmittedToday bool `json:"hasSubmittedToday"`
+	}
+
+	friendIDs, err := queries.GetUserFriends(appCtx.DB, ctx, userID)
+	if err != nil {
+		log.Printf("HandleGetActivity: error getting friends for user %s: %v", userID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get friends"})
+		return
+	}
+
+	friends := []FriendSubmissionStatus{}
+	for _, fid := range friendIDs {
+		friendUser, err := queries.GetUserByID(appCtx.DB, ctx, fid)
+		if err != nil || friendUser == nil {
+			log.Printf("HandleGetActivity: skipping friend %s (not found or error)", fid)
+			continue // skip if not found
+		}
+		hasSubmitted, err := queries.CheckUserSubmittedToday(appCtx.DB, ctx, fid)
+		if err != nil {
+			hasSubmitted = false // fallback
+		}
+		friends = append(friends, FriendSubmissionStatus{
+			User: struct {
+				ID        string    `json:"id"`
+				Username  string    `json:"username"`
+				Email     string    `json:"email"`
+				CreatedAt time.Time `json:"createdAt"`
+			}{
+				ID:        friendUser.ID,
+				Username:  friendUser.Username,
+				Email:     friendUser.Email,
+				CreatedAt: friendUser.CreatedAt,
+			},
+			HasSubmittedToday: hasSubmitted,
+		})
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"activities": activities,
+		"friends": friends,
+	})
 }
 
 // HandlePostActivity marks all activities up to the given activityId as read

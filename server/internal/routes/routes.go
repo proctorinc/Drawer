@@ -64,7 +64,10 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			userGroup.PUT("/me/username", handlers.HandleUpdateUsername)
 			userGroup.GET("/me/profile", handlers.HandleGetUserProfile)
 			userGroup.GET("/:id/profile", handlers.HandleGetUserByID)
-			userGroup.POST("/add-friend", handlers.HandleAddFriend)
+			userGroup.GET("/invitations", handlers.HandleGetInvitations)
+			userGroup.POST("/:id/invite", handlers.HandleInviteFriend)
+			userGroup.POST("/:id/accept-invitation", handlers.HandleAcceptInvitation)
+			userGroup.POST("/:id/deny-invitation", handlers.HandleDenyInvitation)
 
 			submissionGroup := authGroup.Group("/submission")
 
@@ -74,7 +77,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			submissionGroup.POST("/:id/comment", handlers.HandleAddCommentToSubmission)
 			submissionGroup.POST("/:id/reaction", handlers.HandleSubmissionToggleReaction)
 			submissionGroup.POST("/:id/favorite", handlers.HandleSubmissionToggleFavorite)
-			submissionGroup.POST(":id/comment/:reactionId/reaction", handlers.HandleCommentToggleReaction)
+			submissionGroup.POST("/:id/comment/:reactionId/reaction", handlers.HandleCommentToggleReaction)
 
 			authGroup.GET("/activity", handlers.HandleGetActivity)
 			authGroup.POST("/activity/view", handlers.HandlePostActivity)

@@ -12,9 +12,9 @@ import (
 
 func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadID string, cfg *config.Config) ([]models.Activity, error) {
 	friendQuery := `
-		SELECT DISTINCT CASE WHEN user_id = ? THEN friend_id ELSE user_id END AS friend_id
+		SELECT DISTINCT CASE WHEN user1 = ? THEN user2 ELSE user1 END AS friend_id
 		FROM friendships
-		WHERE user_id = ? OR friend_id = ?`
+		WHERE (user1 = ? OR user2 = ?) AND state = 'accepted'`
 	friendRows, err := repo.QueryContext(ctx, friendQuery, userID, userID, userID)
 	if err != nil {
 		return nil, err

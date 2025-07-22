@@ -1,17 +1,18 @@
 import {
   queryKeys,
-  useAddFriend,
+  useAcceptInvitation,
+  useInviteFriend,
   type GetMeResponse,
   type User,
 } from '@/api/Api';
 import type { FC } from 'react';
 import { UserProfileIcon } from './UserProfileIcon';
 import { ShareButton } from './friends/ShareButton';
-import { isFriend } from '@/utils';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
 import {
   faCheckCircle,
+  faClock,
   faFire,
   faPalette,
   faPlusCircle,
@@ -27,18 +28,24 @@ type Props = {
 const UserHeader: FC<Props> = ({ userProfile }) => {
   const currentUser = useUser();
   const queryClient = useQueryClient();
-  const addFriend = useAddFriend();
+  const inviteFriend = useInviteFriend();
+  const acceptInvitation = useAcceptInvitation();
   const isMe = currentUser.id === userProfile?.user.id;
 
-  const isAlreadyFriend = isFriend(currentUser.id, userProfile?.friends ?? []);
-
-  function handleAddFriend(user: User) {
-    addFriend.mutate(user.username, {
+  function handleInviteFriend(user: User) {
+    inviteFriend.mutate(user.id, {
       onSuccess: () => {
         queryClient.invalidateQueries({
           queryKey: queryKeys.userProfile(user.id),
         });
       },
+    });
+  }
+
+  function handleAccept(userId: string) {
+    acceptInvitation.mutate(userId, {
+      onError: (err: any) =>
+        console.error(err.message || 'Failed to accept invitation'),
     });
   }
 
@@ -60,24 +67,47 @@ const UserHeader: FC<Props> = ({ userProfile }) => {
           text={`Checkout ${isMe ? 'my' : `${userProfile?.user.username}'s`} daily doodle profile!`}
           className="absolute right-8 top-14 bg-primary text-secondary"
         ></ShareButton>
-        {!isMe && isAlreadyFriend && (
+        {!isMe && userProfile?.invitation?.status === 'accepted' && (
           <Button
             size="sm"
-            className="absolute left-2 top-14 bg-transparent text-secondary"
+            className="absolute left-0 top-14 bg-transparent text-secondary"
             icon={faCheckCircle}
           >
             Friend
           </Button>
         )}
-        {!isMe && !isAlreadyFriend && (
+        {!isMe &&
+          userProfile?.invitation?.status === 'pending' &&
+          userProfile?.invitation?.inviter.id === currentUser.id && (
+            <Button
+              size="sm"
+              className="absolute left-0 top-14 bg-transparent text-secondary"
+              icon={faClock}
+            >
+              Invited
+            </Button>
+          )}
+        {!isMe &&
+          userProfile?.invitation?.status === 'pending' &&
+          userProfile?.invitation?.inviter.id !== currentUser.id && (
+            <Button
+              size="sm"
+              className="absolute left-0 top-14 bg-primary text-secondary"
+              icon={faCheckCircle}
+              onClick={() => handleAccept(userProfile?.user.id)}
+            >
+              Accept
+            </Button>
+          )}
+        {!isMe && !userProfile?.invitation && (
           <Button
             size="sm"
             variant="base"
-            className="absolute left-6 top-14 bg-primary text-secondary"
+            className="absolute left-0 top-14 bg-primary text-secondary"
             icon={faPlusCircle}
             onClick={() => {
               if (userProfile) {
-                handleAddFriend(userProfile.user);
+                handleInviteFriend(userProfile.user);
               }
             }}
           >

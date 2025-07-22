@@ -1,11 +1,12 @@
 import type {
-  Activity,
   Comment,
   DailyPrompt,
   GetMeResponse,
   ReactionResponse,
   User,
   UserPromptSubmission,
+  ActivityFeedResponse,
+  InvitationResponse,
 } from './Api';
 import { Config } from '@/config/Config';
 
@@ -79,6 +80,17 @@ export const apiClient = {
     };
   },
 
+  getUserByUsername: async (username: string): Promise<User> => {
+    const response = await fetchAPI(
+      'GET',
+      `/user/username/${encodeURIComponent(username)}`,
+    );
+    if (!response.ok) {
+      throw new Error(`User not found`);
+    }
+    return response.json();
+  },
+
   getPromptSubmission: async (
     submissionId: string,
   ): Promise<UserPromptSubmission> => {
@@ -149,12 +161,34 @@ export const apiClient = {
   },
 
   // User management
-  addFriend: async (username: string): Promise<{ message: string }> => {
-    const response = await fetchAPI('POST', '/user/add-friend', {
-      body: JSON.stringify({ username }),
-    });
+  inviteFriend: async (userId: string): Promise<{ message: string }> => {
+    const response = await fetchAPI('POST', `/user/${userId}/invite`);
     if (!response.ok) {
-      throw new Error(`Error adding friend: ${response.statusText}`);
+      throw new Error(`Error inviting friend: ${response.statusText}`);
+    }
+    return response.json();
+  },
+  getInvitations: async (): Promise<InvitationResponse> => {
+    const response = await fetchAPI('GET', '/user/invitations');
+    if (!response.ok) {
+      throw new Error(`Error fetching invitations: ${response.statusText}`);
+    }
+    return response.json();
+  },
+  acceptInvitation: async (userId: string): Promise<{ message: string }> => {
+    const response = await fetchAPI(
+      'POST',
+      `/user/${userId}/accept-invitation`,
+    );
+    if (!response.ok) {
+      throw new Error(`Error accepting invitation: ${response.statusText}`);
+    }
+    return response.json();
+  },
+  denyInvitation: async (userId: string): Promise<{ message: string }> => {
+    const response = await fetchAPI('POST', `/user/${userId}/deny-invitation`);
+    if (!response.ok) {
+      throw new Error(`Error denying invitation: ${response.statusText}`);
     }
     return response.json();
   },
@@ -268,23 +302,13 @@ export const apiClient = {
   },
 
   // Activity
-  getActivityFeed: async (): Promise<Array<Activity>> => {
+  getActivityFeed: async (): Promise<ActivityFeedResponse> => {
     const response = await fetchAPI('GET', '/activity');
     if (!response.ok) {
-      throw new Error(`Error fetching activity feed: ${response.statusText}`);
+      throw new Error('Failed to fetch activity feed');
     }
-    const data = await response.json();
-    // Convert date strings to Date objects
-    return (data.activities as Array<any>).map((a: any) => ({
-      ...a,
-      date: new Date(a.date),
-      comment: a.comment
-        ? { ...a.comment, createdAt: new Date(a.comment.createdAt) }
-        : undefined,
-      reaction: a.reaction
-        ? { ...a.reaction, createdAt: new Date(a.reaction.createdAt) }
-        : undefined,
-    }));
+
+    return response.json();
   },
 
   markActivityRead: async (

@@ -1,4 +1,4 @@
-import { faHome, faList } from '@fortawesome/free-solid-svg-icons';
+import { faHome, faUsers } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { UserProfileIcon } from '@/pages/profile/components/UserProfileIcon';
@@ -21,7 +21,7 @@ const Navbar = () => {
               'ring-3 ring-base/50 bg-base text-primary',
           )}
         >
-          <FontAwesomeIcon icon={faList} />
+          <FontAwesomeIcon icon={faUsers} />
         </button>
         <button
           onClick={() => navigate({ to: '/draw' })}

@@ -91,6 +91,7 @@ export interface GetMeResponse {
   friends: Array<User>;
   stats: UserStats;
   favorites: Array<FavoriteSubmission>;
+  invitation: InvitationStatus;
 }
 
 export interface AdminDashboardStats {
@@ -198,6 +199,14 @@ export function usePromptSubmission(submissionId: string) {
   });
 }
 
+export function useGetUserByUsername(username: string) {
+  return useQuery({
+    queryKey: ['userByUsername', username],
+    queryFn: () => apiClient.getUserByUsername(username),
+    enabled: !!username,
+  });
+}
+
 // Mutations
 export function useSubmitDailyPrompt() {
   return useMutation({
@@ -223,9 +232,46 @@ export function useLogoutUser() {
   });
 }
 
-export function useAddFriend() {
+export function useInviteFriend() {
   return useMutation({
-    mutationFn: apiClient.addFriend,
+    mutationFn: apiClient.inviteFriend,
+  });
+}
+
+// Types for invitations
+export interface Invitation {
+  inviter: User;
+  invitee: User;
+  createdAt: string;
+}
+
+export interface InvitationStatus {
+  inviter: User;
+  status: 'pending' | 'accepted';
+  createdAt: string;
+}
+
+export interface InvitationResponse {
+  invitee: Invitation[];
+  invited: Invitation[];
+}
+
+export function useGetInvitations() {
+  return useQuery<InvitationResponse>({
+    queryKey: ['invitations'],
+    queryFn: apiClient.getInvitations,
+  });
+}
+
+export function useAcceptInvitation() {
+  return useMutation({
+    mutationFn: apiClient.acceptInvitation,
+  });
+}
+
+export function useDenyInvitation() {
+  return useMutation({
+    mutationFn: apiClient.denyInvitation,
   });
 }
 
@@ -288,8 +334,20 @@ export function useSwapFavoriteOrder() {
 }
 
 // Activity Feed Hooks
+// Add a type for the friend submission status returned by the activity API
+export interface FriendSubmissionStatus {
+  user: User;
+  hasSubmittedToday: boolean;
+}
+
+// Update the useActivityFeed hook to reflect the new response structure
+export interface ActivityFeedResponse {
+  activities: Array<Activity>;
+  friends: Array<FriendSubmissionStatus>;
+}
+
 export function useActivityFeed() {
-  return useQuery<Array<Activity>>({
+  return useQuery<ActivityFeedResponse>({
     queryKey: queryKeys.activityFeed,
     queryFn: apiClient.getActivityFeed,
   });

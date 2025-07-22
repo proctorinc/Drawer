@@ -14,7 +14,7 @@ import Button from '@/components/Button';
 
 export const ActivityFeed = () => {
   const navigate = useNavigate();
-  const { data: activities, isLoading, isError } = useActivityFeed();
+  const { data, isLoading, isError } = useActivityFeed();
 
   if (isLoading) {
     return <></>;
@@ -27,12 +27,10 @@ export const ActivityFeed = () => {
       </div>
     );
   }
-  if (!activities || activities.length === 0) {
+  if (!data?.activities || data.activities.length === 0) {
     return (
       <Card className="h-64 justify-center text-center">
-        <h2 className="text-primary-foreground font-bold text-xl">
-          No Activity Yet
-        </h2>
+        <h2 className="text-primary font-bold text-xl">No Activity Yet</h2>
         <p className="font-bold text-secondary">
           Wait for a friend to comment or react!
         </p>
@@ -42,7 +40,7 @@ export const ActivityFeed = () => {
 
   return (
     <div className="flex flex-col gap-4 w-full max-w-md pb-40">
-      {activities.map((activity) => {
+      {data.activities.map((activity) => {
         const icon = activity.reaction
           ? getReactionIcon(activity.reaction?.reactionId)?.icon
           : null;
