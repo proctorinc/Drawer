@@ -127,29 +127,39 @@ const ActivityPage = () => {
                 friendsExpanded && 'flex-wrap',
               )}
             >
-              {data?.friends.map((friend, idx) => (
-                <div
-                  className={cn('relative transition-transform duration-500')}
-                  style={
-                    !friendsExpanded && idx !== 0
-                      ? { transform: `translateX(-${idx * 20}px)` }
-                      : { transform: 'translateX(0)' }
+              {data?.friends
+                .sort((a, b) => {
+                  if (a.hasSubmittedToday && !b.hasSubmittedToday) {
+                    return -1;
+                  } else if (!a.hasSubmittedToday && b.hasSubmittedToday) {
+                    return 1;
+                  } else {
+                    return 0;
                   }
-                  key={friend.user.id}
-                >
-                  <UserProfileIcon onClick={() => {}} user={friend.user} />
-                  {friend.hasSubmittedToday && (
-                    <div className="absolute flex items-center justify-center top-0 -left-1 w-4 h-4 bg-base text-emerald-400 rounded-full">
-                      <FontAwesomeIcon icon={faCheckCircle} />
-                    </div>
-                  )}
-                  {!friend.hasSubmittedToday && (
-                    <div className="absolute flex items-center justify-center top-0 -left-1 w-4 h-4 bg-secondary text-primary rounded-full">
-                      <FontAwesomeIcon icon={faClock} />
-                    </div>
-                  )}
-                </div>
-              ))}
+                })
+                .map((friend, idx) => (
+                  <div
+                    className={cn('relative transition-transform duration-500')}
+                    style={
+                      !friendsExpanded && idx !== 0
+                        ? { transform: `translateX(-${idx * 20}px)` }
+                        : { transform: 'translateX(0)' }
+                    }
+                    key={friend.user.id}
+                  >
+                    <UserProfileIcon onClick={() => {}} user={friend.user} />
+                    {friend.hasSubmittedToday && (
+                      <div className="absolute flex items-center justify-center top-0 -left-1 w-4 h-4 bg-base text-emerald-400 rounded-full">
+                        <FontAwesomeIcon icon={faCheckCircle} />
+                      </div>
+                    )}
+                    {!friend.hasSubmittedToday && (
+                      <div className="absolute flex items-center justify-center top-0 -left-1 w-4 h-4 bg-secondary text-primary rounded-full">
+                        <FontAwesomeIcon icon={faClock} />
+                      </div>
+                    )}
+                  </div>
+                ))}
               {data?.friends.length === 0 && (
                 <Card>
                   <CardContent className="text-secondary font-bold text-center">
