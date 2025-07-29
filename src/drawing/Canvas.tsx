@@ -13,7 +13,6 @@ const Canvas = forwardRef<
   const cursorImage = createCursorImage(selectedColor);
   const cursorStyle = {
     cursor: `url(${cursorImage}), 8 8 auto`,
-    touchAction: 'pan-x pan-y pinch-zoom',
   };
 
   return (

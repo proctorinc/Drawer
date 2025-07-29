@@ -30,6 +30,12 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [isDrawing, setIsDrawing] = useState<boolean>(false);
+  const [lastScale, setLastScale] = useState<number>(1);
+  const [initialCanvasX, setInitialCanvasX] = useState<number>(0);
+  const [initialCanvasY, setInitialCanvasY] = useState<number>(0);
+  const [isPinching, setIsPinching] = useState<boolean>(false);
+  const initialDistance = useRef<number>(0);
+  const initialScale = useRef<number>(1);
   const [paths, setPaths] = useState<Array<Path>>(loadPaths());
   const currentPathRef = useRef<Path | null>(null);
 
@@ -40,11 +46,12 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
     if (canvasRef.current) {
       const ctx = canvasRef.current.getContext('2d');
       if (ctx) {
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
-        updatePaths([]);
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); // Clear canvas
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transformation
+        paths.forEach((path) => path.draw(ctx)); // Redraw all paths
       }
     }
-  }, []);
+  }, [paths]);
 
   const undo = useCallback(() => {
     if (paths.length > 0) {
@@ -58,19 +65,41 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
       const ctx = canvasRef.current.getContext('2d');
       if (ctx) {
         ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); // Clear canvas
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transformation
         paths.forEach((path) => path.draw(ctx)); // Redraw all paths
       }
     }
-  }, [paths]);
+  }, [paths, lastScale]);
+
+  const getDistance = (event: TouchEvent) => {
+    const touch1 = event.touches[0];
+    const touch2 = event.touches[1];
+    return Math.sqrt(
+      Math.pow(touch2.clientX - touch1.clientX, 2) +
+        Math.pow(touch2.clientY - touch1.clientY, 2),
+    );
+  };
 
   const handleMouseDown = useCallback(
     (event: MouseEvent | TouchEvent) => {
-      // Only allow single-finger drawing
-      if ('touches' in event && event.touches.length !== 1) {
-        setIsDrawing(false);
-        return; // Don't prevent default for multi-touch
+      if (event instanceof TouchEvent) {
+        if (event.touches.length > 1) {
+          setIsDrawing(false);
+          setIsPinching(true);
+          initialDistance.current = getDistance(event);
+          initialScale.current = lastScale;
+          return;
+        }
       }
-      event.preventDefault(); // Only prevent default for single touch
+
+      if (event instanceof TouchEvent) {
+        if (event.touches.length !== 1) {
+          setIsDrawing(false);
+          return;
+        }
+      }
+
+      event.preventDefault();
       const canvas = canvasRef.current;
       if (!canvas) return;
 
@@ -101,12 +130,42 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleMouseMove = useCallback(
     (event: MouseEvent | TouchEvent) => {
-      if ('touches' in event && event.touches.length !== 1) {
-        setIsDrawing(false);
-        return; // Don't prevent default for multi-touch
+      if (event instanceof TouchEvent && isPinching) {
+        event.preventDefault();
+
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext('2d');
+
+        if (!canvas || !ctx) return;
+
+        const currentDistance = getDistance(event);
+
+        if (initialDistance.current === 0) return;
+
+        let scaleFactor = currentDistance / initialDistance.current;
+        scaleFactor = initialScale.current * scaleFactor;
+
+        // Limit the scale factor to prevent zooming in too much or too little
+        scaleFactor = Math.max(0.5, Math.min(scaleFactor, 2));
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(scaleFactor, scaleFactor);
+
+        setLastScale(scaleFactor);
+        redraw();
+        return;
       }
+
+      if (event instanceof TouchEvent) {
+        if (event.touches.length !== 1) {
+          setIsDrawing(false);
+          return;
+        }
+      }
+
       if (!isDrawing) return;
-      event.preventDefault(); // Only prevent default for single touch
+      event.preventDefault();
 
       const canvas = canvasRef.current;
       const ctx = canvas?.getContext('2d');
@@ -120,16 +179,26 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
 
       currentPath.draw(ctx);
     },
-    [isDrawing],
+    [isDrawing, isPinching],
   );
 
   const handleMouseUp = useCallback(
     (event: MouseEvent | TouchEvent) => {
-      if ('changedTouches' in event && event.changedTouches.length !== 1) {
-        setIsDrawing(false);
+      if (event instanceof TouchEvent && isPinching) {
+        setIsPinching(false);
+        initialDistance.current = 0;
+        initialScale.current = 1;
         return;
       }
-      if (!isDrawing) return; // Only finalize if was drawing
+
+      if (event instanceof TouchEvent) {
+        if (event.changedTouches.length !== 1) {
+          setIsDrawing(false);
+          return;
+        }
+      }
+
+      if (!isDrawing) return;
 
       event.preventDefault();
 
@@ -152,7 +221,7 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
 
       currentPathRef.current = null;
     },
-    [isDrawing, setPaths],
+    [isDrawing, setPaths, isPinching],
   );
 
   const handleMouseLeave = useCallback(
