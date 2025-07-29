@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { faEdit } from '@fortawesome/free-solid-svg-icons';
 import DrawingCanvas from '../feed/components/DrawingCanvas';
 import { useMyProfilePage } from './context/MyProfileContext';

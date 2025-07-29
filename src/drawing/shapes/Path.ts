@@ -6,6 +6,7 @@ export interface SerializedPath {
   points: Array<Point>;
   color: string;
   lineWidth: number;
+  isEraser: boolean;
 }
 
 export class Path {
@@ -86,6 +87,7 @@ export class Path {
       points: [...this.points], // Return a copy of points
       color: this.color,
       lineWidth: this.lineWidth,
+      isEraser: this.isEraser,
     };
   }
 
@@ -95,6 +97,6 @@ export class Path {
    */
   static deserialize(data: SerializedPath): Path {
     // Basic validation could be added here
-    return new Path(data.points, data.color, data.lineWidth, false);
+    return new Path(data.points, data.color, data.lineWidth, data.isEraser);
   }
 }
