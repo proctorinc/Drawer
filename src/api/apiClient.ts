@@ -7,6 +7,8 @@ import type {
   UserPromptSubmission,
   ActivityFeedResponse,
   InvitationResponse,
+  DailyActionStat,
+  AchievementsAndRewardsResponse,
 } from './Api';
 import { Config } from '@/config/Config';
 
@@ -49,7 +51,7 @@ export const apiClient = {
   },
 
   getMyProfile: async (): Promise<GetMeResponse> => {
-    const response = await fetchAPI('GET', '/user/me/profile');
+    const response = await fetchAPI('GET', '/user/profile');
     if (!response.ok) {
       throw new Error(`Error fetching user profile: ${response.statusText}`);
     }
@@ -194,7 +196,7 @@ export const apiClient = {
   },
 
   updateUsername: async (username: string): Promise<{ message: string }> => {
-    const response = await fetchAPI('PUT', '/user/me/username', {
+    const response = await fetchAPI('PUT', '/user/username', {
       body: JSON.stringify({ username }),
     });
     if (!response.ok) {
@@ -206,45 +208,48 @@ export const apiClient = {
 
   // Submissions
   submitDailyPrompt: async (
-    canvasData: string,
+    drawingImage: Blob,
   ): Promise<UserPromptSubmission> => {
-    // Convert canvas data to PNG
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Could not get canvas context');
-
-    const data = JSON.parse(canvasData);
-    const imageData = new ImageData(
-      new Uint8ClampedArray(data.data),
-      data.width,
-      data.height,
-    );
-    canvas.width = data.width;
-    canvas.height = data.height;
-    ctx.putImageData(imageData, 0, 0);
-
-    // Convert to PNG
-    const blob = await new Promise<Blob>((resolve) => {
-      canvas.toBlob((callback) => {
-        if (callback) resolve(callback);
-      }, 'image/png');
-    });
-
     // Create form data
     const formData = new FormData();
-    formData.append('image', blob, 'drawing.png');
+    formData.append('image', drawingImage, 'drawing.png');
 
     const response = await fetchAPI('POST', '/submission/daily', {
       body: formData,
     });
 
     if (!response.ok) {
-      throw new Error(`Error submitting daily prompt: ${response.statusText}`);
+      throw new Error(`Error submitting daily prompt: ${response.text}`);
     }
     return response.json();
   },
 
-  // Comments
+  uploadCustomAvatar: async (
+    profileImage: Blob,
+  ): Promise<{ message: string }> => {
+    // Create form data
+    const formData = new FormData();
+    formData.append('image', profileImage, 'profile-pic.png');
+
+    const response = await fetchAPI('POST', '/user/profile-pic', {
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error uploading new profile picture: ${response.text}`);
+    }
+    return response.json();
+  },
+
+  toggleAvatarType: async (): Promise<{ message: string }> => {
+    const response = await fetchAPI('PUT', '/user/profile-pic/toggle');
+
+    if (!response.ok) {
+      throw new Error(`Error toggling avatar type: ${response.text}`);
+    }
+    return response.json();
+  },
+
   addComment: async (submissionId: string, text: string): Promise<Comment> => {
     const response = await fetchAPI(
       'POST',
@@ -349,8 +354,7 @@ export const apiClient = {
       body: JSON.stringify({ id1, id2 }),
     });
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(data.error || 'Failed to swap favorites');
+      throw new Error(`Error swapping favorite order: ${response.statusText}`);
     }
     return response.json();
   },
@@ -374,6 +378,20 @@ export const apiClient = {
     if (!response.ok) {
       throw new Error('Failed to unsubscribe from push notifications');
     }
+  },
+
+  getUserAchievements: async (): Promise<AchievementsAndRewardsResponse> => {
+    const response = await fetchAPI('GET', `/user/achievements`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch user achievements');
+    }
+    const json = await response.json();
+    const test = {
+      ...json,
+      rewards: new Map(Object.entries(json.rewards)),
+    };
+
+    return test;
   },
 
   // Admin endpoints
@@ -443,10 +461,7 @@ export const apiClient = {
       body: JSON.stringify({ userId }),
     });
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(
-        data.error || `Error impersonating user: ${response.statusText}`,
-      );
+      throw new Error(`Error impersonating user: ${response.statusText}`);
     }
     return response.json();
   },
@@ -461,10 +476,7 @@ export const apiClient = {
       body: JSON.stringify(data),
     });
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(
-        data.error || `Error creating prompt: ${response.statusText}`,
-      );
+      throw new Error(`Error creating prompt: ${response.statusText}`);
     }
     return response.json();
   },
@@ -472,7 +484,7 @@ export const apiClient = {
   getAdminActionStats: async (
     start: string,
     end: string,
-  ): Promise<DailyActionStat[]> => {
+  ): Promise<Array<DailyActionStat>> => {
     const response = await fetchAPI(
       'GET',
       `/admin/action-stats?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
@@ -484,11 +496,4 @@ export const apiClient = {
     }
     return response.json();
   },
-};
-
-export type DailyActionStat = {
-  date: string;
-  drawings: number;
-  reactions: number;
-  comments: number;
 };

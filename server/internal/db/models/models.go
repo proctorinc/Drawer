@@ -13,11 +13,13 @@ type DailyPrompt struct {
 
 // User represents basic user profile information.
 type User struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Role      string    `json:"-"` // Omitted from JSON responses
-	CreatedAt time.Time `json:"createdAt"`
+	ID         string    `json:"id"`
+	Username   string    `json:"username"`
+	Email      string    `json:"email"`
+	Role       string    `json:"-"` // Omitted from JSON responses
+	CreatedAt  time.Time `json:"createdAt"`
+	AvatarType string    `json:"avatarType"`
+	AvatarURL  string    `json:"avatarUrl"`
 }
 
 // Reaction represents a user's reaction to content
@@ -72,13 +74,13 @@ type UserStats struct {
 
 // GetMeResponse is the structure for the /me endpoint response.
 type GetMeResponse struct {
-	User      	User                    `json:"user"`
-	Prompts   	[]*UserPromptSubmission `json:"prompts"`
-	Feed      	[]*UserPromptSubmission `json:"feed"`
-	Friends   	[]User                  `json:"friends"`
-	Stats     	UserStats               `json:"stats"`
-	Favorites 	[]*FavoriteSubmission   `json:"favorites"`
-	Invitation 	*InvitationStatus		`json:"invitation"`
+	User       User                    `json:"user"`
+	Prompts    []*UserPromptSubmission `json:"prompts"`
+	Feed       []*UserPromptSubmission `json:"feed"`
+	Friends    []User                  `json:"friends"`
+	Stats      UserStats               `json:"stats"`
+	Favorites  []*FavoriteSubmission   `json:"favorites"`
+	Invitation *InvitationStatus       `json:"invitation"`
 }
 
 type FavoriteSubmission struct {
@@ -135,18 +137,36 @@ type NotificationData struct {
 }
 
 type Invitation struct {
-	Inviter User `json:"inviter"`
-	Invitee User `json:"invitee"`
+	Inviter   User      `json:"inviter"`
+	Invitee   User      `json:"invitee"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
 type InvitationStatus struct {
-	Inviter User `json:"inviter"`
-	Status string `json:"status"`
+	Inviter   User      `json:"inviter"`
+	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
 type InvitationResponse struct {
 	Invitee []Invitation `json:"invitee"`
 	Invited []Invitation `json:"invited"`
+}
+
+type Achievement struct {
+	ID               string        `json:"id"`
+	Name             string        `json:"name"`
+	Description      string        `json:"description"`
+	ImageURL         string        `json:"imageUrl"`
+	AchievedAt       *time.Time    `json:"achievedAt"`
+	AchievementField string        `json:"achievementField"`
+	AchievementValue int           `json:"achievementValue"`
+	Reward           *RewardUnlock `json:"reward"`
+}
+
+type RewardUnlock struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"-"`
 }

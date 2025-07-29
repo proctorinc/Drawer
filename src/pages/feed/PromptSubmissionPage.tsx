@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { Card, CardContent } from '@/components/Card';
-import { UserProfileIcon } from '../profile/components/UserProfileIcon';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import Button from '@/components/Button';
 import {
   usePromptSubmission,
@@ -38,7 +38,7 @@ const PromptSubmissionPage = () => {
     refetch,
   } = usePromptSubmission(submissionId);
   const addComment = useAddComment();
-  const [comment, setComment] = useState('');
+  const [newComment, setNewComment] = useState('');
 
   function hasReacted(comment: Comment) {
     return comment.reactions.some(
@@ -88,7 +88,7 @@ const PromptSubmissionPage = () => {
       <Layout
         back
         header={
-          <div className="flex flex-col gap-4 w-full pb-6 -mt-6">
+          <div className="flex flex-col gap-4 w-full px-4 pb-6 -mt-6">
             <DrawingFeedImage
               submission={submission}
               className="border-secondary shadow-secondary"
@@ -178,7 +178,7 @@ const PromptSubmissionPage = () => {
                           }
                         >
                           <div className="flex align-right w-full pr-2">
-                            <h3 className="w-fit p-1 text-xs font-semibold text-secondary whitespace-nowrap">
+                            <h3 className="w-fit text-xs font-semibold text-secondary whitespace-nowrap">
                               Loved by{' '}
                               {comment.reactions[0].user.id === currentUser.id
                                 ? 'you'
@@ -196,12 +196,12 @@ const PromptSubmissionPage = () => {
                 className="flex gap-2 pt-4 items-center"
                 onSubmit={async (e) => {
                   e.preventDefault();
-                  if (!comment.trim()) return;
+                  if (!newComment.trim()) return;
                   try {
                     await addComment.mutateAsync(
                       {
                         submissionId,
-                        text: comment,
+                        text: newComment,
                       },
                       {
                         onSuccess: () => {
@@ -217,7 +217,7 @@ const PromptSubmissionPage = () => {
                         },
                       },
                     );
-                    setComment('');
+                    setNewComment('');
                     refetch();
                   } catch (err) {
                     // Optionally show error
@@ -227,15 +227,15 @@ const PromptSubmissionPage = () => {
                 <input
                   className="font-bold border-2 text-primary border-border w-full p-4 rounded-2xl"
                   placeholder="Add a comment..."
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
                 />
                 <Button
                   className="h-full"
                   size="sm"
                   icon={faArrowRight}
                   type="submit"
-                  disabled={!comment.trim()}
+                  disabled={!newComment.trim()}
                 ></Button>
               </form>
             </CardContent>

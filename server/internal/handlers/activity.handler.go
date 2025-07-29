@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"drawer-service-backend/internal/context"
+	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
@@ -18,6 +19,7 @@ func HandleGetActivity(c *gin.Context) {
 	appCtx := context.GetCtx(c)
 	userID := middleware.GetUserID(c)
 	ctx := c.Request.Context()
+	requester := middleware.GetUser(c)
 
 	lastReadID, err := queries.GetLastReadActivityID(appCtx.DB, ctx, userID)
 	if err != nil {
@@ -56,13 +58,8 @@ func HandleGetActivity(c *gin.Context) {
 
 	// --- Add friends + submission status ---
 	type FriendSubmissionStatus struct {
-		User      struct {
-			ID        string    `json:"id"`
-			Username  string    `json:"username"`
-			Email     string    `json:"email"`
-			CreatedAt time.Time `json:"createdAt"`
-		} `json:"user"`
-		HasSubmittedToday bool `json:"hasSubmittedToday"`
+		User              models.User `json:"user"`
+		HasSubmittedToday bool        `json:"hasSubmittedToday"`
 	}
 
 	friendIDs, err := queries.GetUserFriends(appCtx.DB, ctx, userID)
@@ -71,6 +68,8 @@ func HandleGetActivity(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get friends"})
 		return
 	}
+
+	friendIDs = append(friendIDs, requester.ID)
 
 	friends := []FriendSubmissionStatus{}
 	for _, fid := range friendIDs {
@@ -84,16 +83,13 @@ func HandleGetActivity(c *gin.Context) {
 			hasSubmitted = false // fallback
 		}
 		friends = append(friends, FriendSubmissionStatus{
-			User: struct {
-				ID        string    `json:"id"`
-				Username  string    `json:"username"`
-				Email     string    `json:"email"`
-				CreatedAt time.Time `json:"createdAt"`
-			}{
-				ID:        friendUser.ID,
-				Username:  friendUser.Username,
-				Email:     friendUser.Email,
-				CreatedAt: friendUser.CreatedAt,
+			User: models.User{
+				ID:         friendUser.ID,
+				Username:   friendUser.Username,
+				Email:      friendUser.Email,
+				CreatedAt:  friendUser.CreatedAt,
+				AvatarType: friendUser.AvatarType,
+				AvatarURL:  friendUser.AvatarURL,
 			},
 			HasSubmittedToday: hasSubmitted,
 		})
@@ -101,7 +97,7 @@ func HandleGetActivity(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"activities": activities,
-		"friends": friends,
+		"friends":    friends,
 	})
 }
 

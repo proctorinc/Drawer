@@ -33,11 +33,12 @@ const Layout: FC<Props> = ({
       {...backgroundProps}
     >
       <div
-        className="z-0 sticky top-0 flex flex-col items-center max-w-md w-full gap-6 px-6 md:p-2"
+        className="z-0 sticky top-0 flex flex-col items-center max-w-md w-full gap-6 px-2 md:p-2"
         {...headerProps}
       >
+        {hideHeader && <div className="pt-6" />}
         {!hideHeader && (
-          <div className="sticky top-0 flex justify-center items-center text-center pb-6 pt-8 w-full">
+          <div className="sticky top-0 flex justify-center items-center text-center pb-6 pt-6 w-full">
             {back && canGoBack && (
               <Button
                 variant="base"
@@ -63,10 +64,10 @@ const Layout: FC<Props> = ({
         )}
         {header}
       </div>
-      <div className="z-10 relative flex flex-col flex-grow w-full items-center p-6 md:p-2 gap-6 bg-base min-h-screen overflow-y-auto overflow-x-hidden pb-30 max-w-md rounded-t-4xl border-2 border-border">
+      <div className="z-10 relative flex flex-col flex-grow w-full items-center p-6 gap-6 bg-base min-h-screen overflow-y-auto overflow-x-hidden pb-30 max-w-md rounded-t-4xl border-2 border-border animate-in slide-in-from-bottom-[100px] duration-400">
         {children}
-        {isAuthenticated && <Navbar />}
       </div>
+      {isAuthenticated && <Navbar />}
     </div>
   );
 };

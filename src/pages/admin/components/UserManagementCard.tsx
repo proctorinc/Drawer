@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader } from '@/components/Card';
 import Button from '@/components/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faSearch,
   faCrown,
+  faSearch,
   faUserSecret,
 } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';

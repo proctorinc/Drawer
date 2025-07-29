@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type FC,
 } from 'react';
 import { Path } from './shapes/Path';
 import { getEventPoint } from './shapes/Point';
@@ -19,13 +20,19 @@ type DrawingContextType = {
   undo: () => void;
   selectEraser: () => void;
   canUndo: boolean;
-  getCanvasData: () => string;
+  getPng: (backgroundColor?: string) => Promise<Blob>;
 };
 
 const DrawingContext = createContext<DrawingContextType | undefined>(undefined);
 
-export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
+type DrawingProviderProps = {
+  localStorageKey: string;
+  children: React.ReactNode;
+};
+
+export const DrawingProvider: FC<DrawingProviderProps> = ({
   children,
+  localStorageKey,
 }) => {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -176,11 +183,11 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
   function savePaths(newPaths: Array<Path>) {
     const serializedPaths = newPaths.map((path) => path.serialize());
     const stateJson = JSON.stringify(serializedPaths);
-    localStorage.setItem(Config.LOCAL_STORAGE_KEY, stateJson);
+    localStorage.setItem(localStorageKey, stateJson);
   }
 
   function loadPaths() {
-    const jsonState = localStorage.getItem('drawingPaths');
+    const jsonState = localStorage.getItem(localStorageKey);
 
     if (jsonState) {
       const serializedPaths: Array<SerializedPath> = JSON.parse(jsonState);
@@ -212,6 +219,67 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
     } else {
       throw Error('Failed to get canvas reference');
     }
+  }
+
+  async function getPng(backgroundColor?: string): Promise<Blob> {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!ctx || !canvas) throw new Error('Could not get canvas context');
+
+    // Store the original dimensions of the canvas
+    const originalWidth = canvas.width;
+    const originalHeight = canvas.height;
+
+    // Get your existing image data
+    const canvasData = getCanvasData();
+    const jsonData = JSON.parse(canvasData);
+    const imageData = new ImageData(
+      new Uint8ClampedArray(jsonData.data),
+      jsonData.width,
+      jsonData.height,
+    );
+
+    // Create an OffscreenCanvas to draw the background and your image data
+    // This prevents flickering or modifying the visible canvas
+    const offscreenCanvas = document.createElement('canvas');
+    const offscreenCtx = offscreenCanvas.getContext('2d');
+
+    if (!offscreenCtx)
+      throw new Error('Could not get offscreen canvas context');
+
+    offscreenCanvas.width = jsonData.width;
+    offscreenCanvas.height = jsonData.height;
+
+    // 1. Draw the background color on the offscreen canvas
+    if (backgroundColor) {
+      offscreenCtx.fillStyle = backgroundColor;
+      offscreenCtx.fillRect(
+        0,
+        0,
+        offscreenCanvas.width,
+        offscreenCanvas.height,
+      );
+    } else {
+      // If no background color, ensure the offscreen canvas is transparent
+      offscreenCtx.clearRect(
+        0,
+        0,
+        offscreenCanvas.width,
+        offscreenCanvas.height,
+      );
+    }
+
+    // 2. Convert ImageData to ImageBitmap and draw it onto the offscreen canvas
+    // This is the key change to handle transparency correctly
+    const imageBitmap = await createImageBitmap(imageData);
+    offscreenCtx.drawImage(imageBitmap, 0, 0);
+
+    // Now, convert the offscreen canvas to PNG
+    return new Promise<Blob>((resolve) => {
+      offscreenCanvas.toBlob((callback) => {
+        if (callback) resolve(callback);
+      }, 'image/png');
+    });
   }
 
   useEffect(() => {
@@ -268,7 +336,7 @@ export const DrawingProvider: React.FC<{ children: React.ReactNode }> = ({
         undo,
         selectEraser,
         canUndo,
-        getCanvasData,
+        getPng,
       }}
     >
       {children}

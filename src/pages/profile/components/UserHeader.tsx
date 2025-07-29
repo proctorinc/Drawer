@@ -6,7 +6,7 @@ import {
   type User,
 } from '@/api/Api';
 import type { FC } from 'react';
-import { UserProfileIcon } from './UserProfileIcon';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { ShareButton } from './friends/ShareButton';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
@@ -20,17 +20,22 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useQueryClient } from '@tanstack/react-query';
+import { cn, nameToColor } from '@/utils';
 
 type Props = {
   userProfile?: GetMeResponse;
+  className?: string;
 };
 
-const UserHeader: FC<Props> = ({ userProfile }) => {
+const UserHeader: FC<Props> = ({ userProfile, className }) => {
   const currentUser = useUser();
   const queryClient = useQueryClient();
   const inviteFriend = useInviteFriend();
   const acceptInvitation = useAcceptInvitation();
   const isMe = currentUser.id === userProfile?.user.id;
+  const { primary, secondary, text } = nameToColor(
+    userProfile?.user.username ?? '',
+  );
 
   function handleInviteFriend(user: User) {
     inviteFriend.mutate(user.id, {
@@ -50,8 +55,10 @@ const UserHeader: FC<Props> = ({ userProfile }) => {
   }
 
   return (
-    <>
-      <div className="z-0 relative w-full">
+    <div
+      className={cn('flex flex-col gap-4', 'z-0 relative w-full', className)}
+    >
+      <div>
         <div className="flex flex-col items-center gap-3">
           <UserProfileIcon user={userProfile?.user} size="2xl" />
           <div className="flex gap-2 justify-center items-center text-center font-bold w-full max-w-md">
@@ -78,7 +85,7 @@ const UserHeader: FC<Props> = ({ userProfile }) => {
         )}
         {!isMe &&
           userProfile?.invitation?.status === 'pending' &&
-          userProfile?.invitation?.inviter.id === currentUser.id && (
+          userProfile.invitation.inviter.id === currentUser.id && (
             <Button
               size="sm"
               className="absolute left-0 top-14 bg-transparent text-secondary"
@@ -89,12 +96,12 @@ const UserHeader: FC<Props> = ({ userProfile }) => {
           )}
         {!isMe &&
           userProfile?.invitation?.status === 'pending' &&
-          userProfile?.invitation?.inviter.id !== currentUser.id && (
+          userProfile.invitation.inviter.id !== currentUser.id && (
             <Button
               size="sm"
               className="absolute left-0 top-14 bg-primary text-secondary"
               icon={faCheckCircle}
-              onClick={() => handleAccept(userProfile?.user.id)}
+              onClick={() => handleAccept(userProfile.user.id)}
             >
               Accept
             </Button>
@@ -120,7 +127,7 @@ const UserHeader: FC<Props> = ({ userProfile }) => {
           disableLoad
           variant="base"
           size="sm"
-          className="font-accent text-emerald-600/80 bg-emerald-300 shadow-emerald-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+          className="font-accent text-primary bg-border shadow-secondary rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
         >
           {userProfile?.prompts.length}
           <FontAwesomeIcon icon={faPalette} />
@@ -129,7 +136,12 @@ const UserHeader: FC<Props> = ({ userProfile }) => {
           disableLoad
           variant="base"
           size="sm"
-          className="font-accent text-orange-600/80 bg-orange-300 shadow-orange-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+          className="font-accent text-amber-600 bg-amber-400 shadow-secondary rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+          // style={{
+          //   backgroundColor: primary,
+          //   color: text,
+          //   borderColor: primary,
+          // }}
         >
           {userProfile?.stats.currentStreak}
           <FontAwesomeIcon icon={faFire} />
@@ -138,13 +150,18 @@ const UserHeader: FC<Props> = ({ userProfile }) => {
           disableLoad
           variant="base"
           size="sm"
-          className="font-accent  text-purple-600/80 bg-purple-300 shadow-purple-400/80 rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+          className="font-accent  text-secondary bg-border shadow-secondary rounded-full shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]"
+          style={{
+            backgroundColor: primary,
+            color: text,
+            borderColor: primary,
+          }}
         >
           {userProfile?.friends.length}
           <FontAwesomeIcon icon={faUsers} />
         </Button>
       </div>
-    </>
+    </div>
   );
 };
 

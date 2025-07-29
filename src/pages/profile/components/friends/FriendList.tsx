@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader } from '@/components/Card';
-import { UserProfileIcon } from '../UserProfileIcon';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { nameToColor } from '@/utils';
 import Banner from '@/components/Banner';
 import type { User } from '@/api/Api';
@@ -41,7 +41,7 @@ export const FriendList: FC<Props> = ({ user, friends }) => {
                   style={{ backgroundColor: secondary }}
                   onClick={() => navigate({ to: `/draw/profile/${friend.id}` })}
                 >
-                  <UserProfileIcon user={friend} />
+                  <UserProfileIcon size="sm" user={friend} />
                   <div className="flex justify-between items-center w-full">
                     <h3 className="text-primary font-bold">
                       {friend.username}

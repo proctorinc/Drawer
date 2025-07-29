@@ -37,6 +37,8 @@ func HandleGetSubmissionByID(c *gin.Context) {
 			u.username,
 			u.email,
 			u.created_at,
+			u.avatar_type,
+			u.avatar_url,
 			us.created_at as submission_created_at
 		FROM user_submissions us
 		JOIN daily_prompts dp ON us.day = dp.day
@@ -44,8 +46,8 @@ func HandleGetSubmissionByID(c *gin.Context) {
 		WHERE us.id = ?
 	`
 	var (
-		subID, day, colorsJSON, prompt, userID, username, email string
-		userCreatedAt, submissionCreatedAt                      sql.NullTime
+		subID, day, colorsJSON, prompt, userID, username, email, userAvatarType, userAvatarURL string
+		userCreatedAt, submissionCreatedAt                                                     sql.NullTime
 	)
 	err := appCtx.DB.QueryRowContext(c.Request.Context(), query, submissionID).Scan(
 		&subID,
@@ -56,6 +58,8 @@ func HandleGetSubmissionByID(c *gin.Context) {
 		&username,
 		&email,
 		&userCreatedAt,
+		&userAvatarType,
+		&userAvatarURL,
 		&submissionCreatedAt,
 	)
 	if err != nil {
@@ -74,11 +78,11 @@ func HandleGetSubmissionByID(c *gin.Context) {
 
 	// Query comments for this submission
 	commentsQuery := `
-		SELECT c.id, c.text, u.id, u.username, u.email, u.created_at, c.created_at
+		SELECT c.id, c.text, u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, c.created_at
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
 		WHERE c.submission_id = ?
-		ORDER BY c.created_at DESC`
+		ORDER BY c.created_at ASC`
 	rows, err := appCtx.DB.QueryContext(c.Request.Context(), commentsQuery, submissionID)
 	if err != nil {
 		log.Printf("Error fetching comments for submission %s: %v", submissionID, err)
@@ -88,9 +92,9 @@ func HandleGetSubmissionByID(c *gin.Context) {
 	defer rows.Close()
 	comments := []models.Comment{}
 	for rows.Next() {
-		var commentID, commentText, commentUserID, commentUsername, commentUserEmail string
+		var commentID, commentText, commentUserID, commentUsername, commentUserEmail, commentUserAvatarType, commentUserAvatarURL string
 		var commentUserCreatedAt, commentCreatedAt sql.NullTime
-		err := rows.Scan(&commentID, &commentText, &commentUserID, &commentUsername, &commentUserEmail, &commentUserCreatedAt, &commentCreatedAt)
+		err := rows.Scan(&commentID, &commentText, &commentUserID, &commentUsername, &commentUserEmail, &commentUserCreatedAt, &commentUserAvatarType, &commentUserAvatarURL, &commentCreatedAt)
 		if err != nil {
 			log.Printf("Error scanning comment row: %v", err)
 			continue
@@ -98,17 +102,19 @@ func HandleGetSubmissionByID(c *gin.Context) {
 		comments = append(comments, models.Comment{
 			ID: commentID,
 			User: models.User{
-				ID:        commentUserID,
-				Username:  commentUsername,
-				Email:     commentUserEmail,
-				CreatedAt: commentUserCreatedAt.Time,
+				ID:         commentUserID,
+				Username:   commentUsername,
+				Email:      commentUserEmail,
+				CreatedAt:  commentUserCreatedAt.Time,
+				AvatarType: commentUserAvatarType,
+				AvatarURL:  commentUserAvatarURL,
 			},
 			Text:      commentText,
 			CreatedAt: commentCreatedAt.Time,
 		})
 	}
 
-	imageUrl := utils.GetImageUrl(appCtx.Config, utils.GetImageFilename(userID, subID))
+	imageUrl := utils.GetImageUrl(appCtx.Config, utils.GetSubmissionFilename(userID, subID))
 
 	// Get reactions and counts for submission
 	submissionReactions, err := queries.GetSubmissionReactions(appCtx.DB, c.Request.Context(), subID)
@@ -150,10 +156,12 @@ func HandleGetSubmissionByID(c *gin.Context) {
 		Colors: colors,
 		Prompt: prompt,
 		User: models.User{
-			ID:        userID,
-			Username:  username,
-			Email:     email,
-			CreatedAt: userCreatedAt.Time,
+			ID:         userID,
+			Username:   username,
+			Email:      email,
+			CreatedAt:  userCreatedAt.Time,
+			AvatarType: userAvatarType,
+			AvatarURL:  userAvatarURL,
 		},
 		ImageUrl:  imageUrl,
 		Comments:  comments,

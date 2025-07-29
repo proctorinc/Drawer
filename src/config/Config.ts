@@ -9,9 +9,4 @@ export const Config = {
   ERASER_COLOR: '#f5f4f0',
   CANVAS_WIDTH: 370,
   CANVAS_HEIGHT: 370,
-  LOCAL_STORAGE_KEY: 'drawingPaths',
 };
-
-console.log('Loaded Config:');
-console.log(Config);
-console.log(import.meta.env);

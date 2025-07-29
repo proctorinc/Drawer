@@ -1,5 +1,10 @@
 import { cn } from '@/utils';
-import type { FC, HTMLAttributes, ReactNode } from 'react';
+import {
+  isValidElement,
+  type FC,
+  type HTMLAttributes,
+  type ReactNode,
+} from 'react';
 
 type CardProps = {
   className?: string;
@@ -38,8 +43,8 @@ const CardContent: FC<CardContentProps> = ({
 };
 
 type CardHeaderProps = {
-  title?: string;
-  subtitle?: string;
+  title?: ReactNode;
+  subtitle?: ReactNode;
   className?: string;
   children?: ReactNode;
 } & HTMLAttributes<HTMLDivElement>;
@@ -48,8 +53,16 @@ const CardHeader: FC<CardHeaderProps> = ({ title, subtitle, children }) => {
   return (
     <div className="flex justify-between items-center">
       <div>
-        <h3 className="text-lg font-bold text-primary">{title}</h3>
-        <p className="text-sm font-semibold text-secondary">{subtitle}</p>
+        {isValidElement(title) ? (
+          title
+        ) : (
+          <h3 className="text-lg font-bold text-primary">{title}</h3>
+        )}
+        {isValidElement(subtitle) ? (
+          subtitle
+        ) : (
+          <p className="text-sm font-semibold text-secondary">{subtitle}</p>
+        )}
       </div>
       {children}
     </div>

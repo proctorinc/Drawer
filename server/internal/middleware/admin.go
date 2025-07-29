@@ -9,10 +9,10 @@ import (
 )
 
 // AdminMiddleware checks if the authenticated user has admin role
-func AdminMiddleware(repo *sql.DB) gin.HandlerFunc {
+func AdminRequired(repo *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user := GetUser(c)
-		
+
 		// Check if user has admin role
 		if user.Role != "admin" {
 			log.Printf("Admin auth failed: User '%s' does not have admin role (has: %s)", user.ID, user.Role)
@@ -22,4 +22,4 @@ func AdminMiddleware(repo *sql.DB) gin.HandlerFunc {
 
 		c.Next()
 	}
-} 
+}

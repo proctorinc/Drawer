@@ -49,8 +49,17 @@ func NewStorageService(cfg *config.Config) *StorageService {
 	}
 }
 
-func (s *StorageService) UploadImage(userId string, submissionId string, imageData []byte) (string, error) {
-	filename := getImageFilename(userId, submissionId)
+func (s *StorageService) UploadSubmission(userId string, submissionId string, imageData []byte) (string, error) {
+	filename := getSubmissionImageFilename(userId, submissionId)
+	return s.uploadImage(filename, imageData)
+}
+
+func (s *StorageService) UploadProfilePicture(userId string, imageData []byte) (string, error) {
+	filename := getProfileImageFilename(userId)
+	return s.uploadImage(filename, imageData)
+}
+
+func (s *StorageService) uploadImage(filename string, imageData []byte) (string, error) {
 	_, err := s.client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(s.bucketName),
 		Key:         aws.String(filename),
@@ -70,6 +79,10 @@ func (s *StorageService) getUploadURL(imageName string) string {
 	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", s.bucketName, s.region, imageName)
 }
 
-func getImageFilename(userId string, submissionId string) string {
+func getSubmissionImageFilename(userId string, submissionId string) string {
 	return fmt.Sprintf("%s/%s.png", userId, submissionId)
+}
+
+func getProfileImageFilename(userId string) string {
+	return fmt.Sprintf("%s/profile-pic.png", userId)
 }

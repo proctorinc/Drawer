@@ -2,6 +2,7 @@ package routes
 
 import (
 	"database/sql"
+	"drawer-service-backend/internal/achievements"
 	"drawer-service-backend/internal/config"
 	"drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
@@ -56,15 +57,25 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 
 		// Authenticated routes
 		authGroup := apiGroup.Group("/")
-		authGroup.Use(middleware.AuthMiddleware(repo))
+		authGroup.Use(middleware.AuthRequired(repo))
 		{
 			userGroup := authGroup.Group("/user")
 
 			userGroup.GET("/me", handlers.HandleGetMe)
-			userGroup.PUT("/me/username", handlers.HandleUpdateUsername)
-			userGroup.GET("/me/profile", handlers.HandleGetUserProfile)
-			userGroup.GET("/:id/profile", handlers.HandleGetUserByID)
+			userGroup.GET("/profile", handlers.HandleGetUserProfile)
+			userGroup.GET("/achievements", handlers.HandlerGetMyAchievements)
 			userGroup.GET("/invitations", handlers.HandleGetInvitations)
+			userGroup.PUT("/username", handlers.HandleUpdateUsername)
+			// Add RewardUnlockRequired for next line
+			userGroup.POST("/profile-pic",
+				middleware.RewardUnlockRequired(repo, achievements.CUSTOM_PROFILE_PIC),
+				handlers.HandleUpdateAvatarUrl)
+			userGroup.PUT("/profile-pic/toggle",
+				middleware.RewardUnlockRequired(repo, achievements.CUSTOM_PROFILE_PIC),
+				handlers.HandleToggleAvatarType)
+
+			userGroup.GET("/:id/profile", handlers.HandleGetUserByID)
+			userGroup.GET("/:id/achievements", handlers.HandlerGetUserAchievements)
 			userGroup.POST("/:id/invite", handlers.HandleInviteFriend)
 			userGroup.POST("/:id/accept-invitation", handlers.HandleAcceptInvitation)
 			userGroup.POST("/:id/deny-invitation", handlers.HandleDenyInvitation)
@@ -161,7 +172,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 
 			// Admin routes (require admin role)
 			adminGroup := authGroup.Group("/admin")
-			adminGroup.Use(middleware.AdminMiddleware(repo))
+			adminGroup.Use(middleware.AdminRequired(repo))
 			{
 				// Admin dashboard endpoints will be added here
 				adminGroup.GET("/dashboard", handlers.HandleGetAdminDashboard)

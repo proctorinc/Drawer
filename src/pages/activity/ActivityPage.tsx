@@ -7,10 +7,11 @@ import {
   useAcceptInvitation,
   useDenyInvitation,
 } from '@/api/Api';
-import { UserProfileIcon } from '../profile/components/UserProfileIcon';
 import Button from '@/components/Button';
 import { useState } from 'react';
 import {
+  faCaretDown,
+  faCaretUp,
   faCheckCircle,
   faClock,
   faComment,
@@ -20,13 +21,21 @@ import {
 import { Card, CardContent } from '@/components/Card';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { cn } from '@/utils';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
+import useLocalStorage from '@/hooks/useLocalStorage';
 
 type TabState = 'activity' | 'invitations';
 
 const ActivityPage = () => {
   const { data, isLoading } = useActivityFeed();
-  const [tab, setTab] = useState<TabState>('activity');
-  const [friendsExpanded, setFriendsExpanded] = useState(false);
+  const [tab, setTab] = useLocalStorage<TabState>(
+    'ACTIVITY_PAGE_TAB',
+    'activity',
+  );
+  const [friendsExpanded, setFriendsExpanded] = useLocalStorage<boolean>(
+    'ACTIVITY_PAGE_EXPANDED',
+    false,
+  );
   // const [username, setUsername] = useState('');
   const [inviteError, setInviteError] = useState('');
   // const [inviteSuccess, setInviteSuccess] = useState('');
@@ -76,7 +85,7 @@ const ActivityPage = () => {
 
   return (
     <Layout>
-      <div className="flex justify-center w-full gap-3 px-4">
+      <div className="flex justify-center w-full">
         <div className="w-1/2">
           <Button
             icon={faComment}
@@ -100,8 +109,8 @@ const ActivityPage = () => {
           >
             Invites
           </Button>
-          {invitationsData?.invitee && invitationsData?.invitee.length > 0 && (
-            <div className="absolute flex items-center justify-center top-1/2 -translate-y-1/2 right-4 w-4 h-4 bg-base text-red-500 rounded-full">
+          {invitationsData?.invitee && invitationsData.invitee.length > 0 && (
+            <div className="absolute flex items-center justify-center top-1/2 -translate-y-1/2 left-4 w-4 h-4 bg-base text-red-500 rounded-full">
               <FontAwesomeIcon icon={faExclamationCircle} />
             </div>
           )}
@@ -110,16 +119,29 @@ const ActivityPage = () => {
       {tab === 'activity' && (
         <>
           <div
-            className="select-none flex flex-col gap-4 w-full"
-            onMouseDown={() => setFriendsExpanded(true)}
-            onMouseUp={() => setFriendsExpanded(false)}
-            onMouseLeave={() => setFriendsExpanded(false)}
-            onTouchStart={() => setFriendsExpanded(true)}
-            onTouchEnd={() => setFriendsExpanded(false)}
-            style={{ cursor: 'pointer' }}
+            className="flex flex-col gap-4 w-full"
+            // onMouseDown={() => setFriendsExpanded(true)}
+            // onMouseUp={() => setFriendsExpanded(false)}
+            // onMouseLeave={() => setFriendsExpanded(false)}
+            // onTouchStart={() => setFriendsExpanded(true)}
+            // onTouchEnd={() => setFriendsExpanded(false)}
+            // style={{ cursor: 'pointer' }}
           >
-            <div className="flex w-full font-bold">
-              <h2 className="text-xl text-primary">Today's drawing</h2>
+            <div className="flex w-full justify-between items-center">
+              <div className="flex w-full font-bold">
+                <h2 className="text-xl text-primary">Today's drawing</h2>
+              </div>
+              {data?.friends && data.friends.length > 1 && (
+                <Button
+                  variant="base"
+                  size="sm"
+                  icon={friendsExpanded ? faCaretUp : faCaretDown}
+                  onClick={() => setFriendsExpanded((prev) => !prev)}
+                  disableLoad
+                >
+                  {friendsExpanded ? 'Collapse' : 'Expand'}
+                </Button>
+              )}
             </div>
             <div
               className={cn(
@@ -139,7 +161,7 @@ const ActivityPage = () => {
                 })
                 .map((friend, idx) => (
                   <div
-                    className={cn('relative transition-transform duration-500')}
+                    className="relative transition-transform duration-500"
                     style={
                       !friendsExpanded && idx !== 0
                         ? { transform: `translateX(-${idx * 20}px)` }
@@ -147,7 +169,7 @@ const ActivityPage = () => {
                     }
                     key={friend.user.id}
                   >
-                    <UserProfileIcon onClick={() => {}} user={friend.user} />
+                    <UserProfileIcon user={friend.user} />
                     {friend.hasSubmittedToday && (
                       <div className="absolute flex items-center justify-center top-0 -left-1 w-4 h-4 bg-base text-emerald-400 rounded-full">
                         <FontAwesomeIcon icon={faCheckCircle} />
@@ -215,82 +237,73 @@ const ActivityPage = () => {
           <div className="pl-1 font-bold w-full">
             <h2 className="text-xl text-primary">Pending invites</h2>
           </div>
-          {invitationsLoading && (
-            <div className="text-center text-secondary">Loading...</div>
-          )}
-          {!invitationsLoading &&
-            invitationsData?.invitee?.length === 0 &&
-            invitationsData?.invited?.length === 0 && (
+          {invitationsData?.invitee.length === 0 &&
+            invitationsData.invited.length === 0 && (
               <Card>
                 <CardContent className="text-center text-secondary font-bold">
                   No invitations
                 </CardContent>
               </Card>
             )}
-          {!invitationsLoading &&
-            invitationsData?.invitee.map((invitation) => (
-              <Card key={invitation.inviter.id}>
-                <CardContent>
-                  <div className="flex gap-3 items-center font-bold text-primary">
-                    <UserProfileIcon size="sm" user={invitation.inviter} />
-                    <div>
-                      <h3 className="text-lg">{invitation.inviter.username}</h3>{' '}
-                      <h3 className="text-sm text-secondary">
-                        wants to be your friend
-                      </h3>
-                    </div>
+          {invitationsData?.invitee.map((invitation) => (
+            <Card key={invitation.inviter.id}>
+              <CardContent>
+                <div className="flex gap-3 items-center font-bold text-primary">
+                  <UserProfileIcon size="sm" user={invitation.inviter} />
+                  <div>
+                    <h3 className="text-lg">{invitation.inviter.username}</h3>{' '}
+                    <h3 className="text-sm text-secondary">
+                      wants to be your friend
+                    </h3>
                   </div>
-                  <div className="flex gap-1 w-full justify-center">
-                    <Button
-                      size="sm"
-                      variant="base"
-                      onClick={() => handleDeny(invitation.inviter.id)}
-                      disabled={denyInvitation.isPending}
-                    >
-                      Deny
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => handleAccept(invitation.inviter.id)}
-                      disabled={acceptInvitation.isPending}
-                    >
-                      Accept
-                    </Button>
+                </div>
+                <div className="flex gap-1 w-full justify-center">
+                  <Button
+                    size="sm"
+                    variant="base"
+                    onClick={() => handleDeny(invitation.inviter.id)}
+                    disabled={denyInvitation.isPending}
+                  >
+                    Deny
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleAccept(invitation.inviter.id)}
+                    disabled={acceptInvitation.isPending}
+                  >
+                    Accept
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+          {invitationsData?.invited.map((invitation) => (
+            <Card key={invitation.invitee.id}>
+              <CardContent>
+                <div className="flex gap-3 items-center font-bold text-primary">
+                  <UserProfileIcon size="sm" user={invitation.invitee} />
+                  <div>
+                    <h3 className="text-lg">
+                      You friended {invitation.invitee.username}
+                    </h3>{' '}
+                    <h3 className="text-sm text-secondary">
+                      waiting for approval
+                    </h3>
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          {invitationsLoading && (
-            <div className="text-center text-secondary">Loading...</div>
-          )}
-          {!invitationsLoading &&
-            invitationsData?.invited.map((invitation) => (
-              <Card key={invitation.invitee.id}>
-                <CardContent>
-                  <div className="flex gap-3 items-center font-bold text-primary">
-                    <UserProfileIcon size="sm" user={invitation.invitee} />
-                    <div>
-                      <h3 className="text-lg">
-                        You friended {invitation.invitee.username}
-                      </h3>{' '}
-                      <h3 className="text-sm text-secondary">
-                        waiting for approval
-                      </h3>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 w-full justify-center">
-                    <Button
-                      size="sm"
-                      variant="base"
-                      onClick={() => handleDeny(invitation.invitee.id)}
-                      disabled={denyInvitation.isPending}
-                    >
-                      Cancel invite
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                </div>
+                <div className="flex gap-1 w-full justify-center">
+                  <Button
+                    size="sm"
+                    variant="base"
+                    onClick={() => handleDeny(invitation.invitee.id)}
+                    disabled={denyInvitation.isPending}
+                  >
+                    Cancel invite
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </>
       )}
     </Layout>

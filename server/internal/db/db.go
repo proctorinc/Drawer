@@ -115,20 +115,37 @@ func initializeDevData(db *sql.DB) error {
 
 	// Add demo data
 	demoData := `
+		-- Insert achievements
+		INSERT OR IGNORE INTO achievements (id, name, description, image_url, achievement_field, achievement_value)
+		VALUES
+			('achievement1', 'Baby''s first', 'Draw your first doodle', '', 'SUBMISSION_TOTAL', 1),
+			('achievement2', 'Anti-antisocial?', 'Comment on a friends doodle', '', 'COMMENT_TOTAL', 1),
+			('achievement3', 'Well that was easy', 'React to a friends doodle', '', 'REACTION_TOTAL', 1),
+			('achievement3a', 'A friend of the people', 'Make 5 friends', '', 'FRIEND_TOTAL', 5),
+			('achievement4', 'A dedicated citizen', 'Draw doodles for 14 days in a row', '', 'SUBMISSION_STREAK', 14),
+			('achievement5', 'Doodle Kiddie', 'Draw 10 total doodles', '', 'SUBMISSION_TOTAL', 10),
+			('achievement6', 'Doodle Pro', 'Draw 50 total doodles', '', 'SUBMISSION_TOTAL', 50),
+			('achievement7', 'Doodle God', 'Draw 100 total doodles', '', 'SUBMISSION_TOTAL', 100);
+
+		-- Insert reward unlocks
+		INSERT OR IGNORE INTO reward_unlocks (id, name, description, created_at, achievement_id)
+		VALUES
+			('CUSTOM_PROFILE_PIC', 'Custom Profile Picture', 'You can now draw your own profile picture', date('now'), 'achievement4');
+
 		-- Insert demo users
-		INSERT OR IGNORE INTO users (id, username, email, role, created_at) VALUES 
-			('user1', 'tankard_wellington', 'user1@example.com', 'admin', date('now', '-63 days')),
-			('user2', 'wifey_p', 'user2@example.com', 'user', date('now', '-13 days')),
-			('user3', 'matty_p', 'user3@example.com', 'user', date('now', '-13 days')),
-			('user4', 'jimbo', 'user4@example.com', 'user', date('now', '-13 days')),
-			('user5', 'jonny_p', 'user5@example.com', 'user', date('now', '-13 days')),
-			('user6', 'ubebae', 'user6@example.com', 'user', date('now', '-13 days')),
-			('user7', 'bufy', 'user7@example.com', 'user', date('now', '-13 days')),
-			('user8', 'anonymous_hippopotamus', 'user8@example.com', 'user', date('now', '-13 days')),
-			('user9', 'pro_tractor', 'user9@example.com', 'user', date('now', '-13 days'));
+		INSERT OR IGNORE INTO users (id, username, email, role, created_at, avatar_type, avatar_url) VALUES
+			('user1', 'tankard_wellington', 'user1@example.com', 'admin', date('now', '-63 days'), 'custom', '/example.png'),
+			('user2', 'wifey_p', 'user2@example.com', 'user', date('now', '-13 days'), 'basic', ''),
+			('user3', 'matty_p', 'user3@example.com', 'user', date('now', '-13 days'), 'custom', '/example.png'),
+			('user4', 'jimbo', 'user4@example.com', 'user', date('now', '-13 days'), 'basic', ''),
+			('user5', 'jonny_p', 'user5@example.com', 'user', date('now', '-13 days'), 'basic', ''),
+			('user6', 'ubebae', 'user6@example.com', 'user', date('now', '-13 days'), 'basic', ''),
+			('user7', 'bufy', 'user7@example.com', 'user', date('now', '-13 days'), 'basic', ''),
+			('user8', 'anonymous_hippopotamus', 'user8@example.com', 'user', date('now', '-13 days'), 'basic', ''),
+			('user9', 'pro_tractor', 'user9@example.com', 'user', date('now', '-13 days'), 'basic', '');
 
 		-- Make them friends
-		INSERT OR IGNORE INTO friendships (user1, user2, inviter_id, state) VALUES 
+		INSERT OR IGNORE INTO friendships (user1, user2, inviter_id, state) VALUES
 			('user1', 'user2', 'user1', 'accepted'),
 			('user1', 'user3', 'user1', 'accepted'),
 			('user1', 'user4', 'user1', 'accepted'),
@@ -137,7 +154,7 @@ func initializeDevData(db *sql.DB) error {
 			('user1', 'user7', 'user1', 'pending'),
 			('user1', 'user8', 'user8', 'pending');
 
-		INSERT OR IGNORE INTO daily_prompts (day, colors, prompt) VALUES 
+		INSERT OR IGNORE INTO daily_prompts (day, colors, prompt) VALUES
 			(date('now', '-13 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A sunset over mountains'),
 			(date('now', '-8 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A test thing'),
 			(date('now', '-7 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A cool forest'),
@@ -169,9 +186,9 @@ func initializeDevData(db *sql.DB) error {
 			(date('now', '+19 days'), '["#00BCD4", "#00ACC1", "#0097A7"]', 'A tropical island'),
 			(date('now', '+20 days'), '["#4CAF50", "#43A047", "#388E3C"]', 'A peaceful meadow');
 
-		INSERT OR IGNORE INTO user_submissions (id, user_id, day) VALUES 
-			('sub00', 'user1', date('now', '-60 days')),	
-			('sub0', 'user1', date('now', '-30 days')),	
+		INSERT OR IGNORE INTO user_submissions (id, user_id, day) VALUES
+			('sub00', 'user1', date('now', '-60 days')),
+			('sub0', 'user1', date('now', '-30 days')),
 			('sub1', 'user1', date('now', '-6 days')),
 			('sub2', 'user1', date('now', '-4 days')),
 			('sub3', 'user1', date('now', '-3 days')),
@@ -180,8 +197,9 @@ func initializeDevData(db *sql.DB) error {
 			('sub6', 'user2', date('now', '-4 days')),
 			('sub7', 'user2', date('now', '-3 days')),
 			('sub8', 'user2', date('now', '-2 days')),
-			('sub9', 'user1', date('now', '-1 days')),
-			('sub10', 'user1', date('now'));
+			('sub9', 'user2', date('now', '-1 days')),
+			('sub10', 'user1', date('now', '-1 days')),
+			('sub11', 'user1', date('now'));
 
 		INSERT INTO comments (submission_id, user_id, text, created_at) VALUES
 			('sub1', 'user2', 'Nice drawing!', date('now', '-6 days')),

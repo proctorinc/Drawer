@@ -14,7 +14,7 @@ import (
 var UserIDContextKey = "USER_ID"
 var UserContextKey = "USER"
 
-func AuthMiddleware(repo *sql.DB) gin.HandlerFunc {
+func AuthRequired(repo *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userID, err := c.Cookie("user_id")
 		if err != nil {

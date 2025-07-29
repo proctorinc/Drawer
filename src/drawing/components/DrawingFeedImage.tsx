@@ -1,7 +1,7 @@
 import { Card } from '@/components/Card';
 import type { FC } from 'react';
 import { DrawingImage } from './DrawingImage';
-import { UserProfileIcon } from '@/pages/profile/components/UserProfileIcon';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import {
   queryKeys,
   useToggleSubmissionFavorite,
@@ -248,7 +248,7 @@ const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
   const user = useUser();
 
   return (
-    <div className="flex px-3 py-2 gap-2">
+    <div className="flex gap-2">
       {reactions.map((reaction) => {
         const isActive = hasUserReacted(submission, reaction.id, user.id);
         return (

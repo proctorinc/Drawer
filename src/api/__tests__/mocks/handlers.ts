@@ -74,7 +74,7 @@ export const handlers = [
     return HttpResponse.json(mockUser);
   }),
 
-  http.get(`${baseUrl}/user/me/profile`, () => {
+  http.get(`${baseUrl}/user/profile`, () => {
     return HttpResponse.json(mockUserProfile);
   }),
 
@@ -132,7 +132,7 @@ export const handlers = [
     return HttpResponse.json({ message: 'Friend added successfully' });
   }),
 
-  http.put(`${baseUrl}/user/me/username`, async ({ request }) => {
+  http.put(`${baseUrl}/user/username`, async ({ request }) => {
     const body = (await request.json()) as { username?: string };
     if (!body?.username) {
       return HttpResponse.json(
