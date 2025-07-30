@@ -47,5 +47,5 @@ CREATE INDEX idx_user_achievements_user_id_achievement_id ON user_achievements(u
 CREATE INDEX idx_reward_unlocks_achievement_id ON reward_unlocks(achievement_id);
 CREATE INDEX idx_user_stat_calculations_user_id ON user_stat_calculations(user_id);
 CREATE INDEX idx_user_stat_calculations_stat_type ON user_stat_calculations(stat_type);
-CREATE INDEX idx_user_stat_updates_user_id ON user_stat_updates(user_id);
-CREATE INDEX idx_user_stat_updates_stat_type ON user_stat_updates(stat_type);
+CREATE INDEX idx_user_stat_updates_user_id ON user_stat_calculations(user_id);
+CREATE INDEX idx_user_stat_updates_stat_type ON user_stat_calculations(stat_type);
