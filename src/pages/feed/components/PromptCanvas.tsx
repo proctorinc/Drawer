@@ -12,7 +12,7 @@ import ConfirmSubmitModal from '@/drawing/components/ConfirmSubmitModal';
 const PromptCanvas = () => {
   const { profile } = useMyProfilePage();
   const { dailyPrompt, submitPrompt } = useDailyPrompt();
-  const { canvasRef, canUndo, clearCanvas, getCanvasData } = useDrawing();
+  const { canvasRef, canUndo, clearCanvas, getPng } = useDrawing();
   const [error, setError] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const downloadEnabled = false;
@@ -23,14 +23,14 @@ const PromptCanvas = () => {
     setIsOpen(true);
   }
 
-  function handleSubmitCanvas() {
-    const canvasData = getCanvasData();
-    submitPrompt(canvasData, {
+  async function handleSubmitCanvas() {
+    const png = await getPng();
+    submitPrompt(png, {
       onSuccess: () => {
         clearCanvas();
       },
       onError: () => setError('Failed to submit drawing'),
-    }).catch(() => setError('Failed to submit drawing'));
+    });
   }
 
   function handleDownloadCanvas() {

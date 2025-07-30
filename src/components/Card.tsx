@@ -47,7 +47,7 @@ type CardHeaderProps = {
   subtitle?: ReactNode;
   className?: string;
   children?: ReactNode;
-} & HTMLAttributes<HTMLDivElement>;
+} & Omit<HTMLAttributes<HTMLDivElement>, 'title'>;
 
 const CardHeader: FC<CardHeaderProps> = ({ title, subtitle, children }) => {
   return (

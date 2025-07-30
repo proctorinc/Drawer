@@ -5,10 +5,9 @@ import {
   type FC,
   type ReactNode,
 } from 'react';
-import { useGetAdminDashboard } from '@/api/Api';
+import { useGetAdminDashboard, type DailyActionStat } from '@/api/Api';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/api/apiClient';
-import type { DailyActionStat } from '@/api/apiClient';
 
 type AdminDashboardContextType = {
   dashboardData:
