@@ -1,23 +1,26 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
-	"drawer-service-backend/internal/context"
+	"drawer-service-backend/internal/achievements"
+	requestContext "drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
+	"drawer-service-backend/internal/storage"
 	"drawer-service-backend/internal/utils"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
 func HandleGetMe(c *gin.Context) {
 	user := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	response, err := queries.GetUserByID(appCtx.DB, c.Request.Context(), user.ID)
 	if err != nil {
@@ -30,7 +33,7 @@ func HandleGetMe(c *gin.Context) {
 }
 
 func HandleGetUserByID(c *gin.Context) {
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	requester := middleware.GetUser(c)
 
 	userID := c.Param("id")
@@ -55,7 +58,7 @@ func HandleGetUserByID(c *gin.Context) {
 
 func HandleGetUserProfile(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	response, err := queries.GetUserProfileFromDB(appCtx.DB, c.Request.Context(), requester.ID, requester.ID, appCtx.Config)
 	if err != nil {
@@ -69,7 +72,7 @@ func HandleGetUserProfile(c *gin.Context) {
 
 func HandleUpdateUsername(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	// Get the new username from the request body
 	var body struct {
@@ -129,7 +132,7 @@ func HandleUpdateUsername(c *gin.Context) {
 
 func HandleInviteFriend(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	// Get the friend's user ID from the URL param
 	friendID := c.Param("id")
@@ -182,14 +185,14 @@ func HandleInviteFriend(c *gin.Context) {
 // Handler to get all pending invitations for the current user
 func HandleGetInvitations(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	// Query all pending invitations where the user is either user1 or user2, join inviter user object
 	query := `
 		SELECT f.created_at,
-			user1, user1.username, user1.email, user1.created_at,
-			user2, user2.username, user2.email, user2.created_at,
-			inviter.id, inviter.username, inviter.email, inviter.created_at
+			user1, user1.username, user1.email, user1.created_at, user1.avatar_type, user1.avatar_url,
+			user2, user2.username, user2.email, user2.created_at, user2.avatar_type, user2.avatar_url,
+			inviter.id, inviter.username, inviter.email, inviter.created_at, inviter.avatar_type, inviter.avatar_url
 		FROM friendships f
 		JOIN users inviter ON f.inviter_id = inviter.id
 		JOIN users user1 ON f.user1 = user1.id
@@ -210,53 +213,29 @@ func HandleGetInvitations(c *gin.Context) {
 	for rows.Next() {
 		rowCount++
 		var friendshipCreatedAt string
-		var user1ID, user1Username, user1Email string
-		var user2ID, user2Username, user2Email string
-		var inviterID, inviterUsername, inviterEmail string
-		var user1CreatedAt, user2CreatedAt, inviterCreatedAt time.Time
+		var user1, user2, inviter models.User
 		err := rows.Scan(&friendshipCreatedAt,
-			&user1ID, &user1Username, &user1Email, &user1CreatedAt,
-			&user2ID, &user2Username, &user2Email, &user2CreatedAt,
-			&inviterID, &inviterUsername, &inviterEmail, &inviterCreatedAt)
+			&user1.ID, &user1.Username, &user1.Email, &user1.CreatedAt, &user1.AvatarType, &user1.AvatarURL,
+			&user2.ID, &user2.Username, &user2.Email, &user2.CreatedAt, &user2.AvatarType, &user2.AvatarURL,
+			&inviter.ID, &inviter.Username, &inviter.Email, &inviter.CreatedAt, &inviter.AvatarType, &inviter.AvatarURL)
 		if err != nil {
 			log.Printf("HandleGetInvitations: error scanning row %d: %v", rowCount, err)
 			continue
 		}
 
-		inviter := models.User{
-			ID: inviterID,
-			Username: inviterUsername,
-			Email: inviterEmail,
-			CreatedAt: inviterCreatedAt,
-		}
-
-		user1 := models.User{
-			ID: user1ID,
-			Username: user1Username,
-			Email: user1Email,
-			CreatedAt: user1CreatedAt,
-		}
-
-		user2 := models.User{
-			ID: user2ID,
-			Username: user2Username,
-			Email: user2Email,
-			CreatedAt: user2CreatedAt,
-		}
-
 		invitee := user1
 
-		if (user1.ID == requester.ID) {
+		if user1.ID == requester.ID {
 			invitee = user2
 		}
 
 		invitation := gin.H{
-			"inviter": inviter,
-			"invitee": invitee,
+			"inviter":   inviter,
+			"invitee":   invitee,
 			"createdAt": friendshipCreatedAt,
 		}
 
-		if (inviterID == requester.ID) {
+		if inviter.ID == requester.ID {
 			invited = append(invited, invitation)
 		} else {
 			invitees = append(invitees, invitation)
@@ -268,7 +247,7 @@ func HandleGetInvitations(c *gin.Context) {
 // Handler to accept a pending invitation
 func HandleAcceptInvitation(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	otherID := c.Param("id")
 	if otherID == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
@@ -290,13 +269,22 @@ func HandleAcceptInvitation(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "No pending invitation found"})
 		return
 	}
+
+	go func() {
+		achievementService := achievements.NewAchievementService(appCtx.DB, context.Background(), requester.ID)
+		err := achievementService.UpdateFriendAchievements(requester.ID)
+		if err != nil {
+			log.Printf("Error updating friend achievements for %s: %v", requester.ID, err)
+		}
+	}()
+
 	c.JSON(http.StatusOK, gin.H{"message": "Invitation accepted"})
 }
 
 // Handler to deny a pending invitation
 func HandleDenyInvitation(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	otherID := c.Param("id")
 	if otherID == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
@@ -318,4 +306,69 @@ func HandleDenyInvitation(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Invitation denied"})
+}
+
+func HandleUpdateAvatarUrl(c *gin.Context) {
+	requester := middleware.GetUser(c)
+	appCtx := requestContext.GetCtx(c)
+	storageService := storage.NewStorageService(appCtx.Config)
+
+	file, err := c.FormFile("image")
+	if err != nil {
+		log.Printf("Error getting image file for user %s: %v",
+			utils.MaskEmail(requester.Email), err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, Error("No image file provided"))
+		return
+	}
+
+	buf, err := utils.ReadFileToBuffer(file)
+	if err != nil {
+		log.Printf("Error reading image file for user %s: %v",
+			utils.MaskEmail(requester.Email), err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to read image file"))
+		return
+	}
+
+	var avatarURL string
+
+	if appCtx.Config.Env != "development" {
+		avatarURL, err = storageService.UploadProfilePicture(requester.ID, buf)
+		if err != nil {
+			log.Printf("Error uploading profile picture for %s: %v", requester.ID, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload profile picture"})
+			return
+		}
+	} else {
+		avatarURL = "/default-avatar.png"
+	}
+
+	err = queries.UpdateUserAvatarURL(appCtx.DB, c.Request.Context(), requester.ID, avatarURL)
+	if err != nil {
+		log.Printf("Error updating profile picture for %s: %v", requester.ID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile picture"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Successfully updated profile picture"})
+}
+
+func HandleToggleAvatarType(c *gin.Context) {
+	requester := middleware.GetUser(c)
+	appCtx := requestContext.GetCtx(c)
+
+	avatarType := "basic"
+
+	if requester.AvatarType == "basic" {
+		avatarType = "custom"
+	}
+
+	err := queries.UpdateUserAvatarType(appCtx.DB, c.Request.Context(), requester.ID, avatarType)
+
+	if err != nil {
+		log.Printf("Error updating avatar type to %s for %s: %v", avatarType, requester.ID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile picture"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Successfully toggles avatar type to %s for %s", avatarType, requester.ID)})
 }

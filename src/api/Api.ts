@@ -14,6 +14,8 @@ export interface User {
   username: string;
   email: string;
   createdAt: Date;
+  avatarType: 'basic' | 'custom';
+  avatarUrl: string;
 }
 
 export interface ReactionCount {
@@ -94,6 +96,24 @@ export interface GetMeResponse {
   invitation: InvitationStatus;
 }
 
+export type Achievement = {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  achievedAt: Date | null;
+  achievementField: string;
+  achievementValue: number;
+  progress: number;
+  reward: AchievementReward | null;
+};
+
+export type AchievementReward = {
+  id: string;
+  name: string;
+  description: string;
+};
+
 export interface AdminDashboardStats {
   overall: {
     totalUsers: number;
@@ -106,7 +126,7 @@ export interface AdminDashboardStats {
     reactionsToday: number;
     commentsToday: number;
   };
-  recentUsers: AdminDashboardRecentUser[];
+  recentUsers: Array<AdminDashboardRecentUser>;
 }
 
 export interface AdminDashboardRecentUser {
@@ -137,6 +157,13 @@ export interface AdminDashboardResponse {
   }>;
   stats: AdminDashboardStats;
 }
+
+export type DailyActionStat = {
+  date: string;
+  drawings: number;
+  reactions: number;
+  comments: number;
+};
 
 // Query keys
 export const queryKeys = {
@@ -214,6 +241,18 @@ export function useSubmitDailyPrompt() {
   });
 }
 
+export function useUploadCustomAvatar() {
+  return useMutation({
+    mutationFn: apiClient.uploadCustomAvatar,
+  });
+}
+
+export function useToggleAvatarType() {
+  return useMutation({
+    mutationFn: apiClient.toggleAvatarType,
+  });
+}
+
 export function useCreateUser() {
   return useMutation({
     mutationFn: apiClient.createUser,
@@ -252,14 +291,28 @@ export interface InvitationStatus {
 }
 
 export interface InvitationResponse {
-  invitee: Invitation[];
-  invited: Invitation[];
+  invitee: Array<Invitation>;
+  invited: Array<Invitation>;
 }
 
 export function useGetInvitations() {
   return useQuery<InvitationResponse>({
     queryKey: ['invitations'],
     queryFn: apiClient.getInvitations,
+  });
+}
+
+type AchievementRewardID = 'CUSTOM_PROFILE_PIC';
+
+export type AchievementsAndRewardsResponse = {
+  achievements: Array<Achievement>;
+  rewards: Map<AchievementRewardID, AchievementReward>;
+};
+
+export function useGetAchievements() {
+  return useQuery<AchievementsAndRewardsResponse>({
+    queryKey: ['achievements'],
+    queryFn: apiClient.getUserAchievements,
   });
 }
 

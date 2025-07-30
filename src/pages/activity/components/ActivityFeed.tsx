@@ -6,7 +6,7 @@ import {
   reactionIndicatorVariants,
   timeAgo,
 } from '@/utils';
-import { UserProfileIcon } from '@/pages/profile/components/UserProfileIcon';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { useNavigate } from '@tanstack/react-router';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

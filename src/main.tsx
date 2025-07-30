@@ -1,13 +1,14 @@
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 import {
+  Navigate,
   Outlet,
   RouterProvider,
   createRootRoute,
   createRoute,
   createRouter,
-  Navigate,
 } from '@tanstack/react-router';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import './styles.css';
 import reportWebVitals from './reportWebVitals.ts';
@@ -20,7 +21,6 @@ import { DrawingProvider } from './drawing/DrawingContext.tsx';
 import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/UserProfilePage.tsx';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import PromptSubmissionPage from './pages/feed/PromptSubmissionPage';
 import ActivityPage from './pages/activity/ActivityPage.tsx';
 import { AuthProvider } from './auth/AuthContext.tsx';
@@ -30,6 +30,7 @@ import AuthRoute from './auth/AuthRoute.tsx';
 import { NotificationProvider } from './notifications/NotificationContext.tsx';
 import AdminPage from './pages/admin/AdminPage.tsx';
 import { AdminDashboardProvider } from './pages/admin/context/AdminDashboardContext.tsx';
+import DrawProfilePicPage from './pages/profile/DrawProfilePicPage.tsx';
 
 const queryClient = new QueryClient();
 
@@ -64,7 +65,7 @@ const indexRoute = createRoute({
   component: () => (
     <AuthRoute>
       <MyProfilePageProvider>
-        <DrawingProvider>
+        <DrawingProvider localStorageKey="DRAWING_SUBMISSION">
           <App />
         </DrawingProvider>
       </MyProfilePageProvider>
@@ -79,6 +80,20 @@ const userProfileRoute = createRoute({
     <AuthRoute>
       <MyProfilePageProvider>
         <MyProfilePage />
+      </MyProfilePageProvider>
+    </AuthRoute>
+  ),
+});
+
+const drawProfilePicRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/profile/pic',
+  component: () => (
+    <AuthRoute>
+      <MyProfilePageProvider>
+        <DrawingProvider localStorageKey="PROFILE_PICTURE">
+          <DrawProfilePicPage />
+        </DrawingProvider>
       </MyProfilePageProvider>
     </AuthRoute>
   ),
@@ -146,6 +161,7 @@ const routeTree = rootRoute.addChildren([
   rootRedirectRoute,
   indexRoute,
   userProfileRoute,
+  drawProfilePicRoute,
   friendProfileRoute,
   calendarRoute,
   createProfileRoute,

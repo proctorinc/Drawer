@@ -1,5 +1,5 @@
 import type { Comment } from '@/api/Api';
-import { UserProfileIcon } from '@/pages/profile/components/UserProfileIcon';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { faComment } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useNavigate } from '@tanstack/react-router';

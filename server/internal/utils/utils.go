@@ -2,6 +2,7 @@ package utils // getFormattedDate returns the current date string in YYYY-MM-DD 
 import (
 	"drawer-service-backend/internal/config"
 	"fmt"
+	"mime/multipart"
 	"strings"
 	"time"
 )
@@ -38,6 +39,32 @@ func GetImageUrl(cfg *config.Config, imageFilename string) string {
 	return "/example.png"
 }
 
-func GetImageFilename(userId string, submissionId string) string {
+func GetSubmissionFilename(userId string, submissionId string) string {
 	return fmt.Sprintf("%s/%s.png", userId, submissionId)
+}
+
+func GetProfilePictureFilename(userId string) string {
+	return fmt.Sprintf("%s/profile.png", userId)
+}
+
+func ReadFileToBuffer(file *multipart.FileHeader) ([]byte, error) {
+	// Open the file
+	f, err := file.Open()
+	if err != nil {
+		return nil, fmt.Errorf("Unable to open file: %v", err)
+	}
+	defer f.Close()
+
+	// Read the file into a buffer
+	buf := make([]byte, file.Size)
+	bytesRead, err := f.Read(buf)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to read file: %v", err)
+	}
+
+	if int64(bytesRead) != file.Size {
+		return nil, fmt.Errorf("Incomplete file read. Expected %d bytes, got %d", file.Size, bytesRead)
+	}
+
+	return buf, nil
 }

@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
-	"drawer-service-backend/internal/context"
+	"drawer-service-backend/internal/achievements"
+	requestContext "drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/notifications"
@@ -24,7 +26,7 @@ type DailyPromptResponse struct {
 }
 
 func HandleGetDailyPrompt(c *gin.Context) {
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	now := time.Now()
 	today := utils.GetFormattedDate(now)
 	userID := middleware.GetUserID(c)
@@ -64,7 +66,7 @@ func HandleGetDailyPrompt(c *gin.Context) {
 }
 
 func HandleSubmitDailyPrompt(c *gin.Context) {
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	ctx := c.Request.Context()
 	today := utils.GetFormattedDate(time.Now())
 	requester := middleware.GetUser(c)
@@ -88,35 +90,15 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error getting image file for user %s: %v",
 			utils.MaskEmail(requester.Email), err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, Error("No image file provided"))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("No image file provided"))
 		return
 	}
 
-	// Open the file
-	f, err := file.Open()
-	if err != nil {
-		log.Printf("Error opening image file for user %s: %v",
-			utils.MaskEmail(requester.Email), err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Error processing image file"))
-		return
-	}
-	defer f.Close()
-
-	// Read the file into a buffer
-	buf := make([]byte, file.Size)
-	bytesRead, err := f.Read(buf)
+	buf, err := utils.ReadFileToBuffer(file)
 	if err != nil {
 		log.Printf("Error reading image file for user %s: %v",
 			utils.MaskEmail(requester.Email), err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Error reading image file"))
-		return
-	}
-
-	if int64(bytesRead) != file.Size {
-		log.Printf("Warning: Incomplete file read for user %s. Expected %d bytes, got %d",
-			utils.MaskEmail(requester.Email), file.Size, bytesRead)
-
-		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Error reading image file"))
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to read image file"))
 		return
 	}
 
@@ -137,7 +119,7 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 	if appCtx.Config.Env != "development" {
 		storageService := storage.NewStorageService(appCtx.Config)
 
-		url, err := storageService.UploadImage(requester.ID, submissionID, buf)
+		url, err := storageService.UploadSubmission(requester.ID, submissionID, buf)
 		if err != nil {
 			log.Printf("Error uploading image to S3 for user %s: %v",
 				utils.MaskEmail(requester.Email), err)
@@ -155,6 +137,14 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 	go func() {
 		if err := notifications.NotifyFriendsOfSubmission(appCtx.DB, requester.ID, requester.Username, submissionID, appCtx.Config); err != nil {
 			log.Printf("Failed to send friend notifications for user %s: %v", utils.MaskEmail(requester.Email), err)
+		}
+	}()
+
+	go func() {
+		achievementService := achievements.NewAchievementService(appCtx.DB, context.Background(), requester.ID)
+		err := achievementService.UpdateSubmissionAchievements(requester.ID)
+		if err != nil {
+			log.Printf("Error updating friend achievements for %s: %v", requester.ID, err)
 		}
 	}()
 

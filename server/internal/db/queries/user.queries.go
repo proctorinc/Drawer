@@ -18,8 +18,8 @@ import (
 
 func GetUserByID(repo *sql.DB, ctx context.Context, userID string) (*models.User, error) {
 	var user models.User
-	query := `SELECT id, username, email, role, created_at FROM users WHERE id = ?`
-	err := repo.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
+	query := `SELECT id, username, email, role, created_at, avatar_type, avatar_url FROM users WHERE id = ?`
+	err := repo.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL)
 
 	if err != nil {
 		return nil, err
@@ -30,8 +30,8 @@ func GetUserByID(repo *sql.DB, ctx context.Context, userID string) (*models.User
 
 func GetUserByEmail(repo *sql.DB, ctx context.Context, email string) (*models.User, error) {
 	var user models.User
-	query := `SELECT id, username, email, role, created_at FROM users WHERE email = ?`
-	err := repo.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
+	query := `SELECT id, username, email, role, created_at, avatar_type, avatar_url FROM users WHERE email = ?`
+	err := repo.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL)
 
 	if err != nil {
 		return nil, err
@@ -41,12 +41,12 @@ func GetUserByEmail(repo *sql.DB, ctx context.Context, email string) (*models.Us
 }
 
 func GetUserFromDB(repo *sql.DB, ctx context.Context, userID string) (models.User, error) {
-	query := `SELECT id, username, email, role, created_at FROM users WHERE id = ?`
+	query := `SELECT id, username, email, role, created_at, avatar_type, avatar_url FROM users WHERE id = ?`
 
 	row := repo.QueryRowContext(ctx, query, userID)
 
 	var user models.User
-	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.User{}, err
@@ -62,9 +62,9 @@ func GetUserFromDB(repo *sql.DB, ctx context.Context, userID string) (models.Use
 func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *config.Config) (models.GetMeResponse, error) {
 	var response models.GetMeResponse
 
-	userQuery := `SELECT id, username, email, role, created_at FROM users WHERE id = ?`
+	userQuery := `SELECT id, username, email, role, created_at, avatar_type, avatar_url FROM users WHERE id = ?`
 	var user models.User
-	err := repo.QueryRowContext(ctx, userQuery, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
+	err := repo.QueryRowContext(ctx, userQuery, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL)
 	if err != nil {
 		log.Printf("Error fetching user info for user %s: %v", userID, err)
 		return models.GetMeResponse{}, err
@@ -76,7 +76,9 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			u.id,
 			u.username,
 			u.email,
-			u.created_at
+			u.created_at,
+			u.avatar_type,
+			u.avatar_url
 		FROM
 			friendships f
 		JOIN
@@ -93,7 +95,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 	friendIDs := []string{}
 	for friendsRows.Next() {
 		var friend models.User
-		err := friendsRows.Scan(&friend.ID, &friend.Username, &friend.Email, &friend.CreatedAt)
+		err := friendsRows.Scan(&friend.ID, &friend.Username, &friend.Email, &friend.CreatedAt, &friend.AvatarType, &friend.AvatarURL)
 		if err != nil {
 			log.Printf("Error scanning friend row: %v", err)
 			continue
@@ -126,6 +128,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			u.username,
 			u.email,
 			u.created_at,
+			u.avatar_type,
+			u.avatar_url,
 			us.created_at as submission_created_at,
 			c.id as comment_id,
 			c.text as comment_text,
@@ -133,6 +137,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			cu.username as comment_username,
 			cu.email as comment_user_email,
 			cu.created_at as comment_user_created_at,
+			cu.avatar_type as comment_user_avatar_type,
+			cu.avatar_url as comment_user_avatar_url,
 			c.created_at as comment_created_at
 		FROM user_submissions us
 		JOIN daily_prompts dp ON us.day = dp.day
@@ -156,10 +162,10 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 
 	for rows.Next() {
 		var (
-			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail     string
-			subUserCreatedAt, subCreatedAt                                           time.Time
-			commentID, commentText, commentUserID, commentUsername, commentUserEmail sql.NullString
-			commentUserCreatedAt, commentCreatedAt                                   sql.NullTime
+			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail, subAvatarType, subAvatarURL                     string
+			subUserCreatedAt, subCreatedAt                                                                                        time.Time
+			commentID, commentText, commentUserID, commentUsername, commentUserEmail, commentUserAvatarType, commentUserAvatarURL sql.NullString
+			commentUserCreatedAt, commentCreatedAt                                                                                sql.NullTime
 		)
 		err := rows.Scan(
 			&subID,
@@ -170,6 +176,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			&subUsername,
 			&subUserEmail,
 			&subUserCreatedAt,
+			&subAvatarType,
+			&subAvatarURL,
 			&subCreatedAt,
 			&commentID,
 			&commentText,
@@ -177,6 +185,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			&commentUsername,
 			&commentUserEmail,
 			&commentUserCreatedAt,
+			&commentUserAvatarType,
+			&commentUserAvatarURL,
 			&commentCreatedAt,
 		)
 		if err != nil {
@@ -184,7 +194,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			continue
 		}
 
-		filename := utils.GetImageFilename(subUserID, subID)
+		filename := utils.GetSubmissionFilename(subUserID, subID)
 
 		sub, exists := subMap[subID]
 		if !exists {
@@ -196,10 +206,12 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 				Colors: colors,
 				Prompt: prompt,
 				User: models.User{
-					ID:        subUserID,
-					Username:  subUsername,
-					Email:     subUserEmail,
-					CreatedAt: subUserCreatedAt,
+					ID:         subUserID,
+					Username:   subUsername,
+					Email:      subUserEmail,
+					CreatedAt:  subUserCreatedAt,
+					AvatarType: subAvatarType,
+					AvatarURL:  subAvatarURL,
 				},
 				ImageUrl:  utils.GetImageUrl(cfg, filename),
 				Comments:  []models.Comment{},
@@ -216,14 +228,16 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			sub = &submission
 		}
 		// Add comment if present
-		if commentID.Valid && commentText.Valid && commentUserID.Valid && commentUsername.Valid && commentUserEmail.Valid && commentUserCreatedAt.Valid && commentCreatedAt.Valid {
+		if commentID.Valid && commentText.Valid && commentUserID.Valid && commentUsername.Valid && commentUserEmail.Valid && commentUserCreatedAt.Valid && commentCreatedAt.Valid && commentUserAvatarType.Valid {
 			comment := models.Comment{
 				ID: commentID.String,
 				User: models.User{
-					ID:        commentUserID.String,
-					Username:  commentUsername.String,
-					Email:     commentUserEmail.String,
-					CreatedAt: commentUserCreatedAt.Time,
+					ID:         commentUserID.String,
+					Username:   commentUsername.String,
+					Email:      commentUserEmail.String,
+					CreatedAt:  commentUserCreatedAt.Time,
+					AvatarType: commentUserAvatarType.String,
+					AvatarURL:  commentUserAvatarURL.String,
 				},
 				Text:      commentText.String,
 				CreatedAt: commentCreatedAt.Time,
@@ -254,7 +268,9 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 				u.id,
 				u.username,
 				u.email,
-				u.created_at
+				u.created_at,
+				u.avatar_type,
+				u.avatar_url
 			FROM reactions r
 			JOIN users u ON r.user_id = u.id
 			WHERE r.content_type = 'submission' AND r.content_id IN (` + placeholders(len(submissionIDList)) + `)
@@ -283,6 +299,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 					&user.Username,
 					&user.Email,
 					&user.CreatedAt,
+					&user.AvatarType,
+					&user.AvatarURL,
 				)
 				if err != nil {
 					log.Printf("Error scanning reaction row: %v", err)
@@ -335,7 +353,9 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 				u.id,
 				u.username,
 				u.email,
-				u.created_at
+				u.created_at,
+				u.avatar_type,
+				u.avatar_url
 			FROM reactions r
 			JOIN users u ON r.user_id = u.id
 			WHERE r.content_type = 'comment' AND r.content_id IN (
@@ -362,6 +382,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 					&user.Username,
 					&user.Email,
 					&user.CreatedAt,
+					&user.AvatarType,
+					&user.AvatarURL,
 				)
 				if err != nil {
 					log.Printf("Error scanning comment reaction row: %v", err)
@@ -532,8 +554,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requesterID string, cfg *config.Config) (models.GetMeResponse, error) {
 	var response models.GetMeResponse
 
-	userQuery := `SELECT u.id, u.username, u.email, u.role, u.created_at, f.state, f.created_at,
-			inviter.id, inviter.username, inviter.email, inviter.created_at
+	userQuery := `SELECT u.id, u.username, u.email, u.role, u.created_at, u.avatar_type, u.avatar_url, f.state, f.created_at,
+			inviter.id, inviter.username, inviter.email, inviter.created_at, inviter.avatar_type, inviter.avatar_url
 		FROM users u
 		LEFT JOIN friendships f ON ((f.user1 = ? AND f.user2 = u.id) OR (f.user2 = ? AND f.user1 = u.id))
 		LEFT JOIN users inviter ON inviter.id = f.inviter_id
@@ -541,27 +563,29 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 	var user models.User
 	var nullStatus sql.NullString
 	var nullCreatedAt, inviterCreatedAt sql.NullTime
-	var inviterID, inviterUsername, inviterEmail sql.NullString
+	var inviterID, inviterUsername, inviterEmail, inviterAvatarType, inviterAvatarURL sql.NullString
 
-	err := repo.QueryRowContext(ctx, userQuery, requesterID, requesterID, userID, ).Scan(
-		&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &nullStatus, &nullCreatedAt,
-		&inviterID, &inviterUsername, &inviterEmail, &inviterCreatedAt)
+	err := repo.QueryRowContext(ctx, userQuery, requesterID, requesterID, userID).Scan(
+		&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &nullStatus, &nullCreatedAt,
+		&inviterID, &inviterUsername, &inviterEmail, &inviterCreatedAt, &inviterAvatarType, &inviterAvatarURL)
 	if err != nil {
 		log.Printf("Error fetching user info for user %s: %v", userID, err)
 		return models.GetMeResponse{}, err
 	}
 	response.User = user
-	
-	if (nullCreatedAt.Valid && nullStatus.Valid) {
+
+	if nullCreatedAt.Valid && nullStatus.Valid {
 		response.Invitation = &models.InvitationStatus{
 			Inviter: models.User{
-				ID: inviterID.String,
-				Email: inviterEmail.String,
-				Username: inviterUsername.String,
-				CreatedAt: inviterCreatedAt.Time,
+				ID:         inviterID.String,
+				Email:      inviterEmail.String,
+				Username:   inviterUsername.String,
+				CreatedAt:  inviterCreatedAt.Time,
+				AvatarType: inviterAvatarType.String,
+				AvatarURL:  inviterAvatarURL.String,
 			},
 			CreatedAt: nullCreatedAt.Time,
-			Status: nullStatus.String,
+			Status:    nullStatus.String,
 		}
 	}
 
@@ -570,7 +594,9 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 			u.id,
 			u.username,
 			u.email,
-			u.created_at
+			u.created_at,
+			u.avatar_type,
+			u.avatar_url
 		FROM
 			friendships f
 		JOIN
@@ -587,7 +613,7 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 	friendIDs := []string{}
 	for friendsRows.Next() {
 		var friend models.User
-		err := friendsRows.Scan(&friend.ID, &friend.Username, &friend.Email, &friend.CreatedAt)
+		err := friendsRows.Scan(&friend.ID, &friend.Username, &friend.Email, &friend.CreatedAt, &friend.AvatarType, &friend.AvatarURL)
 		if err != nil {
 			log.Printf("Error scanning friend row: %v", err)
 			continue
@@ -620,6 +646,8 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 			u.username,
 			u.email,
 			u.created_at,
+			u.avatar_type,
+			u.avatar_url,
 			us.created_at as submission_created_at,
 			c.id as comment_id,
 			c.text as comment_text,
@@ -627,6 +655,8 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 			cu.username as comment_username,
 			cu.email as comment_user_email,
 			cu.created_at as comment_user_created_at,
+			cu.avatar_type as comment_user_avatar_type,
+			cu.avatar_url as comment_user_avatar_url,
 			c.created_at as comment_created_at
 		FROM user_submissions us
 		JOIN daily_prompts dp ON us.day = dp.day
@@ -634,7 +664,7 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 		LEFT JOIN comments c ON c.submission_id = us.id
 		LEFT JOIN users cu ON c.user_id = cu.id
 		WHERE ` + whereClause + `
-		ORDER BY us.day DESC, submission_created_at DESC, c.created_at DESC`
+		ORDER BY us.day DESC, submission_created_at DESC, c.created_at ASC`
 
 	rows, err := repo.QueryContext(ctx, submissionQuery, submissionIDs...)
 	if err != nil {
@@ -650,10 +680,10 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 
 	for rows.Next() {
 		var (
-			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail     string
-			subUserCreatedAt, subCreatedAt                                           time.Time
-			commentID, commentText, commentUserID, commentUsername, commentUserEmail sql.NullString
-			commentUserCreatedAt, commentCreatedAt                                   sql.NullTime
+			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail, subAvatarType, subAvatarURL                     string
+			subUserCreatedAt, subCreatedAt                                                                                        time.Time
+			commentID, commentText, commentUserID, commentUsername, commentUserEmail, commentUserAvatarType, commentUserAvatarURL sql.NullString
+			commentUserCreatedAt, commentCreatedAt                                                                                sql.NullTime
 		)
 		err := rows.Scan(
 			&subID,
@@ -664,6 +694,8 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 			&subUsername,
 			&subUserEmail,
 			&subUserCreatedAt,
+			&subAvatarType,
+			&subAvatarURL,
 			&subCreatedAt,
 			&commentID,
 			&commentText,
@@ -671,6 +703,8 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 			&commentUsername,
 			&commentUserEmail,
 			&commentUserCreatedAt,
+			&commentUserAvatarType,
+			&commentUserAvatarURL,
 			&commentCreatedAt,
 		)
 		if err != nil {
@@ -688,12 +722,14 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 				Colors: colors,
 				Prompt: prompt,
 				User: models.User{
-					ID:        subUserID,
-					Username:  subUsername,
-					Email:     subUserEmail,
-					CreatedAt: subUserCreatedAt,
+					ID:         subUserID,
+					Username:   subUsername,
+					Email:      subUserEmail,
+					CreatedAt:  subUserCreatedAt,
+					AvatarType: subAvatarType,
+					AvatarURL:  subAvatarURL,
 				},
-				ImageUrl:  utils.GetImageUrl(cfg, utils.GetImageFilename(subUserID, subID)),
+				ImageUrl:  utils.GetImageUrl(cfg, utils.GetSubmissionFilename(subUserID, subID)),
 				Comments:  []models.Comment{},
 				Reactions: []models.Reaction{},
 				Counts:    []models.ReactionCount{},
@@ -708,14 +744,16 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 			sub = &submission
 		}
 		// Add comment if present
-		if commentID.Valid && commentText.Valid && commentUserID.Valid && commentUsername.Valid && commentUserEmail.Valid && commentUserCreatedAt.Valid && commentCreatedAt.Valid {
+		if commentID.Valid && commentText.Valid && commentUserID.Valid && commentUsername.Valid && commentUserEmail.Valid && commentUserCreatedAt.Valid && commentCreatedAt.Valid && commentUserAvatarType.Valid {
 			comment := models.Comment{
 				ID: commentID.String,
 				User: models.User{
-					ID:        commentUserID.String,
-					Username:  commentUsername.String,
-					Email:     commentUserEmail.String,
-					CreatedAt: commentUserCreatedAt.Time,
+					ID:         commentUserID.String,
+					Username:   commentUsername.String,
+					Email:      commentUserEmail.String,
+					CreatedAt:  commentUserCreatedAt.Time,
+					AvatarType: commentUserAvatarType.String,
+					AvatarURL:  commentUserAvatarURL.String,
 				},
 				Text:      commentText.String,
 				CreatedAt: commentCreatedAt.Time,
@@ -747,7 +785,9 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 				u.id,
 				u.username,
 				u.email,
-				u.created_at
+				u.created_at,
+				u.avatar_type,
+				u.avatar_url
 			FROM reactions r
 			JOIN users u ON r.user_id = u.id
 			WHERE r.content_type = 'submission' AND r.content_id IN (` + placeholders(len(submissionIDList)) + `)
@@ -776,6 +816,8 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 					&user.Username,
 					&user.Email,
 					&user.CreatedAt,
+					&user.AvatarType,
+					&user.AvatarURL,
 				)
 				if err != nil {
 					log.Printf("Error scanning reaction row: %v", err)
@@ -828,7 +870,9 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 				u.id,
 				u.username,
 				u.email,
-				u.created_at
+				u.created_at,
+				u.avatar_type,
+				u.avatar_url
 			FROM reactions r
 			JOIN users u ON r.user_id = u.id
 			WHERE r.content_type = 'comment' AND r.content_id IN (
@@ -855,6 +899,8 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 					&user.Username,
 					&user.Email,
 					&user.CreatedAt,
+					&user.AvatarType,
+					&user.AvatarURL,
 				)
 				if err != nil {
 					log.Printf("Error scanning comment reaction row: %v", err)
@@ -1059,10 +1105,10 @@ func GetAllUsers(repo *sql.DB, ctx context.Context, searchQuery string) ([]model
 	var args []interface{}
 
 	if searchQuery != "" {
-		query = `SELECT id, username, email, role, created_at FROM users WHERE username LIKE ? ORDER BY username ASC`
+		query = `SELECT id, username, email, role, created_at, avatar_type, avatar_url FROM users WHERE username LIKE ? ORDER BY username ASC`
 		args = []interface{}{"%" + searchQuery + "%"}
 	} else {
-		query = `SELECT id, username, email, role, created_at FROM users ORDER BY username ASC`
+		query = `SELECT id, username, email, role, created_at, avatar_type, avatar_url FROM users ORDER BY username ASC`
 	}
 
 	rows, err := repo.QueryContext(ctx, query, args...)
@@ -1074,7 +1120,7 @@ func GetAllUsers(repo *sql.DB, ctx context.Context, searchQuery string) ([]model
 	var users []models.User
 	for rows.Next() {
 		var user models.User
-		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt)
+		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL)
 		if err != nil {
 			log.Printf("Error scanning user row: %v", err)
 			continue
@@ -1089,4 +1135,32 @@ func GetAllUsers(repo *sql.DB, ctx context.Context, searchQuery string) ([]model
 	return users, nil
 }
 
+func UpdateUserAvatarURL(repo *sql.DB, ctx context.Context, userID string, avatarURL string) error {
+	updateSQL := `
+        UPDATE users
+        SET avatar_type = 'custom', avatar_url = ?
+        WHERE id = ?
+    `
+	_, err := repo.ExecContext(ctx, updateSQL, avatarURL, userID)
 
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func UpdateUserAvatarType(repo *sql.DB, ctx context.Context, userID string, avatarType string) error {
+	updateSQL := `
+        UPDATE users
+        SET avatar_type = ?
+        WHERE id = ?
+    `
+	_, err := repo.ExecContext(ctx, updateSQL, avatarType, userID)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

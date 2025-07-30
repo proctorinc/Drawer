@@ -1,18 +1,34 @@
+import { useState } from 'react';
 import { faFrown, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import { CountDownTimer } from '../../daily/CountdownTimer';
 import { useDailyPrompt } from '../../daily/DailyPromptContext';
-import PromptCanvas from './components/PromptCanvas';
 import { SubmissionFeedList } from './components/SubmissionFeedList';
 import Layout from '@/components/Layout';
 import Banner from '@/components/Banner';
 import Disclaimer, { DisclaimerItem } from '@/components/Disclaimer';
+import { useDrawing } from '@/drawing/DrawingContext';
+import DrawingCanvas from './components/DrawingCanvas';
 
 const Feed = () => {
-  const { dailyPrompt } = useDailyPrompt();
+  const { dailyPrompt, submitPrompt } = useDailyPrompt();
+  const { clearCanvas } = useDrawing();
+  const [error, setError] = useState<string | null>(null);
 
   const hasPromptBeenCompleted = dailyPrompt && dailyPrompt.isCompleted;
   const promptNotCompleted = dailyPrompt && !dailyPrompt.isCompleted;
   const isNoPrompt = !dailyPrompt;
+
+  function handleSubmit(png: Blob) {
+    submitPrompt(png, {
+      onSuccess: () => {
+        setError(null);
+        clearCanvas();
+      },
+      onError: () => {
+        setError('Failed to submit drawing');
+      },
+    });
+  }
 
   return (
     <Layout
@@ -56,8 +72,29 @@ const Feed = () => {
           </DisclaimerItem>
         </Disclaimer>
       )} */}
+      {(hasPromptBeenCompleted || isNoPrompt) && (
+        <Disclaimer title="Updates?? Achievements, custom avatars">
+          <DisclaimerItem>
+            View your achievements under Profile {'>'} Awards
+          </DisclaimerItem>
+          <DisclaimerItem>
+            You can unlock a custom avatar by getting a 14 day doodle streak.
+            Once unlocked, go to your profile settings to create it.
+          </DisclaimerItem>
+          <DisclaimerItem>
+            View/manage friend requests under Activity {'>'} Invites
+          </DisclaimerItem>
+        </Disclaimer>
+      )}
       {(hasPromptBeenCompleted || isNoPrompt) && <SubmissionFeedList />}
-      <PromptCanvas />
+      <DrawingCanvas
+        onSubmit={(png) => handleSubmit(png)}
+        colors={dailyPrompt?.colors}
+        hidden={hasPromptBeenCompleted || isNoPrompt}
+      />
+      {error && (
+        <p className="text-center text-sm font-bold text-red-700">{error}</p>
+      )}
       {!hasPromptBeenCompleted && !isNoPrompt && (
         <Disclaimer title="Rules, you say?">
           <DisclaimerItem>

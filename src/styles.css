@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@plugin 'tailwindcss-animate';
 @theme {
   --font-*: initial;
   --font-sans: 'Quicksand', 'sans-serif';

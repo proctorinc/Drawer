@@ -10,6 +10,10 @@ DROP TABLE IF EXISTS reactions;
 DROP TABLE IF EXISTS activity_reads;
 DROP TABLE IF EXISTS user_favorite_submissions;
 DROP TABLE IF EXISTS push_subscriptions;
+DROP TABLE IF EXISTS reward_unlocks;
+DROP TABLE IF EXISTS achievements;
+DROP TABLE IF EXISTS user_achievements;
+DROP TABLE IF EXISTS user_achievement_checks;
 
 -- CREATE TABLE users (
 --     id TEXT PRIMARY KEY,

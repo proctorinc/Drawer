@@ -1,12 +1,15 @@
 import { faEraser, faUndo } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useDrawing } from './DrawingContext';
-import { useDailyPrompt } from '@/daily/DailyPromptContext';
+import type { FC } from 'react';
 import { cn } from '@/utils';
 import { Card, CardContent } from '@/components/Card';
 
-export const Toolbar = () => {
-  const { dailyPrompt } = useDailyPrompt();
+type Props = {
+  colors: Array<string>;
+};
+
+export const Toolbar: FC<Props> = ({ colors }) => {
   const { selectedColor, setSelectedColor, selectEraser, undo, canUndo } =
     useDrawing();
 
@@ -14,8 +17,9 @@ export const Toolbar = () => {
     <Card>
       <CardContent className="flex flex-row justify-between items-center w-full">
         <div className="flex gap-4">
-          {dailyPrompt?.colors.map((color) => (
+          {colors.map((color, index) => (
             <button
+              key={`toolbar-color-${index}`}
               className={cn(
                 'w-10 h-10 border-2 border-primary cursor-pointer rounded-md hover:opacity-80 hover:scale-110 transition-all duration-300',
                 selectedColor === color && 'ring-4 ring-primary border-none',

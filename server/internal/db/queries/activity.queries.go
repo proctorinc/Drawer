@@ -57,7 +57,7 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 	}
 
 	commentQuery := `
-		SELECT c.id, c.user_id, u.username, u.email, u.created_at, c.text, c.created_at, c.submission_id
+		SELECT c.id, c.user_id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, c.text, c.created_at, c.submission_id
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
 		WHERE c.submission_id IN (` + placeholders(len(subMap)) + `)
@@ -76,7 +76,7 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 
 	activities := []models.Activity{}
 	for commentRows.Next() {
-		var cID, cUserID, cUsername, cEmail, cText, cSubmissionID string
+		var cID, cUserID, cUsername, cEmail, cAvatarType, cAvatarURL, cText, cSubmissionID string
 		var cUserCreatedAt, cCreatedAt time.Time
 		if err := commentRows.Scan(&cID, &cUserID, &cUsername, &cEmail, &cUserCreatedAt, &cText, &cCreatedAt, &cSubmissionID); err == nil {
 			if cUserID == userID {
@@ -93,7 +93,7 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 				Date:   cCreatedAt,
 				Comment: &models.Comment{
 					ID:        cID,
-					User:      models.User{ID: cUserID, Username: cUsername, Email: cEmail, CreatedAt: cUserCreatedAt},
+					User:      models.User{ID: cUserID, Username: cUsername, Email: cEmail, CreatedAt: cUserCreatedAt, AvatarType: cAvatarType, AvatarURL: cAvatarURL},
 					Text:      cText,
 					CreatedAt: cCreatedAt,
 				},
@@ -104,14 +104,14 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 				}{
 					ID:       cSubmissionID,
 					Prompt:   info.Prompt,
-					ImageUrl: utils.GetImageUrl(cfg, utils.GetImageFilename(info.UserID, cSubmissionID)),
+					ImageUrl: utils.GetImageUrl(cfg, utils.GetSubmissionFilename(info.UserID, cSubmissionID)),
 				},
 			})
 		}
 	}
 
 	reactionQuery := `
-		SELECT r.id, r.user_id, u.username, u.email, u.created_at, r.reaction_id, r.created_at, r.content_id
+		SELECT r.id, r.user_id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, r.reaction_id, r.created_at, r.content_id
 		FROM reactions r
 		JOIN users u ON r.user_id = u.id
 		WHERE r.content_type = 'submission' AND r.content_id IN (` + placeholders(len(subMap)) + `)
@@ -124,9 +124,9 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 	}
 	defer reactionRows.Close()
 	for reactionRows.Next() {
-		var rID, rUserID, rUsername, rEmail, rReactionID, rContentID string
+		var rID, rUserID, rUsername, rEmail, rAvatarType, rAvatarURL, rReactionID, rContentID string
 		var rUserCreatedAt, rCreatedAt time.Time
-		if err := reactionRows.Scan(&rID, &rUserID, &rUsername, &rEmail, &rUserCreatedAt, &rReactionID, &rCreatedAt, &rContentID); err == nil {
+		if err := reactionRows.Scan(&rID, &rUserID, &rUsername, &rEmail, &rUserCreatedAt, &rAvatarType, &rAvatarURL, &rReactionID, &rCreatedAt, &rContentID); err == nil {
 			if rUserID == userID {
 				continue
 			} // skip own actions
@@ -136,12 +136,12 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 			info := subMap[rContentID]
 			activities = append(activities, models.Activity{
 				ID:     "reaction-" + rID,
-				User:   models.User{ID: rUserID, Username: rUsername, Email: rEmail, CreatedAt: rUserCreatedAt},
+				User:   models.User{ID: rUserID, Username: rUsername, Email: rEmail, CreatedAt: rUserCreatedAt, AvatarType: rAvatarType, AvatarURL: rAvatarURL},
 				Action: models.ActivityActionReaction,
 				Date:   rCreatedAt,
 				Reaction: &models.Reaction{
 					ID:         rID,
-					User:       models.User{ID: rUserID, Username: rUsername, Email: rEmail, CreatedAt: rUserCreatedAt},
+					User:       models.User{ID: rUserID, Username: rUsername, Email: rEmail, CreatedAt: rUserCreatedAt, AvatarType: rAvatarType, AvatarURL: rAvatarURL},
 					ReactionID: rReactionID,
 					CreatedAt:  rCreatedAt,
 				},
@@ -152,7 +152,7 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 				}{
 					ID:       rContentID,
 					Prompt:   info.Prompt,
-					ImageUrl: utils.GetImageUrl(cfg, utils.GetImageFilename(info.UserID, rContentID)),
+					ImageUrl: utils.GetImageUrl(cfg, utils.GetSubmissionFilename(info.UserID, rContentID)),
 				},
 			})
 		}
