@@ -66,7 +66,6 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			userGroup.GET("/achievements", handlers.HandlerGetMyAchievements)
 			userGroup.GET("/invitations", handlers.HandleGetInvitations)
 			userGroup.PUT("/username", handlers.HandleUpdateUsername)
-			// Add RewardUnlockRequired for next line
 			userGroup.POST("/profile-pic",
 				middleware.RewardUnlockRequired(repo, achievements.CUSTOM_PROFILE_PIC),
 				handlers.HandleUpdateAvatarUrl)

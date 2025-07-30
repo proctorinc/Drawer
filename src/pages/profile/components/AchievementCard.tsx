@@ -1,13 +1,7 @@
 import type { Achievement } from '@/api/Api';
-import Button from '@/components/Button';
 import { Card, CardContent } from '@/components/Card';
-import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { cn } from '@/utils';
-import {
-  faAward,
-  faCheckCircle,
-  faClock,
-} from '@fortawesome/free-solid-svg-icons';
+import { faAward, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import type { FC } from 'react';
 
@@ -54,12 +48,7 @@ const AchievementCard: FC<Props> = ({ achievement }) => {
               isAchieved && 'text-primary-foreground',
             )}
           >
-            {isAchieved ? (
-              achievement.achievementValue
-            ) : (
-              <FontAwesomeIcon icon={faClock} />
-            )}
-            /{achievement.achievementValue}
+            {achievement.progress}/{achievement.achievementValue}
           </h3>
           {/* {achievement.imageUrl !== '' && (
             <DrawingImage

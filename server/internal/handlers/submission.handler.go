@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
-	"drawer-service-backend/internal/context"
+	"drawer-service-backend/internal/achievements"
+	requestContext "drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
@@ -17,7 +19,7 @@ import (
 
 func HandleGetSubmissionByID(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	submissionID := c.Param("id")
 	if submissionID == "" {
@@ -183,7 +185,7 @@ func HandleGetSubmissionByID(c *gin.Context) {
 }
 
 func HandleSubmissionToggleFavorite(c *gin.Context) {
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	userID := middleware.GetUserID(c)
 	submissionID := c.Param("id")
 	if submissionID == "" {
@@ -200,7 +202,7 @@ func HandleSubmissionToggleFavorite(c *gin.Context) {
 
 func HandleSubmissionToggleReaction(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	submissionID := c.Param("id")
 	if submissionID == "" {
@@ -273,12 +275,20 @@ func HandleSubmissionToggleReaction(c *gin.Context) {
 		}()
 	}
 
+	go func() {
+		achievementService := achievements.NewAchievementService(appCtx.DB, context.Background(), requester.ID)
+		err := achievementService.UpdateReactionAchievements(requester.ID)
+		if err != nil {
+			log.Printf("Error updating friend achievements for %s: %v", requester.ID, err)
+		}
+	}()
+
 	c.JSON(http.StatusOK, response)
 }
 
 func HandleSwapFavoriteOrder(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	var req struct {
 		ID1 string `json:"id1"`

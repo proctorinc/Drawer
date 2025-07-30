@@ -20,8 +20,7 @@ type AchievementsAndRewardsResponse struct {
 func HandlerGetMyAchievements(c *gin.Context) {
 	requester := middleware.GetUser(c)
 	appCtx := context.GetCtx(c)
-	ctx := c.Request.Context()
-	achievementService := achievements.NewAchievementService(appCtx.DB, c)
+	achievementService := achievements.NewAchievementService(appCtx.DB, c, requester.ID)
 
 	err := achievementService.UpdateAchievementsOnce(requester.ID)
 
@@ -29,7 +28,7 @@ func HandlerGetMyAchievements(c *gin.Context) {
 		log.Printf("Error running one-time achievement check for user %s: %v", requester.ID, err)
 	}
 
-	achievements, rewards, err := queries.GetAchievementsAndRewardsByUserID(appCtx.DB, ctx, requester.ID)
+	achievements, rewards, err := achievementService.GetAllAchievements(requester.ID)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

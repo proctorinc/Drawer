@@ -6,8 +6,6 @@ import (
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
 	"log"
-
-	"github.com/gin-gonic/gin"
 )
 
 type StatsField string
@@ -25,41 +23,26 @@ var (
 
 type StatsService struct {
 	DB    *sql.DB
-	Ctx   *gin.Context
+	Ctx   context.Context
 	Stats UserStats
 }
 
 type UserStats struct {
-	SubmissionActiveStreak  int
-	SubmissionMaxStreak     int
-	SubmissionTotal         int
-	CommentTotal            int
-	ReactionTotal           int
-	ReactionCommentTotal    int
-	ReactionSubmissionTotal int
-	FriendTotal             int
+	SubmissionActiveStreak  *int
+	SubmissionMaxStreak     *int
+	SubmissionTotal         *int
+	CommentTotal            *int
+	ReactionTotal           *int
+	ReactionCommentTotal    *int
+	ReactionSubmissionTotal *int
+	FriendTotal             *int
 }
 
-func NewStatsService(db *sql.DB, ctx *gin.Context, userId string) *StatsService {
-	stats, err := GetUserStats(db, ctx.Request.Context(), userId, []string{
-		string(SUBMISSION_ACTIVE_STREAK),
-		string(SUBMISSION_STREAK),
-		string(SUBMISSION_TOTAL),
-		string(COMMENT_TOTAL),
-		string(REACTION_TOTAL),
-		string(REACTION_COMMENT_TOTAL),
-		string(REACTION_SUBMISSION_TOTAL),
-		string(FRIEND_TOTAL),
-	})
-
-	if err != nil {
-
-	}
-
+func NewStatsService(db *sql.DB, ctx context.Context, userId string) *StatsService {
 	return &StatsService{
 		DB:    db,
 		Ctx:   ctx,
-		Stats: stats,
+		Stats: UserStats{},
 	}
 }
 
@@ -70,265 +53,243 @@ func getAllCalculatedStats(repo *sql.DB, ctx context.Context, userId string, sta
 	if err != nil {
 		return stats, err
 	}
-	stats.SubmissionActiveStreak = calculatedStats[string(SUBMISSION_ACTIVE_STREAK)]
-	stats.SubmissionMaxStreak = calculatedStats[string(SUBMISSION_STREAK)]
-	stats.SubmissionTotal = calculatedStats[string(SUBMISSION_TOTAL)]
-	stats.CommentTotal = calculatedStats[string(COMMENT_TOTAL)]
-	stats.ReactionTotal = calculatedStats[string(REACTION_TOTAL)]
-	stats.ReactionCommentTotal = calculatedStats[string(REACTION_COMMENT_TOTAL)]
-	stats.ReactionSubmissionTotal = calculatedStats[string(REACTION_SUBMISSION_TOTAL)]
-	stats.FriendTotal = calculatedStats[string(FRIEND_TOTAL)]
 
-	return stats, nil
-}
-
-func (ss *StatsService) GetUserStats(userId string) (UserStats, error) {
-	submissionStreak, err := GetOrCalculateSubmissionMaxStreak(ss.DB, ss.Ctx.Request.Context(), userId)
-
-	if err != nil {
-		log.Printf("Error calculating submission streak for user %s", userId)
+	if submissionActiveStreak, ok := calculatedStats[string(SUBMISSION_ACTIVE_STREAK)]; ok {
+		stats.SubmissionActiveStreak = &submissionActiveStreak
 	}
 
-	submissionActiveStreak, err := GetOrCalculateSubmissionActiveStreak(ss.DB, ss.Ctx.Request.Context(), userId)
-
-	if err != nil {
-		log.Printf("Error calculating submission active streak for user %s", userId)
+	if submissionMaxStreak, ok := calculatedStats[string(SUBMISSION_STREAK)]; ok {
+		stats.SubmissionMaxStreak = &submissionMaxStreak
 	}
 
-	submissionTotal, err := GetOrCalculateSubmissionCount(ss.DB, ss.Ctx.Request.Context(), userId)
-
-	if err != nil {
-		log.Printf("Error calculating submission total for user %s", userId)
+	if submissionTotal, ok := calculatedStats[string(SUBMISSION_TOTAL)]; ok {
+		stats.SubmissionTotal = &submissionTotal
 	}
 
-	commentTotal, err := GetOrCalculateCommentCount(ss.DB, ss.Ctx.Request.Context(), userId)
-
-	if err != nil {
-		log.Printf("Error calculating comment total for user %s", userId)
+	if commentTotal, ok := calculatedStats[string(COMMENT_TOTAL)]; ok {
+		stats.CommentTotal = &commentTotal
 	}
 
-	reactionTotal, err := GetOrCalculateReactionCount(ss.DB, ss.Ctx.Request.Context(), userId)
-
-	if err != nil {
-		log.Printf("Error calculating reaction total for user %s", userId)
+	if reactionTotal, ok := calculatedStats[string(REACTION_TOTAL)]; ok {
+		stats.ReactionTotal = &reactionTotal
 	}
 
-	reactionCommentTotal, err := GetOrCalculateReactionCommentCount(ss.DB, ss.Ctx.Request.Context(), userId)
-
-	if err != nil {
-		log.Printf("Error calculating reaction comment total for user %s", userId)
+	if reactionCommentTotal, ok := calculatedStats[string(REACTION_COMMENT_TOTAL)]; ok {
+		stats.ReactionCommentTotal = &reactionCommentTotal
 	}
 
-	reactionSubmissionTotal, err := GetOrCalculateReactionSubmissionCount(ss.DB, ss.Ctx.Request.Context(), userId)
-
-	if err != nil {
-		log.Printf("Error calculating reaction submission total for user %s", userId)
+	if reactionSubmissionTotal, ok := calculatedStats[string(REACTION_SUBMISSION_TOTAL)]; ok {
+		stats.ReactionSubmissionTotal = &reactionSubmissionTotal
 	}
 
-	friendTotal, err := GetOrCalculateFriendCount(ss.DB, ss.Ctx.Request.Context(), userId)
-
-	if err != nil {
-		log.Printf("Error calculating friend total for user %s", userId)
-	}
-
-	stats := UserStats{
-		SubmissionMaxStreak:     submissionStreak,
-		SubmissionActiveStreak:  submissionActiveStreak,
-		SubmissionTotal:         submissionTotal,
-		CommentTotal:            commentTotal,
-		ReactionTotal:           reactionTotal,
-		ReactionCommentTotal:    reactionCommentTotal,
-		ReactionSubmissionTotal: reactionSubmissionTotal,
-		FriendTotal:             friendTotal,
+	if reactionFriendTotal, ok := calculatedStats[string(FRIEND_TOTAL)]; ok {
+		stats.FriendTotal = &reactionFriendTotal
 	}
 
 	return stats, nil
 }
 
-func CheckAchievementCondition(repo *sql.DB, ctx context.Context, userId string, achievement models.Achievement) (bool, error) {
+func (ss *StatsService) CheckStatCompletion(userId string, achievement models.Achievement) (int, bool, error) {
+	count := 0
+
 	switch achievement.AchievementField {
 	case string(SUBMISSION_ACTIVE_STREAK):
-		return CheckSubmissionActiveStreak(repo, ctx, userId, achievement.AchievementValue)
+		val, err := ss.GetSubmissionActiveStreak(ss.DB, ss.Ctx, userId)
+		if err != nil {
+			return 0, false, err
+		}
+		count = val
 	case string(SUBMISSION_STREAK):
-		return CheckSubmissionStreak(repo, ctx, userId, achievement.AchievementValue)
+		val, err := ss.GetSubmissionStreak(ss.DB, ss.Ctx, userId)
+		if err != nil {
+			return 0, false, err
+		}
+		count = val
 	case string(SUBMISSION_TOTAL):
-		return CheckSubmissionTotal(repo, ctx, userId, achievement.AchievementValue)
+		val, err := ss.GetSubmissionTotal(ss.DB, ss.Ctx, userId)
+		if err != nil {
+			return 0, false, err
+		}
+		count = val
 	case string(COMMENT_TOTAL):
-		return CheckCommentTotal(repo, ctx, userId, achievement.AchievementValue)
+		val, err := ss.GetCommentTotal(ss.DB, ss.Ctx, userId)
+		if err != nil {
+			return 0, false, err
+		}
+		count = val
 	case string(REACTION_TOTAL):
-		return CheckReactionTotal(repo, ctx, userId, achievement.AchievementValue)
+		val, err := ss.GetReactionTotal(ss.DB, ss.Ctx, userId)
+		if err != nil {
+			return 0, false, err
+		}
+		count = val
 	case string(REACTION_COMMENT_TOTAL):
-		return CheckReactionCommentTotal(repo, ctx, userId, achievement.AchievementValue)
+		val, err := ss.GetReactionCommentTotal(ss.DB, ss.Ctx, userId)
+		if err != nil {
+			return 0, false, err
+		}
+		count = val
 	case string(REACTION_SUBMISSION_TOTAL):
-		return CheckReactionSubmissionTotal(repo, ctx, userId, achievement.AchievementValue)
+		val, err := ss.GetReactionSubmissionTotal(ss.DB, ss.Ctx, userId)
+		if err != nil {
+			return 0, false, err
+		}
+		count = val
 	case string(FRIEND_TOTAL):
-		return CheckFriendTotal(repo, ctx, userId, achievement.AchievementValue)
+		val, err := ss.GetFriendTotal(ss.DB, ss.Ctx, userId)
+		if err != nil {
+			return 0, false, err
+		}
+		count = val
 	default:
 		log.Printf("No applicable condition for achievement %v", achievement)
 	}
 
-	return false, nil
+	return count, count >= achievement.AchievementValue, nil
 }
 
-func GetOrCalculateSubmissionActiveStreak(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	activeStreak, err := queries.CalculateSubmissionActiveStreak(repo, ctx, userId)
+func (ss *StatsService) GetSubmissionActiveStreak(repo *sql.DB, ctx context.Context, userId string) (int, error) {
+	activeStreak := ss.Stats.SubmissionActiveStreak
 
-	if err != nil {
-		return false, err
+	// If stats is not already calculated, calculate it
+	if activeStreak == nil {
+		streak, err := queries.CalculateSubmissionActiveStreak(repo, ctx, userId)
+
+		if err != nil {
+			log.Printf("Error calculating submission active streak for user %s: %v", userId, err)
+			return 0, err
+		}
+
+		activeStreak = &streak
 	}
 
-	return activeStreak >= passingCount, nil
+	return *activeStreak, nil
 }
 
-func GetOrCalculateSubmissionStreak(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	maxStreak, err := queries.CalculateSubmissionMaxStreak(repo, ctx, userId)
+func (ss *StatsService) GetSubmissionStreak(repo *sql.DB, ctx context.Context, userId string) (int, error) {
+	maxStreak := ss.Stats.SubmissionActiveStreak
 
-	if err != nil {
-		return false, err
+	// If stat is not already calculated, calculate it
+	if maxStreak == nil {
+		streak, err := queries.CalculateSubmissionMaxStreak(repo, ctx, userId)
+
+		if err != nil {
+			log.Printf("Error calculating submission max streak for user %s: %v", userId, err)
+			return 0, err
+		}
+
+		maxStreak = &streak
 	}
 
-	return maxStreak >= passingCount, nil
+	return *maxStreak, nil
 }
 
-func GetOrCalculateSubmissionTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateSubmissionCount(repo, ctx, userId)
+func (ss *StatsService) GetSubmissionTotal(repo *sql.DB, ctx context.Context, userId string) (int, error) {
+	submissionCount := ss.Stats.SubmissionTotal
 
-	if err != nil {
-		return false, err
+	// If stat is not already calculated, calculate it
+	if submissionCount == nil {
+		count, err := queries.CalculateSubmissionCount(repo, ctx, userId)
+
+		if err != nil {
+			log.Printf("Error calculating submission total count for user %s: %v", userId, err)
+			return 0, err
+		}
+
+		submissionCount = &count
 	}
 
-	return count >= passingCount, nil
+	return *submissionCount, nil
 }
 
-func GetOrCalculateReactionTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateReactionCount(repo, ctx, userId)
+func (ss *StatsService) GetReactionTotal(repo *sql.DB, ctx context.Context, userId string) (int, error) {
+	reactionCount := ss.Stats.ReactionTotal
 
-	if err != nil {
-		return false, err
+	// If stat is not already calculated, calculate it
+	if reactionCount == nil {
+		count, err := queries.CalculateReactionCount(repo, ctx, userId)
+
+		if err != nil {
+			log.Printf("Error calculating submission active streak for user %s: %v", userId, err)
+			return 0, err
+		}
+
+		reactionCount = &count
 	}
 
-	return count >= passingCount, nil
+	return *reactionCount, nil
 }
 
-func GetOrCalculateReactionCommentTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateReactionCommentCount(repo, ctx, userId)
+func (ss *StatsService) GetReactionCommentTotal(repo *sql.DB, ctx context.Context, userId string) (int, error) {
+	commentReactions := ss.Stats.ReactionCommentTotal
 
-	if err != nil {
-		return false, err
+	// If stats is not already calculated, calculate it
+	if commentReactions == nil {
+		count, err := queries.CalculateReactionCommentCount(repo, ctx, userId)
+
+		if err != nil {
+			log.Printf("Error calculating reaction comment total for user %s: %v", userId, err)
+			return 0, err
+		}
+
+		commentReactions = &count
 	}
 
-	return count >= passingCount, nil
+	return *commentReactions, nil
 }
 
-func GetOrCalculateReactionSubmissionTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateReactionSubmissionCount(repo, ctx, userId)
+func (ss *StatsService) GetReactionSubmissionTotal(repo *sql.DB, ctx context.Context, userId string) (int, error) {
+	submissionReactions := ss.Stats.ReactionSubmissionTotal
 
-	if err != nil {
-		return false, err
+	// If stats is not already calculated, calculate it
+	if submissionReactions == nil {
+		count, err := queries.CalculateReactionSubmissionCount(repo, ctx, userId)
+
+		if err != nil {
+			log.Printf("Error calculating reaction submission total for user %s: %v", userId, err)
+			return 0, err
+		}
+
+		submissionReactions = &count
 	}
 
-	return count >= passingCount, nil
+	return *submissionReactions, nil
 }
 
-func GetOrCalculateCommentTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateCommentCount(repo, ctx, userId)
+func (ss *StatsService) GetCommentTotal(repo *sql.DB, ctx context.Context, userId string) (int, error) {
+	commentCount := ss.Stats.CommentTotal
 
-	if err != nil {
-		return false, err
+	// If stats is not already calculated, calculate it
+	if commentCount == nil {
+		count, err := queries.CalculateCommentCount(repo, ctx, userId)
+
+		if err != nil {
+			log.Printf("Error calculating comment total for user %s: %v", userId, err)
+			return 0, err
+		}
+
+		commentCount = &count
 	}
 
-	return count >= passingCount, nil
+	return *commentCount, nil
 }
 
-func GetOrCalculateFriendTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateFriendCount(repo, ctx, userId)
+func (ss *StatsService) GetFriendTotal(repo *sql.DB, ctx context.Context, userId string) (int, error) {
+	friendCount := ss.Stats.FriendTotal
 
-	if err != nil {
-		return false, err
+	// If stats is not already calculated, calculate it
+	if friendCount == nil {
+		count, err := queries.CalculateFriendCount(repo, ctx, userId)
+
+		if err != nil {
+			log.Printf("Error calculating friend total for user %s: %v", userId, err)
+			return 0, err
+		}
+
+		friendCount = &count
 	}
 
-	return count >= passingCount, nil
-}
-
-// YOYOYO
-func GetOrCalculateSubmissionActiveStreak(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	activeStreak, err := queries.CalculateSubmissionActiveStreak(repo, ctx, userId)
-
-	if err != nil {
-		return false, err
-	}
-
-	return activeStreak >= passingCount, nil
-}
-
-func GetOrCalculateSubmissionStreak(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	maxStreak, err := queries.CalculateSubmissionMaxStreak(repo, ctx, userId)
-
-	if err != nil {
-		return false, err
-	}
-
-	return maxStreak >= passingCount, nil
-}
-
-func GetOrCalculateSubmissionTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateSubmissionCount(repo, ctx, userId)
-
-	if err != nil {
-		return false, err
-	}
-
-	return count >= passingCount, nil
-}
-
-func GetOrCalculateReactionTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateReactionCount(repo, ctx, userId)
-
-	if err != nil {
-		return false, err
-	}
-
-	return count >= passingCount, nil
-}
-
-func GetOrCalculateReactionCommentTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateReactionCommentCount(repo, ctx, userId)
-
-	if err != nil {
-		return false, err
-	}
-
-	return count >= passingCount, nil
-}
-
-func GetOrCalculateReactionSubmissionTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateReactionSubmissionCount(repo, ctx, userId)
-
-	if err != nil {
-		return false, err
-	}
-
-	return count >= passingCount, nil
-}
-
-func GetOrCalculateCommentTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateCommentCount(repo, ctx, userId)
-
-	if err != nil {
-		return false, err
-	}
-
-	return count >= passingCount, nil
-}
-
-func GetOrCalculateFriendTotal(repo *sql.DB, ctx context.Context, userId string, passingCount int) (bool, error) {
-	count, err := queries.CalculateFriendCount(repo, ctx, userId)
-
-	if err != nil {
-		return false, err
-	}
-
-	return count >= passingCount, nil
+	return *friendCount, nil
 }
 
 // HERE
@@ -340,7 +301,7 @@ func CalculateSubmissionActiveStreak(repo *sql.DB, ctx context.Context, userId s
 	}
 
 	go func() {
-		err := queries.InsertCalculatedStat(repo, ctx, userId, string(SUBMISSION_ACTIVE_STREAK), activeStreak)
+		err := queries.InsertCalculatedStat(repo, context.Background(), userId, string(SUBMISSION_ACTIVE_STREAK), activeStreak)
 		if err != nil {
 			log.Printf("Failed to save submission active streak: %v", err)
 		}
@@ -357,7 +318,7 @@ func CalculateSubmissionMaxStreak(repo *sql.DB, ctx context.Context, userId stri
 	}
 
 	go func() {
-		err := queries.InsertCalculatedStat(repo, ctx, userId, string(SUBMISSION_STREAK), maxStreak)
+		err := queries.InsertCalculatedStat(repo, context.Background(), userId, string(SUBMISSION_STREAK), maxStreak)
 		if err != nil {
 			log.Printf("Failed to save submission active streak: %v", err)
 		}
@@ -374,7 +335,7 @@ func CalculateSubmissionTotal(repo *sql.DB, ctx context.Context, userId string, 
 	}
 
 	go func() {
-		err := queries.InsertCalculatedStat(repo, ctx, userId, string(SUBMISSION_TOTAL), count)
+		err := queries.InsertCalculatedStat(repo, context.Background(), userId, string(SUBMISSION_TOTAL), count)
 		if err != nil {
 			log.Printf("Failed to save submission total: %v", err)
 		}
@@ -391,7 +352,7 @@ func CalculateReactionTotal(repo *sql.DB, ctx context.Context, userId string, pa
 	}
 
 	go func() {
-		err := queries.InsertCalculatedStat(repo, ctx, userId, string(REACTION_TOTAL), count)
+		err := queries.InsertCalculatedStat(repo, context.Background(), userId, string(REACTION_TOTAL), count)
 		if err != nil {
 			log.Printf("Failed to save reaction total: %v", err)
 		}
@@ -408,7 +369,7 @@ func CalculateReactionCommentTotal(repo *sql.DB, ctx context.Context, userId str
 	}
 
 	go func() {
-		err := queries.InsertCalculatedStat(repo, ctx, userId, string(REACTION_COMMENT_TOTAL), count)
+		err := queries.InsertCalculatedStat(repo, context.Background(), userId, string(REACTION_COMMENT_TOTAL), count)
 		if err != nil {
 			log.Printf("Failed to save reaction comment total: %v", err)
 		}
@@ -425,7 +386,7 @@ func CalculateReactionSubmissionTotal(repo *sql.DB, ctx context.Context, userId 
 	}
 
 	go func() {
-		err := queries.InsertCalculatedStat(repo, ctx, userId, string(REACTION_SUBMISSION_TOTAL), count)
+		err := queries.InsertCalculatedStat(repo, context.Background(), userId, string(REACTION_SUBMISSION_TOTAL), count)
 		if err != nil {
 			log.Printf("Failed to save reaction submission total: %v", err)
 		}
@@ -442,7 +403,7 @@ func CalculateCommentTotal(repo *sql.DB, ctx context.Context, userId string, pas
 	}
 
 	go func() {
-		err := queries.InsertCalculatedStat(repo, ctx, userId, string(COMMENT_TOTAL), count)
+		err := queries.InsertCalculatedStat(repo, context.Background(), userId, string(COMMENT_TOTAL), count)
 		if err != nil {
 			log.Printf("Failed to save comment total: %v", err)
 		}
@@ -459,7 +420,7 @@ func CalculateFriendTotal(repo *sql.DB, ctx context.Context, userId string, pass
 	}
 
 	go func() {
-		err := queries.InsertCalculatedStat(repo, ctx, userId, string(FRIEND_TOTAL), count)
+		err := queries.InsertCalculatedStat(repo, context.Background(), userId, string(FRIEND_TOTAL), count)
 		if err != nil {
 			log.Printf("Failed to save friend total: %v", err)
 		}

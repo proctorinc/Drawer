@@ -104,6 +104,7 @@ export type Achievement = {
   achievedAt: Date | null;
   achievementField: string;
   achievementValue: number;
+  progress: number;
   reward: AchievementReward | null;
 };
 

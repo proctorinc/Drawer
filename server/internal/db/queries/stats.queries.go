@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
+	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -133,7 +135,7 @@ func CalculateReactionCount(repo *sql.DB, ctx context.Context, userId string) (i
 func CalculateReactionCommentCount(repo *sql.DB, ctx context.Context, userId string) (int, error) {
 	query := `
 		SELECT COUNT(*)
-		FROM user_submissions
+		FROM reactions
 		WHERE user_id = ? AND reaction_type = 'comment'
 	`
 
@@ -150,7 +152,7 @@ func CalculateReactionCommentCount(repo *sql.DB, ctx context.Context, userId str
 func CalculateReactionSubmissionCount(repo *sql.DB, ctx context.Context, userId string) (int, error) {
 	query := `
 		SELECT COUNT(*)
-		FROM user_submissions
+		FROM reactions
 		WHERE user_id = ? AND reaction_type = 'submission'
 	`
 
@@ -169,11 +171,11 @@ func CalculateFriendCount(repo *sql.DB, ctx context.Context, userId string) (int
 		SELECT COUNT(*)
 		FROM friendships
 		WHERE user1 = ? OR user2 = ?
-		AND status = 'accepted'
+		AND state = 'accepted'
 	`
 
 	var count int
-	err := repo.QueryRowContext(ctx, query, userId).Scan(&count)
+	err := repo.QueryRowContext(ctx, query, userId, userId).Scan(&count)
 
 	if err != nil {
 		return 0, err
@@ -243,16 +245,27 @@ func GetIncompleteAchievements(repo *sql.DB, ctx context.Context, userId string)
 	return achievements, nil
 }
 
-func GetIncompleteAchievementsByAchievementField(repo *sql.DB, ctx context.Context, userId string, achievementField []string) ([]models.Achievement, error) {
-	query := `
+func GetIncompleteAchievementsByAchievementField(repo *sql.DB, ctx context.Context, userId string, achievementFields []string) ([]models.Achievement, error) {
+	placeholders := make([]string, len(achievementFields))
+	for i := range achievementFields {
+		placeholders[i] = "?"
+	}
+
+	args := make([]interface{}, len(achievementFields)+1)
+	args[0] = userId
+	for i, v := range achievementFields {
+		args[i+1] = v
+	}
+
+	query := fmt.Sprintf(`
 		SELECT a.id, a.name, a.description, a.image_url, a.achievement_field, a.achievement_value, ua.created_at, r.id, r.name, r.description, r.created_at
 		FROM achievements a
 		LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = ?
 		LEFT JOIN reward_unlocks r ON r.achievement_id = a.id
-		WHERE ua.created_at IS NULL AND a.achievement_field IN (?);
-	`
+		WHERE ua.created_at IS NULL AND a.achievement_field IN (%s);
+	`, strings.Join(placeholders, ","))
 
-	rows, err := repo.QueryContext(ctx, query, userId)
+	rows, err := repo.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}

@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
-	"drawer-service-backend/internal/context"
+	"drawer-service-backend/internal/achievements"
+	requestContext "drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
@@ -18,7 +20,7 @@ import (
 
 func HandleGetMe(c *gin.Context) {
 	user := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	response, err := queries.GetUserByID(appCtx.DB, c.Request.Context(), user.ID)
 	if err != nil {
@@ -31,7 +33,7 @@ func HandleGetMe(c *gin.Context) {
 }
 
 func HandleGetUserByID(c *gin.Context) {
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	requester := middleware.GetUser(c)
 
 	userID := c.Param("id")
@@ -56,7 +58,7 @@ func HandleGetUserByID(c *gin.Context) {
 
 func HandleGetUserProfile(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	response, err := queries.GetUserProfileFromDB(appCtx.DB, c.Request.Context(), requester.ID, requester.ID, appCtx.Config)
 	if err != nil {
@@ -70,7 +72,7 @@ func HandleGetUserProfile(c *gin.Context) {
 
 func HandleUpdateUsername(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	// Get the new username from the request body
 	var body struct {
@@ -130,7 +132,7 @@ func HandleUpdateUsername(c *gin.Context) {
 
 func HandleInviteFriend(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	// Get the friend's user ID from the URL param
 	friendID := c.Param("id")
@@ -183,7 +185,7 @@ func HandleInviteFriend(c *gin.Context) {
 // Handler to get all pending invitations for the current user
 func HandleGetInvitations(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	// Query all pending invitations where the user is either user1 or user2, join inviter user object
 	query := `
@@ -245,7 +247,7 @@ func HandleGetInvitations(c *gin.Context) {
 // Handler to accept a pending invitation
 func HandleAcceptInvitation(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	otherID := c.Param("id")
 	if otherID == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
@@ -267,13 +269,22 @@ func HandleAcceptInvitation(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "No pending invitation found"})
 		return
 	}
+
+	go func() {
+		achievementService := achievements.NewAchievementService(appCtx.DB, context.Background(), requester.ID)
+		err := achievementService.UpdateFriendAchievements(requester.ID)
+		if err != nil {
+			log.Printf("Error updating friend achievements for %s: %v", requester.ID, err)
+		}
+	}()
+
 	c.JSON(http.StatusOK, gin.H{"message": "Invitation accepted"})
 }
 
 // Handler to deny a pending invitation
 func HandleDenyInvitation(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	otherID := c.Param("id")
 	if otherID == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "User ID is required"})
@@ -299,7 +310,7 @@ func HandleDenyInvitation(c *gin.Context) {
 
 func HandleUpdateAvatarUrl(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	storageService := storage.NewStorageService(appCtx.Config)
 
 	file, err := c.FormFile("image")
@@ -343,7 +354,7 @@ func HandleUpdateAvatarUrl(c *gin.Context) {
 
 func HandleToggleAvatarType(c *gin.Context) {
 	requester := middleware.GetUser(c)
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 
 	avatarType := "basic"
 

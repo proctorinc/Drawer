@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"context"
 	"database/sql"
-	"drawer-service-backend/internal/context"
+	"drawer-service-backend/internal/achievements"
+	requestContext "drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/notifications"
@@ -24,7 +26,7 @@ type DailyPromptResponse struct {
 }
 
 func HandleGetDailyPrompt(c *gin.Context) {
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	now := time.Now()
 	today := utils.GetFormattedDate(now)
 	userID := middleware.GetUserID(c)
@@ -64,7 +66,7 @@ func HandleGetDailyPrompt(c *gin.Context) {
 }
 
 func HandleSubmitDailyPrompt(c *gin.Context) {
-	appCtx := context.GetCtx(c)
+	appCtx := requestContext.GetCtx(c)
 	ctx := c.Request.Context()
 	today := utils.GetFormattedDate(time.Now())
 	requester := middleware.GetUser(c)
@@ -135,6 +137,14 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 	go func() {
 		if err := notifications.NotifyFriendsOfSubmission(appCtx.DB, requester.ID, requester.Username, submissionID, appCtx.Config); err != nil {
 			log.Printf("Failed to send friend notifications for user %s: %v", utils.MaskEmail(requester.Email), err)
+		}
+	}()
+
+	go func() {
+		achievementService := achievements.NewAchievementService(appCtx.DB, context.Background(), requester.ID)
+		err := achievementService.UpdateSubmissionAchievements(requester.ID)
+		if err != nil {
+			log.Printf("Error updating friend achievements for %s: %v", requester.ID, err)
 		}
 	}()
 

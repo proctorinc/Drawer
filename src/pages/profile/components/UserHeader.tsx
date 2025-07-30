@@ -33,9 +33,7 @@ const UserHeader: FC<Props> = ({ userProfile, className }) => {
   const inviteFriend = useInviteFriend();
   const acceptInvitation = useAcceptInvitation();
   const isMe = currentUser.id === userProfile?.user.id;
-  const { primary, secondary, text } = nameToColor(
-    userProfile?.user.username ?? '',
-  );
+  const { primary, text } = nameToColor(userProfile?.user.username ?? '');
 
   function handleInviteFriend(user: User) {
     inviteFriend.mutate(user.id, {

@@ -144,7 +144,7 @@ const MyProfilePage = () => {
             {completedAchievements.length === 0 && (
               <Card>
                 <CardContent className="text-center text-secondary font-bold">
-                  Complete the above goals
+                  You haven't completed any yet
                 </CardContent>
               </Card>
             )}

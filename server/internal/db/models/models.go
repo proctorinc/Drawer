@@ -161,6 +161,7 @@ type Achievement struct {
 	AchievedAt       *time.Time    `json:"achievedAt"`
 	AchievementField string        `json:"achievementField"`
 	AchievementValue int           `json:"achievementValue"`
+	Progress         int           `json:"progress"`
 	Reward           *RewardUnlock `json:"reward"`
 }
 

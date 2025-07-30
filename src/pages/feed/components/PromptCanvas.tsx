@@ -25,9 +25,12 @@ const PromptCanvas = () => {
 
   function handleSubmitCanvas() {
     const canvasData = getCanvasData();
-    submitPrompt(canvasData, clearCanvas).catch(() =>
-      setError('Failed to submit drawing'),
-    );
+    submitPrompt(canvasData, {
+      onSuccess: () => {
+        clearCanvas();
+      },
+      onError: () => setError('Failed to submit drawing'),
+    }).catch(() => setError('Failed to submit drawing'));
   }
 
   function handleDownloadCanvas() {
@@ -54,7 +57,7 @@ const PromptCanvas = () => {
       >
         <Canvas ref={canvasRef} />
         <div className="flex flex-col items-center w-full gap-4">
-          <Toolbar />
+          <Toolbar colors={dailyPrompt?.colors || []} />
           {error && <p className="text-center text-red-500">{error}</p>}
           <div className="flex gap-2">
             <Button

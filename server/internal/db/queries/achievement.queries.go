@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
-	"log"
 )
 
 func GetAchievementsAndRewardsByUserID(repo *sql.DB, ctx context.Context, userId string) ([]models.Achievement, map[string]models.RewardUnlock, error) {
@@ -58,75 +57,4 @@ func GetAchievementsAndRewardsByUserID(repo *sql.DB, ctx context.Context, userId
 	}
 
 	return achievements, rewards, nil
-}
-
-func UpdateUserAchievements(repo *sql.DB, ctx context.Context, userId string) error {
-	achievements, err := GetIncompleteAchievements(repo, ctx, userId)
-
-	if err != nil {
-		log.Printf("Error getting all achievements for user %s: %v", userId, err)
-		return err
-	}
-
-	log.Printf("Looping through %d achievements", len(achievements))
-
-	for _, achievement := range achievements {
-		log.Printf("Checking achievement %s", achievement.Name)
-
-		// Check if its already been passed, if so skip
-		pass, err := CheckAchievementCondition(repo, ctx, userId, achievement)
-
-		if err != nil {
-			log.Printf("Error checking achievement %s for user %s: %v", achievement.Name, userId, err)
-			continue
-		}
-
-		if pass {
-			log.Printf("Achievement passed, adding achievement to user profile %s", achievement.Name)
-			err := InsertUserAchievement(repo, ctx, userId, achievement.ID)
-			if err != nil {
-				log.Printf("Error inserting achievement %s for user %s: %v", achievement.Name, userId, err)
-			}
-		}
-	}
-
-	return nil
-}
-
-func UpdateUserAchievementsByAchievementField(repo *sql.DB, ctx context.Context, userId string, achievementField []string) error {
-	log.Print("Getting all achievements")
-	achievements, err := GetIncompleteAchievementsByAchievementField(repo, ctx, userId, achievementField)
-
-	if err != nil {
-		log.Printf("Error getting all achievements for user %s: %v", userId, err)
-		return err
-	}
-
-	log.Printf("Looping through %d achievements", len(achievements))
-
-	for _, achievement := range achievements {
-		log.Printf("Checking achievement %s", achievement.Name)
-
-		// Check if its already been passed, if so skip
-		pass, err := CheckAchievementCondition(repo, ctx, userId, achievement)
-
-		if err != nil {
-			log.Printf("Error checking achievement %s for user %s: %v", achievement.Name, userId, err)
-			continue
-		}
-
-		// Find a way to cache the check result so it doesn't check everytime. Maybe every few hours? Maybe it checks up to the current day and it won't check until the next day? It would have to save this to the db
-
-		log.Print("Checked achievement")
-
-		if pass {
-			log.Printf("Achievement passed, adding achievement to user profile %s", achievement.Name)
-			err := InsertUserAchievement(repo, ctx, userId, achievement.ID)
-			if err != nil {
-				log.Printf("Error inserting achievement %s for user %s: %v", achievement.Name, userId, err)
-			}
-		}
-	}
-
-	return nil
 }
