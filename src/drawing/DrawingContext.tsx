@@ -17,6 +17,7 @@ type DrawingContextType = {
   setSelectedColor: (color: string) => void;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   clearCanvas: () => void;
+  getCanvasData: () => string;
   undo: () => void;
   selectEraser: () => void;
   canUndo: boolean;
@@ -293,10 +294,6 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
     const ctx = canvas?.getContext('2d');
     if (!ctx || !canvas) throw new Error('Could not get canvas context');
 
-    // Store the original dimensions of the canvas
-    const originalWidth = canvas.width;
-    const originalHeight = canvas.height;
-
     // Get your existing image data
     const canvasData = getCanvasData();
     const jsonData = JSON.parse(canvasData);
@@ -400,6 +397,7 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
         setSelectedColor,
         canvasRef,
         clearCanvas,
+        getCanvasData,
         undo,
         selectEraser,
         canUndo,

@@ -19,7 +19,7 @@ type DailyPromptContextType = {
       onSuccess: () => void;
       onError: () => void;
     },
-  ) => Promise<void>;
+  ) => void;
   isLoading: boolean;
 };
 

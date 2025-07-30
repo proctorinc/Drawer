@@ -1,14 +1,14 @@
 import type {
+  AchievementsAndRewardsResponse,
+  ActivityFeedResponse,
   Comment,
+  DailyActionStat,
   DailyPrompt,
   GetMeResponse,
+  InvitationResponse,
   ReactionResponse,
   User,
   UserPromptSubmission,
-  ActivityFeedResponse,
-  InvitationResponse,
-  DailyActionStat,
-  AchievementsAndRewardsResponse,
 } from './Api';
 import { Config } from '@/config/Config';
 
@@ -136,10 +136,7 @@ export const apiClient = {
       body: JSON.stringify(data),
     });
     if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(
-        data.error || `Error creating user: ${response.statusText}`,
-      );
+      throw new Error(`Error creating user: ${response.statusText}`);
     }
     return response.json();
   },
