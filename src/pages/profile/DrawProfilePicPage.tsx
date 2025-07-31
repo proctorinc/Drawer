@@ -72,10 +72,9 @@ const DrawProfilePicPage = () => {
         variant="round"
         colors={
           skinColorIndex !== null
-            ? [skinColors[skinColorIndex], secondary, text]
+            ? [skinColors[skinColorIndex], text, secondary, '#FFF']
             : []
         }
-        downloadEnabled
         backgroundColor={primary}
         className={cn('rounded-full', !readyToDraw && 'hidden')}
         onSubmit={uploadAvatar}

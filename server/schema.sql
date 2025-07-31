@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS reward_unlocks;
 DROP TABLE IF EXISTS achievements;
 DROP TABLE IF EXISTS user_achievements;
 DROP TABLE IF EXISTS user_achievement_checks;
+DROP TABLE IF EXISTS user_stat_calculations;
 
 -- CREATE TABLE users (
 --     id TEXT PRIMARY KEY,

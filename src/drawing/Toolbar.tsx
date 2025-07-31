@@ -16,7 +16,7 @@ export const Toolbar: FC<Props> = ({ colors }) => {
   return (
     <Card>
       <CardContent className="flex flex-row justify-between items-center w-full">
-        <div className="flex gap-4">
+        <div className="flex gap-4 flex-wrap">
           {colors.map((color, index) => (
             <button
               key={`toolbar-color-${index}`}

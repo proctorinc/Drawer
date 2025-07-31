@@ -122,7 +122,7 @@ func initializeDevData(db *sql.DB) error {
 			('achievement2', 'Anti-antisocial?', 'Comment on a friends doodle', '', 'COMMENT_TOTAL', 1),
 			('achievement3', 'Well that was easy', 'React to a friends doodle', '', 'REACTION_TOTAL', 1),
 			('achievement3a', 'A friend of the people', 'Make 5 friends', '', 'FRIEND_TOTAL', 5),
-			('achievement4', 'A dedicated citizen', 'Draw doodles for 14 days in a row', '', 'SUBMISSION_STREAK', 6),
+			('achievement4', 'A dedicated citizen', 'Draw doodles for 5 days in a row', '', 'SUBMISSION_STREAK', 5),
 			('achievement5', 'Doodle Kiddie', 'Draw 10 total doodles', '', 'SUBMISSION_TOTAL', 10),
 			('achievement6', 'Doodle Pro', 'Draw 50 total doodles', '', 'SUBMISSION_TOTAL', 50),
 			('achievement7', 'Doodle God', 'Draw 100 total doodles', '', 'SUBMISSION_TOTAL', 100);
