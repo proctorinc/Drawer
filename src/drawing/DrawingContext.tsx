@@ -57,6 +57,7 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
         paths.forEach((path) => path.draw(ctx)); // Redraw all paths
       }
     }
+    updatePaths([]);
   }, [paths]);
 
   const undo = useCallback(() => {

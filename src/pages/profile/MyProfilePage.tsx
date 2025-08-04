@@ -15,16 +15,13 @@ import {
 import AchievementCard from './components/AchievementCard';
 import { cn } from '@/utils';
 import { Card, CardContent } from '@/components/Card';
-import useLocalStorage from '@/hooks/useLocalStorage';
+import { useState } from 'react';
 
 type TabState = 'profile' | 'settings' | 'achievements';
 
 const MyProfilePage = () => {
   const { profile, achievementsData } = useMyProfilePage();
-  const [tab, setTab] = useLocalStorage<TabState>(
-    'PROFILE_PAGE_TAB',
-    'profile',
-  );
+  const [tab, setTab] = useState<TabState>('profile');
 
   const completedAchievements = achievementsData?.achievements
     ? achievementsData.achievements

@@ -88,8 +88,11 @@ const Feed = () => {
       )}
       {(hasPromptBeenCompleted || isNoPrompt) && <SubmissionFeedList />}
       <DrawingCanvas
+        backgroundColor={
+          dailyPrompt?.colors.length === 4 ? dailyPrompt.colors[3] : undefined
+        }
         onSubmit={(png) => handleSubmit(png)}
-        colors={dailyPrompt?.colors}
+        colors={dailyPrompt?.colors ? dailyPrompt.colors.slice(0, 3) : []}
         hidden={hasPromptBeenCompleted || isNoPrompt}
       />
       {error && (

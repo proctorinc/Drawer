@@ -65,7 +65,7 @@ const indexRoute = createRoute({
   component: () => (
     <AuthRoute>
       <MyProfilePageProvider>
-        <DrawingProvider localStorageKey="DRAWING_SUBMISSION">
+        <DrawingProvider localStorageKey="DRAWING_SUBMISSION_0">
           <App />
         </DrawingProvider>
       </MyProfilePageProvider>

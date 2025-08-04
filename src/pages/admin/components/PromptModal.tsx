@@ -53,7 +53,7 @@ function hslToHex(hsl: string): string {
 const generateRandomColors = (): string[] => {
   const colors: string[] = [];
 
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     // Random hue (0-360), saturation (60-100%), lightness (40-70%)
     const hue = Math.floor(Math.random() * 360);
     const saturation = Math.floor(Math.random() * 41) + 60; // 60-100%
@@ -179,23 +179,50 @@ export function PromptModal({
           <div className="space-y-2">
             {colors.map((color, index) => {
               return (
-                <div key={index} className="flex items-center gap-2">
+                <div key={index} className="flex flex-col gap-2">
+                  {index === 3 && (
+                    <span className="text-sm text-secondary">
+                      Background color
+                    </span>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => updateColor(index, e.target.value)}
+                      className="w-12 h-10 border border-border rounded cursor-pointer"
+                    />
+                    <input
+                      type="text"
+                      value={color}
+                      onChange={(e) => updateColor(index, e.target.value)}
+                      placeholder="#000000"
+                      className="flex-1 p-2 border border-border rounded bg-background text-primary placeholder-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                </div>
+              );
+            })}
+            {colors.length < 4 && (
+              <div className="flex flex-col gap-2">
+                <span className="text-sm text-secondary">Add Background?</span>
+                <div className="flex items-center gap-2">
                   <input
                     type="color"
-                    value={color}
-                    onChange={(e) => updateColor(index, e.target.value)}
+                    value="#ffffff"
+                    onChange={(e) => updateColor(colors.length, e.target.value)}
                     className="w-12 h-10 border border-border rounded cursor-pointer"
                   />
                   <input
                     type="text"
-                    value={color}
-                    onChange={(e) => updateColor(index, e.target.value)}
-                    placeholder="#000000"
+                    value="#ffffff"
+                    onChange={(e) => updateColor(colors.length, e.target.value)}
+                    placeholder="#ffffff"
                     className="flex-1 p-2 border border-border rounded bg-background text-primary placeholder-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                   />
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
 
           {/* Color Preview */}

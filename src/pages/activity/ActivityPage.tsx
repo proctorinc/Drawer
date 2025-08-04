@@ -28,10 +28,7 @@ type TabState = 'activity' | 'invitations';
 
 const ActivityPage = () => {
   const { data, isLoading } = useActivityFeed();
-  const [tab, setTab] = useLocalStorage<TabState>(
-    'ACTIVITY_PAGE_TAB',
-    'activity',
-  );
+  const [tab, setTab] = useState<TabState>('activity');
   const [friendsExpanded, setFriendsExpanded] = useLocalStorage<boolean>(
     'ACTIVITY_PAGE_EXPANDED',
     false,
