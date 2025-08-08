@@ -138,9 +138,11 @@ const adminRoute = createRoute({
   path: '/draw/admin',
   component: () => (
     <AuthRoute>
-      <AdminDashboardProvider>
-        <AdminPage />
-      </AdminDashboardProvider>
+      <DrawingProvider localStorageKey="ADMIN_DRAWING">
+        <AdminDashboardProvider>
+          <AdminPage />
+        </AdminDashboardProvider>
+      </DrawingProvider>
     </AuthRoute>
   ),
 });

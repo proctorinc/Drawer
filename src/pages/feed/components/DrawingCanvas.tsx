@@ -5,7 +5,6 @@ import Canvas from '@/drawing/Canvas';
 import { useDrawing } from '@/drawing/DrawingContext';
 import { Toolbar } from '@/drawing/Toolbar';
 import { cn } from '@/utils';
-import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
 import { Card } from '@/components/Card';
 
 type Props = {
@@ -16,6 +15,7 @@ type Props = {
   canvasProps?: HTMLAttributes<HTMLCanvasElement>;
   hidden?: boolean;
   backgroundColor?: string;
+  isLoading?: boolean;
 } & Omit<HTMLAttributes<HTMLDivElement>, 'onSubmit'>;
 
 const DrawingCanvas: FC<Props> = ({
@@ -26,9 +26,9 @@ const DrawingCanvas: FC<Props> = ({
   canvasProps,
   hidden,
   backgroundColor,
+  isLoading = false,
   ...props
 }) => {
-  const { isLoading } = useMyProfilePage();
   const { canvasRef, canUndo, getPng } = useDrawing();
   const { className: divClassName, ...divProps } = props;
 

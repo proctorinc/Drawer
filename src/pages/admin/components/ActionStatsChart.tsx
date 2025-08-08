@@ -48,9 +48,6 @@ export function ActionStatsChart({ className = '' }: ActionStatsChartProps) {
     comments: Number(d.comments),
   }));
 
-  console.log(actionStats);
-  console.log(chartData);
-
   // Date range state
   const [range, setRange] = useState(() => getDefaultRange(7));
   const [customStart, setCustomStart] = useState(range.start);
@@ -59,7 +56,6 @@ export function ActionStatsChart({ className = '' }: ActionStatsChartProps) {
 
   useEffect(() => {
     fetchActionStats(range.start, range.end);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [range.start, range.end]);
 
   // Quick actions

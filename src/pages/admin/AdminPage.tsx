@@ -14,6 +14,9 @@ import { TotalStatsCards, TodayStatsCards } from './components/StatsCards';
 import { RecentUsersCard } from './components/RecentUsersCard';
 import { Card, CardContent, CardHeader } from '@/components/Card';
 import { UserProfileIcon } from '../profile/components/profile-icons/UserProfileIcon';
+import DrawingCanvas from '../feed/components/DrawingCanvas';
+import { generateRandomColors } from './utils';
+import useLocalStorage from '@/hooks/useLocalStorage';
 
 const AdminPage = () => {
   const { promptSuggestions, isLoading, error } = useAdminDashboard();
@@ -29,6 +32,23 @@ const AdminPage = () => {
   const [selectedCreatedBy, setSelectedCreatedBy] = useState<User | undefined>(
     undefined,
   );
+  const [testColors, setTestColors] = useLocalStorage<Array<string>>(
+    'test-colors',
+    generateRandomColors(),
+    10000,
+  );
+  const [testBackgroundColor, setTestBackgroundColor] = useLocalStorage<string>(
+    'test-background-color',
+    '#00000',
+    10000,
+  );
+
+  const updateColor = (index: number, color: string) => {
+    setTestColors((prevColors) => {
+      prevColors[index] = color;
+      return prevColors;
+    });
+  };
 
   const openModal = (
     day: string,
@@ -99,6 +119,57 @@ const AdminPage = () => {
           navigate={navigate}
           queryClient={queryClient}
         />
+        <Card>
+          <CardContent className="flex flex-col items-center">
+            <DrawingCanvas
+              variant="round"
+              colors={testColors}
+              backgroundColor={testBackgroundColor}
+              downloadEnabled
+            />
+            <div className="space-y-2">
+              {testColors.map((color, index) => {
+                return (
+                  <div key={index} className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={color}
+                        onChange={(e) => updateColor(index, e.target.value)}
+                        className="w-12 h-10 border border-border rounded cursor-pointer"
+                      />
+                      <input
+                        type="text"
+                        value={color}
+                        onChange={(e) => updateColor(index, e.target.value)}
+                        placeholder="#000000"
+                        className="flex-1 p-2 border border-border rounded bg-background text-primary placeholder-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="flex flex-col gap-2">
+                <span className="text-sm text-secondary">Background color</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={testBackgroundColor}
+                    onChange={(e) => setTestBackgroundColor(e.target.value)}
+                    className="w-12 h-10 border border-border rounded cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    value={testBackgroundColor}
+                    onChange={(e) => setTestBackgroundColor(e.target.value)}
+                    placeholder="#000000"
+                    className="flex-1 p-2 border border-border rounded bg-background text-primary placeholder-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         <PromptModal
           isOpen={isModalOpen}
           onClose={closeModal}

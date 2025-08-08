@@ -16,7 +16,7 @@ import Button from '@/components/Button';
 import { useSubmitPromptSuggestion } from '@/api/Api';
 
 const Feed = () => {
-  const { dailyPrompt, submitPrompt } = useDailyPrompt();
+  const { dailyPrompt, submitPrompt, isLoading } = useDailyPrompt();
   const promptSuggestionMutation = useSubmitPromptSuggestion();
   const { clearCanvas } = useDrawing();
   const [error, setError] = useState<string | null>(null);
@@ -134,6 +134,7 @@ const Feed = () => {
       )}*/}
       {(hasPromptBeenCompleted || isNoPrompt) && <SubmissionFeedList />}
       <DrawingCanvas
+        isLoading={isLoading}
         backgroundColor={
           dailyPrompt?.colors.length === 4 ? dailyPrompt.colors[3] : undefined
         }
