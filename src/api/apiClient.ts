@@ -416,13 +416,7 @@ export const apiClient = {
       username: string;
       email: string;
     };
-    users: Array<{
-      id: string;
-      username: string;
-      email: string;
-      role: string;
-      createdAt: string;
-    }>;
+    users: Array<User>;
     futurePrompts: Array<{
       day: string;
       colors: Array<string>;

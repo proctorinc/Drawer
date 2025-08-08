@@ -11,12 +11,13 @@ import { useAdminDashboard } from '../context/AdminDashboardContext';
 import type { HTMLAttributes } from 'react';
 import { cn } from '@/utils';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
+import type { User } from '@/api/Api';
 
 interface FuturePromptsCardProps extends HTMLAttributes<HTMLDivElement> {
   openModal: (
     day: string,
     prompt?: string,
-    colors?: string[],
+    colors?: Array<string>,
     createdBy?: User,
   ) => void;
   className?: string;
