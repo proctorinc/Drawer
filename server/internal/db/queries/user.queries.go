@@ -684,7 +684,6 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 		LEFT JOIN users cu ON c.user_id = cu.id
 		LEFT JOIN users dpu ON dp.created_by = dpu.id
 		WHERE ` + whereClause + `
-		AND us.created_at >= datetime('now', '-7 days')
 		ORDER BY us.day DESC, submission_created_at DESC, c.created_at ASC`
 
 	rows, err := repo.QueryContext(ctx, submissionQuery, submissionIDs...)
