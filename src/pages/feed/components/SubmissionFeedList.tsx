@@ -2,6 +2,8 @@ import { Card } from '@/components/Card';
 import SubmissionComments from './SubmissionComments';
 import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
 import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
+import Banner from '@/components/Banner';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 
 export const SubmissionFeedList = () => {
   const { profile } = useMyProfilePage();
@@ -22,16 +24,24 @@ export const SubmissionFeedList = () => {
         feed?.map((submission, i) => (
           <div key={submission.id} className="flex flex-col gap-3 pb-10">
             {(i === 0 || submission.day !== feed[i - 1].day) && (
-              <div className="pl-1 font-bold">
-                <h2 className="text-2xl text-primary">{submission.prompt}</h2>
-                <p className="text-secondary">
-                  {new Date(submission.day).toLocaleDateString('en-US', {
-                    month: 'long',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
-                </p>
-              </div>
+              <>
+                <div className="pl-1 font-bold">
+                  <h2 className="text-2xl text-primary">{submission.prompt}</h2>
+                  <p className="text-secondary">
+                    {new Date(submission.day).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                </div>
+                {submission.createdBy && (
+                  <Banner>
+                    <UserProfileIcon size="sm" user={submission.createdBy} />
+                    Prompt by: {submission.createdBy.username}
+                  </Banner>
+                )}
+              </>
             )}
             <div
               key={`${submission.user.id}-${submission.day}`}

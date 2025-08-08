@@ -96,6 +96,8 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			authGroup.POST("/notifications/subscribe", handlers.HandleSubscribePush)
 			authGroup.POST("/notifications/unsubscribe", handlers.HandleUnsubscribePush)
 
+			authGroup.POST("/prompt/suggest", handlers.SuggestPrompt)
+
 			// Development-only debug endpoints for push notifications
 			log.Printf("🔔 Current environment: %s", cfg.Env)
 			if cfg.Env == "development" || true { // Temporarily force debug endpoints
@@ -178,6 +180,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				adminGroup.POST("/impersonate", handlers.HandleImpersonateUser)
 				adminGroup.POST("/prompt", handlers.HandleCreatePrompt)
 				adminGroup.GET("/action-stats", handlers.HandleGetAdminActionStats)
+				adminGroup.GET("/prompt-suggestions", handlers.GetAllPromptSuggestions)
 			}
 		}
 	}

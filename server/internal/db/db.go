@@ -144,6 +144,15 @@ func initializeDevData(db *sql.DB) error {
 			('user8', 'anonymous_hippopotamus', 'user8@example.com', 'user', date('now', '-13 days'), 'basic', ''),
 			('user9', 'pro_tractor', 'user9@example.com', 'user', date('now', '-13 days'), 'basic', '');
 
+		-- Insert prompt suggestions
+		INSERT OR IGNORE INTO prompt_suggestions (id, user_id, prompt)
+		VALUES
+			('suggestion1', 'user1', 'A banana.'),
+			('suggestion2', 'user1', 'This is a suggestion.'),
+			('suggestion3', 'user2', 'Dancing in the moonlight. Everybody.'),
+			('suggestion4', 'user3', 'A banana.'),
+			('suggestion5', 'user7', 'Something cool.');
+
 		-- Make them friends
 		INSERT OR IGNORE INTO friendships (user1, user2, inviter_id, state) VALUES
 			('user1', 'user2', 'user1', 'accepted'),
@@ -154,37 +163,37 @@ func initializeDevData(db *sql.DB) error {
 			('user1', 'user7', 'user1', 'pending'),
 			('user1', 'user8', 'user8', 'pending');
 
-		INSERT OR IGNORE INTO daily_prompts (day, colors, prompt) VALUES
-			(date('now', '-13 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A sunset over mountains'),
-			(date('now', '-8 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A test thing'),
-			(date('now', '-7 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A cool forest'),
-			(date('now', '-6 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A banana'),
-			(date('now', '-5 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A curved yellow fruit'),
-			(date('now', '-4 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A peanut butter sandwich'),
-			(date('now', '-3 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A goalie'),
-			(date('now', '-2 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A futbol americano'),
-			(date('now', '-1 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A prank'),
-			(date('now'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A prehistoric city'),
-			(date('now', '+1 days'), '["#E74C3C", "#C0392B", "#A93226"]', 'A tangerine'),
+		INSERT OR IGNORE INTO daily_prompts (day, colors, prompt, created_by) VALUES
+			(date('now', '-13 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A sunset over mountains', 'user1'),
+			(date('now', '-8 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A test thing', 'user1'),
+			(date('now', '-7 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A cool forest', 'user1'),
+			(date('now', '-6 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A banana', 'user1'),
+			(date('now', '-5 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A curved yellow fruit', 'user1'),
+			(date('now', '-4 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A peanut butter sandwich', 'user1'),
+			(date('now', '-3 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A goalie', 'user1'),
+			(date('now', '-2 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A futbol americano', 'user1'),
+			(date('now', '-1 days'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A prank', 'user1'),
+			(date('now'), '["#2C3E50", "#34495E", "#7F8C8D"]', 'A prehistoric city', 'user1'),
+			(date('now', '+1 days'), '["#E74C3C", "#C0392B", "#A93226"]', 'A tangerine', 'user1'),
 			-- Intentionally missing +2 days to show gap
-			(date('now', '+3 days'), '["#F39C12", "#E67E22", "#D35400"]', 'A cozy fireplace'),
-			(date('now', '+4 days'), '["#9B59B6", "#8E44AD", "#7D3C98"]', 'A magical forest'),
+			(date('now', '+3 days'), '["#F39C12", "#E67E22", "#D35400"]', 'A cozy fireplace', 'user1'),
+			(date('now', '+4 days'), '["#9B59B6", "#8E44AD", "#7D3C98"]', 'A magical forest', 'user1'),
 			-- Intentionally missing +5 days to show gap
-			(date('now', '+6 days'), '["#3498DB", "#2980B9", "#21618C"]', 'A calm ocean wave'),
-			(date('now', '+7 days'), '["#1ABC9C", "#16A085", "#138D75"]', 'A vintage camera'),
-			(date('now', '+8 days'), '["#E67E22", "#D35400", "#BA4A00"]', 'A hot air balloon'),
+			(date('now', '+6 days'), '["#3498DB", "#2980B9", "#21618C"]', 'A calm ocean wave', 'user1'),
+			(date('now', '+7 days'), '["#1ABC9C", "#16A085", "#138D75"]', 'A vintage camera', 'user1'),
+			(date('now', '+8 days'), '["#E67E22", "#D35400", "#BA4A00"]', 'A hot air balloon', 'user1'),
 			-- Intentionally missing +9 days to show gap
-			(date('now', '+10 days'), '["#8E44AD", "#7D3C98", "#6C3483"]', 'A starry night sky'),
-			(date('now', '+11 days'), '["#27AE60", "#229954", "#1E8449"]', 'A blooming flower'),
-			(date('now', '+12 days'), '["#F1C40F", "#F39C12", "#E67E22"]', 'A golden sunset'),
-			(date('now', '+13 days'), '["#E91E63", "#C2185B", "#AD1457"]', 'A butterfly garden'),
+			(date('now', '+10 days'), '["#8E44AD", "#7D3C98", "#6C3483"]', 'A starry night sky', 'user1'),
+			(date('now', '+11 days'), '["#27AE60", "#229954", "#1E8449"]', 'A blooming flower', 'user1'),
+			(date('now', '+12 days'), '["#F1C40F", "#F39C12", "#E67E22"]', 'A golden sunset', 'user1'),
+			(date('now', '+13 days'), '["#E91E63", "#C2185B", "#AD1457"]', 'A butterfly garden', 'user1'),
 			-- Intentionally missing +14 days to show gap
-			(date('now', '+15 days'), '["#3F51B5", "#303F9F", "#283593"]', 'A mountain peak'),
-			(date('now', '+16 days'), '["#009688", "#00796B", "#00695C"]', 'A zen garden'),
-			(date('now', '+17 days'), '["#FF5722", "#E64A19", "#D84315"]', 'A roaring campfire'),
-			(date('now', '+18 days'), '["#673AB7", "#5E35B1", "#512DA8"]', 'A crystal cave'),
-			(date('now', '+19 days'), '["#00BCD4", "#00ACC1", "#0097A7"]', 'A tropical island'),
-			(date('now', '+20 days'), '["#4CAF50", "#43A047", "#388E3C"]', 'A peaceful meadow');
+			(date('now', '+15 days'), '["#3F51B5", "#303F9F", "#283593"]', 'A mountain peak', 'user1'),
+			(date('now', '+16 days'), '["#009688", "#00796B", "#00695C"]', 'A zen garden', 'user1'),
+			(date('now', '+17 days'), '["#FF5722", "#E64A19", "#D84315"]', 'A roaring campfire', 'user1'),
+			(date('now', '+18 days'), '["#673AB7", "#5E35B1", "#512DA8"]', 'A crystal cave', 'user1'),
+			(date('now', '+19 days'), '["#00BCD4", "#00ACC1", "#0097A7"]', 'A tropical island', 'user1'),
+			(date('now', '+20 days'), '["#4CAF50", "#43A047", "#388E3C"]', 'A peaceful meadow', 'user1');
 
 		INSERT OR IGNORE INTO user_submissions (id, user_id, day) VALUES
 			('sub00', 'user1', date('now', '-60 days')),

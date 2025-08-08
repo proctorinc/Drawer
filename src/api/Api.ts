@@ -7,6 +7,15 @@ export interface DailyPrompt {
   colors: Array<string>;
   prompt: string;
   isCompleted: boolean;
+  createdBy: User | null;
+}
+
+export interface PromptSuggestion {
+  id: string;
+  colors: Array<string>;
+  prompt: string;
+  isCompleted: boolean;
+  createdBy: User;
 }
 
 export interface User {
@@ -174,6 +183,7 @@ export const queryKeys = {
   user: (id: string) => ['user', id] as const,
   promptSubmission: (id: string) => ['promptSubmission', id] as const,
   activityFeed: ['activityFeed'] as const,
+  promptSuggestions: ['promptSuggestions'] as const,
 };
 
 // Queries
@@ -184,6 +194,13 @@ export function useGetDailyPrompt() {
     retry: () => {
       return false;
     },
+  });
+}
+
+export function useGetPromptSuggestions() {
+  return useQuery({
+    queryKey: queryKeys.promptSuggestions,
+    queryFn: apiClient.getPromptSuggestions,
   });
 }
 
@@ -223,14 +240,6 @@ export function usePromptSubmission(submissionId: string) {
       return false;
     },
     enabled: !!submissionId,
-  });
-}
-
-export function useGetUserByUsername(username: string) {
-  return useQuery({
-    queryKey: ['userByUsername', username],
-    queryFn: () => apiClient.getUserByUsername(username),
-    enabled: !!username,
   });
 }
 
@@ -274,6 +283,12 @@ export function useLogoutUser() {
 export function useInviteFriend() {
   return useMutation({
     mutationFn: apiClient.inviteFriend,
+  });
+}
+
+export function useSubmitPromptSuggestion() {
+  return useMutation({
+    mutationFn: apiClient.submitPromptSuggestion,
   });
 }
 

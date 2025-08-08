@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes } from '@fortawesome/free-solid-svg-icons';
+import { faPlusCircle, faTimes } from '@fortawesome/free-solid-svg-icons';
 import Button from '../../../components/Button';
-import { useCreatePrompt } from '../../../api/Api';
+import { useCreatePrompt, type User } from '../../../api/Api';
+import { useAdminDashboard } from '../context/AdminDashboardContext';
+import { UserSelector } from './UserSelector';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 
 interface PromptModalProps {
   isOpen: boolean;
   onClose: () => void;
   day?: string;
   existingPrompt?: string;
-  existingColors?: string[];
+  existingColors?: Array<string>;
+  existingCreatedBy?: User;
 }
 
 // Utility to convert HSL to HEX
@@ -50,8 +54,8 @@ function hslToHex(hsl: string): string {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
-const generateRandomColors = (): string[] => {
-  const colors: string[] = [];
+const generateRandomColors = (): Array<string> => {
+  const colors: Array<string> = [];
 
   for (let i = 0; i < 4; i++) {
     // Random hue (0-360), saturation (60-100%), lightness (40-70%)
@@ -71,10 +75,16 @@ export function PromptModal({
   day,
   existingPrompt,
   existingColors,
+  existingCreatedBy,
 }: PromptModalProps) {
+  const { dashboardData } = useAdminDashboard();
   const [prompt, setPrompt] = useState('');
-  const [colors, setColors] = useState<string[]>(generateRandomColors());
+  const [colors, setColors] = useState<Array<string>>(generateRandomColors());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdBy, setCreatedBy] = useState<User | undefined>(
+    existingCreatedBy,
+  );
+  const [isUserSelectorOpen, setIsUserSelectorOpen] = useState(false);
   const [error, setError] = useState('');
 
   const createPromptMutation = useCreatePrompt();
@@ -90,7 +100,6 @@ export function PromptModal({
       setPrompt(existingPrompt || '');
       setError('');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, existingPrompt, existingColors]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -105,6 +114,7 @@ export function PromptModal({
         day,
         prompt,
         colors,
+        createdBy: createdBy?.id,
       });
 
       onClose();
@@ -155,6 +165,54 @@ export function PromptModal({
                 : 'Select a date'}
             </div>
           </div>
+          {createdBy && (
+            <div>
+              <label className="block text-sm font-medium text-secondary mb-1">
+                Created By
+              </label>
+              <div className="flex items-center gap-2">
+                <UserProfileIcon
+                  onClick={() => setIsUserSelectorOpen(true)}
+                  user={createdBy}
+                />
+                <div className="text-primary font-medium">
+                  {createdBy.username}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCreatedBy(undefined)}
+                  className="text-secondary hover:text-primary transition-colors"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              </div>
+            </div>
+          )}
+          {createdBy === undefined && (
+            <div>
+              <label className="block text-sm font-medium text-secondary mb-1">
+                Created By
+              </label>
+              <Button
+                type="button"
+                icon={faPlusCircle}
+                onClick={() => setIsUserSelectorOpen(true)}
+              >
+                Select User
+              </Button>
+            </div>
+          )}
+
+          {isUserSelectorOpen && dashboardData?.users && (
+            <UserSelector
+              users={dashboardData.users}
+              onClose={() => setIsUserSelectorOpen(false)}
+              onSelectUser={(user) => {
+                setCreatedBy(user);
+                setIsUserSelectorOpen(false);
+              }}
+            />
+          )}
 
           {/* Prompt Input */}
           <div>

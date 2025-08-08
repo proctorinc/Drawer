@@ -10,9 +10,15 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAdminDashboard } from '../context/AdminDashboardContext';
 import type { HTMLAttributes } from 'react';
 import { cn } from '@/utils';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 
 interface FuturePromptsCardProps extends HTMLAttributes<HTMLDivElement> {
-  openModal: (day: string, prompt?: string, colors?: string[]) => void;
+  openModal: (
+    day: string,
+    prompt?: string,
+    colors?: string[],
+    createdBy?: User,
+  ) => void;
   className?: string;
 }
 
@@ -25,7 +31,7 @@ export function FuturePromptsCard({
   const futurePrompts = dashboardData?.futurePrompts || [];
   // Generate list of days from today to the last prompt day
   const today = new Date();
-  if (!futurePrompts || futurePrompts.length === 0) {
+  if (futurePrompts.length === 0) {
     return (
       <Card className="col-span-2">
         <CardContent>
@@ -98,27 +104,32 @@ export function FuturePromptsCard({
                     </span>
                   )}
                 </div>
-                {hasPrompt ? (
-                  <div className="mt-2">
-                    <p className="text-sm text-secondary mb-2">
-                      {prompt.prompt}
-                    </p>
-                    <div className="flex gap-2">
-                      {prompt.colors.map((color: string, index: number) => (
-                        <div
-                          key={index}
-                          className="w-4 h-4 rounded border border-border"
-                          style={{ backgroundColor: color }}
-                          title={color}
-                        />
-                      ))}
+                <div className="flex gap-5">
+                  {hasPrompt ? (
+                    <div className="mt-2">
+                      <p className="text-sm text-secondary mb-2">
+                        {prompt.prompt}
+                      </p>
+                      <div className="flex gap-2">
+                        {prompt.colors.map((color: string, index: number) => (
+                          <div
+                            key={index}
+                            className="w-4 h-4 rounded border border-border"
+                            style={{ backgroundColor: color }}
+                            title={color}
+                          />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-red-500/70 mt-1">
-                    No prompt scheduled for this day
-                  </p>
-                )}
+                  ) : (
+                    <p className="text-sm text-red-500/70 mt-1">
+                      No prompt scheduled for this day
+                    </p>
+                  )}
+                  {prompt?.createdBy && (
+                    <UserProfileIcon user={prompt.createdBy} size="sm" />
+                  )}
+                </div>
               </div>
               {/* Action Buttons */}
               <div className="flex gap-2 ml-4">
@@ -127,7 +138,14 @@ export function FuturePromptsCard({
                     variant="base"
                     size="sm"
                     icon={faEdit}
-                    onClick={() => openModal(day, prompt.prompt, prompt.colors)}
+                    onClick={() =>
+                      openModal(
+                        day,
+                        prompt.prompt,
+                        prompt.colors,
+                        prompt.createdBy,
+                      )
+                    }
                     className="text-primary hover:text-primary/80"
                   >
                     Edit

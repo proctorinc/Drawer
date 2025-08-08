@@ -124,6 +124,12 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 			us.day,
 			dp.colors,
 			dp.prompt,
+			dp.created_by,
+			dpu.username,
+			dpu.email,
+			dpu.created_at,
+			dpu.avatar_type,
+			dpu.avatar_url,
 			u.id as user_id,
 			u.username,
 			u.email,
@@ -145,6 +151,7 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		JOIN users u ON us.user_id = u.id
 		LEFT JOIN comments c ON c.submission_id = us.id
 		LEFT JOIN users cu ON c.user_id = cu.id
+		LEFT JOIN users dpu ON dp.created_by = dpu.id
 		WHERE ` + whereClause + `
 		ORDER BY us.day DESC, submission_created_at DESC, c.created_at ASC`
 
@@ -162,16 +169,22 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 
 	for rows.Next() {
 		var (
-			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail, subAvatarType, subAvatarURL                     string
-			subUserCreatedAt, subCreatedAt                                                                                        time.Time
-			commentID, commentText, commentUserID, commentUsername, commentUserEmail, commentUserAvatarType, commentUserAvatarURL sql.NullString
-			commentUserCreatedAt, commentCreatedAt                                                                                sql.NullTime
+			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail, subAvatarType, subAvatarURL                                                                                                                      string
+			subUserCreatedAt, subCreatedAt                                                                                                                                                                                         time.Time
+			commentID, commentText, commentUserID, commentUsername, commentUserEmail, commentUserAvatarType, commentUserAvatarURL, createdByUserID, createdByUsername, createdByUserEmail, createdByAvatarType, createdByAvatarURL sql.NullString
+			commentUserCreatedAt, commentCreatedAt, createdByUserCreatedAt                                                                                                                                                         sql.NullTime
 		)
 		err := rows.Scan(
 			&subID,
 			&day,
 			&colorsJSON,
 			&prompt,
+			&createdByUserID,
+			&createdByUsername,
+			&createdByUserEmail,
+			&createdByUserCreatedAt,
+			&createdByAvatarType,
+			&createdByAvatarURL,
 			&subUserID,
 			&subUsername,
 			&subUserEmail,
@@ -642,6 +655,12 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 			us.day,
 			dp.colors,
 			dp.prompt,
+			dp.created_by,
+			dpu.username,
+			dpu.email,
+			dpu.created_at,
+			dpu.avatar_type,
+			dpu.avatar_url,
 			u.id as user_id,
 			u.username,
 			u.email,
@@ -663,7 +682,9 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 		JOIN users u ON us.user_id = u.id
 		LEFT JOIN comments c ON c.submission_id = us.id
 		LEFT JOIN users cu ON c.user_id = cu.id
+		LEFT JOIN users dpu ON dp.created_by = dpu.id
 		WHERE ` + whereClause + `
+		AND us.created_at >= datetime('now', '-7 days')
 		ORDER BY us.day DESC, submission_created_at DESC, c.created_at ASC`
 
 	rows, err := repo.QueryContext(ctx, submissionQuery, submissionIDs...)
@@ -680,16 +701,22 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 
 	for rows.Next() {
 		var (
-			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail, subAvatarType, subAvatarURL                     string
-			subUserCreatedAt, subCreatedAt                                                                                        time.Time
-			commentID, commentText, commentUserID, commentUsername, commentUserEmail, commentUserAvatarType, commentUserAvatarURL sql.NullString
-			commentUserCreatedAt, commentCreatedAt                                                                                sql.NullTime
+			subID, day, colorsJSON, prompt, subUserID, subUsername, subUserEmail, subAvatarType, subAvatarURL                                                                                                                      string
+			subUserCreatedAt, subCreatedAt                                                                                                                                                                                         time.Time
+			commentID, commentText, commentUserID, commentUsername, commentUserEmail, commentUserAvatarType, commentUserAvatarURL, createdByUserID, createdByUsername, createdByUserEmail, createdByAvatarType, createdByAvatarURL sql.NullString
+			commentUserCreatedAt, commentCreatedAt, createdByUserCreatedAt                                                                                                                                                         sql.NullTime
 		)
 		err := rows.Scan(
 			&subID,
 			&day,
 			&colorsJSON,
 			&prompt,
+			&createdByUserID,
+			&createdByUsername,
+			&createdByUserEmail,
+			&createdByUserCreatedAt,
+			&createdByAvatarType,
+			&createdByAvatarURL,
 			&subUserID,
 			&subUsername,
 			&subUserEmail,
@@ -734,6 +761,18 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 				Reactions: []models.Reaction{},
 				Counts:    []models.ReactionCount{},
 			}
+
+			if createdByUserID.Valid {
+				submission.CreatedBy = &models.User{
+					ID:         createdByUserID.String,
+					Username:   createdByUsername.String,
+					Email:      createdByUserEmail.String,
+					CreatedAt:  createdByUserCreatedAt.Time,
+					AvatarType: createdByAvatarType.String,
+					AvatarURL:  createdByAvatarURL.String,
+				}
+			}
+
 			subMap[subID] = &submission
 			// Add to feed as a flat list
 			response.Feed = append(response.Feed, &submission)

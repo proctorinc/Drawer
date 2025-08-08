@@ -6,6 +6,7 @@ import type {
   DailyPrompt,
   GetMeResponse,
   InvitationResponse,
+  PromptSuggestion,
   ReactionResponse,
   User,
   UserPromptSubmission,
@@ -217,6 +218,20 @@ export const apiClient = {
 
     if (!response.ok) {
       throw new Error(`Error submitting daily prompt: ${response.text}`);
+    }
+    return response.json();
+  },
+
+  submitPromptSuggestion: async (
+    prompt: string,
+  ): Promise<{ message: string }> => {
+    const response = await fetchAPI('POST', '/prompt/suggest', {
+      body: JSON.stringify({ prompt }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to toggle reaction');
     }
     return response.json();
   },
@@ -462,11 +477,21 @@ export const apiClient = {
     }
     return response.json();
   },
+  getPromptSuggestions: async (): Promise<Array<PromptSuggestion>> => {
+    const response = await fetchAPI('GET', '/admin/prompt-suggestions');
+    if (!response.ok) {
+      throw new Error(
+        `Error fetching prompt suggestions: ${response.statusText}`,
+      );
+    }
+    return response.json();
+  },
 
   createPrompt: async (data: {
     day: string;
     prompt: string;
     colors: Array<string>;
+    createdBy?: string;
   }): Promise<{ message: string; day: string }> => {
     const response = await fetchAPI('POST', '/admin/prompt', {
       headers: { 'Content-Type': 'application/json' },

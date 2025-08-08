@@ -12,13 +12,6 @@ type DailyPrompt struct {
 	CreatedBy *User    `json:"createdBy"`
 }
 
-type PromptSuggestion struct {
-	ID        string    `json:"id"`
-	Prompt    string    `json:"prompt"`
-	CreatedBy User      `json:"createdBy"`
-	CreatedAt time.Time `json:"createdAt"`
-}
-
 // User represents basic user profile information.
 type User struct {
 	ID         string    `json:"id"`
@@ -73,7 +66,6 @@ type UserPromptSubmission struct {
 	Counts     []ReactionCount `json:"counts"`
 	IsFavorite bool            `json:"isFavorite"`
 	CreatedAt  time.Time       `json:"createdAt"`
-	CreatedBy  *User           `json:"createdBy"`
 }
 
 type UserStats struct {

@@ -1,7 +1,7 @@
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
 import { useAdminDashboard } from './context/AdminDashboardContext';
-import { useImpersonateUser } from '@/api/Api';
+import { useImpersonateUser, type User } from '@/api/Api';
 import { useState } from 'react';
 import { PromptModal } from './components/PromptModal';
 import { useNavigate } from '@tanstack/react-router';
@@ -12,9 +12,11 @@ import { UserManagementCard } from './components/UserManagementCard';
 import { FuturePromptsCard } from './components/FuturePromptsCard';
 import { TotalStatsCards, TodayStatsCards } from './components/StatsCards';
 import { RecentUsersCard } from './components/RecentUsersCard';
+import { Card, CardContent, CardHeader } from '@/components/Card';
+import { UserProfileIcon } from '../profile/components/profile-icons/UserProfileIcon';
 
 const AdminPage = () => {
-  const { isLoading, error } = useAdminDashboard();
+  const { promptSuggestions, isLoading, error } = useAdminDashboard();
   const impersonateMutation = useImpersonateUser();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -23,12 +25,21 @@ const AdminPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDay, setSelectedDay] = useState<string>('');
   const [selectedPrompt, setSelectedPrompt] = useState<string>('');
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
+  const [selectedColors, setSelectedColors] = useState<Array<string>>([]);
+  const [selectedCreatedBy, setSelectedCreatedBy] = useState<User | undefined>(
+    undefined,
+  );
 
-  const openModal = (day: string, prompt?: string, colors?: string[]) => {
+  const openModal = (
+    day: string,
+    prompt?: string,
+    colors?: Array<string>,
+    createdBy?: User,
+  ) => {
     setSelectedDay(day);
     setSelectedPrompt(prompt || '');
     setSelectedColors(colors || []);
+    setSelectedCreatedBy(createdBy || undefined);
     setIsModalOpen(true);
   };
 
@@ -37,6 +48,7 @@ const AdminPage = () => {
     setSelectedDay('');
     setSelectedPrompt('');
     setSelectedColors([]);
+    setSelectedCreatedBy(undefined);
   };
 
   if (isLoading) {
@@ -67,6 +79,17 @@ const AdminPage = () => {
           openModal={openModal}
           className="col-span-1 lg:col-span-2"
         />
+        <Card>
+          <CardContent>
+            <CardHeader title="Suggested prompts" />
+            {promptSuggestions?.map((suggestion) => (
+              <div key={suggestion.id} className="flex items-center gap-2">
+                <UserProfileIcon size="sm" user={suggestion.createdBy} />
+                <h3>{suggestion.prompt}</h3>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
         <TodayStatsCards className="col-span-1 lg:col-span-3" />
         <RecentUsersCard />
         {/* <RecentActivityCard className="" /> */}
@@ -82,6 +105,7 @@ const AdminPage = () => {
           day={selectedDay}
           existingPrompt={selectedPrompt}
           existingColors={selectedColors}
+          existingCreatedBy={selectedCreatedBy}
         />
       </div>
     </div>

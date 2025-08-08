@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { faFrown, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
+import {
+  faCircleCheck,
+  faFrown,
+  faInfoCircle,
+} from '@fortawesome/free-solid-svg-icons';
 import { CountDownTimer } from '../../daily/CountdownTimer';
 import { useDailyPrompt } from '../../daily/DailyPromptContext';
 import { SubmissionFeedList } from './components/SubmissionFeedList';
@@ -8,11 +12,16 @@ import Banner from '@/components/Banner';
 import Disclaimer, { DisclaimerItem } from '@/components/Disclaimer';
 import { useDrawing } from '@/drawing/DrawingContext';
 import DrawingCanvas from './components/DrawingCanvas';
+import Button from '@/components/Button';
+import { useSubmitPromptSuggestion } from '@/api/Api';
 
 const Feed = () => {
   const { dailyPrompt, submitPrompt } = useDailyPrompt();
+  const promptSuggestionMutation = useSubmitPromptSuggestion();
   const { clearCanvas } = useDrawing();
   const [error, setError] = useState<string | null>(null);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState('');
 
   const hasPromptBeenCompleted = dailyPrompt && dailyPrompt.isCompleted;
   const promptNotCompleted = dailyPrompt && !dailyPrompt.isCompleted;
@@ -35,11 +44,50 @@ const Feed = () => {
       hideHeader={!hasPromptBeenCompleted && !!dailyPrompt}
       header={
         (hasPromptBeenCompleted || isNoPrompt) && (
-          <div className="flex flex-col items-center gap-1 rounded-full text-2xl w-full max-w-sm mb-6">
-            <CountDownTimer className="font-cursive text-5xl" />
-            <span className="text-sm font-extrabold tracking-wide text-secondary/80">
-              Next Doodle
-            </span>
+          <div className="mb-6 w-full space-y-8">
+            <div className="flex flex-col items-center gap-1 rounded-full text-2xl w-full max-w-sm">
+              <CountDownTimer className="font-cursive text-5xl" />
+              <span className="text-sm font-extrabold tracking-wide text-secondary/80">
+                Next Doodle
+              </span>
+            </div>
+            <div className="flex flex-col gap-1 w-full px-4">
+              {suggestionError && (
+                <p className="text-center text-sm font-bold text-red-700">
+                  {suggestionError}
+                </p>
+              )}
+              <form
+                className="flex items-center gap-2 rounded-2xl"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  promptSuggestionMutation
+                    .mutateAsync(prompt)
+                    .catch((err) => setSuggestionError(err.message));
+                  setPrompt('');
+                }}
+              >
+                <input
+                  id="username"
+                  type="text"
+                  placeholder="Suggest a doodle prompt!"
+                  className="text-primary-foreground bg-secondary font-bold border-2 border-primary w-full p-4 rounded-2xl"
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  required
+                />
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={prompt.length === 0}
+                  icon={faCircleCheck}
+                  className="disabled:bg-transparent"
+                ></Button>
+              </form>
+              <p className="text-xs font-bold text-secondary/80">
+                Get credit if your prompt is selected!
+              </p>
+            </div>
           </div>
         )
       }
@@ -62,17 +110,6 @@ const Feed = () => {
         </Banner>
       )}
       {/* {(hasPromptBeenCompleted || isNoPrompt) && (
-        <Disclaimer title="Updates! User profiles, favorite doodles">
-          <DisclaimerItem>
-            You can now view other user's profiles by clicking on their icons.
-          </DisclaimerItem>
-          <DisclaimerItem>
-            You can also choose 3 favorite doodles to display on your own
-            profile. Click the star icon to favorite one of your drawings.
-          </DisclaimerItem>
-        </Disclaimer>
-      )} */}
-      {(hasPromptBeenCompleted || isNoPrompt) && (
         <Disclaimer title="Updates?? Achievements, custom avatars">
           <DisclaimerItem>
             View your achievements under Profile {'>'} Awards
@@ -85,7 +122,16 @@ const Feed = () => {
             View/manage friend requests under Activity {'>'} Invites
           </DisclaimerItem>
         </Disclaimer>
-      )}
+        <Disclaimer title="Updates! User profiles, favorite doodles">
+          <DisclaimerItem>
+            You can now view other user's profiles by clicking on their icons.
+          </DisclaimerItem>
+          <DisclaimerItem>
+            You can also choose 3 favorite doodles to display on your own
+            profile. Click the star icon to favorite one of your drawings.
+          </DisclaimerItem>
+        </Disclaimer>
+      )}*/}
       {(hasPromptBeenCompleted || isNoPrompt) && <SubmissionFeedList />}
       <DrawingCanvas
         backgroundColor={

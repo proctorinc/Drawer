@@ -5,7 +5,13 @@ import {
   type FC,
   type ReactNode,
 } from 'react';
-import { useGetAdminDashboard, type DailyActionStat } from '@/api/Api';
+import {
+  useGetAdminDashboard,
+  useGetPromptSuggestions,
+  type DailyActionStat,
+  type PromptSuggestion,
+  type User,
+} from '@/api/Api';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/api/apiClient';
 
@@ -18,13 +24,7 @@ type AdminDashboardContextType = {
           username: string;
           email: string;
         };
-        users: Array<{
-          id: string;
-          username: string;
-          email: string;
-          role: string;
-          createdAt: string;
-        }>;
+        users: Array<User>;
         futurePrompts: Array<{
           day: string;
           colors: Array<string>;
@@ -51,12 +51,13 @@ type AdminDashboardContextType = {
         };
       }
     | undefined;
+  promptSuggestions: Array<PromptSuggestion> | undefined;
   isLoading: boolean;
   error: any;
   refetch: () => Promise<any>;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  actionStats: DailyActionStat[] | undefined;
+  actionStats: Array<DailyActionStat> | undefined;
   actionStatsLoading: boolean;
   actionStatsError: any;
   fetchActionStats: (start: string, end: string) => void;
@@ -78,6 +79,8 @@ export const AdminDashboardProvider: FC<Props> = ({ children }) => {
     error,
     refetch,
   } = useGetAdminDashboard(searchQuery);
+
+  const { data: promptSuggestions } = useGetPromptSuggestions();
 
   const [actionStatsParams, setActionStatsParams] = useState<{
     start: string;
@@ -108,6 +111,7 @@ export const AdminDashboardProvider: FC<Props> = ({ children }) => {
 
   const contextValue: AdminDashboardContextType = {
     dashboardData,
+    promptSuggestions,
     isLoading,
     error,
     refetch,

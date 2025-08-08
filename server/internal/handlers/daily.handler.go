@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"drawer-service-backend/internal/achievements"
 	requestContext "drawer-service-backend/internal/context"
+	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/notifications"
@@ -19,10 +20,11 @@ import (
 )
 
 type DailyPromptResponse struct {
-	Day         string   `json:"day"`
-	Colors      []string `json:"colors"`
-	Prompt      string   `json:"prompt"`
-	IsCompleted bool     `json:"isCompleted"`
+	Day         string       `json:"day"`
+	Colors      []string     `json:"colors"`
+	Prompt      string       `json:"prompt"`
+	IsCompleted bool         `json:"isCompleted"`
+	CreatedBy   *models.User `json:"createdBy"`
 }
 
 func HandleGetDailyPrompt(c *gin.Context) {
@@ -60,6 +62,7 @@ func HandleGetDailyPrompt(c *gin.Context) {
 		Day:         prompt.Day,
 		Colors:      prompt.Colors,
 		Prompt:      prompt.Prompt,
+		CreatedBy:   prompt.CreatedBy,
 	}
 
 	c.JSON(http.StatusOK, response)

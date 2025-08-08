@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/sha1"
 	"database/sql"
-	"drawer-service-backend/internal/db/models"
-	"drawer-service-backend/internal/utils"
+	"drawer-service-backend/pkg/db/models"
+	"drawer-service-backend/pkg/utils"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -33,24 +33,13 @@ func CheckUserSubmittedToday(repo *sql.DB, ctx context.Context, userID string) (
 }
 
 func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.DailyPrompt, error) {
-	query := `SELECT dp.day, dp.colors, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url
-		FROM daily_prompts dp
-		LEFT JOIN users u ON dp.created_by = u.id
-		WHERE day = ?`
+	query := `SELECT day, colors, prompt FROM daily_prompts WHERE day = ?`
 	row := repo.QueryRowContext(ctx, query, dateStr)
 
-	var (
-		prompt        models.DailyPrompt
-		colorsJSON    string
-		userID        sql.NullString
-		username      sql.NullString
-		email         sql.NullString
-		userCreatedAt sql.NullTime
-		avatarType    sql.NullString
-		avatarURL     sql.NullString
-	)
+	var prompt models.DailyPrompt
+	var colorsJSON string
 
-	err := row.Scan(&prompt.Day, &colorsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL)
+	err := row.Scan(&prompt.Day, &colorsJSON, &prompt.Prompt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.DailyPrompt{}, sql.ErrNoRows
@@ -62,19 +51,6 @@ func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.D
 	err = json.Unmarshal([]byte(colorsJSON), &prompt.Colors)
 	if err != nil {
 		return models.DailyPrompt{}, fmt.Errorf("error parsing colors JSON: %w", err)
-	}
-
-	if userID.Valid {
-		prompt.CreatedBy = &models.User{
-			ID:         userID.String,
-			Username:   username.String,
-			Email:      email.String,
-			CreatedAt:  userCreatedAt.Time,
-			AvatarType: avatarType.String,
-			AvatarURL:  avatarURL.String,
-		}
-	} else {
-		log.Println("UserID is not valid")
 	}
 
 	// Format the date string correctly
@@ -156,8 +132,8 @@ func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, 
 
 	query := `SELECT dp.day, dp.colors, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url
 	FROM daily_prompts dp
-	LEFT JOIN users u ON dp.created_by = u.id
-	WHERE day >= ? ORDER BY day ASC`
+	LEFT JOIN users u ON dp.user_id = u.id
+	WHERE dp.day >= ? ORDER BY dp.day ASC`
 	rows, err := repo.QueryContext(ctx, query, today)
 	if err != nil {
 		return nil, fmt.Errorf("error querying future prompts: %w", err)
@@ -167,41 +143,41 @@ func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, 
 	var prompts []models.DailyPrompt
 	for rows.Next() {
 		var (
-			prompt        models.DailyPrompt
-			colorsJSON    string
-			userID        sql.NullString
-			username      sql.NullString
-			email         sql.NullString
-			userCreatedAt sql.NullTime
-			avatarType    sql.NullString
-			avatarURL     sql.NullString
+			day, colorsJSON, prompt                                                                         string
+			createdByUserID, createdByUsername, createdByUserEmail, createdByAvatarType, createdByAvatarURL sql.NullString
+			createdByUserCreatedAt                                                                          sql.NullTime
 		)
 
-		err := rows.Scan(&prompt.Day, &colorsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL)
+		err := rows.Scan(&day, &colorsJSON, &prompt, &createdByUserID, &createdByUsername, &createdByUserEmail, &createdByUserCreatedAt, &createdByAvatarType, &createdByAvatarURL)
 		if err != nil {
-			log.Printf("Error scanning future prompt row AAA: %v", err)
+			log.Printf("Error scanning future prompt row: %v", err)
 			continue
+		}
+
+		dailyPrompt := models.DailyPrompt{
+			Day:    day,
+			Prompt: prompt,
 		}
 
 		// Parse the JSON array of colors
-		err = json.Unmarshal([]byte(colorsJSON), &prompt.Colors)
+		err = json.Unmarshal([]byte(colorsJSON), &dailyPrompt.Colors)
 		if err != nil {
-			log.Printf("Error parsing colors JSON for day %s: %v", prompt.Day, err)
+			log.Printf("Error parsing colors JSON for day %s: %v", dailyPrompt.Day, err)
 			continue
 		}
 
-		if userID.Valid {
-			prompt.CreatedBy = &models.User{
-				ID:         userID.String,
-				Username:   username.String,
-				Email:      email.String,
-				CreatedAt:  userCreatedAt.Time,
-				AvatarType: avatarType.String,
-				AvatarURL:  avatarURL.String,
+		if createdByUserID.Valid {
+			dailyPrompt.CreatedBy = &models.User{
+				ID:         createdByUserID.String,
+				Username:   createdByUsername.String,
+				Email:      createdByUserEmail.String,
+				CreatedAt:  createdByUserCreatedAt.Time,
+				AvatarType: createdByAvatarType.String,
+				AvatarURL:  createdByAvatarURL.String,
 			}
 		}
 
-		prompts = append(prompts, prompt)
+		prompts = append(prompts, dailyPrompt)
 	}
 
 	if err = rows.Err(); err != nil {
@@ -228,14 +204,14 @@ func CreateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt str
 }
 
 // UpdateDailyPrompt updates an existing daily prompt for a specific day
-func UpdateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt string, colors []string, createdById *string) error {
+func UpdateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt string, colors []string) error {
 	colorsJSON, err := json.Marshal(colors)
 	if err != nil {
 		return fmt.Errorf("error marshaling colors to JSON: %w", err)
 	}
 
-	query := `UPDATE daily_prompts SET colors = ?, prompt = ?, created_by = ? WHERE day = ?`
-	result, err := repo.ExecContext(ctx, query, string(colorsJSON), prompt, createdById, day)
+	query := `UPDATE daily_prompts SET colors = ?, prompt = ? WHERE day = ?`
+	result, err := repo.ExecContext(ctx, query, string(colorsJSON), prompt, day)
 	if err != nil {
 		return fmt.Errorf("error updating daily prompt for %s: %w", day, err)
 	}

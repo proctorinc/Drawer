@@ -52,7 +52,7 @@ func HandleGetAdminDashboard(c *gin.Context) {
 			"username": adminUser.Username,
 			"email":    adminUser.Email,
 		},
-		"users": users,
+		"users":         users,
 		"futurePrompts": futurePrompts,
 		"stats": gin.H{
 			"overall": gin.H{
@@ -117,9 +117,10 @@ func HandleImpersonateUser(c *gin.Context) {
 
 // CreatePromptRequest represents the request body for creating/updating a prompt
 type CreatePromptRequest struct {
-	Day    string   `json:"day" binding:"required"`
-	Prompt string   `json:"prompt" binding:"required"`
-	Colors []string `json:"colors" binding:"required"`
+	Day       string   `json:"day" binding:"required"`
+	Prompt    string   `json:"prompt" binding:"required"`
+	Colors    []string `json:"colors" binding:"required"`
+	CreatedBy string   `json:"createdBy"`
 }
 
 func HandleCreatePrompt(c *gin.Context) {
@@ -151,7 +152,7 @@ func HandleCreatePrompt(c *gin.Context) {
 	_, err := queries.GetDailyPrompt(appCtx.DB, c.Request.Context(), req.Day)
 	if err == nil {
 		// Prompt exists, update it instead
-		err = queries.UpdateDailyPrompt(appCtx.DB, c.Request.Context(), req.Day, req.Prompt, req.Colors)
+		err = queries.UpdateDailyPrompt(appCtx.DB, c.Request.Context(), req.Day, req.Prompt, req.Colors, &req.CreatedBy)
 		if err != nil {
 			log.Printf("Error updating prompt for day %s: %v", req.Day, err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update prompt"})
@@ -196,4 +197,4 @@ func HandleGetAdminActionStats(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, stats)
-} 
+}
