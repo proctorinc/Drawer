@@ -65,9 +65,10 @@ function daysLeft(now: Date, to: string) {
 }
 
 /** While a real event runs, point to its page instead of a flavor banner */
-const LiveEventLink: FC<{ name: string }> = ({ name }) => (
+const LiveEventLink: FC<{ name: string; slug: string }> = ({ name, slug }) => (
   <Link
-    to="/draw/event"
+    to="/draw/event/$slug"
+    params={{ slug }}
     className="press relative flex items-center gap-3 w-full px-4 py-3 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil -rotate-1"
   >
     <span
@@ -85,7 +86,9 @@ const LiveEventLink: FC<{ name: string }> = ({ name }) => (
 
 const EventBanner: FC = () => {
   const christmas = useChristmas();
-  if (christmas) return <LiveEventLink name={christmas.name} />;
+  if (christmas) {
+    return <LiveEventLink name={christmas.name} slug={christmas.slug} />;
+  }
 
   const now = new Date();
   const today = monthDay(now);

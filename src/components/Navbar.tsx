@@ -10,13 +10,16 @@ import { useDailyPrompt } from '@/daily/DailyPromptContext';
 import { SnowCap, Snowman, TreeIcon } from '@/events/christmas/Decorations';
 import { useChristmas } from '@/events/useChristmas';
 
-// Each tab with the pages it lights up for. During an event the left tab opens
-// the event, whose page links on to the usual trophies.
-const TABS = [
-  ['/draw/event', '/draw/trophies'],
-  ['/draw'],
-  ['/draw/profile/me'],
-];
+// During an event the left tab opens the event's page (/draw/event/<slug>),
+// which links on to the usual trophies, so it lights up for both
+function tabFor(pathname: string) {
+  if (pathname === '/draw/trophies' || pathname.startsWith('/draw/event/')) {
+    return 0;
+  }
+  if (pathname === '/draw') return 1;
+  if (pathname === '/draw/profile/me') return 2;
+  return -1;
+}
 
 // Each page mounts its own Navbar, so tab changes are tracked at module level.
 // A freshly mounted bar starts on the previous tab and animates to the new one.
@@ -51,7 +54,7 @@ const Navbar = () => {
   const { dailyPrompt } = useDailyPrompt();
   const christmas = useChristmas();
   const navbarScale = useNavbarScale();
-  const activeTab = TABS.findIndex((paths) => paths.includes(pathname));
+  const activeTab = tabFor(pathname);
   noteTab(activeTab);
   const [blobTab, setBlobTab] = useState(() => startingTab(activeTab));
   const [enter] = useState(() => !hasEntered);
@@ -97,7 +100,9 @@ const Navbar = () => {
         )}
 
         <Link
-          to={christmas ? '/draw/event' : '/draw/trophies'}
+          {...(christmas
+            ? { to: '/draw/event/$slug', params: { slug: christmas.slug } }
+            : { to: '/draw/trophies' })}
           aria-label={christmas ? christmas.name : 'Trophies'}
           aria-current={activeTab === 0 ? 'page' : undefined}
           className="relative flex items-center justify-center w-14 h-[46px] active:scale-90 transition-[scale] duration-300 ease-[var(--ease-spring)]"

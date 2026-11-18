@@ -24,8 +24,7 @@ import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/UserProfilePage.tsx';
 import PromptSubmissionPage from './pages/feed/PromptSubmissionPage';
 import { BrandProvider } from './components/logo/BrandProvider.tsx';
-import EventHomePage from './pages/event/EventHomePage.tsx';
-import EventRecapPage from './pages/event/EventRecapPage.tsx';
+import EventPage from './pages/event/EventPage.tsx';
 import TrophiesPage from './pages/trophies/TrophiesPage.tsx';
 import { AuthProvider } from './auth/AuthContext.tsx';
 import MyProfilePage from './pages/profile/MyProfilePage.tsx';
@@ -135,17 +134,7 @@ const trophiesRoute = createRoute({
   ),
 });
 
-const eventHomeRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/draw/event',
-  component: () => (
-    <AuthRoute>
-      <EventHomePage />
-    </AuthRoute>
-  ),
-});
-
-const eventRecapRoute = createRoute({
+const eventRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/draw/event/$slug',
   validateSearch: (search: Record<string, unknown>): { user?: string } => ({
@@ -153,7 +142,7 @@ const eventRecapRoute = createRoute({
   }),
   component: () => (
     <AuthRoute>
-      <EventRecapPage />
+      <EventPage />
     </AuthRoute>
   ),
 });
@@ -208,8 +197,7 @@ const routeTree = rootRoute.addChildren([
   drawProfilePicRoute,
   friendProfileRoute,
   trophiesRoute,
-  eventHomeRoute,
-  eventRecapRoute,
+  eventRoute,
   legacyActivityRoute,
   createProfileRoute,
   loginRoute,
