@@ -3,15 +3,37 @@ import { cn } from '@/utils';
 
 type Props = { className?: string };
 
-/** Sits on an avatar or the logo; position it with className */
+// Santa hat geometry, all as fractions of the avatar's size so it fits any avatar.
+// The brim's center (19, 25 in the hat's 40×32 box) is pinned to a point just
+// inside the head's outline, up and to the right, and the hat tilts to match.
+const HAT_ANGLE = 55; // degrees up from the head's horizontal center line
+const HAT_SINK = 0.44; // brim sits this far out from center (0.5 = the edge)
+const HAT_WIDTH = 0.62;
+const BRIM = { x: 19 / 40, y: 25 / 32 };
+
+const hatStyle = (() => {
+  const angle = (HAT_ANGLE * Math.PI) / 180;
+  const anchorX = 0.5 + HAT_SINK * Math.cos(angle);
+  const anchorY = 0.5 - HAT_SINK * Math.sin(angle);
+  const height = HAT_WIDTH * (32 / 40);
+  const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
+  return {
+    width: pct(HAT_WIDTH),
+    left: pct(anchorX - BRIM.x * HAT_WIDTH),
+    // Percentages for top resolve against width, and avatars are square
+    top: pct(anchorY - BRIM.y * height),
+    transformOrigin: `${pct(BRIM.x)} ${pct(BRIM.y)}`,
+    rotate: `${90 - HAT_ANGLE}deg`,
+  };
+})();
+
+/** Fits on any round avatar; its parent must be the avatar's square, positioned box */
 export const SantaHat: FC<Props> = ({ className }) => (
   <svg
     aria-hidden="true"
     viewBox="0 0 40 32"
-    className={cn(
-      'absolute pointer-events-none -top-[38%] -right-[22%] w-[65%] rotate-[18deg]',
-      className,
-    )}
+    className={cn('absolute pointer-events-none', className)}
+    style={hatStyle}
   >
     <path
       d="M6 24C10 10 22 2 34 6c-4 4-4 10-2 16z"
@@ -19,6 +41,7 @@ export const SantaHat: FC<Props> = ({ className }) => (
       stroke="var(--color-ink)"
       strokeWidth={2}
       strokeLinejoin="round"
+      vectorEffect="non-scaling-stroke"
     />
     <path
       d="M3 22q16-6 32 0v6q-16-6-32 0z"
@@ -26,6 +49,7 @@ export const SantaHat: FC<Props> = ({ className }) => (
       stroke="var(--color-ink)"
       strokeWidth={2}
       strokeLinejoin="round"
+      vectorEffect="non-scaling-stroke"
     />
     <circle
       cx="34"
@@ -34,6 +58,7 @@ export const SantaHat: FC<Props> = ({ className }) => (
       fill="#fff"
       stroke="var(--color-ink)"
       strokeWidth={2}
+      vectorEffect="non-scaling-stroke"
     />
   </svg>
 );
@@ -85,7 +110,7 @@ export const SnowCap: FC<Props> = ({ className }) => (
     viewBox="0 0 342 16"
     preserveAspectRatio="none"
     className={cn(
-      'absolute -top-[7px] inset-x-0 w-full h-4 pointer-events-none',
+      'absolute -top-3 inset-x-0 w-full h-4 pointer-events-none',
       className,
     )}
   >
