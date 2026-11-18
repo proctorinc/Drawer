@@ -13,6 +13,9 @@ import Chip from '@/components/Chip';
 import { ClockIcon, SendIcon } from '@/components/icons';
 import { useSubmitPromptSuggestion } from '@/api/Api';
 import { tapeColor } from '@/utils';
+import { TreeIcon } from '@/events/christmas/Decorations';
+import OrnamentTally from '@/events/christmas/OrnamentTally';
+import { useChristmas } from '@/events/useChristmas';
 
 const NextPageCountdown = () => (
   <span className="flex items-center gap-1.5">
@@ -117,6 +120,7 @@ const Feed = () => {
   const [error, setError] = useState<string | null>(null);
 
   const isDrawing = !!dailyPrompt && !dailyPrompt.isCompleted;
+  const christmas = useChristmas();
 
   function handleSubmit(png: Blob) {
     submitPrompt(png, {
@@ -134,6 +138,9 @@ const Feed = () => {
 
   return (
     <Layout aside={isDrawing ? undefined : <NextPageCountdown />}>
+      {isDrawing && christmas?.countdownDays && (
+        <OrnamentTally event={christmas} className="-mt-1" />
+      )}
       {isDrawing && <PromptHeading dailyPrompt={dailyPrompt} />}
       <DrawingCanvas
         isLoading={isLoading}
@@ -143,6 +150,15 @@ const Feed = () => {
         onSubmit={(png) => handleSubmit(png)}
         colors={dailyPrompt?.colors ? dailyPrompt.colors.slice(0, 3) : []}
         hidden={!isDrawing}
+        festive={!!christmas}
+        submitLabel={
+          christmas ? (
+            <>
+              hang it on the tree
+              <TreeIcon />
+            </>
+          ) : undefined
+        }
       />
       {error && <p className="text-center text-coral">{error}</p>}
       {isDrawing && (

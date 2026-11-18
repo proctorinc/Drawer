@@ -23,9 +23,11 @@ const pillClass =
 type Props = {
   submission: UserPromptSubmission;
   index: number;
+  /** Christmas event: hangs from a clothespin and swings */
+  festive?: boolean;
 };
 
-const Polaroid: FC<Props> = ({ submission, index }) => {
+const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
   const user = useUser();
   const queryClient = useQueryClient();
   const toggleReaction = useToggleSubmissionReaction();
@@ -74,20 +76,33 @@ const Polaroid: FC<Props> = ({ submission, index }) => {
       className={cn(
         'relative m-0 p-2 pb-0 bg-white shadow-[1px_2px_6px_rgba(43,42,51,0.18)] animate-drop rotate-[var(--tilt)] transition-[rotate,translate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 hover:-translate-y-1 hover:scale-[1.03]',
         index % 2 === 1 && 'mt-3',
+        festive && 'origin-top',
       )}
       style={
         {
           '--tilt': `${tilt}deg`,
           '--tilt-from': `${tilt * 4}deg`,
+          '--swing': `${tilt}deg`,
           animationDelay: `${index * 90}ms`,
+          // Hung from the lights: drop in, then rock gently on the clothespin
+          ...(festive && {
+            animation: `drop 0.6s var(--ease-spring) ${index * 90}ms backwards, swing 3.2s ease-in-out ${600 + index * 90}ms infinite`,
+          }),
         } as CSSProperties
       }
     >
-      <span
-        aria-hidden="true"
-        className="absolute z-10 -top-2.5 left-1/2 -ml-7 w-14 h-[18px] rotate-3"
-        style={{ backgroundColor: tapeColor(TAPES[index % TAPES.length]) }}
-      />
+      {festive ? (
+        <span
+          aria-hidden="true"
+          className="absolute z-10 -top-3 left-1/2 -ml-[5px] w-2.5 h-[22px] bg-[#c99060] border-[1.5px] border-ink rounded-[3px]"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="absolute z-10 -top-2.5 left-1/2 -ml-7 w-14 h-[18px] rotate-3"
+          style={{ backgroundColor: tapeColor(TAPES[index % TAPES.length]) }}
+        />
+      )}
       <Link
         to="/draw/submission/$submissionId"
         params={{ submissionId: submission.id }}

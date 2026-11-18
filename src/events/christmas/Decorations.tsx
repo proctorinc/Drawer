@@ -9,7 +9,7 @@ export const SantaHat: FC<Props> = ({ className }) => (
     aria-hidden="true"
     viewBox="0 0 40 32"
     className={cn(
-      'absolute pointer-events-none -top-[45%] -right-[35%] w-[80%] rotate-[18deg]',
+      'absolute pointer-events-none -top-[38%] -right-[22%] w-[65%] rotate-[18deg]',
       className,
     )}
   >

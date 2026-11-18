@@ -23,6 +23,7 @@ import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/UserProfilePage.tsx';
 import PromptSubmissionPage from './pages/feed/PromptSubmissionPage';
+import EventRecapPage from './pages/event/EventRecapPage.tsx';
 import TrophiesPage from './pages/trophies/TrophiesPage.tsx';
 import { AuthProvider } from './auth/AuthContext.tsx';
 import MyProfilePage from './pages/profile/MyProfilePage.tsx';
@@ -130,6 +131,16 @@ const trophiesRoute = createRoute({
   ),
 });
 
+const eventRecapRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/event/$slug',
+  component: () => (
+    <AuthRoute>
+      <EventRecapPage />
+    </AuthRoute>
+  ),
+});
+
 // Old links (push notifications, bookmarks) still point here
 const legacyActivityRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -180,6 +191,7 @@ const routeTree = rootRoute.addChildren([
   drawProfilePicRoute,
   friendProfileRoute,
   trophiesRoute,
+  eventRecapRoute,
   legacyActivityRoute,
   createProfileRoute,
   loginRoute,

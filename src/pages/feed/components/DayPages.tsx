@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Polaroid from './Polaroid';
 import type { FC, ReactNode } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
+import Lights from '@/events/christmas/Lights';
+import { useChristmas } from '@/events/useChristmas';
 import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
 import Chip from '@/components/Chip';
@@ -51,10 +53,17 @@ type DayPageProps = {
   submissions: Array<UserPromptSubmission>;
   /** Extra tile at the end of the grid */
   lastTile?: ReactNode;
+  /** Christmas event: polaroids hang from a string of lights */
+  festive?: boolean;
 };
 
 /** One day's prompt and its pinned polaroids */
-const DayPage: FC<DayPageProps> = ({ title, submissions, lastTile }) => {
+const DayPage: FC<DayPageProps> = ({
+  title,
+  submissions,
+  lastTile,
+  festive = false,
+}) => {
   const { prompt, colors, createdBy } = submissions[0];
 
   return (
@@ -82,9 +91,15 @@ const DayPage: FC<DayPageProps> = ({ title, submissions, lastTile }) => {
         </Chip>
         {createdBy && <Chip className="bg-sky">by {createdBy.username}</Chip>}
       </div>
+      {festive && <Lights bulbs={8} className="-mx-6 -mb-6" />}
       <div className="grid grid-cols-2 gap-x-3.5 gap-y-5 pt-3">
         {submissions.map((submission, index) => (
-          <Polaroid key={submission.id} submission={submission} index={index} />
+          <Polaroid
+            key={submission.id}
+            submission={submission}
+            index={index}
+            festive={festive}
+          />
         ))}
         {lastTile}
       </div>
@@ -96,6 +111,7 @@ const DayPage: FC<DayPageProps> = ({ title, submissions, lastTile }) => {
 export const TodayWall = () => {
   const { profile } = useMyProfilePage();
   const { dailyPrompt } = useDailyPrompt();
+  const christmas = useChristmas();
   if (!profile) return null;
 
   if (!dailyPrompt) {
@@ -130,8 +146,9 @@ export const TodayWall = () => {
 
   return (
     <DayPage
-      title="today's wall"
+      title={christmas ? "today's tree" : "today's wall"}
       submissions={today}
+      festive={!!christmas}
       lastTile={stillDrawing > 0 && <StillDrawing count={stillDrawing} />}
     />
   );

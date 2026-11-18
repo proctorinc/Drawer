@@ -54,8 +54,9 @@ async function getJSON<T>(endpoint: string): Promise<T> {
   return response.json();
 }
 
-export function useActiveEvent() {
+export function useActiveEvent(enabled = true) {
   return useQuery({
+    enabled,
     queryKey: eventKeys.active,
     queryFn: () =>
       getJSON<{ event: ActiveEvent | null }>('/events/active').then(

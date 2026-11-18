@@ -3,6 +3,7 @@ import type { FC } from 'react';
 import type { Achievement } from '@/api/Api';
 import { StarIcon } from '@/components/icons';
 import { cn } from '@/utils';
+import EventSticker from '@/events/christmas/EventSticker';
 
 /** Art lives in public/badges, named after what the achievement counts */
 const badgeSrc = (achievement: Achievement) =>
@@ -19,6 +20,16 @@ type Props = {
 /** An achievement's sticker art, falling back to a star when it has none */
 const Badge: FC<Props> = ({ achievement, locked, className }) => {
   const [missing, setMissing] = useState(false);
+
+  if (achievement.eventSlug) {
+    return (
+      <EventSticker
+        achievement={achievement}
+        locked={locked}
+        className={className}
+      />
+    );
+  }
 
   if (missing) {
     return (

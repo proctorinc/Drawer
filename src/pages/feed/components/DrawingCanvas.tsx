@@ -6,6 +6,7 @@ import { useDrawing } from '@/drawing/DrawingContext';
 import { Toolbar } from '@/drawing/Toolbar';
 import { cn, tapeColor } from '@/utils';
 import { PinIcon } from '@/components/icons';
+import { candyCaneTape } from '@/events/christmas/Decorations';
 
 type Props = {
   colors?: Array<string>;
@@ -17,6 +18,8 @@ type Props = {
   hidden?: boolean;
   backgroundColor?: string;
   isLoading?: boolean;
+  /** Christmas event: candy-cane tape instead of colored tape */
+  festive?: boolean;
 } & Omit<HTMLAttributes<HTMLDivElement>, 'onSubmit'>;
 
 const DrawingCanvas: FC<Props> = ({
@@ -34,11 +37,20 @@ const DrawingCanvas: FC<Props> = ({
   hidden,
   backgroundColor,
   isLoading = false,
+  festive = false,
   ...props
 }) => {
   const { canvasRef, canUndo, getPng } = useDrawing();
   const { className: divClassName, ...divProps } = props;
   const tapes = colors?.length ? colors : ['#ff6b57', '#3a7bd5'];
+  const tapeStyle = (i: number) =>
+    festive
+      ? {
+          background: candyCaneTape(
+            i === 0 ? 'var(--color-xmas-red)' : 'var(--color-xmas-green)',
+          ),
+        }
+      : { backgroundColor: tapeColor(tapes[i] ?? tapes[0]) };
 
   async function handleSubmitCanvas() {
     const blob = await getPng(backgroundColor);
@@ -105,12 +117,12 @@ const DrawingCanvas: FC<Props> = ({
             <span
               aria-hidden="true"
               className="absolute -top-2.5 -left-3.5 w-[84px] h-[26px] -rotate-[32deg] animate-in fade-in zoom-in-150 duration-300 delay-500 fill-mode-both"
-              style={{ backgroundColor: tapeColor(tapes[0]) }}
+              style={tapeStyle(0)}
             />
             <span
               aria-hidden="true"
               className="absolute -bottom-2 -right-3.5 w-[84px] h-[26px] -rotate-[28deg] animate-in fade-in zoom-in-150 duration-300 delay-700 fill-mode-both"
-              style={{ backgroundColor: tapeColor(tapes[1] ?? tapes[0]) }}
+              style={tapeStyle(1)}
             />
           </>
         )}

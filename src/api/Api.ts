@@ -63,7 +63,14 @@ export interface Comment {
   counts: Array<ReactionCount>;
 }
 
-export type ReactionId = 'heart' | 'cry-laugh' | 'face-meh' | 'fire';
+export type ReactionId =
+  | 'heart'
+  | 'cry-laugh'
+  | 'face-meh'
+  | 'fire'
+  // Only allowed while an event lists them
+  | 'snowflake'
+  | 'gift';
 export interface Reaction {
   id: number;
   reactionId: ReactionId;
@@ -116,6 +123,8 @@ export type Achievement = {
   achievementValue: number;
   progress: number;
   reward: AchievementReward | null;
+  /** Set for stickers that belong to a limited-time event */
+  eventSlug: string | null;
 };
 
 export type AchievementReward = {

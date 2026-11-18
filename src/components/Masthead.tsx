@@ -13,6 +13,8 @@ import { useGetMyProfile } from '@/api/Api';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
 import { parseDay } from '@/days';
 import { cn, dabShapes } from '@/utils';
+import { Holly, SantaHat } from '@/events/christmas/Decorations';
+import { countdownCopy, useChristmas } from '@/events/useChristmas';
 
 const StreakBadge = () => {
   const { data: profile } = useGetMyProfile();
@@ -93,14 +95,26 @@ const Masthead: FC<Props> = ({ back, aside }) => {
   // The page turns at midnight UTC, so date it by the prompt rather than your clock
   const { dailyPrompt } = useDailyPrompt();
   const pageDate = dailyPrompt ? parseDay(dailyPrompt.day) : new Date();
+  const christmas = useChristmas();
+  const countdown = christmas && countdownCopy(christmas);
 
   return (
     <header className="flex flex-col gap-2 px-5 pt-4">
       <div className="flex items-center justify-between gap-2 h-14">
         <div className="flex items-center gap-3">
           {back && <BackButton />}
-          <Link to="/draw" aria-label="Home">
+          <Link
+            to="/draw"
+            aria-label="Home"
+            className="relative flex items-end gap-0.5"
+          >
             <Logo />
+            {christmas && (
+              <>
+                <SantaHat className="top-[-14px] left-[24px] right-auto w-10" />
+                <Holly className="mb-1 animate-in zoom-in-0 duration-500 delay-300 fill-mode-both" />
+              </>
+            )}
           </Link>
         </div>
         {isAuthenticated && (
@@ -111,8 +125,9 @@ const Masthead: FC<Props> = ({ back, aside }) => {
         )}
       </div>
       <div className="flex items-center justify-between gap-2 h-[30px] border-b-2 border-dashed border-line text-pencil">
-        <span>{dateLabel(pageDate)}</span>
-        {aside ?? <TodaysCrayons />}
+        <span>{countdown ? countdown.day : dateLabel(pageDate)}</span>
+        {aside ??
+          (countdown ? <span>{countdown.left}</span> : <TodaysCrayons />)}
       </div>
     </header>
   );

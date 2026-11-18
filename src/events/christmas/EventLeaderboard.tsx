@@ -1,4 +1,3 @@
-import { SantaHat } from './Decorations';
 import type { FC } from 'react';
 import { useEventLeaderboard } from '@/api/events';
 import useUser from '@/auth/hooks/useUser';
@@ -36,10 +35,7 @@ const EventLeaderboard: FC<Props> = ({ slug, className }) => {
           >
             {rank + 1}
           </span>
-          <span className="relative flex-none">
-            <UserProfileIcon user={entry.user} size="sm" />
-            {rank === 0 && <SantaHat />}
-          </span>
+          <UserProfileIcon user={entry.user} size="sm" />
           <span className="flex-1 text-lg truncate">
             {entry.user.id === me.id ? 'you' : entry.user.username}
           </span>

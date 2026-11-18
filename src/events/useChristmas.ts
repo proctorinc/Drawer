@@ -1,9 +1,11 @@
 import type { ActiveEvent } from '@/api/events';
 import { useActiveEvent } from '@/api/events';
+import useAuth from '@/auth/hooks/useAuth';
 
 /** The live event when it's the Christmas one, otherwise null */
 export function useChristmas(): ActiveEvent | null {
-  const { data: event } = useActiveEvent();
+  const { isAuthenticated } = useAuth();
+  const { data: event } = useActiveEvent(isAuthenticated);
   return event?.theme === 'christmas' ? event : null;
 }
 

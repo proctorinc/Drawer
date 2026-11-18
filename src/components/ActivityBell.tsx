@@ -14,6 +14,8 @@ const reactionVerbs: Record<ReactionId, string> = {
   'cry-laugh': 'cracked up at',
   fire: 'thinks this is fire:',
   'face-meh': 'shrugged at',
+  snowflake: 'sent a snowflake to',
+  gift: 'left a gift on',
 };
 
 const ActivityText: FC<{ activity: Activity }> = ({ activity }) => {

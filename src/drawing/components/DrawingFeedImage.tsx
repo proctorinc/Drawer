@@ -1,27 +1,28 @@
-import { Card } from '@/components/Card';
-import type { FC } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faHeart, faStar } from '@fortawesome/free-solid-svg-icons';
+import { useQueryClient } from '@tanstack/react-query';
+import { useRef, useState } from 'react';
 import { DrawingImage } from './DrawingImage';
+import type { FC } from 'react';
+import type { ReactionCount, UserPromptSubmission } from '@/api/Api';
+import { Card } from '@/components/Card';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import {
   queryKeys,
   useToggleSubmissionFavorite,
   useToggleSubmissionReaction,
-  type ReactionCount,
-  type UserPromptSubmission,
 } from '@/api/Api';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faHeart, faStar } from '@fortawesome/free-solid-svg-icons';
 import Tooltip from '@/components/Tooltip';
 import Button from '@/components/Button';
 import {
   cn,
+  eventReactions,
   getReactionIcon,
   reactionIndicatorVariants,
   reactions,
 } from '@/utils';
-import { useQueryClient } from '@tanstack/react-query';
+import { useChristmas } from '@/events/useChristmas';
 import useUser from '@/auth/hooks/useUser';
-import { useState, useRef } from 'react';
 
 type Props = {
   submission: UserPromptSubmission;
@@ -89,7 +90,7 @@ const DrawingFeedImage: FC<Props> = ({ submission, onClick, className }) => {
     <Card
       key={`${submission.user.id}-${submission.day}`}
       className={cn(
-        'flex items-center relative bg-card rounded-2xl border-2 border-border select-none',
+        'flex items-center relative bg-card rounded-2xl border-2 border-border select-none overflow-visible',
         className,
       )}
       onPointerDown={handlePointerDown}
@@ -246,10 +247,23 @@ const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
   const toggleReaction = useToggleSubmissionReaction();
   const queryClient = useQueryClient();
   const user = useUser();
+  const christmas = useChristmas();
+  const available = [
+    ...reactions,
+    ...eventReactions.filter((reaction) =>
+      christmas?.reactions.includes(reaction.id),
+    ),
+  ];
 
   return (
-    <div className="flex gap-2">
-      {reactions.map((reaction) => {
+    // Six reactions wrap into two rows of three
+    <div
+      className={cn(
+        'flex gap-2',
+        available.length > 4 && 'flex-wrap w-[148px]',
+      )}
+    >
+      {available.map((reaction) => {
         const isActive = hasUserReacted(submission, reaction.id, user.id);
         return (
           <Button
@@ -278,9 +292,9 @@ const TooltipContent: FC<TooltipContentProps> = ({ submission }) => {
               );
             }}
             className={cn(
-              'bg-border/50 text-primary/50',
+              'bg-paper text-pencil',
               isActive && reactionIndicatorVariants({ icon: reaction.id }),
-              'rounded-full h-12 w-12 text-xl',
+              'rounded-full size-11 text-lg',
             )}
             icon={reaction.icon}
           ></Button>

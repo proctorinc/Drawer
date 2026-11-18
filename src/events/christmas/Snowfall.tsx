@@ -10,11 +10,11 @@ const FLAKES = Array.from({ length: 18 }, (_, i) => ({
   opacity: 0.55 + ((i * 11) % 4) / 10,
 }));
 
-/** Doodled snowflakes drifting down behind the navbar */
+/** Doodled snowflakes drifting down behind the page content */
 const Snowfall = () => (
   <div
     aria-hidden="true"
-    className="fixed inset-0 z-40 overflow-hidden pointer-events-none"
+    className="fixed inset-0 overflow-hidden pointer-events-none"
   >
     {FLAKES.map((flake, i) => (
       <svg

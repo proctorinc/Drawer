@@ -7,6 +7,8 @@ import type { User } from '@/api/Api';
 import type { FC } from 'react';
 import { cn } from '@/utils';
 import useUser from '@/auth/hooks/useUser';
+import { SantaHat } from '@/events/christmas/Decorations';
+import { useChristmas } from '@/events/useChristmas';
 
 export const userProfileIconVariants = cva(
   'cursor-pointer select-none rounded-full border-ink flex items-center justify-center hover:scale-110 hover:-rotate-6 transition-[scale,rotate] duration-300 ease-[var(--ease-spring)]',
@@ -39,6 +41,7 @@ export const UserProfileIcon: FC<Props> = ({
 }) => {
   const navigate = useNavigate();
   const currentUser = useUser();
+  const christmas = useChristmas();
 
   if (!user) {
     return (
@@ -62,18 +65,15 @@ export const UserProfileIcon: FC<Props> = ({
     }
   };
 
-  if (user.avatarType === 'custom' && user.avatarUrl != '') {
-    return (
+  const icon =
+    user.avatarType === 'custom' && user.avatarUrl !== '' ? (
       <CustomProfileIcon
         size={size}
         onClick={handleClick}
         user={user}
         className={className}
       />
-    );
-  }
-  if (user.avatarType === 'basic' || user.avatarUrl === '') {
-    return (
+    ) : (
       <BasicProfileIcon
         size={size}
         onClick={handleClick}
@@ -81,5 +81,13 @@ export const UserProfileIcon: FC<Props> = ({
         className={className}
       />
     );
-  }
+
+  if (!christmas) return icon;
+
+  return (
+    <span className="relative inline-flex flex-none">
+      {icon}
+      <SantaHat />
+    </span>
+  );
 };
