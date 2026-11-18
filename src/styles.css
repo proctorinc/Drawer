@@ -41,6 +41,52 @@
   --animate-scribble: scribble 0.9s 0.2s ease-out both;
   --animate-float: float 3s ease-in-out infinite;
 
+  /* Seasonal event chrome (only mounted while an event is live) */
+  --color-xmas-red: #e5483b;
+  --color-xmas-green: #2f9e5b;
+  --color-xmas-gold: #ffb400;
+  --color-snow: #9fb6cf;
+  --animate-blink: blink 1.8s ease-in-out infinite;
+  --animate-twinkle: twinkle 1.4s ease-in-out infinite;
+  --animate-swing: swing 3.2s ease-in-out infinite;
+
+  @keyframes blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @keyframes twinkle {
+    0%,
+    100% {
+      scale: 1;
+    }
+    50% {
+      scale: 1.3;
+    }
+  }
+  /* Hung things rock around their pin; set --swing to the amplitude */
+  @keyframes swing {
+    0%,
+    100% {
+      rotate: var(--swing, 1.5deg);
+    }
+    50% {
+      rotate: calc(var(--swing, 1.5deg) * -1);
+    }
+  }
+  @keyframes snowfall {
+    from {
+      transform: translate(0, -24px) rotate(0deg);
+    }
+    to {
+      transform: translate(var(--drift, 0px), 110vh) rotate(220deg);
+    }
+  }
+
   @keyframes wiggle {
     0%,
     100% {

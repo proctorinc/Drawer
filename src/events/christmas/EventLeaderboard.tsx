@@ -1,0 +1,58 @@
+import { SantaHat } from './Decorations';
+import type { FC } from 'react';
+import { useEventLeaderboard } from '@/api/events';
+import useUser from '@/auth/hooks/useUser';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
+import { cn } from '@/utils';
+
+const MEDALS = ['bg-xmas-gold', 'bg-[#d9dde3]', 'bg-[#e0a46b]'];
+
+type Props = {
+  slug: string;
+  className?: string;
+};
+
+/** You and your friends, ranked by doodles drawn during the event */
+const EventLeaderboard: FC<Props> = ({ slug, className }) => {
+  const me = useUser();
+  const { data: entries } = useEventLeaderboard(slug);
+  if (!entries?.length) return null;
+
+  return (
+    <ol className={cn('flex flex-col gap-2 w-full stagger', className)}>
+      {entries.map((entry, rank) => (
+        <li
+          key={entry.user.id}
+          className={cn(
+            'flex items-center gap-3 px-3 py-2 border-[1.5px] border-ink rounded-sketch-alt',
+            entry.user.id === me.id ? 'bg-butter' : 'bg-white',
+          )}
+        >
+          <span
+            className={cn(
+              'flex flex-none items-center justify-center size-7 rounded-full border-[1.5px] border-ink font-accent font-bold',
+              MEDALS[rank] ?? 'bg-paper',
+            )}
+          >
+            {rank + 1}
+          </span>
+          <span className="relative flex-none">
+            <UserProfileIcon user={entry.user} size="sm" />
+            {rank === 0 && <SantaHat />}
+          </span>
+          <span className="flex-1 text-lg truncate">
+            {entry.user.id === me.id ? 'you' : entry.user.username}
+          </span>
+          <span className="text-pencil whitespace-nowrap">
+            <b className="font-accent font-bold text-xl text-ink">
+              {entry.doodles}
+            </b>{' '}
+            doodles
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+};
+
+export default EventLeaderboard;
