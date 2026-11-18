@@ -35,7 +35,7 @@ func HandleGetActiveEvent(c *gin.Context) {
 		return
 	}
 
-	activeEvent, err := eventWithProgress(c, event, now)
+	activeEvent, err := eventWithProgress(c, event, now, middleware.GetUserID(c))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to retrieve active event"))
 		return
@@ -44,9 +44,8 @@ func HandleGetActiveEvent(c *gin.Context) {
 }
 
 // eventWithProgress builds the event JSON with the signed-in user's doodled days.
-func eventWithProgress(c *gin.Context, event models.Event, now time.Time) (events.ActiveEvent, error) {
+func eventWithProgress(c *gin.Context, event models.Event, now time.Time, userID string) (events.ActiveEvent, error) {
 	appCtx := requestContext.GetCtx(c)
-	userID := middleware.GetUserID(c)
 	days := events.Days(event)
 
 	doodledDays, err := queries.GetUserSubmissionDays(appCtx.DB, c.Request.Context(), userID, days.First, days.Last)
@@ -110,23 +109,37 @@ type EventRecapStats struct {
 }
 
 type EventRecapResponse struct {
+	// User is whose recap this is: you, or whoever ?user= names
+	User        models.User                   `json:"user"`
 	Event       events.ActiveEvent            `json:"event"`
 	Submissions []models.UserPromptSubmission `json:"submissions"`
 	Stats       EventRecapStats               `json:"stats"`
 }
 
-// HandleGetEventRecap returns the signed-in user's doodles and stats for an event.
+// HandleGetEventRecap returns a user's doodles and stats for an event: the
+// signed-in user's, or anyone's named by ?user=<id> (as on their profile).
 func HandleGetEventRecap(c *gin.Context) {
 	appCtx := requestContext.GetCtx(c)
 	ctx := c.Request.Context()
-	userID := middleware.GetUserID(c)
+	requesterID := middleware.GetUserID(c)
+	userID := c.DefaultQuery("user", requesterID)
 
 	event, ok := eventFromSlug(c)
 	if !ok {
 		return
 	}
 
-	recapEvent, err := eventWithProgress(c, event, events.Now(appCtx.Config))
+	user, err := queries.GetUserByID(appCtx.DB, ctx, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.AbortWithStatusJSON(http.StatusNotFound, Error("User not found"))
+		return
+	} else if err != nil {
+		log.Printf("Error loading user %s for event %s recap: %v", userID, event.Slug, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to retrieve recap"))
+		return
+	}
+
+	recapEvent, err := eventWithProgress(c, event, events.Now(appCtx.Config), userID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to retrieve recap"))
 		return
@@ -148,6 +161,7 @@ func HandleGetEventRecap(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, EventRecapResponse{
+		User:        *user,
 		Event:       recapEvent,
 		Submissions: submissions,
 		Stats: EventRecapStats{

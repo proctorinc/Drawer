@@ -137,6 +137,9 @@ const trophiesRoute = createRoute({
 const eventRecapRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/draw/event/$slug',
+  validateSearch: (search: Record<string, unknown>): { user?: string } => ({
+    user: typeof search.user === 'string' ? search.user : undefined,
+  }),
   component: () => (
     <AuthRoute>
       <EventRecapPage />

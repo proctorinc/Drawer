@@ -35,6 +35,8 @@ export interface EventLeaderboardEntry {
 }
 
 export interface EventRecap {
+  /** Whose recap this is */
+  user: User;
   event: ActiveEvent;
   submissions: Array<UserPromptSubmission>;
   stats: { doodles: number; reactionsReceived: number; longestStreak: number };
@@ -43,7 +45,8 @@ export interface EventRecap {
 export const eventKeys = {
   active: ['events', 'active'] as const,
   leaderboard: (slug: string) => ['events', slug, 'leaderboard'] as const,
-  recap: (slug: string) => ['events', slug, 'recap'] as const,
+  recap: (slug: string, userId?: string) =>
+    ['events', slug, 'recap', userId ?? 'me'] as const,
 };
 
 async function getJSON<T>(endpoint: string): Promise<T> {
@@ -78,10 +81,14 @@ export function useEventLeaderboard(slug?: string) {
   });
 }
 
-export function useEventRecap(slug?: string) {
+/** Your recap, or another user's when userId is given */
+export function useEventRecap(slug?: string, userId?: string) {
   return useQuery({
-    queryKey: eventKeys.recap(slug ?? ''),
-    queryFn: () => getJSON<EventRecap>(`/events/${slug}/recap`),
+    queryKey: eventKeys.recap(slug ?? '', userId),
+    queryFn: () =>
+      getJSON<EventRecap>(
+        `/events/${slug}/recap${userId ? `?user=${encodeURIComponent(userId)}` : ''}`,
+      ),
     enabled: !!slug,
   });
 }

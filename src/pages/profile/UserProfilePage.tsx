@@ -8,6 +8,7 @@ import { ShareButton } from './components/friends/ShareButton';
 import LoadingScreen from '@/components/LoadingScreen';
 import Layout from '@/components/Layout';
 import { PencilIcon } from '@/components/icons';
+import FriendEventLink from '@/events/christmas/FriendEventLink';
 
 /** Where a broken or out-of-date profile link lands */
 const MissingBook = () => (
@@ -61,6 +62,7 @@ const UserProfilePage = () => {
         </UserHeader>
       }
     >
+      <FriendEventLink user={user} />
       <Sketchbook profile={userProfile} />
       <FriendList user={user} friends={userProfile.friends} />
     </Layout>

@@ -128,6 +128,24 @@ func TestEventLeaderboardAndRecap(t *testing.T) {
 	if body["event"].(map[string]any)["progress"].(map[string]any)["count"] != 3.0 {
 		t.Errorf("recap event progress = %v", body["event"])
 	}
+	if user := body["user"].(map[string]any); user["id"] != "me" {
+		t.Errorf("own recap user = %v", user)
+	}
+
+	// Someone else's recap, as opened from their profile
+	code, body = request(t, router, "GET", "/events/christmas-2026/recap?user=friend", nil)
+	if code != http.StatusOK {
+		t.Fatalf("friend recap status %d: %v", code, body)
+	}
+	if user := body["user"].(map[string]any); user["id"] != "friend" {
+		t.Errorf("friend recap user = %v", user)
+	}
+	if body["event"].(map[string]any)["progress"].(map[string]any)["count"] != 1.0 {
+		t.Errorf("friend recap progress = %v", body["event"])
+	}
+	if code, _ := request(t, router, "GET", "/events/christmas-2026/recap?user=nobody", nil); code != http.StatusNotFound {
+		t.Errorf("unknown user recap status = %d, want 404", code)
+	}
 }
 
 func TestAdminEvents(t *testing.T) {

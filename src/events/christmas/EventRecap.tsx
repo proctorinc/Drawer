@@ -4,15 +4,18 @@ import type { FC } from 'react';
 import { useEventRecap } from '@/api/events';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { cn } from '@/utils';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 
 type Props = {
   slug: string;
+  /** Someone else's recap; yours when left out */
+  userId?: string;
   className?: string;
 };
 
 /** End-of-event look back: badge, stats, the finished tree and every doodle */
-const EventRecap: FC<Props> = ({ slug, className }) => {
-  const { data: recap } = useEventRecap(slug);
+const EventRecap: FC<Props> = ({ slug, userId, className }) => {
+  const { data: recap } = useEventRecap(slug, userId);
   if (!recap) return null;
 
   const stats = [
@@ -23,6 +26,14 @@ const EventRecap: FC<Props> = ({ slug, className }) => {
 
   return (
     <div className={cn('flex flex-col items-center gap-6 w-full', className)}>
+      {userId && (
+        <div className="flex items-center gap-3 self-start">
+          <UserProfileIcon user={recap.user} size="lg" />
+          <h1 className="font-accent font-bold text-[30px] leading-none">
+            {recap.user.username}'s christmas
+          </h1>
+        </div>
+      )}
       <EventBadge days={recap.event.countdownDays ?? recap.stats.doodles} />
       <div className="grid grid-cols-3 gap-3 w-full stagger">
         {stats.map((stat) => (

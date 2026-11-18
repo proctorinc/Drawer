@@ -1,19 +1,25 @@
-import { useParams } from '@tanstack/react-router';
+import { useParams, useSearch } from '@tanstack/react-router';
 import Layout from '@/components/Layout';
 import EventLeaderboard from '@/events/christmas/EventLeaderboard';
 import EventRecap from '@/events/christmas/EventRecap';
 
-/** A look back at one event: stats, the tree, every doodle and the standings */
+/** One person's event: stats, their tree, every doodle (and, for you, the standings) */
 const EventRecapPage = () => {
   const { slug } = useParams({ from: '/draw/event/$slug' });
+  // Opened from someone's profile: their recap instead of yours
+  const { user } = useSearch({ from: '/draw/event/$slug' });
 
   return (
     <Layout back>
-      <EventRecap slug={slug} />
-      <h2 className="self-start font-accent font-bold text-[28px] leading-none">
-        final standings
-      </h2>
-      <EventLeaderboard slug={slug} />
+      <EventRecap slug={slug} userId={user} />
+      {!user && (
+        <>
+          <h2 className="self-start font-accent font-bold text-[28px] leading-none">
+            standings
+          </h2>
+          <EventLeaderboard slug={slug} />
+        </>
+      )}
     </Layout>
   );
 };

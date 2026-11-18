@@ -103,7 +103,7 @@ export const Holly: FC<Props> = ({ className }) => (
   </svg>
 );
 
-/** Lumpy snow along the top edge of the navbar */
+/** Snow resting on the navbar: flat underneath, lumpy on top, tapering at the ends */
 export const SnowCap: FC<Props> = ({ className }) => (
   <svg
     aria-hidden="true"
@@ -115,7 +115,7 @@ export const SnowCap: FC<Props> = ({ className }) => (
     )}
   >
     <path
-      d="M14 9q8-8 22-3 8-5 18 0 10 7 18 0 12-6 20 2 8-6 18-1 10 6 20 0 10-6 20 1 12 6 22-1 10-6 22 2 10-6 20 0 10 6 22 0 10-6 20 2 12-6 22 0 10 6 20-1 10-5 18 2 10-4 14 4-6 6-14 2-8 6-18 1-10 6-20 0-10 6-22 1-10-6-20 1-12 6-22 0-10-6-20 1-10 6-20 0-12-6-22 1-10-6-20 0-10 6-20 0-10-5-18 1-10-6-20 0-8 6-14-2z"
+      d="M18 15C20 10 24 7 30 7q10-4 20 0q11-2.5 22 0q12-4 24 0q10-2.5 20 0q11-4 22 0q12-2.5 24 0q10-4 20 0q11-2.5 22 0q12-4 24 0q10-2.5 20 0q11-4 22 0q12-2.5 24 0q10-4 20 0C320 7 322 10 324 15z"
       fill="#fff"
       stroke="var(--color-ink)"
       strokeWidth={1.8}
