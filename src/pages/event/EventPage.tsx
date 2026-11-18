@@ -8,7 +8,6 @@ import Button from '@/components/Button';
 import { TrophyIcon } from '@/components/icons';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
-import { DrawingImage } from '@/drawing/components/DrawingImage';
 import ChristmasTree from '@/events/christmas/ChristmasTree';
 import EventBadge from '@/events/christmas/EventBadge';
 import EventLeaderboard from '@/events/christmas/EventLeaderboard';
@@ -96,7 +95,10 @@ const EventPage = () => {
   const whose = viewingFriend ? `${user.username}'s` : 'your';
   // Each doodle hangs on the tree on its own day
   const drawingsByDay = Object.fromEntries(
-    submissions.map((s) => [s.day.slice(0, 10), s.imageUrl]),
+    submissions.map((s) => [
+      s.day.slice(0, 10),
+      { id: s.id, imageUrl: s.imageUrl },
+    ]),
   );
 
   return (
@@ -181,34 +183,6 @@ const EventPage = () => {
               </li>
             ))}
           </ul>
-        </Section>
-      )}
-
-      {submissions.length > 0 && (
-        <Section
-          title={`${whose} doodles`}
-          aside={`${submissions.length} drawn`}
-        >
-          <div className="grid grid-cols-4 gap-2 w-full">
-            {submissions.map((submission, i) => (
-              <Link
-                key={submission.id}
-                to="/draw/submission/$submissionId"
-                params={{ submissionId: submission.id }}
-                aria-label={submission.prompt}
-                className="p-1 bg-white border-[1.5px] border-ink animate-drop transition-[rotate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 hover:scale-110"
-                style={{
-                  rotate: `${((i * 37) % 7) - 3}deg`,
-                  animationDelay: `${i * 40}ms`,
-                }}
-              >
-                <DrawingImage
-                  imageUrl={submission.imageUrl}
-                  draggable={false}
-                />
-              </Link>
-            ))}
-          </div>
         </Section>
       )}
 

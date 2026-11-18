@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { countdownDates } from '../useChristmas';
 import type { CSSProperties, FC } from 'react';
 import type { ActiveEvent } from '@/api/events';
@@ -8,16 +9,21 @@ import { cn } from '@/utils';
 const BOX = { w: 340, h: 440 };
 const CENTER = 170;
 
-/** Ornament rows from the bottom up: [y, how many], spaced to the tree's width there */
-const ROWS: Array<[number, number]> = [
-  [360, 7],
-  [315, 5],
-  [270, 4],
-  [220, 4],
-  [180, 3],
-  [145, 2],
-  [108, 2],
-  [72, 1],
+/**
+ * Ornament rows from the bottom up, evenly spaced: [y, how many, spread], where
+ * spread is how far across the tree's width at that height they reach (the
+ * bottom row reaches a little past the edge, hanging off the branches)
+ */
+const ROWS: Array<[number, number, number]> = [
+  [362, 7, 1.02],
+  [325, 5, 0.85],
+  [288, 4, 0.85],
+  [251, 3, 0.8],
+  [214, 3, 0.8],
+  [177, 2, 0.8],
+  [140, 1, 0],
+  [103, 2, 0.85],
+  [66, 1, 0],
 ];
 /** The last day hangs where the star goes */
 const STAR = { x: CENTER, y: 26 };
@@ -30,8 +36,8 @@ function halfWidth(y: number) {
 }
 
 /** Spots for every day but the last, bottom left first, climbing up the tree */
-const SPOTS = ROWS.flatMap(([y, count]) => {
-  const spread = halfWidth(y) * 0.78;
+const SPOTS = ROWS.flatMap(([y, count, reach]) => {
+  const spread = halfWidth(y) * reach;
   return Array.from({ length: count }, (_, i) => ({
     x: count === 1 ? CENTER : CENTER - spread + (i * 2 * spread) / (count - 1),
     y,
@@ -45,8 +51,13 @@ const at = (x: number, y: number): CSSProperties => ({
   top: `${(y / BOX.h) * 100}%`,
 });
 
+/** A small, stable tilt per day so the ornaments don't hang like a grid */
+const tilt = (i: number) => `${((i * 37) % 19) - 9}deg`;
+
+type Doodle = { id: string; imageUrl: string };
+
 type OrnamentProps = {
-  imageUrl?: string;
+  doodle?: Doodle;
   isDone: boolean;
   isToday: boolean;
   delay: number;
@@ -55,46 +66,62 @@ type OrnamentProps = {
 
 /** A bauble holding that day's doodle, or an empty hook waiting for one */
 const Ornament: FC<OrnamentProps> = ({
-  imageUrl,
+  doodle,
   isDone,
   isToday,
   delay,
   label,
-}) => (
-  <span className="relative block w-full aspect-square">
-    {isDone && (
-      <span
-        aria-hidden="true"
-        className="absolute -top-[18%] left-1/2 -ml-[17%] w-[34%] h-[22%] bg-xmas-gold border-[1.5px] border-ink rounded-[2px]"
-      />
-    )}
-    <span
-      role="img"
-      aria-label={label}
-      className={cn(
-        'block size-full rounded-full overflow-hidden box-border',
-        isDone &&
-          'bg-white border-2 border-ink shadow-[inset_0_0_0_2px_#fff] animate-in zoom-in-0 duration-500 fill-mode-both ease-[var(--ease-spring)]',
-        isToday && 'bg-white/70 border-2 border-xmas-red animate-twinkle',
-        !isDone && !isToday && 'border-[1.5px] border-dashed border-[#8fa897]',
-      )}
-      style={isDone ? { animationDelay: `${delay}ms` } : undefined}
-    >
-      {isDone && imageUrl && (
-        <DrawingImage
-          imageUrl={imageUrl}
-          draggable={false}
-          className="object-cover"
+}) => {
+  const bauble = (
+    <span className="relative block w-full aspect-square">
+      {isDone && (
+        <span
+          aria-hidden="true"
+          className="absolute -top-[18%] left-1/2 -ml-[17%] w-[34%] h-[22%] bg-xmas-gold border-[1.5px] border-ink rounded-[2px]"
         />
       )}
+      <span
+        role="img"
+        aria-label={label}
+        className={cn(
+          'block size-full rounded-full overflow-hidden box-border',
+          isDone &&
+            'bg-white border-2 border-ink shadow-[inset_0_0_0_2px_#fff] animate-in zoom-in-0 duration-500 fill-mode-both ease-[var(--ease-spring)]',
+          isToday && 'bg-white/70 border-2 border-xmas-red animate-twinkle',
+          !isDone &&
+            !isToday &&
+            'border-[1.5px] border-dashed border-[#8fa897]',
+        )}
+        style={isDone ? { animationDelay: `${delay}ms` } : undefined}
+      >
+        {isDone && doodle && (
+          <DrawingImage
+            imageUrl={doodle.imageUrl}
+            draggable={false}
+            className="object-cover"
+          />
+        )}
+      </span>
     </span>
-  </span>
-);
+  );
+
+  if (!doodle) return bauble;
+
+  return (
+    <Link
+      to="/draw/submission/$submissionId"
+      params={{ submissionId: doodle.id }}
+      className="block transition-[scale] duration-300 ease-[var(--ease-spring)] hover:scale-125 active:scale-95"
+    >
+      {bauble}
+    </Link>
+  );
+};
 
 type Props = {
   event: ActiveEvent;
-  /** That day's doodle, by YYYY-MM-DD */
-  drawings?: Record<string, string>;
+  /** That day's doodle, by YYYY-MM-DD; its ornament opens it */
+  drawings?: Record<string, Doodle | undefined>;
   className?: string;
 };
 
@@ -111,7 +138,7 @@ const ChristmasTree: FC<Props> = ({ event, drawings = {}, className }) => {
 
   const ornamentFor = (date: string, i: number) => (
     <Ornament
-      imageUrl={drawings[date]}
+      doodle={drawings[date]}
       isDone={drawn.has(date)}
       isToday={i === todayIndex && !drawn.has(date)}
       delay={150 + i * 45}
@@ -192,7 +219,11 @@ const ChristmasTree: FC<Props> = ({ event, drawings = {}, className }) => {
         <span
           key={date}
           className="absolute -translate-x-1/2 -translate-y-1/2"
-          style={{ ...at(SPOTS[i].x, SPOTS[i].y), width: ORNAMENT_WIDTH }}
+          style={{
+            ...at(SPOTS[i].x, SPOTS[i].y),
+            width: ORNAMENT_WIDTH,
+            rotate: tilt(i),
+          }}
         >
           {ornamentFor(date, i)}
         </span>
