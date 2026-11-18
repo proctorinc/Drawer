@@ -9,14 +9,14 @@ import { cn } from '@/utils';
 import useUser from '@/auth/hooks/useUser';
 
 export const userProfileIconVariants = cva(
-  'cursor-pointer select-none rounded-full font-semibold flex items-center justify-center hover:scale-110 transition-all duration-300',
+  'cursor-pointer select-none rounded-full border-ink flex items-center justify-center hover:scale-110 hover:-rotate-6 transition-[scale,rotate] duration-300 ease-[var(--ease-spring)]',
   {
     variants: {
       size: {
-        sm: 'w-9 h-9 text-sm shadow-[2px_2px_0_0_rgba(0,0,0,0.2)]',
-        lg: 'w-12 h-12 text-lg shadow-[3px_3px_0_0_rgba(0,0,0,0.2)]',
-        xl: 'w-20 h-20 text-3xl shadow-[4px_4px_0_0_rgba(0,0,0,0.2)]',
-        '2xl': 'w-40 h-40 text-7xl shadow-[5px_5px_0_0_rgba(0,0,0,0.2)]',
+        sm: 'w-9 h-9 text-sm border-2',
+        lg: 'w-12 h-12 text-lg border-2',
+        xl: 'w-20 h-20 text-3xl border-[2.5px]',
+        '2xl': 'w-32 h-32 text-6xl border-[3px]',
       },
     },
     defaultVariants: {

@@ -1,16 +1,17 @@
-import { type FC, type HTMLAttributes } from 'react';
-import { faCircleCheck, faDownload } from '@fortawesome/free-solid-svg-icons';
+import { faDownload } from '@fortawesome/free-solid-svg-icons';
+import type { FC, HTMLAttributes, ReactNode } from 'react';
 import Button from '@/components/Button';
 import Canvas from '@/drawing/Canvas';
 import { useDrawing } from '@/drawing/DrawingContext';
 import { Toolbar } from '@/drawing/Toolbar';
-import { cn } from '@/utils';
-import { Card } from '@/components/Card';
+import { cn, tapeColor } from '@/utils';
+import { PinIcon } from '@/components/icons';
 
 type Props = {
   colors?: Array<string>;
   variant?: 'round' | 'square';
   onSubmit?: (png: Blob) => void;
+  submitLabel?: ReactNode;
   downloadEnabled?: boolean;
   canvasProps?: HTMLAttributes<HTMLCanvasElement>;
   hidden?: boolean;
@@ -22,6 +23,12 @@ const DrawingCanvas: FC<Props> = ({
   colors,
   variant = 'square',
   onSubmit,
+  submitLabel = (
+    <>
+      pin it to the wall
+      <PinIcon size={22} />
+    </>
+  ),
   downloadEnabled = false,
   canvasProps,
   hidden,
@@ -31,6 +38,7 @@ const DrawingCanvas: FC<Props> = ({
 }) => {
   const { canvasRef, canUndo, getPng } = useDrawing();
   const { className: divClassName, ...divProps } = props;
+  const tapes = colors?.length ? colors : ['#ff6b57', '#3a7bd5'];
 
   async function handleSubmitCanvas() {
     const blob = await getPng(backgroundColor);
@@ -61,13 +69,6 @@ const DrawingCanvas: FC<Props> = ({
       window.URL.revokeObjectURL(data);
       link.remove();
     }, 100);
-    // if (!canvasRef.current) return;
-
-    // const canvas = canvasRef.current;
-    // const link = document.createElement('a');
-    // link.download = `drawing-${new Date().toISOString().split('T')[0]}.png`;
-    // link.href = canvas.toDataURL('image/png');
-    // link.click();
   }
 
   if (hidden) {
@@ -77,41 +78,61 @@ const DrawingCanvas: FC<Props> = ({
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 items-center w-full max-w-md',
+        'flex flex-col gap-5 items-center w-full max-w-md',
         isLoading ? 'invisible' : 'visible',
         divClassName,
       )}
       {...divProps}
     >
-      <Card className={cn(variant === 'round' && 'rounded-full')}>
-        <Canvas
-          ref={canvasRef}
-          style={{ backgroundColor: backgroundColor }}
-          {...canvasProps}
-        />
-      </Card>
-      <div className="flex flex-col items-center w-full gap-4">
-        {colors && <Toolbar colors={colors} />}
-        <div className="flex gap-2">
-          <Button
-            className="w-fit"
-            onClick={handleSubmitCanvas}
-            disabled={!canUndo}
-            icon={faCircleCheck}
-          >
-            Submit
-          </Button>
-          {downloadEnabled && (
-            <Button
-              className="w-fit"
-              onClick={handleDownloadCanvas}
-              disabled={!canUndo}
-              icon={faDownload}
-            >
-              Download
-            </Button>
+      {/* The canvas itself stays square to the screen so strokes land where the finger is */}
+      <div className="relative animate-drop">
+        <div
+          className={cn(
+            'overflow-hidden bg-white border-2 border-ink shadow-pencil',
+            variant === 'round'
+              ? 'rounded-full'
+              : 'rounded-[6px_14px_8px_12px/12px_6px_14px_8px]',
           )}
+        >
+          <Canvas
+            ref={canvasRef}
+            style={{ backgroundColor: backgroundColor }}
+            {...canvasProps}
+          />
         </div>
+        {variant === 'square' && (
+          <>
+            <span
+              aria-hidden="true"
+              className="absolute -top-2.5 -left-3.5 w-[84px] h-[26px] -rotate-[32deg] animate-in fade-in zoom-in-150 duration-300 delay-500 fill-mode-both"
+              style={{ backgroundColor: tapeColor(tapes[0]) }}
+            />
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-2 -right-3.5 w-[84px] h-[26px] -rotate-[28deg] animate-in fade-in zoom-in-150 duration-300 delay-700 fill-mode-both"
+              style={{ backgroundColor: tapeColor(tapes[1] ?? tapes[0]) }}
+            />
+          </>
+        )}
+      </div>
+      {colors && <Toolbar colors={colors} />}
+      <div className="flex gap-2 w-full">
+        <Button
+          className="flex-1"
+          onClick={handleSubmitCanvas}
+          disabled={!canUndo}
+        >
+          {submitLabel}
+        </Button>
+        {downloadEnabled && (
+          <Button
+            variant="base"
+            onClick={handleDownloadCanvas}
+            disabled={!canUndo}
+            icon={faDownload}
+            aria-label="Download"
+          />
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,117 @@
+import type { FC, SVGProps } from 'react';
+
+// Stroke icons in the same loose pen style as the rest of the sketchbook UI
+type IconProps = SVGProps<SVGSVGElement> & { size?: number };
+
+const StrokeIcon: FC<IconProps> = ({ size = 24, children, ...props }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    {...props}
+  >
+    {children}
+  </svg>
+);
+
+export const PencilIcon: FC<IconProps> = ({ fill, ...props }) => (
+  <StrokeIcon {...props}>
+    <path d="M4 20l1-4L16 5l3 3L8 19z" fill={fill ?? 'none'} />
+    <path d="M14 7l3 3" />
+  </StrokeIcon>
+);
+
+export const FriendsIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <circle cx="9" cy="8" r="3.5" />
+    <path d="M2.5 20c.5-3.5 3-5.5 6.5-5.5s6 2 6.5 5.5" />
+    <circle cx="17" cy="9" r="2.5" />
+    <path d="M17 14c2.5 0 4.2 1.5 4.5 4" />
+  </StrokeIcon>
+);
+
+export const ClockIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </StrokeIcon>
+);
+
+export const PinIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <circle cx="12" cy="8" r="5" fill="var(--color-coral)" />
+    <path d="M12 13v8" />
+  </StrokeIcon>
+);
+
+export const ArrowLeftIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M19 12H5M11 6l-6 6 6 6" />
+  </StrokeIcon>
+);
+
+export const EraserIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M7 21h12M5 15l9-9 5 5-9 9H8z" />
+    <path d="M10 11l5 5" />
+  </StrokeIcon>
+);
+
+export const UndoIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M9 14L4 9l5-5" />
+    <path d="M4 9h11a5 5 0 0 1 0 10h-3" />
+  </StrokeIcon>
+);
+
+export const HeartIcon: FC<IconProps> = ({ fill, ...props }) => (
+  <StrokeIcon {...props}>
+    <path
+      d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"
+      fill={fill ?? 'none'}
+    />
+  </StrokeIcon>
+);
+
+export const StarIcon: FC<IconProps> = ({ fill, ...props }) => (
+  <StrokeIcon {...props}>
+    <path
+      d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.4 6.7 19.4l1.2-6L3.4 9.3l6-.7z"
+      fill={fill ?? 'none'}
+    />
+  </StrokeIcon>
+);
+
+export const CommentIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M4 5h16v11H9l-5 4z" />
+  </StrokeIcon>
+);
+
+export const SendIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </StrokeIcon>
+);
+
+export const FlameIcon: FC<IconProps> = ({ size = 18, ...props }) => (
+  <svg
+    width={size}
+    height={size * (26 / 24)}
+    viewBox="0 0 24 26"
+    fill="var(--color-coral)"
+    stroke="var(--color-ink)"
+    strokeWidth={2}
+    strokeLinejoin="round"
+    aria-hidden="true"
+    {...props}
+  >
+    <path d="M12 2c1 4 7 7 7 13a7 7 0 0 1-14 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-7 2-10z" />
+  </svg>
+);

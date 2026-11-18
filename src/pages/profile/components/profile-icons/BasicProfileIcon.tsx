@@ -43,7 +43,7 @@ export const BasicProfileIcon: FC<Props> = ({
     <div className={cn('flex relative group justify-center', className)}>
       <div
         className={cn(
-          'font-bold shadow-border font-accent tracking-widest',
+          'font-accent font-bold',
           userProfileIconVariants({ size }),
         )}
         style={{

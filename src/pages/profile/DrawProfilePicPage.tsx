@@ -78,6 +78,7 @@ const DrawProfilePicPage = () => {
         backgroundColor={primary}
         className={cn('rounded-full', !readyToDraw && 'hidden')}
         onSubmit={uploadAvatar}
+        submitLabel="save my avatar"
       />
       {readyToDraw && (
         <Disclaimer title="Tip: Draw a picture of yourself, try and fill the whole circle for best results">

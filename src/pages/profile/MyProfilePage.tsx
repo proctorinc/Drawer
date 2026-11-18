@@ -56,7 +56,6 @@ const MyProfilePage = () => {
 
   return (
     <Layout
-      back
       header={
         <UserHeader
           className={cn(
@@ -120,9 +119,9 @@ const MyProfilePage = () => {
       {tab === 'achievements' && (
         <>
           <div className="pl-1 font-bold w-full">
-            <h2 className="text-xl text-primary">Working on</h2>
+            <h2 className="font-accent font-bold text-[28px] leading-none">Working on</h2>
           </div>
-          <div className="flex flex-col gap-4 w-full">
+          <div className="flex flex-col gap-4 w-full stagger">
             {inProgressAchievements.length === 0 && (
               <Card>
                 <CardContent className="text-center text-secondary font-bold">
@@ -135,9 +134,9 @@ const MyProfilePage = () => {
             ))}
           </div>
           <div className="pl-1 font-bold w-full">
-            <h2 className="text-xl text-primary">Achieved</h2>
+            <h2 className="font-accent font-bold text-[28px] leading-none">Achieved</h2>
           </div>
-          <div className="flex flex-col gap-4 w-full pb-40">
+          <div className="flex flex-col gap-4 w-full stagger">
             {completedAchievements.length === 0 && (
               <Card>
                 <CardContent className="text-center text-secondary font-bold">

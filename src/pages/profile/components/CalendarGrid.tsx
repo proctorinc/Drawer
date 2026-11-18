@@ -60,23 +60,35 @@ const CalendarGrid = ({
           <div
             key={i}
             className={cn(
-              'aspect-square rounded-lg relative cursor-pointer hover:scale-105 transition-all duration-300',
-              isToday ? 'ring-2 ring-primary' : '',
+              'aspect-square relative cursor-pointer transition-[scale,rotate] duration-300 ease-[var(--ease-spring)] animate-in zoom-in-50 fade-in fill-mode-both',
+              drawing
+                ? 'bg-white p-[3px] border-[1.5px] border-ink rotate-[var(--tilt)] hover:rotate-0 hover:scale-110'
+                : 'rounded-md',
+              isToday &&
+                'outline-2 outline-dashed outline-coral outline-offset-2',
               date.getMonth() !== currentDate.getMonth() ? 'opacity-50' : '',
             )}
+            style={
+              {
+                // A stable little tilt per date, so stamped days look hand-stuck
+                '--tilt': `${((date.getDate() * 37) % 7) - 3}deg`,
+                animationDelay: `${i * 12}ms`,
+              } as React.CSSProperties
+            }
             onClick={(e) => onCellClick(drawing, e)}
           >
             {drawing ? (
               <DrawingImage
                 imageUrl={drawing.imageUrl}
-                className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                className="w-full h-full object-cover"
               />
             ) : (
               <div
                 className={cn(
-                  'w-full h-full rounded-lg',
-                  isBeforeUserCreation ? 'bg-card' : 'bg-base',
-                  isMissedDay && 'bg-secondary/50',
+                  'w-full h-full rounded-md',
+                  isBeforeUserCreation
+                    ? 'bg-transparent'
+                    : 'border-[1.5px] border-dashed border-line',
                 )}
               />
             )}

@@ -1,5 +1,5 @@
 import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
 import type { ClassValue } from 'clsx';
 import type { ReactionId, User } from './api/Api';
 import {
@@ -10,6 +10,16 @@ import {
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons';
 import { cva } from 'class-variance-authority';
+
+// Teach tailwind-merge our custom utilities so overrides replace them
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      shadow: ['shadow-pencil', 'shadow-pencil-sm'],
+      rounded: ['rounded-sketch', 'rounded-sketch-alt', 'rounded-blob'],
+    },
+  },
+});
 
 export function cn(...inputs: Array<ClassValue>) {
   return twMerge(clsx(inputs));
@@ -104,4 +114,16 @@ export const reactions: ReactionItem[] = [
 
 export function getReactionIcon(reactionId: string) {
   return reactions.find((reaction) => reaction.id === reactionId);
+}
+
+/** Irregular blob corners, so color swatches look like dabs of paint */
+export const dabShapes = [
+  'rounded-blob',
+  'rounded-[45%_55%_40%_60%/55%_45%_60%_40%]',
+  'rounded-[52%_48%_62%_38%/42%_60%_40%_58%]',
+];
+
+/** A translucent strip of tape in one of the given colors */
+export function tapeColor(color: string) {
+  return `color-mix(in srgb, ${color} 55%, transparent)`;
 }

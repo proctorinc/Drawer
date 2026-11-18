@@ -39,7 +39,7 @@ export const ActivityFeed = () => {
   }
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-md pb-40">
+    <div className="flex flex-col gap-4 w-full max-w-md stagger">
       {data.activities.map((activity) => {
         const icon = activity.reaction
           ? getReactionIcon(activity.reaction?.reactionId)?.icon

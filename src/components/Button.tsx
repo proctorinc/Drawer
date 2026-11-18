@@ -7,16 +7,16 @@ import { cn } from '@/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const buttonVariants = cva(
-  'flex justify-center cursor-pointer disabled:cursor-default transition-all duration-300 font-bold gap-2 items-center rounded-2xl disabled:bg-transparent disabled:text-secondary',
+  'press inline-flex justify-center items-center gap-2 cursor-pointer disabled:cursor-default font-accent font-bold leading-none border-2 border-ink hover:-rotate-1 disabled:rotate-0 disabled:border-dashed disabled:border-line disabled:bg-transparent disabled:text-pencil disabled:shadow-none',
   {
     variants: {
       variant: {
-        primary: 'bg-border text-primary hover:scale-105 disabled:scale-100',
-        base: 'bg-base text-primary shadow-none',
+        primary: 'bg-ink text-paper rounded-sketch shadow-pencil',
+        base: 'bg-white text-ink rounded-sketch-alt shadow-pencil-sm',
       },
       size: {
-        sm: 'text-sm px-4 py-2',
-        md: 'text-lg px-6 py-3',
+        sm: 'text-lg px-4 py-2',
+        md: 'text-2xl px-6 py-3',
       },
     },
     defaultVariants: {
@@ -48,9 +48,7 @@ const Button: FC<Props> = ({
   const handleOnClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (onClick && !disableLoad) {
       setIsClicked(true);
-      if (onClick) {
-        onClick(event);
-      }
+      onClick(event);
       setTimeout(() => {
         setIsClicked(false);
       }, 1000);
@@ -64,7 +62,7 @@ const Button: FC<Props> = ({
       disabled={disabled}
       className={cn(
         buttonVariants({ variant, size }),
-        isClicked && 'bg-primary/50',
+        isClicked && 'opacity-70',
         className,
       )}
       onClick={handleOnClick}

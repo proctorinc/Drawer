@@ -126,7 +126,7 @@ const ActivityPage = () => {
           >
             <div className="flex w-full justify-between items-center">
               <div className="flex w-full font-bold">
-                <h2 className="text-xl text-primary">Today's drawing</h2>
+                <h2 className="font-accent font-bold text-[28px] leading-none">Today's drawing</h2>
               </div>
               {data?.friends && data.friends.length > 1 && (
                 <Button
@@ -189,7 +189,7 @@ const ActivityPage = () => {
             </div>
           </div>
           <div className="pl-1 font-bold w-full">
-            <h2 className="text-xl text-primary">Recent Activity</h2>
+            <h2 className="font-accent font-bold text-[28px] leading-none">Recent Activity</h2>
           </div>
           <ActivityFeed />
         </>
@@ -232,7 +232,7 @@ const ActivityPage = () => {
             </CardContent>
           </Card> */}
           <div className="pl-1 font-bold w-full">
-            <h2 className="text-xl text-primary">Pending invites</h2>
+            <h2 className="font-accent font-bold text-[28px] leading-none">Pending invites</h2>
           </div>
           {invitationsData?.invitee.length === 0 &&
             invitationsData.invited.length === 0 && (

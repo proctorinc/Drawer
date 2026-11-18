@@ -1,10 +1,6 @@
+import { isValidElement } from 'react';
+import type { FC, HTMLAttributes, ReactNode } from 'react';
 import { cn } from '@/utils';
-import {
-  isValidElement,
-  type FC,
-  type HTMLAttributes,
-  type ReactNode,
-} from 'react';
 
 type CardProps = {
   className?: string;
@@ -15,7 +11,7 @@ const Card: FC<CardProps> = ({ className, children, ...props }) => {
   return (
     <div
       className={cn(
-        'flex flex-col gap-4 overflow-clip bg-card border-2 border-border rounded-2xl w-full shadow-[4px_4px_0_0_rgba(0,0,0,0.2)] shadow-border',
+        'flex flex-col gap-4 overflow-clip bg-card border-2 border-ink rounded-sketch w-full shadow-pencil',
         className,
       )}
       {...props}
@@ -56,12 +52,14 @@ const CardHeader: FC<CardHeaderProps> = ({ title, subtitle, children }) => {
         {isValidElement(title) ? (
           title
         ) : (
-          <h3 className="text-lg font-bold text-primary">{title}</h3>
+          <h3 className="font-accent font-bold text-2xl leading-none text-ink">
+            {title}
+          </h3>
         )}
         {isValidElement(subtitle) ? (
           subtitle
         ) : (
-          <p className="text-sm font-semibold text-secondary">{subtitle}</p>
+          <p className="text-base text-pencil">{subtitle}</p>
         )}
       </div>
       {children}

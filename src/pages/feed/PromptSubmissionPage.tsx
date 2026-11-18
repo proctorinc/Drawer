@@ -88,17 +88,21 @@ const PromptSubmissionPage = () => {
       <Layout
         back
         header={
-          <div className="flex flex-col gap-4 w-full px-4 pb-6 -mt-6">
+          <div className="relative w-full px-2 animate-drop [--tilt:-1deg] -rotate-1">
+            <span
+              aria-hidden="true"
+              className="absolute z-10 -top-2.5 left-1/2 -ml-10 w-20 h-6 bg-butter/70 rotate-3"
+            />
             <DrawingFeedImage
               submission={submission}
-              className="border-secondary shadow-secondary"
+              className="p-3 pb-10 bg-white border-0 rounded-none shadow-[1px_3px_10px_rgba(43,42,51,0.2)]"
             />
           </div>
         }
       >
         <div className="flex justify-between gap-2 w-full items-center">
           <div className="w-full font-bold">
-            <h2 className="text-2xl text-primary text-balance">
+            <h2 className="font-accent font-bold text-[30px] leading-none text-balance">
               {submission.prompt}
             </h2>
             <p className="text-secondary">
@@ -225,7 +229,7 @@ const PromptSubmissionPage = () => {
                 }}
               >
                 <input
-                  className="font-bold border-2 text-primary border-border w-full p-4 rounded-2xl"
+                  className="w-full h-12 px-3 bg-white border-2 border-ink rounded-sketch-alt text-lg placeholder:text-pencil/70 focus:outline-none focus:-rotate-1 transition-[rotate] duration-300"
                   placeholder="Add a comment..."
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}

@@ -3,7 +3,7 @@ import { useState, type FC, type ReactNode, useEffect } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 const tooltipVariants = cva(
-  'z-30 absolute bg-base text-primary p-4 rounded-2xl transition-opacity duration-200 font-bold shadow-lg',
+  'z-30 absolute bg-white text-ink p-3 border-2 border-ink rounded-sketch shadow-pencil transition-[opacity,scale] duration-300 ease-[var(--ease-spring)]',
   {
     variants: {
       location: {
@@ -71,7 +71,9 @@ const Tooltip: FC<Props> = ({
         <div
           className={cn(
             tooltipVariants({ location }),
-            isTooltipVisible ? 'opacity-100' : 'opacity-0',
+            isTooltipVisible
+              ? 'opacity-100 scale-100'
+              : 'opacity-0 scale-75 pointer-events-none',
             tooltipClassName,
           )}
           onClick={handleTooltipClick}

@@ -48,14 +48,16 @@ const DrawingModal = ({ drawing, onClose, initialPosition }: Props) => {
     >
       <div
         className={cn(
-          'fixed inset-0 bg-primary-foreground/80 backdrop-blur-sm transition-opacity duration-300',
+          'fixed inset-0 bg-ink/50 backdrop-blur-sm transition-opacity duration-300',
           isVisible ? 'opacity-100' : 'opacity-0',
         )}
       />
       <Card
         className={cn(
-          'relative overflow-hidden transition-all duration-500 transform',
-          isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0',
+          'relative overflow-hidden transition-all duration-500 ease-[var(--ease-spring)]',
+          isVisible
+            ? 'scale-100 rotate-0 opacity-100'
+            : 'scale-75 -rotate-6 opacity-0',
         )}
         style={{
           transformOrigin: `${initialPosition.x + initialPosition.width / 2}px ${initialPosition.y + initialPosition.height / 2}px`,
@@ -76,7 +78,7 @@ const DrawingModal = ({ drawing, onClose, initialPosition }: Props) => {
         </CardContent>
         <DrawingImage
           imageUrl={drawing.imageUrl}
-          className="w-full aspect-square border-t-2 border-border"
+          className="w-full aspect-square border-t-2 border-ink"
         />
       </Card>
     </div>

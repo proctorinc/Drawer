@@ -1,71 +1,28 @@
-import type { FC, HTMLAttributes, ReactNode } from 'react';
 import Navbar from './Navbar';
+import Masthead from './Masthead';
+import type { FC, ReactNode } from 'react';
 import useAuth from '@/auth/hooks/useAuth';
-import Button from './Button';
-import { faArrowLeft, faHome } from '@fortawesome/free-solid-svg-icons';
-import { useCanGoBack, useNavigate, useRouter } from '@tanstack/react-router';
 
 type Props = {
+  /** Page-specific block rendered between the masthead and the content */
   header?: ReactNode;
   back?: boolean;
+  /** Right side of the masthead's date line */
+  aside?: ReactNode;
   children: ReactNode;
-  backgroundProps?: HTMLAttributes<HTMLDivElement>;
-  headerProps?: HTMLAttributes<HTMLDivElement>;
-  hideHeader?: boolean;
 };
 
-const Layout: FC<Props> = ({
-  header,
-  back,
-  children,
-  headerProps,
-  backgroundProps,
-  hideHeader = false,
-}) => {
-  const router = useRouter();
-  const canGoBack = useCanGoBack();
-  const navigate = useNavigate();
+const Layout: FC<Props> = ({ header, back, aside, children }) => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div
-      className="flex flex-col items-center justify-center bg-gradient-to-tr from-primary to-primary-foreground"
-      {...backgroundProps}
-    >
-      <div
-        className="z-0 sticky top-0 flex flex-col items-center max-w-md w-full gap-6 px-2 md:p-2"
-        {...headerProps}
-      >
-        {hideHeader && <div className="pt-6" />}
-        {!hideHeader && (
-          <div className="sticky top-0 flex justify-center items-center text-center pb-6 pt-6 w-full">
-            {back && canGoBack && (
-              <Button
-                variant="base"
-                className="absolute left-0 top-6 w-10 bg-transparent text-secondary"
-                icon={faArrowLeft}
-                disableLoad
-                onClick={() => router.history.back()}
-              />
-            )}
-            {back && !canGoBack && (
-              <Button
-                variant="base"
-                className="absolute left-0 top-6 w-10 bg-transparent text-secondary"
-                icon={faHome}
-                disableLoad
-                onClick={() => navigate({ to: '/draw' })}
-              />
-            )}
-            <h1 className="text-xl font-cursive font-extrabold tracking-widest text-border/80">
-              The Daily Doodle
-            </h1>
-          </div>
-        )}
-        {header}
-      </div>
-      <div className="z-10 relative flex flex-col flex-grow w-full items-center p-6 gap-6 bg-base min-h-screen overflow-y-auto overflow-x-hidden pb-30 max-w-md rounded-t-4xl border-2 border-border animate-in slide-in-from-bottom-[100px] duration-400">
-        {children}
+    <div className="paper flex justify-center min-h-dvh overflow-x-clip">
+      <div className="flex flex-col w-full max-w-md">
+        <Masthead back={back} aside={aside} />
+        {header && <div className="px-6 pt-5 animate-rise">{header}</div>}
+        <main className="flex flex-col flex-grow items-center gap-6 px-6 pt-5 pb-36 animate-rise [animation-delay:60ms]">
+          {children}
+        </main>
       </div>
       {isAuthenticated && <Navbar />}
     </div>

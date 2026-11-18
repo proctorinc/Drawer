@@ -1,25 +1,35 @@
-import { useState, type FC, type ReactNode } from 'react';
-import Banner from './Banner';
-import Button from './Button';
+import { useState } from 'react';
+import type { FC, ReactNode } from 'react';
 
 type Props = {
   title?: string;
   children?: ReactNode;
 };
 
+/** A taped-on sticky note that folds open */
 const Disclaimer: FC<Props> = ({ title, children }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <Banner className="flex flex-col gap-2 border-2 border-border text-secondary bg-base">
-      <span className="py-2 text-primary text-center">{title}</span>
+    <div className="relative flex flex-col gap-2 w-full px-5 pt-5 pb-3 bg-[#fff6c9] -rotate-1 shadow-[1px_2px_6px_rgba(43,42,51,0.15)]">
+      <span
+        aria-hidden="true"
+        className="absolute -top-2.5 left-1/2 -ml-8 w-16 h-5 bg-sky/80 rotate-3"
+      />
+      <span className="font-accent font-bold text-xl text-center leading-tight">
+        {title}
+      </span>
       {isOpen && (
-        <div className="flex flex-col gap-2 text-left">{children}</div>
+        <div className="flex flex-col gap-1 text-left stagger">{children}</div>
       )}
-      <Button disableLoad onClick={() => setIsOpen((prev) => !prev)} size="sm">
-        {isOpen ? 'hide' : 'show more'}
-      </Button>
-    </Banner>
+      <button
+        className="self-center px-3 py-1 text-pencil underline underline-offset-4 cursor-pointer"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((prev) => !prev)}
+      >
+        {isOpen ? 'fold it up' : 'show more'}
+      </button>
+    </div>
   );
 };
 
@@ -28,7 +38,7 @@ type DisclaimerItemProps = {
 };
 
 export const DisclaimerItem: FC<DisclaimerItemProps> = ({ children }) => {
-  return <span>- {children}</span>;
+  return <span>· {children}</span>;
 };
 
 export default Disclaimer;

@@ -1,11 +1,10 @@
 import { Card, CardContent, CardHeader } from '@/components/Card';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
-import { nameToColor } from '@/utils';
 import Banner from '@/components/Banner';
 import type { User } from '@/api/Api';
 import type { FC } from 'react';
 import useUser from '@/auth/hooks/useUser';
-import Button from '@/components/Button';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faAngleRight } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from '@tanstack/react-router';
 
@@ -26,33 +25,32 @@ export const FriendList: FC<Props> = ({ user, friends }) => {
         <CardHeader
           title={isMe ? 'My friends' : `${user?.username}'s friends`}
         />
-        <div className="flex flex-col gap-2 w-full max-w-md">
+        <div className="flex flex-col gap-2 w-full max-w-md stagger">
           {friends?.length === 0 && (
-            <Banner className="bg-base border-none p-4">No friends</Banner>
+            <Banner className="bg-paper border-dashed">no friends yet</Banner>
           )}
           {friends &&
             friends.length > 0 &&
             friends.map((friend) => {
-              const { primary, secondary, text } = nameToColor(friend.username);
               return (
-                <div
+                <button
                   key={friend.id}
-                  className="flex items-center gap-3 rounded-2xl w-full px-4 py-2"
-                  style={{ backgroundColor: secondary }}
+                  className="press flex items-center gap-3 w-full px-3 py-2 bg-white border-[1.5px] border-ink rounded-sketch-alt text-left cursor-pointer hover:-rotate-1"
                   onClick={() => navigate({ to: `/draw/profile/${friend.id}` })}
                 >
-                  <UserProfileIcon size="sm" user={friend} />
-                  <div className="flex justify-between items-center w-full">
-                    <h3 className="text-primary font-bold">
-                      {friend.username}
-                    </h3>
-                    <Button
-                      size="sm"
-                      style={{ backgroundColor: primary, color: text }}
-                      icon={faAngleRight}
-                    ></Button>
-                  </div>
-                </div>
+                  <UserProfileIcon
+                    size="sm"
+                    user={friend}
+                    onClick={() =>
+                      navigate({ to: `/draw/profile/${friend.id}` })
+                    }
+                  />
+                  <span className="flex-1 text-lg">{friend.username}</span>
+                  <FontAwesomeIcon
+                    icon={faAngleRight}
+                    className="text-pencil"
+                  />
+                </button>
               );
             })}
         </div>

@@ -4,9 +4,11 @@ import { useEffect, useState, type FC } from 'react';
 
 type Props = {
   className?: string;
+  /** clock: 08:12:44, short: 8h 12m */
+  format?: 'clock' | 'short';
 };
 
-export const CountDownTimer: FC<Props> = ({ className }) => {
+export const CountDownTimer: FC<Props> = ({ className, format = 'clock' }) => {
   const [time, setTime] = useState(0);
   const { reloadUser } = useAuth();
 
@@ -56,11 +58,12 @@ export const CountDownTimer: FC<Props> = ({ className }) => {
     return `${hours}:${minutes}:${secs}`;
   };
 
+  const formatShort = (seconds: number) =>
+    `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+
   return (
-    <div className="bg-base/80 bg-clip-text">
-      <span className={cn('text-transparent font-extrabold', className)}>
-        {formatTime(time)}
-      </span>
-    </div>
+    <span className={cn('tabular-nums', className)}>
+      {format === 'short' ? formatShort(time) : formatTime(time)}
+    </span>
   );
 };
