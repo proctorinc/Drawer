@@ -1,81 +1,88 @@
-import { cn } from '@/utils';
-import { DrawingImage } from '@/drawing/components/DrawingImage';
+import type { CSSProperties } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faX } from '@fortawesome/free-solid-svg-icons';
+import { parseDay } from '@/days';
+import { DrawingImage } from '@/drawing/components/DrawingImage';
+import { cn } from '@/utils';
+
+const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 type Props = {
   today: Date;
-  prompts?: Array<UserPromptSubmission>;
-  userCreatedAt?: Date;
-  onCellClick: (
-    drawing: UserPromptSubmission | undefined,
-    event: React.MouseEvent<HTMLDivElement>,
-  ) => void;
-  currentDate: Date;
+  month: Date;
+  prompts: Array<UserPromptSubmission>;
+  /** The day they joined, at midnight; earlier days can't be missed */
+  joined: Date;
+  onDrawingClick: (drawing: UserPromptSubmission) => void;
 };
+
+/** The month's days in whole weeks, starting on the Sunday before the 1st */
+function monthDays(month: Date) {
+  const first = new Date(month.getFullYear(), month.getMonth(), 1);
+  const daysInMonth = new Date(
+    month.getFullYear(),
+    month.getMonth() + 1,
+    0,
+  ).getDate();
+  const cells = Math.ceil((first.getDay() + daysInMonth) / 7) * 7;
+
+  return Array.from(
+    { length: cells },
+    (_, i) =>
+      new Date(first.getFullYear(), first.getMonth(), 1 - first.getDay() + i),
+  );
+}
 
 const CalendarGrid = ({
   today,
+  month,
   prompts,
-  userCreatedAt,
-  onCellClick,
-  currentDate,
+  joined,
+  onDrawingClick,
 }: Props) => {
+  const drawingsByDay = new Map(
+    prompts.map((prompt) => [parseDay(prompt.day).toDateString(), prompt]),
+  );
+
   return (
-    <div className="grid grid-cols-7 gap-1 relative">
-      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-        <div
-          key={day}
-          className="text-center text-sm font-semibold text-secondary"
-        >
+    <div className="grid grid-cols-7 gap-1">
+      {WEEKDAYS.map((day, i) => (
+        <div key={i} className="text-center text-pencil">
           {day}
         </div>
       ))}
-      {Array.from({ length: 35 }, (_, i) => {
-        const date = new Date(
-          currentDate.getFullYear(),
-          currentDate.getMonth(),
-          1 -
-            new Date(
-              currentDate.getFullYear(),
-              currentDate.getMonth(),
-              1,
-            ).getDay() +
-            i,
-        );
-        const drawing = prompts?.find(
-          (prompt) =>
-            new Date(prompt.day).toDateString() === date.toDateString(),
-        );
-        const createdAtDate = userCreatedAt
-          ? new Date(userCreatedAt)
-          : new Date();
+      {monthDays(month).map((date, i) => {
+        const drawing = drawingsByDay.get(date.toDateString());
         const isToday = date.toDateString() === today.toDateString();
-        const isBeforeUserCreation = date < createdAtDate;
-        const isMissedDay =
-          !isBeforeUserCreation && !drawing && date < today && !isToday;
+        const isMissed = !drawing && date >= joined && date < today;
+        const isFuture = date > today;
 
         return (
-          <div
-            key={i}
+          <button
+            key={date.toISOString()}
+            disabled={!drawing}
+            aria-label={
+              drawing
+                ? `${drawing.prompt}, ${date.toLocaleDateString()}`
+                : undefined
+            }
             className={cn(
-              'aspect-square relative cursor-pointer transition-[scale,rotate] duration-300 ease-[var(--ease-spring)] animate-in zoom-in-50 fade-in fill-mode-both',
+              'relative aspect-square cursor-pointer disabled:cursor-default transition-[scale,rotate] duration-300 ease-[var(--ease-spring)] animate-in zoom-in-50 fade-in fill-mode-both',
               drawing
                 ? 'bg-white p-[3px] border-[1.5px] border-ink rotate-[var(--tilt)] hover:rotate-0 hover:scale-110'
                 : 'rounded-md',
               isToday &&
                 'outline-2 outline-dashed outline-coral outline-offset-2',
-              date.getMonth() !== currentDate.getMonth() ? 'opacity-50' : '',
+              (isFuture || date.getMonth() !== month.getMonth()) &&
+                'opacity-40',
             )}
             style={
               {
                 // A stable little tilt per date, so stamped days look hand-stuck
                 '--tilt': `${((date.getDate() * 37) % 7) - 3}deg`,
                 animationDelay: `${i * 12}ms`,
-              } as React.CSSProperties
+              } as CSSProperties
             }
-            onClick={(e) => onCellClick(drawing, e)}
+            onClick={() => drawing && onDrawingClick(drawing)}
           >
             {drawing ? (
               <DrawingImage
@@ -86,30 +93,26 @@ const CalendarGrid = ({
               <div
                 className={cn(
                   'w-full h-full rounded-md',
-                  isBeforeUserCreation
-                    ? 'bg-transparent'
-                    : 'border-[1.5px] border-dashed border-line',
+                  date >= joined &&
+                    !isFuture &&
+                    'border-[1.5px] border-dashed border-line',
+                  isMissed && 'bg-line/25',
                 )}
               />
             )}
-            <div
+            <span
               className={cn(
-                'absolute inset-0 flex items-center justify-center text-sm font-bold',
+                'absolute inset-0 flex items-center justify-center font-accent font-bold text-lg',
                 drawing
-                  ? 'text-card drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]'
-                  : 'text-primary',
+                  ? 'text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]'
+                  : isMissed
+                    ? 'text-pencil/60'
+                    : 'text-ink',
               )}
             >
               {date.getDate()}
-            </div>
-            {isMissedDay && (
-              <FontAwesomeIcon
-                icon={faX}
-                size="2x"
-                className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 absolute text-primary/20"
-              />
-            )}
-          </div>
+            </span>
+          </button>
         );
       })}
     </div>

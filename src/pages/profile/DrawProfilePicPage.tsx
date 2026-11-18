@@ -25,8 +25,10 @@ const DrawProfilePicPage = () => {
 
   return (
     <Layout back>
-      <div className="flex w-full font-bold justify-between items-center h-5">
-        <h2 className="text-xl text-primary">Draw your profile picture</h2>
+      <div className="flex w-full justify-between items-center">
+        <h1 className="font-accent font-bold text-[30px] leading-none">
+          draw your face
+        </h1>
         {readyToDraw && skinColorIndex !== null && (
           <Button
             size="sm"
@@ -38,18 +40,18 @@ const DrawProfilePicPage = () => {
       </div>
       {!readyToDraw && (
         <div className="flex flex-col flex-grow justify-center items-center gap-4 p-4">
-          <div className="flex w-full justify-center font-bold">
-            <h3 className="text-primary">Select your skin color</h3>
-          </div>
+          <h2 className="font-accent font-bold text-2xl">
+            first, pick your skin color
+          </h2>
           <Card className="w-fit">
             <CardContent className="flex-row">
               {skinColors.map((color, index) => (
                 <button
                   key={`color-${index}`}
                   className={cn(
-                    'w-10 h-10 border-2 border-primary cursor-pointer rounded-md hover:opacity-80 hover:scale-110 transition-all duration-300',
+                    'size-10 border-2 border-ink cursor-pointer rounded-blob hover:scale-110 transition-[scale] duration-300 ease-[var(--ease-spring)]',
                     skinColorIndex === index &&
-                      'ring-4 ring-primary border-none',
+                      'ring-3 ring-coral ring-offset-2 scale-110',
                   )}
                   style={{ backgroundColor: color }}
                   onClick={() => setSkinColorIndex(index)}
@@ -64,7 +66,7 @@ const DrawProfilePicPage = () => {
               setReadyToDraw(true);
             }}
           >
-            Select
+            let's draw
           </Button>
         </div>
       )}
@@ -81,7 +83,7 @@ const DrawProfilePicPage = () => {
         submitLabel="save my avatar"
       />
       {readyToDraw && (
-        <Disclaimer title="Tip: Draw a picture of yourself, try and fill the whole circle for best results">
+        <Disclaimer title="Tip: draw yourself, and fill the whole circle for best results">
           <DisclaimerItem>
             Or draw something else..? Idk, I don't make the rules 🤷🏻‍♂️
           </DisclaimerItem>

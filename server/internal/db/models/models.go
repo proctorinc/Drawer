@@ -104,6 +104,7 @@ type ActivityAction string
 const (
 	ActivityActionComment  ActivityAction = "comment"
 	ActivityActionReaction ActivityAction = "reaction"
+	ActivityActionPoke     ActivityAction = "poke"
 )
 
 type Activity struct {

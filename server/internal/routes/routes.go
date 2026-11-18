@@ -80,6 +80,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			userGroup.POST("/:id/invite", handlers.HandleInviteFriend)
 			userGroup.POST("/:id/accept-invitation", handlers.HandleAcceptInvitation)
 			userGroup.POST("/:id/deny-invitation", handlers.HandleDenyInvitation)
+			userGroup.POST("/:id/poke", handlers.HandlePokeFriend)
 
 			submissionGroup := authGroup.Group("/submission")
 
@@ -100,6 +101,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 
 			authGroup.POST("/prompt/suggest", handlers.SuggestPrompt)
 
+			authGroup.GET("/trophies", handlers.HandleGetTrophies)
 			authGroup.GET("/events/active", handlers.HandleGetActiveEvent)
 			authGroup.GET("/events/:slug/leaderboard", handlers.HandleGetEventLeaderboard)
 			authGroup.GET("/events/:slug/recap", handlers.HandleGetEventRecap)

@@ -82,7 +82,4 @@ export const UserProfileIcon: FC<Props> = ({
       />
     );
   }
-  // <div className="flex gap-1 justify-center items-center text-xs font-bold absolute bottom-0 -right-2 translate-x-1/2 rounded-full bg-orange-400 text-orange-200 p-1">
-  //   <FontAwesomeIcon icon={faFire} /> 56
-  // </div>
 };

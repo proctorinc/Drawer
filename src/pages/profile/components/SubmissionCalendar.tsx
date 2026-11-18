@@ -1,150 +1,102 @@
-import { useState, type FC } from 'react';
-import DrawingModal from '@/components/DrawingModal';
-import type { GetMeResponse, UserPromptSubmission } from '@/api/Api';
+import { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import {
   faChevronLeft,
   faChevronRight,
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import CalendarGrid from './CalendarGrid';
+import type { FC } from 'react';
+import type { GetMeResponse } from '@/api/Api';
+import { monthIndex, parseDay } from '@/days';
 import { Card, CardContent } from '@/components/Card';
-import CalendarGrid from '@/pages/profile/components/CalendarGrid';
-import { useNavigate } from '@tanstack/react-router';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
 
+const monthButtonClass =
+  'press flex items-center justify-center size-10 bg-white border-2 border-ink rounded-blob shadow-pencil-sm cursor-pointer disabled:invisible';
+
+/** Days of `month` you could have drawn on: from joining (or the 1st) to today */
+function drawableDays(month: Date, joined: Date, today: Date) {
+  const first = new Date(month.getFullYear(), month.getMonth(), 1);
+  const last = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+  const from = joined > first ? joined : first;
+  const to = today < last ? today : last;
+  const day = 24 * 60 * 60 * 1000;
+  return Math.max(0, Math.round((to.getTime() - from.getTime()) / day) + 1);
+}
+
 type Props = {
-  profile?: GetMeResponse;
+  profile: GetMeResponse;
 };
 
+/** Every doodle in the book, one month at a time */
 const SubmissionCalendar: FC<Props> = ({ profile }) => {
   const navigate = useNavigate();
-  const [selectedDrawing, setSelectedDrawing] =
-    useState<UserPromptSubmission | null>(null);
   const { dailyPrompt } = useDailyPrompt();
-  const [clickPosition, setClickPosition] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  //   const [displayMode, setDisplayMode] = useState<'calendar' | 'list'>(
-  //     'calendar',
-  //   );
+  const today = dailyPrompt ? parseDay(dailyPrompt.day) : new Date();
+  const [month, setMonth] = useState(today);
 
-  const handleCellClick = (
-    drawing: UserPromptSubmission | undefined,
-    event: React.MouseEvent<HTMLDivElement>,
-  ) => {
-    event.preventDefault();
-    if (drawing?.id) {
-      navigate({ to: `/draw/submission/${drawing.id}` });
-    }
-  };
+  const joined = new Date(profile.user.createdAt);
+  joined.setHours(0, 0, 0, 0);
+  const canGoBack = monthIndex(month) > monthIndex(joined);
+  const canGoForward = monthIndex(month) < monthIndex(today);
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentDate((prev) => {
-      const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() + (direction === 'next' ? 1 : -1));
-      return newDate;
-    });
-  };
+  const drawn = profile.prompts.filter(
+    (prompt) => monthIndex(parseDay(prompt.day)) === monthIndex(month),
+  ).length;
+  const drawable = drawableDays(month, joined, today);
 
-  const formatMonthYear = (date: Date) => {
-    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
-  };
-
-  const checkBack = () => {
-    const userCreatedAt = profile?.user
-      ? new Date(profile?.user.createdAt)
-      : new Date();
-
-    const previousMonth = new Date(currentDate);
-    previousMonth.setMonth(currentDate.getMonth() - 1);
-
-    return (
-      previousMonth.getMonth() < userCreatedAt.getMonth() ||
-      previousMonth.getFullYear() < userCreatedAt.getFullYear()
-    );
-  };
-
-  function checkForward() {
-    const today = new Date();
-
-    const previousMonth = new Date(currentDate);
-    previousMonth.setMonth(currentDate.getMonth() + 1);
-
-    return (
-      previousMonth.getMonth() > today.getMonth() ||
-      previousMonth.getFullYear() > today.getFullYear()
-    );
+  function shiftMonth(by: number) {
+    setMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + by, 1));
   }
 
   return (
-    <>
-      {/* <div className="flex gap-2 w-full">
-        <Button
-          className="w-full bg-secondary/50 border-base disabled:bg-card disabled:ring-3 disabled:ring-border/50"
-          size="sm"
-          onClick={() => setDisplayMode('calendar')}
-          disabled={displayMode === 'calendar'}
-          disableLoad
-        >
-          Calendar
-        </Button>
-        <Button
-          className="w-full bg-secondary/50 border-base disabled:bg-card disabled:ring-3 disabled:ring-border/50"
-          size="sm"
-          onClick={() => setDisplayMode('list')}
-          disabled={displayMode === 'list'}
-          disableLoad
-        >
-          List
-        </Button>
-      </div> */}
-      {/* {displayMode === 'calendar' && ( */}
-      <Card>
-        <CardContent>
-          <CalendarGrid
-            today={dailyPrompt ? new Date(dailyPrompt.day) : new Date()}
-            userCreatedAt={profile?.user.createdAt}
-            prompts={profile?.prompts}
-            onCellClick={handleCellClick}
-            currentDate={currentDate}
-          />
-          <div className="flex justify-center items-center gap-4 w-full">
-            <button
-              disabled={checkBack()}
-              onClick={() => navigateMonth('prev')}
-              className="w-8 h-8 flex items-center justify-center text-primary rounded-full hover:bg-primary/20 transition-colors disabled:invisible"
-            >
-              <FontAwesomeIcon icon={faChevronLeft} />
-            </button>
-            <span className="font-semibold text-primary min-w-[120px] text-center">
-              {formatMonthYear(currentDate)}
+    <Card>
+      <CardContent>
+        <div className="flex justify-between items-center gap-2">
+          <button
+            aria-label="Previous month"
+            disabled={!canGoBack}
+            onClick={() => shiftMonth(-1)}
+            className={monthButtonClass}
+          >
+            <FontAwesomeIcon icon={faChevronLeft} />
+          </button>
+          <div className="flex flex-col items-center">
+            <h2 className="font-accent font-bold text-[28px] leading-none lowercase">
+              {month.toLocaleString('en-US', { month: 'long' })}{' '}
+              <span className="text-pencil">{month.getFullYear()}</span>
+            </h2>
+            <span className="text-pencil">
+              {drawn} of {drawable} {drawable === 1 ? 'day' : 'days'} drawn
+              {drawable > 0 && drawn === drawable && ' ⭐'}
             </span>
-            <button
-              disabled={checkForward()}
-              onClick={() => navigateMonth('next')}
-              className="w-8 h-8 flex items-center justify-center text-primary rounded-full hover:bg-primary/20 transition-colors  disabled:invisible"
-            >
-              <FontAwesomeIcon icon={faChevronRight} />
-            </button>
           </div>
-        </CardContent>
-      </Card>
-      {/* )}
-
-      {displayMode === 'list' && <SubmissionList />} */}
-
-      <DrawingModal
-        drawing={selectedDrawing}
-        onClose={() => {
-          setSelectedDrawing(null);
-          setClickPosition(null);
-        }}
-        initialPosition={clickPosition}
-      />
-    </>
+          <button
+            aria-label="Next month"
+            disabled={!canGoForward}
+            onClick={() => shiftMonth(1)}
+            className={monthButtonClass}
+          >
+            <FontAwesomeIcon icon={faChevronRight} />
+          </button>
+        </div>
+        <CalendarGrid
+          // Remount per month so the cells pop in again
+          key={monthIndex(month)}
+          today={today}
+          month={month}
+          joined={joined}
+          prompts={profile.prompts}
+          onDrawingClick={(drawing) =>
+            navigate({
+              to: '/draw/submission/$submissionId',
+              params: { submissionId: drawing.id },
+            })
+          }
+        />
+      </CardContent>
+    </Card>
   );
 };
 

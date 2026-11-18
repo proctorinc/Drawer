@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
-import { FriendsIcon, PencilIcon } from './icons';
+import { PencilIcon, TrophyIcon } from './icons';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { cn } from '@/utils';
 import useUser from '@/auth/hooks/useUser';
 import { useGetInvitations } from '@/api/Api';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
 
-const TABS = ['/draw/activity', '/draw', '/draw/profile/me'] as const;
+const TABS = ['/draw/trophies', '/draw', '/draw/profile/me'] as const;
 
 // Each page mounts its own Navbar, so tab changes are tracked at module level.
 // A freshly mounted bar starts on the previous tab and animates to the new one.
@@ -76,12 +76,12 @@ const Navbar = () => {
         />
 
         <Link
-          to="/draw/activity"
-          aria-label="Friends and activity"
+          to="/draw/trophies"
+          aria-label="Trophies"
           aria-current={activeTab === 0 ? 'page' : undefined}
           className="relative flex items-center justify-center w-14 h-[46px] active:scale-90 transition-[scale] duration-300 ease-[var(--ease-spring)]"
         >
-          <FriendsIcon
+          <TrophyIcon
             size={27}
             key={activeTab === 0 ? 'on' : 'off'}
             className={cn(
@@ -89,12 +89,6 @@ const Navbar = () => {
               activeTab === 0 ? 'text-ink animate-wiggle' : 'text-paper',
             )}
           />
-          {hasInvites && (
-            <span
-              aria-label="New friend invites"
-              className="absolute top-1 right-2 size-3 rounded-full bg-coral border-2 border-ink animate-in zoom-in-0 duration-300"
-            />
-          )}
         </Link>
 
         {/* Fixed-width slot so the side tabs stay put while the button grows */}
@@ -138,6 +132,12 @@ const Navbar = () => {
               activeTab === 2 ? 'ring-ink' : 'ring-paper',
             )}
           />
+          {hasInvites && (
+            <span
+              aria-label="New friend invites"
+              className="absolute top-1 right-2 size-3 rounded-full bg-coral border-2 border-ink animate-in zoom-in-0 duration-300"
+            />
+          )}
         </Link>
       </nav>
     </div>

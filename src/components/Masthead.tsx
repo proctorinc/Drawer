@@ -5,11 +5,13 @@ import {
   useRouter,
 } from '@tanstack/react-router';
 import Logo from './Logo';
+import ActivityBell from './ActivityBell';
 import { ArrowLeftIcon, FlameIcon } from './icons';
 import type { FC, ReactNode } from 'react';
 import useAuth from '@/auth/hooks/useAuth';
 import { useGetMyProfile } from '@/api/Api';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
+import { parseDay } from '@/days';
 import { cn, dabShapes } from '@/utils';
 
 const StreakBadge = () => {
@@ -77,8 +79,8 @@ type Props = {
   aside?: ReactNode;
 };
 
-const today = () =>
-  new Date()
+const dateLabel = (date: Date) =>
+  date
     .toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
@@ -88,20 +90,28 @@ const today = () =>
 
 const Masthead: FC<Props> = ({ back, aside }) => {
   const { isAuthenticated } = useAuth();
+  // The page turns at midnight UTC, so date it by the prompt rather than your clock
+  const { dailyPrompt } = useDailyPrompt();
+  const pageDate = dailyPrompt ? parseDay(dailyPrompt.day) : new Date();
 
   return (
     <header className="flex flex-col gap-2 px-5 pt-4">
-      <div className="flex items-center justify-between h-14">
+      <div className="flex items-center justify-between gap-2 h-14">
         <div className="flex items-center gap-3">
           {back && <BackButton />}
           <Link to="/draw" aria-label="Home">
             <Logo />
           </Link>
         </div>
-        {isAuthenticated && <StreakBadge />}
+        {isAuthenticated && (
+          <div className="flex items-center gap-2">
+            <StreakBadge />
+            <ActivityBell />
+          </div>
+        )}
       </div>
       <div className="flex items-center justify-between gap-2 h-[30px] border-b-2 border-dashed border-line text-pencil">
-        <span>{today()}</span>
+        <span>{dateLabel(pageDate)}</span>
         {aside ?? <TodaysCrayons />}
       </div>
     </header>

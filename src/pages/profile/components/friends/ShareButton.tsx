@@ -1,7 +1,8 @@
-import { faShareAlt } from '@fortawesome/free-solid-svg-icons';
-import Button from '@/components/Button';
+import { useState } from 'react';
 import { useLocation } from '@tanstack/react-router';
+import { faShareAlt } from '@fortawesome/free-solid-svg-icons';
 import type { FC, ReactNode } from 'react';
+import Button from '@/components/Button';
 import { cn } from '@/utils';
 
 type Props = {
@@ -12,6 +13,12 @@ type Props = {
   className?: string;
 };
 
+async function imageFile(imageUrl: string) {
+  const blob = await fetch(imageUrl).then((response) => response.blob());
+  return new File([blob], 'doodle.png', { type: blob.type });
+}
+
+/** Opens the phone's share sheet, or copies the link where there isn't one */
 export const ShareButton: FC<Props> = ({
   text,
   imageUrl,
@@ -20,45 +27,33 @@ export const ShareButton: FC<Props> = ({
   className,
 }) => {
   const location = useLocation();
+  const [copied, setCopied] = useState(false);
 
-  const handleShareWithImage = async (fileUrl: string) => {
-    if (navigator.share) {
-      const response = await fetch(fileUrl);
-      const blob = await response.blob();
+  async function handleShare() {
+    const url = `${window.location.origin}${urlPath ?? location.pathname}`;
 
-      const imageFile = new File([blob], 'logo.png', { type: blob.type });
-
-      navigator.share({
-        text,
-        url: `${window.location.origin}${urlPath ?? location.pathname}`,
-        files: [imageFile],
-      });
+    // Desktop browsers mostly lack a share sheet
+    const canShare = 'share' in navigator;
+    if (!canShare) {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      return;
     }
-  };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        text,
-        url: `${window.location.origin}${urlPath ?? location.pathname}`,
-      });
-    } else {
-      navigator.clipboard.writeText(
-        `${text} ${window.location.origin}${urlPath ?? location.pathname}`,
-      );
-    }
-  };
+    const files = imageUrl ? [await imageFile(imageUrl)] : undefined;
+    // Rejects when the sheet is dismissed, which is fine
+    await navigator.share({ text, url, files }).catch(() => {});
+  }
 
   return (
     <Button
       size="sm"
       className={cn('h-fit', className)}
       icon={faShareAlt}
-      onClick={() =>
-        imageUrl ? handleShareWithImage(imageUrl) : handleShare()
-      }
+      onClick={handleShare}
     >
-      {children}
+      {copied ? 'link copied!' : children}
     </Button>
   );
 };

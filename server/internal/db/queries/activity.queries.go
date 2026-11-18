@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadID string, cfg *config.Config) ([]models.Activity, error) {
+// GetActivityFeed returns friends' comments and reactions on the user's own drawings from the last week, newest first
+func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, cfg *config.Config) ([]models.Activity, error) {
 	friendQuery := `
 		SELECT DISTINCT CASE WHEN user1 = ? THEN user2 ELSE user1 END AS friend_id
 		FROM friendships
@@ -27,14 +28,9 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 			friendIDs[fid] = true
 		}
 	}
-	friendIDs[userID] = true // include self for submission ownership
 
-	subQuery := `SELECT id, prompt, user_id FROM user_submissions us JOIN daily_prompts dp ON us.day = dp.day WHERE us.user_id IN (` + placeholders(len(friendIDs)) + `)`
-	subArgs := make([]interface{}, 0, len(friendIDs))
-	for id := range friendIDs {
-		subArgs = append(subArgs, id)
-	}
-	subRows, err := repo.QueryContext(ctx, subQuery, subArgs...)
+	subQuery := `SELECT id, prompt, user_id FROM user_submissions us JOIN daily_prompts dp ON us.day = dp.day WHERE us.user_id = ?`
+	subRows, err := repo.QueryContext(ctx, subQuery, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +74,7 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 	for commentRows.Next() {
 		var cID, cUserID, cUsername, cEmail, cAvatarType, cAvatarURL, cText, cSubmissionID string
 		var cUserCreatedAt, cCreatedAt time.Time
-		if err := commentRows.Scan(&cID, &cUserID, &cUsername, &cEmail, &cUserCreatedAt, &cText, &cCreatedAt, &cSubmissionID); err == nil {
+		if err := commentRows.Scan(&cID, &cUserID, &cUsername, &cEmail, &cUserCreatedAt, &cAvatarType, &cAvatarURL, &cText, &cCreatedAt, &cSubmissionID); err == nil {
 			if cUserID == userID {
 				continue
 			} // skip own actions
@@ -88,7 +84,7 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 			info := subMap[cSubmissionID]
 			activities = append(activities, models.Activity{
 				ID:     "comment-" + cID,
-				User:   models.User{ID: cUserID, Username: cUsername, Email: cEmail, CreatedAt: cUserCreatedAt},
+				User:   models.User{ID: cUserID, Username: cUsername, Email: cEmail, CreatedAt: cUserCreatedAt, AvatarType: cAvatarType, AvatarURL: cAvatarURL},
 				Action: models.ActivityActionComment,
 				Date:   cCreatedAt,
 				Comment: &models.Comment{
@@ -164,34 +160,24 @@ func GetActivityFeed(repo *sql.DB, ctx context.Context, userID string, lastReadI
 		})
 	}
 
-	for i := range activities {
-		if lastReadID != "" && activities[i].ID <= lastReadID {
-			activities[i].IsRead = true
-		}
-	}
-
 	return activities, nil
 }
 
-func GetLastReadActivityID(repo *sql.DB, ctx context.Context, userID string) (string, error) {
-	query := `SELECT last_read_activity_id FROM activity_reads WHERE user_id = ?`
-	var id sql.NullString
-	err := repo.QueryRowContext(ctx, query, userID).Scan(&id)
+// GetActivitySeenAt returns when the user last caught up on their activity, or the zero time if never
+func GetActivitySeenAt(repo *sql.DB, ctx context.Context, userID string) (time.Time, error) {
+	var seenAt sql.NullTime
+	err := repo.QueryRowContext(ctx, `SELECT last_read_date FROM activity_reads WHERE user_id = ?`, userID).Scan(&seenAt)
 	if err == sql.ErrNoRows {
-		return "", nil
+		return time.Time{}, nil
 	}
-	if err != nil {
-		return "", err
-	}
-	if id.Valid {
-		return id.String, nil
-	}
-	return "", nil
+	return seenAt.Time, err
 }
 
-func SetLastReadActivityID(repo *sql.DB, ctx context.Context, userID, activityID string) error {
-	query := `INSERT INTO activity_reads (user_id, last_read_activity_id, last_read_date) VALUES (?, ?, CURRENT_TIMESTAMP)
-		ON CONFLICT(user_id) DO UPDATE SET last_read_activity_id = excluded.last_read_activity_id, last_read_date = excluded.last_read_date`
-	_, err := repo.ExecContext(ctx, query, userID, activityID)
+// SetActivitySeenAt marks everything up to seenAt as read. It never moves backwards,
+// so a stale device can't resurrect activity another device already cleared.
+func SetActivitySeenAt(repo *sql.DB, ctx context.Context, userID string, seenAt time.Time) error {
+	query := `INSERT INTO activity_reads (user_id, last_read_date) VALUES (?, ?)
+		ON CONFLICT(user_id) DO UPDATE SET last_read_date = MAX(last_read_date, excluded.last_read_date)`
+	_, err := repo.ExecContext(ctx, query, userID, seenAt.UTC())
 	return err
 }

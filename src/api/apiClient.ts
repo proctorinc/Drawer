@@ -337,12 +337,11 @@ export const apiClient = {
     return response.json();
   },
 
-  markActivityRead: async (
-    activityId: string,
-  ): Promise<{ message: string }> => {
-    const response = await fetchAPI('POST', '/activity', {
+  /** Marks all activity up to `seenAt` (an ISO date) as read */
+  markActivityRead: async (seenAt: string): Promise<{ message: string }> => {
+    const response = await fetchAPI('POST', '/activity/view', {
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ activityId }),
+      body: JSON.stringify({ seenAt }),
     });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));

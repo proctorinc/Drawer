@@ -1,0 +1,189 @@
+import { useState } from 'react';
+import Polaroid from './Polaroid';
+import type { FC, ReactNode } from 'react';
+import type { UserPromptSubmission } from '@/api/Api';
+import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
+import { useDailyPrompt } from '@/daily/DailyPromptContext';
+import Chip from '@/components/Chip';
+import { ArrowLeftIcon, PencilIcon } from '@/components/icons';
+import { parseDay } from '@/days';
+import { cn, dabShapes } from '@/utils';
+
+type DayGroup = {
+  day: string;
+  submissions: Array<UserPromptSubmission>;
+};
+
+function groupByDay(feed: Array<UserPromptSubmission>): Array<DayGroup> {
+  const groups: Array<DayGroup> = [];
+  for (const submission of feed) {
+    const last = groups.at(-1);
+    if (last?.day === submission.day) {
+      last.submissions.push(submission);
+    } else {
+      groups.push({ day: submission.day, submissions: [submission] });
+    }
+  }
+  return groups;
+}
+
+// Compare dates only, in case one side carries a time
+const isSameDay = (a: string, b: string) => a.slice(0, 10) === b.slice(0, 10);
+
+const dayLabel = (day: string) =>
+  parseDay(day)
+    .toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    })
+    .toLowerCase();
+
+const StillDrawing = ({ count }: { count: number }) => (
+  <div className="flex flex-col items-center justify-center gap-1.5 mt-3 p-3 min-h-48 border-2 border-dashed border-[#a79f93] rounded-[10px_14px_8px_12px] text-[#5e5868] text-lg text-center animate-drop">
+    <PencilIcon size={36} strokeWidth={1.6} className="animate-nudge" />
+    {count} {count === 1 ? 'friend' : 'friends'} still drawing…
+  </div>
+);
+
+type DayPageProps = {
+  title: string;
+  submissions: Array<UserPromptSubmission>;
+  /** Extra tile at the end of the grid */
+  lastTile?: ReactNode;
+};
+
+/** One day's prompt and its pinned polaroids */
+const DayPage: FC<DayPageProps> = ({ title, submissions, lastTile }) => {
+  const { prompt, colors, createdBy } = submissions[0];
+
+  return (
+    <section className="flex flex-col gap-3 w-full">
+      <div className="flex justify-between items-end">
+        <h2 className="font-accent font-bold text-[32px] leading-none">
+          {title}
+        </h2>
+        <span className="text-pencil text-[17px]">
+          {submissions.length} pinned
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Chip>
+          <span className="flex gap-0.5">
+            {colors.slice(0, 3).map((color, i) => (
+              <span
+                key={color + i}
+                className={`size-2.5 ${dabShapes[i % dabShapes.length]}`}
+                style={{ backgroundColor: color }}
+              />
+            ))}
+          </span>
+          {prompt.toLowerCase()}
+        </Chip>
+        {createdBy && <Chip className="bg-sky">by {createdBy.username}</Chip>}
+      </div>
+      <div className="grid grid-cols-2 gap-x-3.5 gap-y-5 pt-3">
+        {submissions.map((submission, index) => (
+          <Polaroid key={submission.id} submission={submission} index={index} />
+        ))}
+        {lastTile}
+      </div>
+    </section>
+  );
+};
+
+/** Today's polaroids, with a placeholder for friends who haven't pinned one yet */
+export const TodayWall = () => {
+  const { profile } = useMyProfilePage();
+  const { dailyPrompt } = useDailyPrompt();
+  if (!profile) return null;
+
+  if (!dailyPrompt) {
+    return (
+      <div className="flex flex-col items-center gap-1 w-full text-center">
+        <h1 className="font-accent font-bold text-[32px] leading-none">
+          no prompt today
+        </h1>
+        <p className="text-lg text-pencil">
+          take a breather, there's a fresh page tomorrow
+        </p>
+      </div>
+    );
+  }
+
+  const today = profile.feed.filter((submission) =>
+    isSameDay(submission.day, dailyPrompt.day),
+  );
+  if (today.length === 0) {
+    return (
+      <div className="flex flex-col items-center gap-1 py-10 text-center text-pencil text-lg">
+        <PencilIcon size={40} strokeWidth={1.6} className="animate-nudge" />
+        nothing pinned yet. go draw something!
+      </div>
+    );
+  }
+
+  const friendsPinned = today.filter(
+    (submission) => submission.user.id !== profile.user.id,
+  ).length;
+  const stillDrawing = Math.max(profile.friends.length - friendsPinned, 0);
+
+  return (
+    <DayPage
+      title="today's wall"
+      submissions={today}
+      lastTile={stillDrawing > 0 && <StillDrawing count={stillDrawing} />}
+    />
+  );
+};
+
+const DAYS_PER_FLIP = 3;
+
+const bookButtonClass =
+  'press inline-flex items-center gap-2 h-11 px-4 bg-white border-2 border-ink rounded-sketch shadow-pencil-sm font-accent font-bold text-xl cursor-pointer';
+
+/** Earlier days stay closed until you flip back to them, a few at a time */
+export const PastPages = () => {
+  const { profile } = useMyProfilePage();
+  const { dailyPrompt } = useDailyPrompt();
+  const [daysShown, setDaysShown] = useState(0);
+
+  const pastDays = groupByDay(profile?.feed ?? []).filter(
+    (group) => !dailyPrompt || !isSameDay(group.day, dailyPrompt.day),
+  );
+  if (pastDays.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-10 w-full pt-4">
+      {pastDays.slice(0, daysShown).map((group) => (
+        <DayPage
+          key={group.day}
+          title={dayLabel(group.day)}
+          submissions={group.submissions}
+        />
+      ))}
+      <div className="flex flex-wrap justify-center gap-3">
+        {daysShown < pastDays.length && (
+          <button
+            onClick={() => setDaysShown((shown) => shown + DAYS_PER_FLIP)}
+            className={bookButtonClass}
+          >
+            <ArrowLeftIcon size={18} />
+            {daysShown === 0 ? 'flip back through past pages' : 'keep flipping'}
+          </button>
+        )}
+        {daysShown > 0 && (
+          <button
+            onClick={() => setDaysShown(0)}
+            className={cn(
+              bookButtonClass,
+              'bg-transparent shadow-none border-dashed',
+            )}
+          >
+            close the book
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};

@@ -1,4 +1,7 @@
-import { createContext, useContext, type FC, type ReactNode } from 'react';
+import { createContext, useContext } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
+import type { FC, ReactNode } from 'react';
 import type { AchievementsAndRewardsResponse, GetMeResponse } from '@/api/Api';
 import {
   queryKeys,
@@ -8,8 +11,6 @@ import {
   useUploadCustomAvatar,
 } from '@/api/Api';
 import LoadingScreen from '@/components/LoadingScreen';
-import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
 
 type MyProfilePageContextType = {
   profile?: GetMeResponse;

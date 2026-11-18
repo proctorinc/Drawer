@@ -51,6 +51,9 @@ export const DailyPromptProvider: FC<Props> = ({ children }) => {
         onSuccess();
         queryClient.invalidateQueries({ queryKey: queryKeys.daily });
         queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
+        // You're now on today's roll call, and new trophies may have unlocked
+        queryClient.invalidateQueries({ queryKey: queryKeys.activityFeed });
+        queryClient.invalidateQueries({ queryKey: ['trophies'] });
       },
       onError: onError,
     });
