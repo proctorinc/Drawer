@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import Polaroid from './Polaroid';
+import { Crayons, PromptTitle } from './PromptTitle';
 import type { FC, ReactNode } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
-import Lights from '@/events/christmas/Lights';
 import { useChristmas } from '@/events/useChristmas';
+import Lights from '@/events/christmas/Lights';
 import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
 import Chip from '@/components/Chip';
 import { ArrowLeftIcon, PencilIcon } from '@/components/icons';
 import { parseDay } from '@/days';
-import { cn, dabShapes } from '@/utils';
+import { cn } from '@/utils';
 
 type DayGroup = {
   day: string;
@@ -49,7 +50,9 @@ const StillDrawing = ({ count }: { count: number }) => (
 );
 
 type DayPageProps = {
-  title: string;
+  /** Defaults to the day's prompt under a small date line */
+  header?: ReactNode;
+  title?: string;
   submissions: Array<UserPromptSubmission>;
   /** Extra tile at the end of the grid */
   lastTile?: ReactNode;
@@ -59,6 +62,7 @@ type DayPageProps = {
 
 /** One day's prompt and its pinned polaroids */
 const DayPage: FC<DayPageProps> = ({
+  header,
   title,
   submissions,
   lastTile,
@@ -68,29 +72,27 @@ const DayPage: FC<DayPageProps> = ({
 
   return (
     <section className="flex flex-col gap-3 w-full">
-      <div className="flex justify-between items-end">
-        <h2 className="font-accent font-bold text-[32px] leading-none">
-          {title}
-        </h2>
-        <span className="text-pencil text-[17px]">
-          {submissions.length} pinned
-        </span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Chip>
-          <span className="flex gap-0.5">
-            {colors.slice(0, 3).map((color, i) => (
-              <span
-                key={color + i}
-                className={`size-2.5 ${dabShapes[i % dabShapes.length]}`}
-                style={{ backgroundColor: color }}
-              />
-            ))}
-          </span>
-          {prompt.toLowerCase()}
-        </Chip>
-        {createdBy && <Chip className="bg-sky">by {createdBy.username}</Chip>}
-      </div>
+      {header ?? (
+        <>
+          <div className="flex justify-between items-end">
+            <h2 className="font-accent font-bold text-[32px] leading-none">
+              {title}
+            </h2>
+            <span className="text-pencil text-[17px]">
+              {submissions.length} pinned
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Chip>
+              <Crayons colors={colors} size="sm" />
+              {prompt.toLowerCase()}
+            </Chip>
+            {createdBy && (
+              <Chip className="bg-sky">by {createdBy.username}</Chip>
+            )}
+          </div>
+        </>
+      )}
       {festive && <Lights bulbs={8} className="-mx-6 -mb-6" />}
       <div className="grid grid-cols-2 gap-x-3.5 gap-y-5 pt-3">
         {submissions.map((submission, index) => (
@@ -146,9 +148,30 @@ export const TodayWall = () => {
 
   return (
     <DayPage
-      title={christmas ? "today's tree" : "today's wall"}
-      submissions={today}
       festive={!!christmas}
+      header={
+        <div className="flex flex-col gap-3">
+          {christmas && (
+            <span className="-mb-2 font-cursive text-2xl text-xmas-green">
+              today's tree
+            </span>
+          )}
+          <PromptTitle
+            prompt={dailyPrompt.prompt}
+            colors={dailyPrompt.colors}
+          />
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-pencil">
+            <Crayons colors={dailyPrompt.colors} />
+            {dailyPrompt.createdBy && (
+              <Chip className="bg-sky">
+                by {dailyPrompt.createdBy.username}
+              </Chip>
+            )}
+            <span className="ml-auto">{today.length} pinned</span>
+          </div>
+        </div>
+      }
+      submissions={today}
       lastTile={stillDrawing > 0 && <StillDrawing count={stillDrawing} />}
     />
   );

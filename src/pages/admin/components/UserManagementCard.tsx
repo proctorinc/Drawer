@@ -33,7 +33,7 @@ export function UserManagementCard({
   const filteredUsers = users.filter(
     (user) =>
       user.username.includes(searchInput) ||
-      user.email.includes(searchInput) ||
+      user.email?.includes(searchInput) ||
       user.id.includes(searchInput),
   );
 

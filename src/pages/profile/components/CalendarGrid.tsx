@@ -2,6 +2,8 @@ import type { CSSProperties } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
 import { parseDay } from '@/days';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
+import { LockedDrawing } from '@/drawing/components/LockedDrawing';
+import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 import { cn } from '@/utils';
 
 const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -39,6 +41,7 @@ const CalendarGrid = ({
   joined,
   onDrawingClick,
 }: Props) => {
+  const isLocked = useIsDrawingLocked();
   const drawingsByDay = new Map(
     prompts.map((prompt) => [parseDay(prompt.day).toDateString(), prompt]),
   );
@@ -84,7 +87,9 @@ const CalendarGrid = ({
             }
             onClick={() => drawing && onDrawingClick(drawing)}
           >
-            {drawing ? (
+            {drawing && isLocked(drawing) ? (
+              <LockedDrawing className="border-0" />
+            ) : drawing ? (
               <DrawingImage
                 imageUrl={drawing.imageUrl}
                 className="w-full h-full object-cover"

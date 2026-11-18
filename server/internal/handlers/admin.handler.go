@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"drawer-service-backend/internal/context"
+	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
@@ -52,7 +53,7 @@ func HandleGetAdminDashboard(c *gin.Context) {
 			"username": adminUser.Username,
 			"email":    adminUser.Email,
 		},
-		"users":         users,
+		"users":         accounts(users),
 		"futurePrompts": futurePrompts,
 		"stats": gin.H{
 			"overall": gin.H{
@@ -197,4 +198,13 @@ func HandleGetAdminActionStats(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, stats)
+}
+
+// accounts shows admins each user's email, which plain Users leave out
+func accounts(users []models.User) []models.Account {
+	result := make([]models.Account, len(users))
+	for i, user := range users {
+		result[i] = user.Account()
+	}
+	return result
 }

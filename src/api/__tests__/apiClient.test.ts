@@ -232,8 +232,9 @@ describe('API Client', () => {
     });
 
     it('should mark activity as read successfully', async () => {
-      const activityId = 'activity123';
-      const result = await apiClient.markActivityRead(activityId);
+      const result = await apiClient.markActivityRead(
+        '2026-11-18T12:00:00Z',
+      );
 
       expect(result).toBeDefined();
       expect(result).toHaveProperty('message');

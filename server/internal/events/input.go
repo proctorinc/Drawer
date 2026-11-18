@@ -2,6 +2,7 @@ package events
 
 import (
 	"drawer-service-backend/internal/db/models"
+	"drawer-service-backend/internal/reactions"
 	"errors"
 	"fmt"
 	"regexp"
@@ -61,6 +62,9 @@ func (in EventInput) ToEvent() (models.Event, error) {
 	for _, reaction := range in.Reactions {
 		if !reactionIdPattern.MatchString(reaction) {
 			return models.Event{}, fmt.Errorf("invalid reaction id %q", reaction)
+		}
+		if !reactions.IsEventOnly(reaction) {
+			return models.Event{}, fmt.Errorf("%q isn't an event reaction in reactions.json", reaction)
 		}
 		if !seen[reaction] {
 			seen[reaction] = true

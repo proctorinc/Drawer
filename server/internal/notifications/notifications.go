@@ -7,34 +7,55 @@ import (
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/SherClockHolmes/webpush-go"
 )
 
-func SendWebPush(sub models.PushSubscription, message string, vapidPublic, vapidPrivate string) error {
-	subJSON := webpush.Subscription{
+// errSubscriptionGone means the push service no longer knows the subscription
+// (the user revoked permission, cleared site data, or it expired).
+var errSubscriptionGone = errors.New("push subscription is gone")
+
+func sendWebPush(sub models.PushSubscription, message []byte, cfg *config.Config) error {
+	resp, err := webpush.SendNotification(message, &webpush.Subscription{
 		Endpoint: sub.Endpoint,
-		Keys: webpush.Keys{
-			P256dh: sub.P256dh,
-			Auth:   sub.Auth,
-		},
-	}
-	resp, err := webpush.SendNotification([]byte(message), &subJSON, &webpush.Options{
-		VAPIDPublicKey:  vapidPublic,
-		VAPIDPrivateKey: vapidPrivate,
+		Keys:     webpush.Keys{P256dh: sub.P256dh, Auth: sub.Auth},
+	}, &webpush.Options{
+		Subscriber:      cfg.VAPIDSubject,
+		VAPIDPublicKey:  cfg.VAPIDPublicKey,
+		VAPIDPrivateKey: cfg.VAPIDPrivateKey,
 		TTL:             30,
 	})
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+
+	// Push services report rejections as ordinary HTTP responses, not errors
+	switch {
+	case resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone:
+		return errSubscriptionGone
+	case resp.StatusCode >= 300:
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		return fmt.Errorf("push service returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
 	return nil
 }
 
-// SendNotificationToUser sends a notification to a specific user
+// SendNotificationToUser sends a notification to every device the user has subscribed
 func SendNotificationToUser(repo *sql.DB, userID string, data models.NotificationData, cfg *config.Config) error {
-	subscriptions, err := queries.GetUserPushSubscriptions(repo, context.Background(), userID)
+	if cfg.VAPIDPublicKey == "" || cfg.VAPIDPrivateKey == "" {
+		return errors.New("VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be set to send push notifications")
+	}
+
+	ctx := context.Background()
+	subscriptions, err := queries.GetUserPushSubscriptions(repo, ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -44,16 +65,28 @@ func SendNotificationToUser(repo *sql.DB, userID string, data models.Notificatio
 		return err
 	}
 
+	var failures []error
 	for _, sub := range subscriptions {
-		pushSub := models.PushSubscription{
-			Endpoint: sub.Endpoint,
-			P256dh:   sub.P256dh,
-			Auth:     sub.Auth,
+		err := sendWebPush(models.PushSubscription(sub), message, cfg)
+		if errors.Is(err, errSubscriptionGone) {
+			if err := queries.DeletePushSubscription(repo, ctx, sub.Endpoint); err != nil {
+				log.Printf("Failed to delete expired push subscription for user %s: %v", userID, err)
+			}
+			continue
 		}
-		if err := SendWebPush(pushSub, string(message), cfg.VAPIDPublicKey, cfg.VAPIDPrivateKey); err != nil {
+		if err != nil {
+			failures = append(failures, fmt.Errorf("%s: %w", endpointHost(sub.Endpoint), err))
 		}
 	}
-	return nil
+	return errors.Join(failures...)
+}
+
+// endpointHost identifies the push service without logging the per-device token in the URL
+func endpointHost(endpoint string) string {
+	if u, err := url.Parse(endpoint); err == nil {
+		return u.Host
+	}
+	return "unknown push service"
 }
 
 // NotifyFriendsOfSubmission sends notifications to friends when a user submits

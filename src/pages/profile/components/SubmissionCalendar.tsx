@@ -33,7 +33,10 @@ type Props = {
 const SubmissionCalendar: FC<Props> = ({ profile }) => {
   const navigate = useNavigate();
   const { dailyPrompt } = useDailyPrompt();
-  const today = dailyPrompt ? parseDay(dailyPrompt.day) : new Date();
+  // Midnight, so today itself never counts as already gone by
+  const today = dailyPrompt
+    ? parseDay(dailyPrompt.day)
+    : new Date(new Date().setHours(0, 0, 0, 0));
   const [month, setMonth] = useState(today);
 
   const joined = new Date(profile.user.createdAt);

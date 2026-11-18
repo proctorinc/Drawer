@@ -135,7 +135,7 @@ func TestAdminEvents(t *testing.T) {
 	valid := map[string]any{
 		"slug": "spooky-2027", "name": "Spooky", "theme": "halloween",
 		"startsAt": "2027-10-29T00:00:00Z", "endsAt": "2027-11-01T00:00:00Z",
-		"countdownDays": nil, "reactions": []string{"pumpkin"},
+		"countdownDays": nil, "reactions": []string{"snowflake"},
 	}
 
 	code, created := request(t, router, "POST", "/admin/events", valid)
@@ -177,7 +177,6 @@ func TestAdminEvents(t *testing.T) {
 }
 
 func TestEventReactionsAllowedOnlyDuringEvent(t *testing.T) {
-	always := map[string]bool{"heart": true}
 	tests := []struct {
 		fakeNow, reaction string
 		want              bool
@@ -194,7 +193,7 @@ func TestEventReactionsAllowedOnlyDuringEvent(t *testing.T) {
 		var got bool
 		var err error
 		router.GET("/check", func(c *gin.Context) {
-			got, err = isReactionAllowed(c, always, tt.reaction)
+			got, err = isReactionAllowed(c, tt.reaction)
 			c.JSON(http.StatusOK, gin.H{})
 		})
 		request(t, router, "GET", "/check", nil)

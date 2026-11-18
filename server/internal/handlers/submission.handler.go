@@ -172,6 +172,10 @@ func HandleGetSubmissionByID(c *gin.Context) {
 		CreatedAt: submissionCreatedAt.Time,
 	}
 
+	if err := queries.HideTodaysDrawings(appCtx.DB, c.Request.Context(), requester.ID, []*models.UserPromptSubmission{&resp}); err != nil {
+		log.Printf("Error checking whether user %s drew today: %v", requester.ID, err)
+	}
+
 	// Set isFavorite if the requester is the owner and the submission is favorited
 	if requester.ID == userID {
 		var favID string
@@ -218,14 +222,7 @@ func HandleSubmissionToggleReaction(c *gin.Context) {
 		return
 	}
 
-	// Validate reaction ID
-	validReactions := map[string]bool{
-		"heart":     true,
-		"cry-laugh": true,
-		"face-meh":  true,
-		"fire":      true,
-	}
-	if allowed, err := isReactionAllowed(c, validReactions, body.ReactionID); err != nil {
+	if allowed, err := isReactionAllowed(c, body.ReactionID); err != nil {
 		log.Printf("Error checking event reactions for %s: %v", body.ReactionID, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to toggle reaction"})
 		return

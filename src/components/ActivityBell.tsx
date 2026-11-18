@@ -1,67 +1,205 @@
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { BellIcon, PencilIcon } from './icons';
+import { BellIcon, FriendsIcon, PencilIcon, TrophyIcon } from './icons';
 import type { FC, ReactNode } from 'react';
-import type { Activity, ActivityFeedResponse, ReactionId } from '@/api/Api';
+import type { Activity, ActivityFeedResponse, User } from '@/api/Api';
 import { queryKeys, useActivityFeed, useMarkActivityRead } from '@/api/Api';
+import useAuth from '@/auth/hooks/useAuth';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
+import Badge from '@/pages/trophies/components/Badge';
+import { getReaction } from '@/reactions/catalog';
+import { ReactionSticker } from '@/reactions/ReactionSticker';
 import { cn, timeAgo } from '@/utils';
 
-const reactionVerbs: Record<ReactionId, string> = {
-  heart: 'loved',
-  'cry-laugh': 'cracked up at',
-  fire: 'thinks this is fire:',
-  'face-meh': 'shrugged at',
-  snowflake: 'sent a snowflake to',
-  gift: 'left a gift on',
+const useIsMe = () => {
+  const { user } = useAuth();
+  return (other: User) => other.id === user?.id;
 };
 
-const ActivityText: FC<{ activity: Activity }> = ({ activity }) => {
-  const name = <b className="font-bold">{activity.user.username}</b>;
+const Name: FC<{ user: User }> = ({ user }) => (
+  <b className="font-bold">{user.username}</b>
+);
 
-  if (activity.action === 'poke') {
-    return <>{name} poked you to draw</>;
-  }
-  if (activity.comment) {
-    return (
-      <>
-        {name} said “{activity.comment.text}”
-      </>
-    );
-  }
-  return (
-    <>
-      {name} {reactionVerbs[activity.reaction?.reactionId ?? 'heart']} your{' '}
-      <i>{withoutArticle(activity.submission?.prompt ?? '')}</i>
-    </>
-  );
+/** "ann", "ann and bob", "ann, bob and cat", or "ann, bob and 3 others" */
+const Names: FC<{ users: Array<User> }> = ({ users }) => {
+  const shown = users.length > 3 ? users.slice(0, 2) : users;
+  const others = users.length - shown.length;
+  const parts = [
+    ...shown.map((user) => <Name key={user.id} user={user} />),
+    ...(others > 0 ? [`${others} others`] : []),
+  ];
+  return parts.map((part, i) => (
+    <Fragment key={i}>
+      {i > 0 && (i === parts.length - 1 ? ' and ' : ', ')}
+      {part}
+    </Fragment>
+  ));
 };
 
 /** "A goalie" → "goalie", so it reads "your goalie" */
 const withoutArticle = (prompt: string) =>
   prompt.toLowerCase().replace(/^(a|an|the)\s+/, '');
 
+/** One person's single kind of reaction gets its own verb ("loved"); a mix doesn't */
+const reactionVerb = (activity: Activity) =>
+  activity.users?.length === 1 && activity.reactionIds?.length === 1
+    ? getReaction(activity.reactionIds[0]).verb
+    : 'reacted to';
+
+const ActivityText: FC<{ activity: Activity }> = ({ activity }) => {
+  const isMe = useIsMe();
+  const name = <Name user={activity.user} />;
+  const names = <Names users={activity.users ?? [activity.user]} />;
+  const count = activity.count ?? 1;
+  const drawing = activity.submission && (
+    <>
+      {isMe(activity.submission.artist)
+        ? 'your'
+        : `${activity.submission.artist.username}'s`}{' '}
+      <i>{withoutArticle(activity.submission.prompt)}</i>
+    </>
+  );
+
+  switch (activity.action) {
+    case 'poke':
+      return <>{name} poked you to draw</>;
+    case 'achievement':
+      return (
+        <>
+          {isMe(activity.user) ? 'You' : name} earned{' '}
+          <i>{activity.achievement?.name}</i>
+        </>
+      );
+    case 'level_up':
+      return <>You reached level {activity.level}!</>;
+    case 'friend_request':
+      return <>{name} sent you a friend request</>;
+    case 'friend_accepted':
+      return <>{name} accepted your friend request</>;
+    case 'comment':
+      return count === 1 ? (
+        <>
+          {names} commented on {drawing}: “{activity.comment?.text}”
+        </>
+      ) : (
+        <>
+          {names} left {count} comments on {drawing}
+        </>
+      );
+    case 'reaction':
+      return (
+        <>
+          {names} {reactionVerb(activity)} {drawing}
+        </>
+      );
+    case 'comment_reaction':
+      return (
+        <>
+          {names} {reactionVerb(activity)} your comment “
+          {activity.comment?.text}”
+        </>
+      );
+  }
+};
+
 const rowClass =
   'flex items-center gap-3 px-3 py-2.5 hover:bg-paper transition-colors';
 
-/** Pokes open today's page; everything else opens the doodle it's on */
+/**
+ * Comments and reactions open the doodle they're on, your own milestones open Trophies,
+ * pokes open today's page, and everything else opens the other person's profile
+ */
 const ActivityLink: FC<{
   activity: Activity;
   className: string;
   onClick: () => void;
   children: ReactNode;
-}> = ({ activity, ...props }) =>
-  activity.submission ? (
+}> = ({ activity, ...props }) => {
+  const isMe = useIsMe();
+
+  if (activity.submission) {
+    return (
+      <Link
+        to="/draw/submission/$submissionId"
+        params={{ submissionId: activity.submission.id }}
+        {...props}
+      />
+    );
+  }
+  if (activity.action === 'poke') {
+    return <Link to="/draw" {...props} />;
+  }
+  if (isMe(activity.user)) {
+    return <Link to="/draw/trophies" {...props} />;
+  }
+  return (
     <Link
-      to="/draw/submission/$submissionId"
-      params={{ submissionId: activity.submission.id }}
+      to="/draw/profile/$userId"
+      params={{ userId: activity.user.id }}
       {...props}
     />
-  ) : (
-    <Link to="/draw" {...props} />
   );
+};
+
+/** A square sticker standing in for a doodle on rows that aren't about one */
+const IconTile: FC<{ children: ReactNode }> = ({ children }) => (
+  <span className="flex flex-none items-center justify-center size-12 bg-butter border-[1.5px] border-ink rotate-2">
+    {children}
+  </span>
+);
+
+const ActivityThumbnail: FC<{ activity: Activity }> = ({ activity }) => {
+  if (activity.achievement) {
+    return (
+      <Badge
+        achievement={activity.achievement}
+        className="flex-none size-12 rotate-2"
+      />
+    );
+  }
+  if (activity.submission) {
+    const reactionId = activity.reactionIds?.[0];
+    return (
+      <span className="relative flex-none">
+        <DrawingImage
+          imageUrl={activity.submission.imageUrl}
+          className="!size-12 bg-[#fff8ec] border-[1.5px] border-ink -rotate-2"
+        />
+        {/* The newest reaction, stuck on the corner of the doodle it's on */}
+        {reactionId && (
+          <ReactionSticker
+            reactionId={reactionId}
+            size={24}
+            className="absolute -bottom-1.5 -left-2 rotate-[-10deg]"
+          />
+        )}
+      </span>
+    );
+  }
+  switch (activity.action) {
+    case 'level_up':
+      return (
+        <IconTile>
+          <TrophyIcon size={22} />
+        </IconTile>
+      );
+    case 'friend_request':
+    case 'friend_accepted':
+      return (
+        <IconTile>
+          <FriendsIcon size={22} />
+        </IconTile>
+      );
+    default:
+      return (
+        <IconTile>
+          <PencilIcon size={22} className="animate-nudge" />
+        </IconTile>
+      );
+  }
+};
 
 const ActivityItem: FC<{ activity: Activity; onSelect: () => void }> = ({
   activity,
@@ -90,21 +228,12 @@ const ActivityItem: FC<{ activity: Activity; onSelect: () => void }> = ({
           {timeAgo(activity.date)}
         </span>
       </div>
-      {activity.submission ? (
-        <DrawingImage
-          imageUrl={activity.submission.imageUrl}
-          className="flex-none !size-12 bg-[#fff8ec] border-[1.5px] border-ink -rotate-2"
-        />
-      ) : (
-        <span className="flex flex-none items-center justify-center size-12 bg-butter border-[1.5px] border-ink rotate-2">
-          <PencilIcon size={22} className="animate-nudge" />
-        </span>
-      )}
+      <ActivityThumbnail activity={activity} />
     </ActivityLink>
   </li>
 );
 
-/** Masthead bell: counts reactions, comments and pokes you haven't seen, and opens a quick list of them */
+/** Masthead bell: counts what's new for you (comments, reactions, pokes, friend requests, achievements and level-ups), and opens a quick list of them */
 const ActivityBell = () => {
   const queryClient = useQueryClient();
   const { data } = useActivityFeed();
@@ -139,7 +268,7 @@ const ActivityBell = () => {
       onKeyDown={(event) => event.key === 'Escape' && close()}
     >
       <button
-        aria-label={unseen > 0 ? `${unseen} new on your doodles` : 'Activity'}
+        aria-label={unseen > 0 ? `${unseen} new for you` : 'Activity'}
         aria-expanded={open}
         onClick={() => (open ? close() : setOpen(true))}
         className="press relative flex flex-none items-center justify-center size-10 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil-sm cursor-pointer"
@@ -167,7 +296,7 @@ const ActivityBell = () => {
             className="absolute right-0 top-full z-50 mt-3 w-[min(20rem,calc(100vw-2.5rem))] max-h-[70dvh] overflow-y-auto bg-white border-2 border-ink rounded-sketch shadow-pencil origin-top-right animate-in fade-in zoom-in-95 duration-200"
           >
             <h2 className="px-3 pt-3 pb-1 font-accent font-bold text-2xl leading-none">
-              on your doodles
+              what's new
             </h2>
             {activities.length === 0 ? (
               <p className="flex flex-col items-center gap-1 px-4 py-6 text-center text-pencil">

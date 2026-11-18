@@ -195,7 +195,7 @@ func TestEventInputValidation(t *testing.T) {
 	valid := EventInput{
 		Slug: "spooky-2027", Name: " Spooky ", Theme: "halloween",
 		StartsAt: utc("2027-10-29T00:00:00-07:00"), EndsAt: utc("2027-11-01T00:00:00Z"),
-		CountdownDays: days(3), Reactions: []string{"pumpkin", "ghost", "pumpkin"},
+		CountdownDays: days(3), Reactions: []string{"snowflake", "gift", "snowflake"},
 	}
 
 	event, err := valid.ToEvent()
@@ -213,6 +213,7 @@ func TestEventInputValidation(t *testing.T) {
 		"missing startsAt":   func(in *EventInput) { in.StartsAt = time.Time{} },
 		"ends before starts": func(in *EventInput) { in.EndsAt = in.StartsAt.Add(-time.Hour) },
 		"ends at start":      func(in *EventInput) { in.EndsAt = in.StartsAt },
+		"everyday reaction":  func(in *EventInput) { in.Reactions = []string{"heart"} },
 		"zero countdown":     func(in *EventInput) { in.CountdownDays = days(0) },
 		"countdown too long": func(in *EventInput) { in.CountdownDays = days(30) },
 		"bad reaction id":    func(in *EventInput) { in.Reactions = []string{"Snow Flake"} },

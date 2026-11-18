@@ -18,6 +18,8 @@ type Props = {
   hidden?: boolean;
   backgroundColor?: string;
   isLoading?: boolean;
+  /** Shrink the canvas to fit the height this component is given */
+  fit?: boolean;
   /** Christmas event: candy-cane tape instead of colored tape */
   festive?: boolean;
 } & Omit<HTMLAttributes<HTMLDivElement>, 'onSubmit'>;
@@ -37,6 +39,7 @@ const DrawingCanvas: FC<Props> = ({
   hidden,
   backgroundColor,
   isLoading = false,
+  fit = false,
   festive = false,
   ...props
 }) => {
@@ -96,36 +99,47 @@ const DrawingCanvas: FC<Props> = ({
       )}
       {...divProps}
     >
-      {/* The canvas itself stays square to the screen so strokes land where the finger is */}
-      <div className="relative animate-drop">
-        <div
-          className={cn(
-            'overflow-hidden bg-white border-2 border-ink shadow-pencil',
-            variant === 'round'
-              ? 'rounded-full'
-              : 'rounded-[6px_14px_8px_12px/12px_6px_14px_8px]',
-          )}
-        >
-          <Canvas
-            ref={canvasRef}
-            style={{ backgroundColor: backgroundColor }}
-            {...canvasProps}
-          />
-        </div>
-        {variant === 'square' && (
-          <>
-            <span
-              aria-hidden="true"
-              className="absolute -top-2.5 -left-3.5 w-[84px] h-[26px] -rotate-[32deg] animate-in fade-in zoom-in-150 duration-300 delay-500 fill-mode-both"
-              style={tapeStyle(0)}
-            />
-            <span
-              aria-hidden="true"
-              className="absolute -bottom-2 -right-3.5 w-[84px] h-[26px] -rotate-[28deg] animate-in fade-in zoom-in-150 duration-300 delay-700 fill-mode-both"
-              style={tapeStyle(1)}
-            />
-          </>
+      {/* A size container lets the canvas cap itself at the space left over */}
+      <div
+        className={cn(
+          'flex justify-center w-full',
+          fit && 'flex-1 min-h-0 items-center [container-type:size]',
         )}
+      >
+        {/* The canvas itself stays square to the screen so strokes land where the finger is */}
+        <div className="relative animate-drop">
+          <div
+            className={cn(
+              'overflow-hidden bg-white border-2 border-ink shadow-pencil',
+              variant === 'round'
+                ? 'rounded-full'
+                : 'rounded-[6px_14px_8px_12px/12px_6px_14px_8px]',
+            )}
+          >
+            <Canvas
+              ref={canvasRef}
+              style={{ backgroundColor: backgroundColor }}
+              className={cn(
+                fit && 'max-w-[calc(100cqw-4px)] max-h-[calc(100cqh-4px)]',
+              )}
+              {...canvasProps}
+            />
+          </div>
+          {variant === 'square' && (
+            <>
+              <span
+                aria-hidden="true"
+                className="absolute -top-2.5 -left-3.5 w-[84px] h-[26px] -rotate-[32deg] animate-in fade-in zoom-in-150 duration-300 delay-500 fill-mode-both"
+                style={tapeStyle(0)}
+              />
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-2 -right-3.5 w-[84px] h-[26px] -rotate-[28deg] animate-in fade-in zoom-in-150 duration-300 delay-700 fill-mode-both"
+                style={tapeStyle(1)}
+              />
+            </>
+          )}
+        </div>
       </div>
       {colors && <Toolbar colors={colors} />}
       <div className="flex gap-2 w-full">

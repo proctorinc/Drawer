@@ -64,7 +64,7 @@ func HandleRegister(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, user.Account())
 }
 
 // HandleLogout ends any admin impersonation; the Clerk session itself is signed out on the frontend.

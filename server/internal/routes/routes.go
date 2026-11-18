@@ -96,6 +96,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			authGroup.POST("/activity/view", handlers.HandlePostActivity)
 			authGroup.POST("/favorite/swap", handlers.HandleSwapFavoriteOrder)
 
+			authGroup.GET("/notifications/vapid-public-key", handlers.HandleGetVAPIDPublicKey)
 			authGroup.POST("/notifications/subscribe", handlers.HandleSubscribePush)
 			authGroup.POST("/notifications/unsubscribe", handlers.HandleUnsubscribePush)
 

@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	stdcontext "context"
+	"database/sql"
 	"drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
+	"fmt"
 	"log"
 	"net/http"
 	"sort"
@@ -14,28 +17,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// HandleGetActivity returns the user's activity (friends' comments and reactions on their drawings,
-// plus pokes they got) and which friends have drawn today
+// HandleGetActivity returns the user's last week of activity, newest first, and which
+// friends have drawn today
 func HandleGetActivity(c *gin.Context) {
 	appCtx := context.GetCtx(c)
 	userID := middleware.GetUserID(c)
 	ctx := c.Request.Context()
 	requester := middleware.GetUser(c)
 
-	activities, err := queries.GetActivityFeed(appCtx.DB, ctx, userID, appCtx.Config)
-	if err != nil {
-		log.Printf("HandleGetActivity: error getting activity feed for user %s: %v", userID, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activity feed"})
-		return
+	activities := []models.Activity{}
+	for _, source := range []struct {
+		name string
+		get  func() ([]models.Activity, error)
+	}{
+		{"comments, reactions and friend requests", func() ([]models.Activity, error) {
+			return queries.GetActivityFeed(appCtx.DB, ctx, userID, appCtx.Config)
+		}},
+		{"pokes", func() ([]models.Activity, error) { return queries.GetPokesReceived(appCtx.DB, ctx, userID) }},
+		{"achievements", func() ([]models.Activity, error) { return queries.GetAchievementActivity(appCtx.DB, ctx, userID) }},
+		{"level-ups", func() ([]models.Activity, error) { return getLevelUps(appCtx.DB, ctx, requester) }},
+	} {
+		found, err := source.get()
+		if err != nil {
+			log.Printf("HandleGetActivity: error getting %s for user %s: %v", source.name, userID, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activity feed"})
+			return
+		}
+		activities = append(activities, found...)
 	}
-
-	pokes, err := queries.GetPokesReceived(appCtx.DB, ctx, userID)
-	if err != nil {
-		log.Printf("HandleGetActivity: error getting pokes for user %s: %v", userID, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activity feed"})
-		return
-	}
-	activities = append(activities, pokes...)
 	sort.SliceStable(activities, func(i, j int) bool {
 		return activities[i].Date.After(activities[j].Date)
 	})
@@ -125,4 +134,36 @@ func HandlePostActivity(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "marked read"})
+}
+
+// getLevelUps finds the levels the user reached in the last week. Levels aren't stored,
+// so it replays the week's XP on top of everything before it.
+func getLevelUps(repo *sql.DB, ctx stdcontext.Context, user models.User) ([]models.Activity, error) {
+	since := time.Now().AddDate(0, 0, -7)
+	before, err := queries.GetActivityCounts(repo, ctx, []string{user.ID}, queries.BeginningOfTime, since)
+	if err != nil {
+		return nil, err
+	}
+	events, err := queries.GetXPEventsSince(repo, ctx, user.ID, since)
+	if err != nil {
+		return nil, err
+	}
+
+	xp := xpFor(before[user.ID])
+	level := levelForXP(xp).Level
+	levelUps := []models.Activity{}
+	for _, event := range events {
+		xp += xpPerKind[event.Kind]
+		if reached := levelForXP(xp).Level; reached > level {
+			level = reached
+			levelUps = append(levelUps, models.Activity{
+				ID:     fmt.Sprintf("level-%d", level),
+				User:   user,
+				Action: models.ActivityActionLevelUp,
+				Date:   event.At,
+				Level:  level,
+			})
+		}
+	}
+	return levelUps, nil
 }

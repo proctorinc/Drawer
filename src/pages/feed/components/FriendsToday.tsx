@@ -1,65 +1,124 @@
+import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { usePokeFriend } from '../api';
-import { rollCall, rollCallTagline } from '../rollCall';
+import { rollCall } from '../rollCall';
 import type { FC } from 'react';
 import type { FriendSubmissionStatus } from '@/api/Api';
 import { useActivityFeed } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
-import { CheckIcon, PencilIcon } from '@/components/icons';
+import { CheckIcon, ClockIcon } from '@/components/icons';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { cn } from '@/utils';
 
-const PokeButton: FC<{ friend: FriendSubmissionStatus }> = ({ friend }) => {
+const menuItemClass =
+  'flex items-center w-full h-10 px-3 text-left text-lg hover:bg-paper cursor-pointer disabled:cursor-default disabled:text-pencil';
+
+/** Tap a friend for a little menu: poke them if they haven't drawn, or open their book */
+const FriendMenu: FC<{
+  friend: FriendSubmissionStatus;
+  align: 'left' | 'right';
+  onClose: () => void;
+}> = ({ friend, align, onClose }) => {
   const poke = usePokeFriend();
   const poked = friend.pokedToday || poke.isSuccess;
+  const { user, hasSubmittedToday } = friend;
 
   return (
-    <button
-      onClick={() => poke.mutate(friend.user.id)}
-      disabled={poke.isPending || poked}
-      className={cn(
-        'press h-6 px-2 border-[1.5px] border-ink rounded-[12px_9px_12px_10px] text-sm leading-none cursor-pointer disabled:cursor-default',
-        poked ? 'bg-butter animate-wiggle' : 'bg-white',
-      )}
-    >
-      {poked ? 'poked!' : poke.isError ? 'try again' : 'poke'}
-    </button>
+    <>
+      <div
+        aria-hidden="true"
+        className="fixed inset-0 z-40"
+        onClick={onClose}
+      />
+      <div
+        role="menu"
+        aria-label={user.username}
+        className={cn(
+          'absolute top-full z-50 mt-2 w-44 py-1 bg-white border-2 border-ink rounded-sketch shadow-pencil-sm animate-in fade-in zoom-in-95 duration-150',
+          align === 'left'
+            ? 'left-0 origin-top-left'
+            : 'right-0 origin-top-right',
+        )}
+      >
+        <p className="px-3 pt-1 pb-0.5 font-bold truncate">{user.username}</p>
+        <p className="px-3 pb-1 text-sm text-pencil">
+          {hasSubmittedToday ? 'drew today' : 'still drawing…'}
+        </p>
+        {!hasSubmittedToday && (
+          <button
+            role="menuitem"
+            onClick={() => poke.mutate(user.id)}
+            disabled={poke.isPending || poked}
+            className={cn(menuItemClass, poked && 'animate-wiggle')}
+          >
+            {poked ? 'poked! 👉' : poke.isError ? 'try again' : 'poke 👉'}
+          </button>
+        )}
+        <Link
+          role="menuitem"
+          to="/draw/profile/$userId"
+          params={{ userId: user.id }}
+          className={menuItemClass}
+        >
+          open their book
+        </Link>
+      </div>
+    </>
   );
 };
 
 const FriendAvatar: FC<{ friend: FriendSubmissionStatus }> = ({ friend }) => {
+  const [menuAlign, setMenuAlign] = useState<'left' | 'right' | null>(null);
   const drew = friend.hasSubmittedToday;
 
   return (
-    <li className="flex flex-none flex-col items-center gap-1 w-16">
-      <div className="relative">
+    <li
+      className="relative flex-none"
+      onKeyDown={(event) => event.key === 'Escape' && setMenuAlign(null)}
+    >
+      <button
+        aria-label={`${friend.user.username}, ${drew ? 'drew today' : 'still drawing'}`}
+        aria-haspopup="menu"
+        aria-expanded={menuAlign !== null}
+        onClick={(event) => {
+          // Open toward whichever side has room
+          const { left } = event.currentTarget.getBoundingClientRect();
+          setMenuAlign(left < window.innerWidth / 2 ? 'left' : 'right');
+        }}
+        className="relative block cursor-pointer"
+      >
+        {/* The button handles the tap, so the avatar shouldn't navigate */}
         <UserProfileIcon
           user={friend.user}
-          className={cn(!drew && 'opacity-60 grayscale-[60%]')}
+          size="sm"
+          className={cn('pointer-events-none', !drew && 'opacity-50 grayscale')}
         />
         <span
           className={cn(
-            'absolute -right-1.5 -bottom-1 flex items-center justify-center size-6 border-2 border-ink rounded-full',
-            drew ? 'bg-butter' : 'bg-white',
+            'absolute -top-1 -left-1 flex items-center justify-center size-4 border-[1.5px] border-ink rounded-full',
+            drew ? 'bg-butter' : 'bg-white text-pencil',
           )}
         >
           {drew ? (
-            <CheckIcon size={14} strokeWidth={3} />
+            <CheckIcon size={9} strokeWidth={4} />
           ) : (
-            <PencilIcon size={13} className="animate-nudge" />
+            <ClockIcon size={10} strokeWidth={2.5} />
           )}
         </span>
-      </div>
-      <span className="w-full text-center text-sm leading-tight truncate">
-        {friend.user.username}
-      </span>
-      {!drew && <PokeButton friend={friend} />}
+      </button>
+      {menuAlign && (
+        <FriendMenu
+          friend={friend}
+          align={menuAlign}
+          onClose={() => setMenuAlign(null)}
+        />
+      )}
     </li>
   );
 };
 
-/** Who's drawn today's prompt so far, with a nudge for the stragglers */
-export const FriendsToday: FC<{ iDrew: boolean }> = ({ iDrew }) => {
+/** A compact roll call: friends who drew today in color, the rest greyed out */
+export const FriendsToday = () => {
   const user = useUser();
   const { data } = useActivityFeed();
   if (!data) return null;
@@ -69,42 +128,27 @@ export const FriendsToday: FC<{ iDrew: boolean }> = ({ iDrew }) => {
 
   if (total === 0) {
     return (
-      <p className="w-full px-4 py-3 border-2 border-dashed border-line rounded-sketch text-center text-pencil text-lg">
+      <p className="w-full text-center text-pencil">
         drawing solo?{' '}
         <Link to="/draw/profile/me" className="text-ink underline">
           add friends from your book
-        </Link>{' '}
-        to see who drew today
+        </Link>
       </p>
     );
   }
 
   return (
-    <section className="flex flex-col gap-2 w-full">
-      <div className="flex justify-between items-end">
-        <h2 className="font-accent font-bold text-[28px] leading-none">
-          who drew today
-        </h2>
-        <span className="text-pencil text-[17px]">
+    <section
+      aria-label="Who drew today"
+      className="flex flex-col gap-1.5 w-full"
+    >
+      <div className="flex justify-between items-baseline text-pencil">
+        <h2>who drew today</h2>
+        <span>
           {drawn.length} of {total}
         </span>
       </div>
-      {/* One segment per friend, colored in as they draw */}
-      <div className="flex gap-1 h-3.5 p-0.5 bg-white border-2 border-ink rounded-sketch-alt">
-        {Array.from({ length: total }, (_, i) => (
-          <span
-            key={i}
-            className={cn(
-              'flex-1 rounded-sm transition-colors duration-500',
-              i < drawn.length && 'bg-butter',
-            )}
-          />
-        ))}
-      </div>
-      <p className="text-pencil">
-        {rollCallTagline(drawn.length, total, iDrew)}
-      </p>
-      <ul className="flex gap-2 -mx-6 px-6 pt-1 pb-2 overflow-x-auto stagger">
+      <ul className="flex flex-wrap gap-2">
         {[...drawn, ...stillDrawing].map((friend) => (
           <FriendAvatar key={friend.user.id} friend={friend} />
         ))}

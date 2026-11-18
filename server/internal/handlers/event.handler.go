@@ -7,6 +7,7 @@ import (
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/events"
 	"drawer-service-backend/internal/middleware"
+	"drawer-service-backend/internal/reactions"
 	"errors"
 	"log"
 	"net/http"
@@ -157,11 +158,15 @@ func HandleGetEventRecap(c *gin.Context) {
 	})
 }
 
-// isReactionAllowed accepts the always-on reactions plus those of an event active right now.
+// isReactionAllowed accepts everyday catalog reactions, plus event-only ones (see
+// reactions.json) while an event that lists them is active.
 // Reactions given during an event stay stored (and displayed) after it ends.
-func isReactionAllowed(c *gin.Context, alwaysAllowed map[string]bool, reactionID string) (bool, error) {
-	if alwaysAllowed[reactionID] {
+func isReactionAllowed(c *gin.Context, reactionID string) (bool, error) {
+	if reactions.IsValid(reactionID) {
 		return true, nil
+	}
+	if !reactions.IsEventOnly(reactionID) {
+		return false, nil
 	}
 	appCtx := requestContext.GetCtx(c)
 	return queries.IsEventReactionAllowed(appCtx.DB, c.Request.Context(), reactionID, events.Now(appCtx.Config))

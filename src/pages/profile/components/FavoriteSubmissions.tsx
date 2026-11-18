@@ -9,6 +9,8 @@ import Banner from '@/components/Banner';
 import Button from '@/components/Button';
 import { StarIcon } from '@/components/icons';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
+import { LockedDrawing } from '@/drawing/components/LockedDrawing';
+import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 import { cn } from '@/utils';
 
 // Podium order, left to right: 2nd, 1st, 3rd
@@ -30,24 +32,33 @@ const FavoriteFrame: FC<FrameProps> = ({
   isSelected,
   onClick,
   className,
-}) => (
-  <button
-    onClick={onClick}
-    aria-label={favorite.submission.prompt}
-    aria-pressed={isSelected}
-    className={cn(
-      'block w-full p-1.5 bg-white shadow-[1px_2px_6px_rgba(43,42,51,0.18)] cursor-pointer transition-[rotate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 active:scale-95',
-      isSelected && 'rotate-0 scale-105 outline-3 outline-dashed outline-coral',
-      className,
-    )}
-  >
-    <DrawingImage
-      imageUrl={favorite.submission.imageUrl}
-      draggable={false}
-      className="bg-[#fff8ec]"
-    />
-  </button>
-);
+}) => {
+  const isLocked = useIsDrawingLocked()(favorite.submission);
+
+  return (
+    <button
+      onClick={onClick}
+      aria-label={favorite.submission.prompt}
+      aria-pressed={isSelected}
+      className={cn(
+        'block w-full p-1.5 bg-white shadow-[1px_2px_6px_rgba(43,42,51,0.18)] cursor-pointer transition-[rotate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 active:scale-95',
+        isSelected &&
+          'rotate-0 scale-105 outline-3 outline-dashed outline-coral',
+        className,
+      )}
+    >
+      {isLocked ? (
+        <LockedDrawing />
+      ) : (
+        <DrawingImage
+          imageUrl={favorite.submission.imageUrl}
+          draggable={false}
+          className="bg-[#fff8ec]"
+        />
+      )}
+    </button>
+  );
+};
 
 type Props = {
   profile: GetMeResponse;
@@ -127,6 +138,9 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
         </Banner>
       )}
       {isEditing && <Banner>tap two doodles to swap their spots</Banner>}
+      {swapFavorites.isError && (
+        <Banner className="bg-blush">that swap didn't stick. try again?</Banner>
+      )}
 
       {favorites.length > 0 && (
         <div className="flex items-end justify-center gap-3 pt-2">

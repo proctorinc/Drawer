@@ -10,7 +10,11 @@ import {
 } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
+import { LockedDrawing } from '@/drawing/components/LockedDrawing';
+import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 import { CommentIcon, HeartIcon, StarIcon } from '@/components/icons';
+import { ReactionSticker } from '@/reactions/ReactionSticker';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { cn, tapeColor } from '@/utils';
 
 // Repeating per-card variety, so the wall looks hand-pinned rather than gridded
@@ -32,6 +36,7 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
   const queryClient = useQueryClient();
   const toggleReaction = useToggleSubmissionReaction();
   const toggleFavorite = useToggleSubmissionFavorite();
+  const isLocked = useIsDrawingLocked()(submission);
   // Bumped on tap to replay the pop on the icon
   const [popKey, setPopKey] = useState(0);
 
@@ -44,6 +49,8 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
     (sum, reaction) => sum + reaction.count,
     0,
   );
+  // Counts come most-picked first
+  const topReactions = submission.counts.slice(0, 2);
   const tilt = TILTS[index % TILTS.length];
 
   function refresh() {
@@ -103,19 +110,29 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
           style={{ backgroundColor: tapeColor(TAPES[index % TAPES.length]) }}
         />
       )}
+      {/* Whose doodle it is, pinned to the corner so you can tell at a glance */}
+      <UserProfileIcon
+        user={submission.user}
+        size="sm"
+        className="absolute z-10 -top-3 -left-3 -rotate-6 rounded-full shadow-pencil-sm"
+      />
       <Link
         to="/draw/submission/$submissionId"
         params={{ submissionId: submission.id }}
         aria-label={`Open ${isMine ? 'your' : `${submission.user.username}'s`} doodle`}
         className="block aspect-square bg-[#fff8ec] overflow-hidden"
       >
-        <DrawingImage imageUrl={submission.imageUrl} draggable={false} />
+        {isLocked ? (
+          <LockedDrawing />
+        ) : (
+          <DrawingImage imageUrl={submission.imageUrl} draggable={false} />
+        )}
       </Link>
       <figcaption className="flex flex-col gap-1 pt-1.5 pb-2">
         <span className="text-lg leading-tight truncate">
           {isMine ? 'you' : submission.user.username}
         </span>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <button
             onClick={handleReact}
             aria-pressed={!!isLit}
@@ -124,7 +141,9 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
                 ? isLit
                   ? 'Unpin from your book'
                   : 'Pin to your book'
-                : `Love it, ${reactionCount} reactions`
+                : isLit
+                  ? 'Take back your love'
+                  : 'Love it'
             }
             className={cn(
               pillClass,
@@ -140,8 +159,25 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
               }
               className={cn(popKey > 0 && 'animate-pop')}
             />
-            {!isMine && reactionCount}
           </button>
+          {reactionCount > 0 && (
+            <Link
+              to="/draw/submission/$submissionId"
+              params={{ submissionId: submission.id }}
+              aria-label={`${reactionCount} ${reactionCount === 1 ? 'reaction' : 'reactions'}`}
+              className={cn(pillClass, 'gap-0 pl-1 bg-white')}
+            >
+              {topReactions.map(({ reactionId }, i) => (
+                <ReactionSticker
+                  key={reactionId}
+                  reactionId={reactionId}
+                  size={20}
+                  className={cn(i > 0 && '-ml-2 rotate-12')}
+                />
+              ))}
+              <span className="ml-0.5">{reactionCount}</span>
+            </Link>
+          )}
           <Link
             to="/draw/submission/$submissionId"
             params={{ submissionId: submission.id }}

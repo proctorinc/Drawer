@@ -235,11 +235,11 @@ export const handlers = [
     });
   }),
 
-  http.post(`${baseUrl}/activity`, async ({ request }) => {
-    const body = (await request.json()) as { activityId?: string };
-    if (!body?.activityId) {
+  http.post(`${baseUrl}/activity/view`, async ({ request }) => {
+    const body = (await request.json()) as { seenAt?: string };
+    if (!body?.seenAt) {
       return HttpResponse.json(
-        { error: 'Activity ID is required' },
+        { error: 'seenAt is required' },
         { status: 400 },
       );
     }

@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -250,4 +251,30 @@ func UpdateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt str
 	}
 
 	return nil
+}
+
+// HideTodaysDrawings blanks the image of anyone else's drawing of today's
+// prompt while the viewer hasn't drawn it yet, so nobody can peek first.
+func HideTodaysDrawings(repo *sql.DB, ctx context.Context, viewerID string, submissions []*models.UserPromptSubmission) error {
+	today := utils.GetFormattedDate(time.Now())
+	var othersToday []*models.UserPromptSubmission
+	for _, submission := range submissions {
+		// Some days come back with a time after the date
+		if submission.User.ID != viewerID && strings.HasPrefix(submission.Day, today) {
+			othersToday = append(othersToday, submission)
+		}
+	}
+	if len(othersToday) == 0 {
+		return nil
+	}
+
+	drewToday, err := CheckUserSubmittedToday(repo, ctx, viewerID)
+	if err == nil && drewToday {
+		return nil
+	}
+	// Stay hidden if we couldn't tell
+	for _, submission := range othersToday {
+		submission.ImageUrl = ""
+	}
+	return err
 }

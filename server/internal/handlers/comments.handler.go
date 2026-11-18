@@ -107,14 +107,7 @@ func HandleCommentToggleReaction(c *gin.Context) {
 		return
 	}
 
-	// Validate reaction ID
-	validReactions := map[string]bool{
-		"heart":     true,
-		"cry-laugh": true,
-		"face-meh":  true,
-		"thumbs-up": true,
-	}
-	if allowed, err := isReactionAllowed(c, validReactions, body.ReactionID); err != nil {
+	if allowed, err := isReactionAllowed(c, body.ReactionID); err != nil {
 		log.Printf("Error checking event reactions for %s: %v", body.ReactionID, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to toggle reaction"})
 		return

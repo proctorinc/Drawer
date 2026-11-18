@@ -65,27 +65,30 @@ export const UserProfileIcon: FC<Props> = ({
     }
   };
 
+  // With a hat on, the wrapper takes the caller's classes (position, ring,
+  // tilt) so the hat moves and turns with the avatar
+  const iconClassName = christmas ? undefined : className;
   const icon =
     user.avatarType === 'custom' && user.avatarUrl !== '' ? (
       <CustomProfileIcon
         size={size}
         onClick={handleClick}
         user={user}
-        className={className}
+        className={iconClassName}
       />
     ) : (
       <BasicProfileIcon
         size={size}
         onClick={handleClick}
         user={user}
-        className={className}
+        className={iconClassName}
       />
     );
 
   if (!christmas) return icon;
 
   return (
-    <span className="relative inline-flex flex-none">
+    <span className={cn('relative inline-flex flex-none', className)}>
       {icon}
       <SantaHat />
     </span>

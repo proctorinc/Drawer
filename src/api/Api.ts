@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './apiClient';
-import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 
 export interface DailyPrompt {
   day: string;
@@ -21,7 +20,8 @@ export interface PromptSuggestion {
 export interface User {
   id: string;
   username: string;
-  email: string;
+  /** Only sent for your own account (and to admins) */
+  email?: string;
   createdAt: Date;
   avatarType: 'basic' | 'custom';
   avatarUrl: string;
@@ -37,20 +37,43 @@ export interface ReactionResponse {
   counts: Array<ReactionCount>;
 }
 
-export type ActivityAction = 'comment' | 'reaction' | 'poke';
+export type ActivityAction =
+  /** Comments on a drawing you made or commented on, grouped per drawing */
+  | 'comment'
+  /** Reactions to your drawing, grouped per drawing */
+  | 'reaction'
+  /** Reactions to your comment, grouped per comment */
+  | 'comment_reaction'
+  | 'poke'
+  /** Yours or a friend's */
+  | 'achievement'
+  | 'level_up'
+  | 'friend_request'
+  | 'friend_accepted';
 
 export interface Activity {
   id: string;
+  /** Who did it; for a grouped row, whoever did so most recently */
   user: User;
   action: ActivityAction;
+  /** When it happened; for a grouped row, its newest item */
   date: Date;
   isRead: boolean;
+  /** Grouped rows only: everyone involved, newest first */
+  users?: Array<User>;
+  /** Grouped rows only: how many comments or reactions were folded in */
+  count?: number;
+  /** The newest comment in a thread, or the comment that was reacted to */
   comment?: Comment;
-  reaction?: Reaction;
+  /** Each kind of reaction in a reaction row */
+  reactionIds?: Array<ReactionId>;
+  achievement?: Achievement;
+  level?: number;
   submission?: {
     id: string;
     prompt: string;
     imageUrl: string;
+    artist: User;
   };
 }
 
@@ -63,19 +86,12 @@ export interface Comment {
   counts: Array<ReactionCount>;
 }
 
-export type ReactionId =
-  | 'heart'
-  | 'cry-laugh'
-  | 'face-meh'
-  | 'fire'
-  // Only allowed while an event lists them
-  | 'snowflake'
-  | 'gift';
+/** One of the ids in server/internal/reactions/reactions.json */
+export type ReactionId = string;
 export interface Reaction {
   id: number;
   reactionId: ReactionId;
   user: User;
-  icon: IconDefinition;
   createdAt: Date;
 }
 
@@ -434,18 +450,6 @@ export function useActivityFeed() {
 export function useMarkActivityRead() {
   return useMutation({
     mutationFn: apiClient.markActivityRead,
-  });
-}
-
-export function useSubscribePush() {
-  return useMutation({
-    mutationFn: apiClient.subscribePush,
-  });
-}
-
-export function useUnsubscribePush() {
-  return useMutation({
-    mutationFn: apiClient.unsubscribePush,
   });
 }
 
