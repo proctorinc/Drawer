@@ -1,6 +1,7 @@
 package queries
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
@@ -162,4 +163,44 @@ func GetUsersByIDs(repo *sql.DB, ctx context.Context, userIDs []string) ([]model
 	}
 
 	return users, rows.Err()
+}
+
+// XPEvent is one thing that earned a user XP. Kind is one of ActivityCounts' JSON names.
+type XPEvent struct {
+	Kind string
+	At   time.Time
+}
+
+// GetXPEventsSince returns what earned the user XP from since on, oldest first. It splits
+// time the same way GetActivityCounts does, so counts up to since plus these events make
+// the user's total.
+func GetXPEventsSince(repo *sql.DB, ctx context.Context, userID string, since time.Time) ([]XPEvent, error) {
+	day, at := utils.GetFormattedDate(since), since.UTC().Format(sqliteTimestamp)
+	var kind, when string
+	var parseErr error
+	events := []XPEvent{}
+	// datetime() normalizes every timestamp to sqliteTimestamp, since a UNION loses the
+	// column types the driver would otherwise parse by
+	err := queryEach(repo, ctx, `
+		WITH ro AS (`+reactionOwners+`)
+		SELECT 'drawings', datetime(created_at) AS at FROM user_submissions WHERE user_id = ? AND day >= ?
+		UNION ALL
+		SELECT 'commentsWritten', datetime(c.created_at) FROM comments c
+		JOIN user_submissions s ON s.id = c.submission_id
+		WHERE c.user_id = ? AND s.user_id != c.user_id AND c.created_at >= ?
+		UNION ALL
+		SELECT 'reactionsGiven', datetime(created_at) FROM ro WHERE reactor = ? AND owner != reactor AND created_at >= ?
+		UNION ALL
+		SELECT 'reactionsReceived', datetime(created_at) FROM ro WHERE owner = ? AND owner != reactor AND created_at >= ?
+		UNION ALL
+		SELECT 'achievements', datetime(created_at) FROM user_achievements WHERE user_id = ? AND created_at >= ?
+		ORDER BY at`,
+		[]any{userID, day, userID, at, userID, at, userID, at, userID, at},
+		[]any{&kind, &when},
+		func() {
+			t, err := time.Parse(sqliteTimestamp, when)
+			parseErr = cmp.Or(parseErr, err)
+			events = append(events, XPEvent{Kind: kind, At: t})
+		})
+	return events, cmp.Or(err, parseErr)
 }

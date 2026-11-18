@@ -17,6 +17,17 @@ type NotificationSubscriptionRequest struct {
 	} `json:"keys"`
 }
 
+// HandleGetVAPIDPublicKey serves the key browsers subscribe with, so it always
+// pairs with the private key the server signs with
+func HandleGetVAPIDPublicKey(c *gin.Context) {
+	publicKey := context.GetCtx(c).Config.VAPIDPublicKey
+	if publicKey == "" {
+		c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{"error": "Push notifications are not configured"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"publicKey": publicKey})
+}
+
 func HandleSubscribePush(c *gin.Context) {
 	requester := middleware.GetUser(c)
 	appCtx := context.GetCtx(c)

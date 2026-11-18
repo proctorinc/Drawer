@@ -144,6 +144,15 @@ func xpFor(a queries.ActivityCounts) int {
 		a.Achievements*xpPerAchievement
 }
 
+// xpPerKind is what each of GetXPEventsSince's kinds is worth, matching xpFor
+var xpPerKind = map[string]int{
+	"drawings":          xpPerDrawing,
+	"commentsWritten":   xpPerCommentWritten,
+	"reactionsGiven":    xpPerReactionGiven,
+	"reactionsReceived": xpPerReactionReceived,
+	"achievements":      xpPerAchievement,
+}
+
 func levelForXP(xp int) Level {
 	level, start := 1, 0
 	for {

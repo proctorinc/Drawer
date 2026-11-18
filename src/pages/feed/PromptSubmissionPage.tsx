@@ -19,9 +19,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHeart as EmptyHeart } from '@fortawesome/free-regular-svg-icons';
 import { faHeart as FilledHeart } from '@fortawesome/free-solid-svg-icons';
 import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
+import { ReactionBar } from '@/reactions/ReactionBar';
 import useUser from '@/auth/hooks/useUser';
 import { ShareButton } from '../profile/components/friends/ShareButton';
 import Tooltip from '@/components/Tooltip';
+import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 
 const PromptSubmissionPage = () => {
   const navigate = useNavigate();
@@ -31,6 +33,7 @@ const PromptSubmissionPage = () => {
     from: '/draw/submission/$submissionId',
   });
   const toggleReaction = useToggleCommentReaction();
+  const isDrawingLocked = useIsDrawingLocked();
   const {
     data: submission,
     isLoading,
@@ -88,15 +91,19 @@ const PromptSubmissionPage = () => {
       <Layout
         back
         header={
-          <div className="relative w-full px-2 animate-drop [--tilt:-1deg] -rotate-1">
+          <div className="relative z-20 w-full px-2 animate-drop [--tilt:-1deg] -rotate-1">
             <span
               aria-hidden="true"
               className="absolute z-10 -top-2.5 left-1/2 -ml-10 w-20 h-6 bg-butter/70 rotate-3"
             />
-            <DrawingFeedImage
-              submission={submission}
-              className="p-3 pb-10 bg-white border-0 rounded-none shadow-[1px_3px_10px_rgba(43,42,51,0.2)]"
-            />
+            <div className="p-3 bg-white shadow-[1px_3px_10px_rgba(43,42,51,0.2)]">
+              <DrawingFeedImage
+                submission={submission}
+                className="border-0 rounded-none shadow-none"
+              />
+              {/* Reactions sit on the polaroid's bottom strip */}
+              <ReactionBar submission={submission} className="min-h-8 mt-3" />
+            </div>
           </div>
         }
       >
@@ -114,7 +121,9 @@ const PromptSubmissionPage = () => {
             </p>
           </div>
           <ShareButton
-            imageUrl={submission.imageUrl}
+            imageUrl={
+              isDrawingLocked(submission) ? undefined : submission.imageUrl
+            }
             text={`Checkout ${submission.user.id === currentUser.id ? 'my' : `${submission.user.username}'s`} doodle of ${submission.prompt.toLowerCase()}!`}
           ></ShareButton>
         </div>

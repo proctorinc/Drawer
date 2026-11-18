@@ -35,3 +35,8 @@ func GetUserPushSubscriptions(repo *sql.DB, ctx context.Context, userID string) 
 	}
 	return subscriptions, nil
 }
+
+func DeletePushSubscription(repo *sql.DB, ctx context.Context, endpoint string) error {
+	_, err := repo.ExecContext(ctx, `DELETE FROM push_subscriptions WHERE endpoint = ?`, endpoint)
+	return err
+}

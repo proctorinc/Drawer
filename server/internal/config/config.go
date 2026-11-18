@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -21,6 +22,7 @@ type Config struct {
 	AwsSecretKey    string
 	VAPIDPrivateKey string
 	VAPIDPublicKey  string
+	VAPIDSubject    string
 }
 
 func LoadConfig() *Config {
@@ -51,10 +53,12 @@ func LoadConfig() *Config {
 		log.Fatal("CLERK_SECRET_KEY is required")
 	}
 
+	allowedOrigin := getEnv("ALLOWED_ORIGINS", "http://localhost:3000")
+
 	return &Config{
 		Port:            getEnv("PORT", "8080"),
 		DatabaseURL:     dbURL,
-		AllowedOrigin:   getEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
+		AllowedOrigin:   allowedOrigin,
 		Env:             env,
 		ClerkSecretKey:  clerkSecretKey,
 		DevUserEmail:    getEnv("DEV_USER_EMAIL", ""),
@@ -64,6 +68,9 @@ func LoadConfig() *Config {
 		AwsSecretKey:    getEnv("AWS_SECRET_ACCESS_KEY", ""),
 		VAPIDPrivateKey: getEnv("VAPID_PRIVATE_KEY", ""),
 		VAPIDPublicKey:  getEnv("VAPID_PUBLIC_KEY", ""),
+		// Contact for push services: an https URL or an email address. webpush-go
+		// adds "mailto:" to anything that isn't https, and Apple rejects an empty one.
+		VAPIDSubject: strings.TrimPrefix(getEnv("VAPID_SUBJECT", allowedOrigin), "mailto:"),
 	}
 }
 

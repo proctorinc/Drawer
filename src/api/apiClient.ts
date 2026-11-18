@@ -380,7 +380,16 @@ export const apiClient = {
   },
 
   // Push notification subscriptions
-  subscribePush: async (subscription: any): Promise<void> => {
+  getVapidPublicKey: async (): Promise<string> => {
+    const response = await fetchAPI('GET', '/notifications/vapid-public-key');
+    if (!response.ok) {
+      throw new Error('Push notifications are not set up on the server');
+    }
+    const { publicKey } = await response.json();
+    return publicKey;
+  },
+
+  subscribePush: async (subscription: PushSubscription): Promise<void> => {
     const response = await fetchAPI('POST', '/notifications/subscribe', {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(subscription),

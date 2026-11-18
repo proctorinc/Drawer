@@ -1000,6 +1000,11 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 		CurrentStreak: currentStreak,
 	}
 
+	// Before favorites copy the submissions, so they come out hidden too
+	if err := HideTodaysDrawings(repo, ctx, requesterID, response.Feed); err != nil {
+		log.Printf("Error checking whether user %s drew today: %v", requesterID, err)
+	}
+
 	favQuery := `SELECT id, submission_id, created_at, order_num FROM user_favorite_submissions WHERE user_id = ? ORDER BY order_num ASC`
 	favRows, err := repo.QueryContext(ctx, favQuery, userID)
 	if err != nil {

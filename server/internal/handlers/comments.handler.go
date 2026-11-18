@@ -8,6 +8,7 @@ import (
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/notifications"
+	"drawer-service-backend/internal/reactions"
 	"fmt"
 	"log"
 	"net/http"
@@ -107,14 +108,7 @@ func HandleCommentToggleReaction(c *gin.Context) {
 		return
 	}
 
-	// Validate reaction ID
-	validReactions := map[string]bool{
-		"heart":     true,
-		"cry-laugh": true,
-		"face-meh":  true,
-		"thumbs-up": true,
-	}
-	if !validReactions[body.ReactionID] {
+	if !reactions.IsValid(body.ReactionID) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid reaction ID"})
 		return
 	}

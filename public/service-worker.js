@@ -71,25 +71,20 @@ self.addEventListener('notificationclick', function(event) {
       url = data.url || '/';
   }
   
+  // Service workers have no `window`; resolve against the worker's own origin
+  const target = new URL(url, self.location.origin).href;
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-      // Check if there's already a window/tab open with the app
-      for (let i = 0; i < clientList.length; i++) {
-        const client = clientList[i];
-        if (client.url.includes(window.location.origin) && 'focus' in client) {
-          client.focus();
-          // Navigate to the specific URL if it's different
-          if (client.url !== url) {
-            client.navigate(url);
-          }
-          return;
+      // Reuse an open tab of the app if there is one
+      for (const client of clientList) {
+        if (client.url.startsWith(self.location.origin) && 'focus' in client) {
+          return client.focus().then(function(focused) {
+            return focused.url === target ? focused : focused.navigate(target);
+          });
         }
       }
-      
-      // If no window/tab is open, open a new one
-      if (clients.openWindow) {
-        return clients.openWindow(url);
-      }
+      return clients.openWindow(target);
     })
   );
 });

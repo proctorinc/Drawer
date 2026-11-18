@@ -9,6 +9,7 @@ import (
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/notifications"
+	"drawer-service-backend/internal/reactions"
 	"drawer-service-backend/internal/utils"
 	"encoding/json"
 	"log"
@@ -172,6 +173,10 @@ func HandleGetSubmissionByID(c *gin.Context) {
 		CreatedAt: submissionCreatedAt.Time,
 	}
 
+	if err := queries.HideTodaysDrawings(appCtx.DB, c.Request.Context(), requester.ID, []*models.UserPromptSubmission{&resp}); err != nil {
+		log.Printf("Error checking whether user %s drew today: %v", requester.ID, err)
+	}
+
 	// Set isFavorite if the requester is the owner and the submission is favorited
 	if requester.ID == userID {
 		var favID string
@@ -218,14 +223,7 @@ func HandleSubmissionToggleReaction(c *gin.Context) {
 		return
 	}
 
-	// Validate reaction ID
-	validReactions := map[string]bool{
-		"heart":     true,
-		"cry-laugh": true,
-		"face-meh":  true,
-		"fire":      true,
-	}
-	if !validReactions[body.ReactionID] {
+	if !reactions.IsValid(body.ReactionID) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid reaction ID"})
 		return
 	}

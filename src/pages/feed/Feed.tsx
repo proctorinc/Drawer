@@ -1,18 +1,19 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { CountDownTimer } from '../../daily/CountdownTimer';
 import { useDailyPrompt } from '../../daily/DailyPromptContext';
 import { PastPages, TodayWall } from './components/DayPages';
 import { FriendsToday } from './components/FriendsToday';
 import DrawingCanvas from './components/DrawingCanvas';
-import type { CSSProperties } from 'react';
+import { PromptTitle } from './components/PromptTitle';
 import type { DailyPrompt } from '@/api/Api';
 import Layout from '@/components/Layout';
-import Disclaimer, { DisclaimerItem } from '@/components/Disclaimer';
+import LoadingScreen from '@/components/LoadingScreen';
 import { useDrawing } from '@/drawing/DrawingContext';
-import Chip from '@/components/Chip';
-import { ClockIcon, SendIcon } from '@/components/icons';
+import { ClockIcon, SendIcon, TrophyIcon } from '@/components/icons';
 import { useSubmitPromptSuggestion } from '@/api/Api';
-import { tapeColor } from '@/utils';
+import useUser from '@/auth/hooks/useUser';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 
 const NextPageCountdown = () => (
   <span className="flex items-center gap-1.5">
@@ -22,34 +23,64 @@ const NextPageCountdown = () => (
 );
 
 const PromptHeading = ({ dailyPrompt }: { dailyPrompt: DailyPrompt }) => (
-  <section className="flex flex-col gap-1.5 w-full stagger">
-    <span className="text-lg text-pencil">today, draw…</span>
-    <h1 className="font-accent font-bold text-[38px] leading-[0.95] text-balance">
-      <span
-        className="highlight"
-        style={
-          {
-            '--hl': tapeColor(dailyPrompt.colors[2] ?? '#ffd45a'),
-          } as CSSProperties
-        }
-      >
-        {dailyPrompt.prompt.toLowerCase()}
+  <section className="flex flex-col gap-1 min-w-0">
+    <span className="flex flex-wrap items-center gap-x-2 text-sm text-pencil">
+      <span className="flex items-center gap-1">
+        <ClockIcon size={13} />
+        <CountDownTimer format="short" /> left
       </span>
-    </h1>
-    <div className="flex flex-wrap gap-2 pt-1">
-      <Chip>
-        <ClockIcon size={14} />
-        <span>
-          <CountDownTimer format="short" /> left
-        </span>
-      </Chip>
       {dailyPrompt.createdBy && (
-        <Chip className="bg-sky">
-          prompt by {dailyPrompt.createdBy.username}
-        </Chip>
+        <span>prompt by {dailyPrompt.createdBy.username}</span>
       )}
-    </div>
+    </span>
+    <PromptTitle prompt={dailyPrompt.prompt} colors={dailyPrompt.colors} />
   </section>
+);
+
+/** Your own corners of the app; everyone else's drawings wait until you've drawn */
+const DeskLinks = () => {
+  const user = useUser();
+
+  return (
+    <nav aria-label="Main" className="flex flex-none items-center gap-2">
+      <Link
+        to="/draw/trophies"
+        aria-label="Trophies"
+        className="press flex items-center justify-center size-10 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil-sm hover:-rotate-6"
+      >
+        <TrophyIcon size={22} />
+      </Link>
+      <UserProfileIcon user={user} size="sm" />
+    </nav>
+  );
+};
+
+type DrawingDeskProps = {
+  dailyPrompt: DailyPrompt;
+  error: string | null;
+  onSubmit: (png: Blob) => void;
+};
+
+/** Nothing but the prompt and the canvas, sized to fit any screen */
+const DrawingDesk = ({ dailyPrompt, error, onSubmit }: DrawingDeskProps) => (
+  <div className="paper flex justify-center h-dvh overflow-hidden">
+    <main className="flex flex-col gap-4 w-full max-w-md px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(16px,env(safe-area-inset-bottom))] animate-rise">
+      <header className="flex items-start justify-between gap-3">
+        <PromptHeading dailyPrompt={dailyPrompt} />
+        <DeskLinks />
+      </header>
+      <DrawingCanvas
+        fit
+        className="flex-1 min-h-0"
+        backgroundColor={
+          dailyPrompt.colors.length === 4 ? dailyPrompt.colors[3] : undefined
+        }
+        onSubmit={onSubmit}
+        colors={dailyPrompt.colors.slice(0, 3)}
+      />
+      {error && <p className="text-center text-coral">{error}</p>}
+    </main>
+  </div>
 );
 
 const SuggestPrompt = () => {
@@ -116,8 +147,6 @@ const Feed = () => {
   const { clearCanvas } = useDrawing();
   const [error, setError] = useState<string | null>(null);
 
-  const isDrawing = !!dailyPrompt && !dailyPrompt.isCompleted;
-
   function handleSubmit(png: Blob) {
     submitPrompt(png, {
       onSuccess: () => {
@@ -132,40 +161,24 @@ const Feed = () => {
     });
   }
 
-  return (
-    <Layout aside={isDrawing ? undefined : <NextPageCountdown />}>
-      {isDrawing && <PromptHeading dailyPrompt={dailyPrompt} />}
-      <DrawingCanvas
-        isLoading={isLoading}
-        backgroundColor={
-          dailyPrompt?.colors.length === 4 ? dailyPrompt.colors[3] : undefined
-        }
-        onSubmit={(png) => handleSubmit(png)}
-        colors={dailyPrompt?.colors ? dailyPrompt.colors.slice(0, 3) : []}
-        hidden={!isDrawing}
+  if (isLoading) return <LoadingScreen />;
+
+  if (dailyPrompt && !dailyPrompt.isCompleted) {
+    return (
+      <DrawingDesk
+        dailyPrompt={dailyPrompt}
+        error={error}
+        onSubmit={handleSubmit}
       />
-      {error && <p className="text-center text-coral">{error}</p>}
-      {isDrawing && (
-        <>
-          <FriendsToday iDrew={false} />
-          <Disclaimer title="Rules, you say?">
-            <DisclaimerItem>
-              Just kidding - no rules, but here's a tip
-            </DisclaimerItem>
-            <DisclaimerItem>
-              Don't write text, just draw and let people guess!
-            </DisclaimerItem>
-          </Disclaimer>
-        </>
-      )}
-      {!isDrawing && !isLoading && (
-        <>
-          {dailyPrompt && <FriendsToday iDrew />}
-          <TodayWall />
-          <SuggestPrompt />
-        </>
-      )}
-      {!isLoading && <PastPages />}
+    );
+  }
+
+  return (
+    <Layout aside={<NextPageCountdown />}>
+      {dailyPrompt && <FriendsToday />}
+      <TodayWall />
+      <SuggestPrompt />
+      <PastPages />
     </Layout>
   );
 };

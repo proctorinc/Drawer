@@ -29,7 +29,7 @@ func HandleGetMe(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, response)
+	c.JSON(http.StatusCreated, response.Account())
 }
 
 func HandleGetUserByID(c *gin.Context) {
@@ -256,7 +256,7 @@ func HandleAcceptInvitation(c *gin.Context) {
 
 	// Accept invitation regardless of user1/user2 order
 	res, err := appCtx.DB.ExecContext(c.Request.Context(),
-		"UPDATE friendships SET state = 'accepted' WHERE ((user1 = ? AND user2 = ?) OR (user1 = ? AND user2 = ?)) AND inviter_id != ? AND state = 'pending'",
+		"UPDATE friendships SET state = 'accepted', accepted_at = CURRENT_TIMESTAMP WHERE ((user1 = ? AND user2 = ?) OR (user1 = ? AND user2 = ?)) AND inviter_id != ? AND state = 'pending'",
 		requester.ID, otherID, otherID, requester.ID, requester.ID)
 	if err != nil {
 		log.Printf("Error accepting invitation between %s and %s: %v", requester.ID, otherID, err)

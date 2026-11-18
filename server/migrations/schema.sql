@@ -70,7 +70,7 @@ CREATE TABLE push_subscriptions (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 CREATE INDEX idx_users_role ON users (role);
-CREATE TABLE friendships (user1 TEXT NOT NULL, user2 TEXT NOT NULL, state TEXT NOT NULL CHECK (state IN ('pending', 'accepted')) DEFAULT 'pending', inviter_id TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user1) REFERENCES users (id) ON DELETE CASCADE, FOREIGN KEY (user2) REFERENCES users (id) ON DELETE CASCADE, FOREIGN KEY (inviter_id) REFERENCES users (id) ON DELETE CASCADE, PRIMARY KEY (user1, user2));
+CREATE TABLE friendships (user1 TEXT NOT NULL, user2 TEXT NOT NULL, state TEXT NOT NULL CHECK (state IN ('pending', 'accepted')) DEFAULT 'pending', inviter_id TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, accepted_at TIMESTAMP, FOREIGN KEY (user1) REFERENCES users (id) ON DELETE CASCADE, FOREIGN KEY (user2) REFERENCES users (id) ON DELETE CASCADE, FOREIGN KEY (inviter_id) REFERENCES users (id) ON DELETE CASCADE, PRIMARY KEY (user1, user2));
 CREATE INDEX idx_friendships_user1 ON friendships (user1);
 CREATE INDEX idx_friendships_user2 ON friendships (user2);
 CREATE INDEX idx_friendships_state ON friendships (state);

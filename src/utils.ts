@@ -1,15 +1,7 @@
 import { clsx } from 'clsx';
 import { extendTailwindMerge } from 'tailwind-merge';
 import type { ClassValue } from 'clsx';
-import type { ReactionId, User } from './api/Api';
-import {
-  faFaceGrinSquintTears,
-  faFaceMeh,
-  faFire,
-  faHeart,
-  type IconDefinition,
-} from '@fortawesome/free-solid-svg-icons';
-import { cva } from 'class-variance-authority';
+import type { User } from './api/Api';
 
 // Teach tailwind-merge our custom utilities so overrides replace them
 const twMerge = extendTailwindMerge({
@@ -81,39 +73,6 @@ export function timeAgo(date: Date | string): string {
     month: 'short',
     day: 'numeric',
   });
-}
-
-export const reactionIndicatorVariants = cva(
-  'z-20 bg-base gap-1 text-sm w-12 h-8 text-card-foreground rounded-full whitespace-nowrap transition-opacity duration-200 font-bold shadow-[2px_2px_0_0_rgba(0,0,0,0.2)]',
-  {
-    variants: {
-      icon: {
-        heart: 'text-red-500/50 bg-red-300 shadow-red-400/80',
-        'cry-laugh': 'text-blue-600/50 bg-blue-300 shadow-blue-400/80',
-        fire: 'text-orange-600/50 bg-orange-300 shadow-orange-400/80',
-        'face-meh': 'text-purple-600/50 bg-purple-300 shadow-purple-400/80',
-      },
-    },
-    defaultVariants: {
-      icon: 'heart',
-    },
-  },
-);
-
-export type ReactionItem = {
-  id: ReactionId;
-  icon: IconDefinition;
-};
-
-export const reactions: ReactionItem[] = [
-  { id: 'heart', icon: faHeart },
-  { id: 'cry-laugh', icon: faFaceGrinSquintTears },
-  { id: 'fire', icon: faFire },
-  { id: 'face-meh', icon: faFaceMeh },
-];
-
-export function getReactionIcon(reactionId: string) {
-  return reactions.find((reaction) => reaction.id === reactionId);
 }
 
 /** Irregular blob corners, so color swatches look like dabs of paint */

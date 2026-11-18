@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
+	"time"
 )
 
 func GetAchievementsAndRewardsByUserID(repo *sql.DB, ctx context.Context, userId string) ([]models.Achievement, map[string]models.RewardUnlock, error) {
@@ -57,4 +58,35 @@ func GetAchievementsAndRewardsByUserID(repo *sql.DB, ctx context.Context, userId
 	}
 
 	return achievements, rewards, nil
+}
+
+// GetAchievementActivity returns the achievements the user and their friends unlocked in the last week as activity
+func GetAchievementActivity(repo *sql.DB, ctx context.Context, userID string) ([]models.Activity, error) {
+	var by models.User
+	var achievement models.Achievement
+	var unlockedAt time.Time
+	activities := []models.Activity{}
+	err := queryEach(repo, ctx, `
+		SELECT `+activityUserColumns("u")+`, a.id, a.name, a.description, a.image_url, a.achievement_field, a.achievement_value, ua.created_at
+		FROM user_achievements ua
+		JOIN achievements a ON a.id = ua.achievement_id
+		JOIN users u ON u.id = ua.user_id
+		WHERE ua.created_at >= `+activityWindow+` AND (ua.user_id = ? OR EXISTS (
+			SELECT 1 FROM friendships f WHERE f.state = 'accepted'
+				AND ((f.user1 = ? AND f.user2 = ua.user_id) OR (f.user2 = ? AND f.user1 = ua.user_id))))`,
+		[]any{userID, userID, userID},
+		append(activityUserDest(&by), &achievement.ID, &achievement.Name, &achievement.Description, &achievement.ImageURL,
+			&achievement.AchievementField, &achievement.AchievementValue, &unlockedAt),
+		func() {
+			unlocked := achievement
+			unlocked.AchievedAt = &unlockedAt
+			activities = append(activities, models.Activity{
+				ID:          "achievement-" + by.ID + "-" + achievement.ID,
+				User:        by,
+				Action:      models.ActivityActionAchievement,
+				Date:        unlockedAt,
+				Achievement: &unlocked,
+			})
+		})
+	return activities, err
 }

@@ -23,11 +23,22 @@ type PromptSuggestion struct {
 type User struct {
 	ID         string    `json:"id"`
 	Username   string    `json:"username"`
-	Email      string    `json:"email"`
+	Email      string    `json:"-"` // Private: only an Account sends it
 	Role       string    `json:"-"` // Omitted from JSON responses
 	CreatedAt  time.Time `json:"createdAt"`
 	AvatarType string    `json:"avatarType"`
 	AvatarURL  string    `json:"avatarUrl"`
+}
+
+// Account is a User as its owner (or an admin) sees it: email included.
+// Everyone else gets a plain User, so emails never leak to other players.
+type Account struct {
+	User
+	Email string `json:"email"`
+}
+
+func (u User) Account() Account {
+	return Account{User: u, Email: u.Email}
 }
 
 // Reaction represents a user's reaction to content
@@ -102,24 +113,46 @@ type FavoriteSubmission struct {
 type ActivityAction string
 
 const (
-	ActivityActionComment  ActivityAction = "comment"
+	// Comments on a drawing you made or commented on, grouped per drawing
+	ActivityActionComment ActivityAction = "comment"
+	// Reactions to your drawing, grouped per drawing
 	ActivityActionReaction ActivityAction = "reaction"
-	ActivityActionPoke     ActivityAction = "poke"
+	// Reactions to your comment, grouped per comment
+	ActivityActionCommentReaction ActivityAction = "comment_reaction"
+	ActivityActionPoke            ActivityAction = "poke"
+	// Yours or a friend's
+	ActivityActionAchievement    ActivityAction = "achievement"
+	ActivityActionLevelUp        ActivityAction = "level_up"
+	ActivityActionFriendRequest  ActivityAction = "friend_request"
+	ActivityActionFriendAccepted ActivityAction = "friend_accepted"
 )
 
 type Activity struct {
-	ID         string         `json:"id"`
-	User       User           `json:"user"`
-	Action     ActivityAction `json:"action"`
-	Date       time.Time      `json:"date"`
-	IsRead     bool           `json:"isRead"`
-	Comment    *Comment       `json:"comment,omitempty"`
-	Reaction   *Reaction      `json:"reaction,omitempty"`
-	Submission *struct {
-		ID       string `json:"id"`
-		Prompt   string `json:"prompt"`
-		ImageUrl string `json:"imageUrl"`
-	} `json:"submission,omitempty"`
+	ID string `json:"id"`
+	// Who did it; for a grouped row, whoever did so most recently
+	User   User           `json:"user"`
+	Action ActivityAction `json:"action"`
+	// When it happened; for a grouped row, its newest item
+	Date   time.Time `json:"date"`
+	IsRead bool      `json:"isRead"`
+	// Grouped rows only: everyone involved, newest first, and how many items were folded in
+	Users []User `json:"users,omitempty"`
+	Count int    `json:"count,omitempty"`
+	// The newest comment in a thread, or the comment that was reacted to
+	Comment *Comment `json:"comment,omitempty"`
+	// Each kind of reaction in a reaction row
+	ReactionIDs []string            `json:"reactionIds,omitempty"`
+	Achievement *Achievement        `json:"achievement,omitempty"`
+	Level       int                 `json:"level,omitempty"`
+	Submission  *ActivitySubmission `json:"submission,omitempty"`
+}
+
+// ActivitySubmission is the drawing an activity happened on
+type ActivitySubmission struct {
+	ID       string `json:"id"`
+	Prompt   string `json:"prompt"`
+	ImageUrl string `json:"imageUrl"`
+	Artist   User   `json:"artist"`
 }
 
 type PushSubscription struct {

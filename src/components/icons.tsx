@@ -96,6 +96,12 @@ export const StarIcon: FC<IconProps> = ({ fill, ...props }) => (
   </StrokeIcon>
 );
 
+export const PlusIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M12 5.5c.2 4.5-.1 9 .2 13M5.5 12.2c4.4-.3 8.7.1 13-.2" />
+  </StrokeIcon>
+);
+
 export const CommentIcon: FC<IconProps> = (props) => (
   <StrokeIcon {...props}>
     <path d="M4 5h16v11H9l-5 4z" />
@@ -134,5 +140,16 @@ export const BellIcon: FC<IconProps> = (props) => (
 export const CheckIcon: FC<IconProps> = (props) => (
   <StrokeIcon {...props}>
     <path d="M5 12.5l4.5 4.5L19 7" />
+  </StrokeIcon>
+);
+
+export const LockIcon: FC<IconProps> = ({ fill, ...props }) => (
+  <StrokeIcon {...props}>
+    <path
+      d="M5.5 11.2c4.4-.4 8.6-.3 13 .1.3 3 .2 6-.2 8.9-4.2.4-8.3.4-12.5 0-.4-3-.5-6-.3-9z"
+      fill={fill ?? 'none'}
+    />
+    <path d="M8.2 11V8a3.8 3.8 0 0 1 7.6-.2V11" />
+    <path d="M12 14.8v2.4" />
   </StrokeIcon>
 );

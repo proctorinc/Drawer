@@ -34,7 +34,7 @@ docker build --build-arg VITE_CLERK_PUBLISHABLE_KEY='pk_live_...' -t drawer-serv
 To run the docker container:
 
 ```bash
-docker run -p 8080:8080 -e TURSO_DATABASE_URL='' -e TURSO_AUTH_TOKEN='' -e CLERK_SECRET_KEY='' -e S3_BUCKET_NAME='' -e S3_BUCKET_REGION='' -e AWS_ACCESS_KEY_ID='' -e AWS_SECRET_ACCESS_KEY='' -e VAPID_PUBLIC_KEY='' -e VAPID_PRIVATE_KEY='' -e ALLOWED_ORIGINS='' drawer-service
+docker run -p 8080:8080 -e TURSO_DATABASE_URL='' -e TURSO_AUTH_TOKEN='' -e CLERK_SECRET_KEY='' -e S3_BUCKET_NAME='' -e S3_BUCKET_REGION='' -e AWS_ACCESS_KEY_ID='' -e AWS_SECRET_ACCESS_KEY='' -e VAPID_PUBLIC_KEY='' -e VAPID_PRIVATE_KEY='' -e VAPID_SUBJECT='' -e ALLOWED_ORIGINS='' drawer-service
 ```
 
 ## Database schema
@@ -147,7 +147,11 @@ Private Key:
 
 ### 3. Usage
 
-- **Frontend:** Use the public key (e.g., as an environment variable `VITE_VAPID_PUBLIC_KEY`) for subscribing to push notifications.
-- **Backend:** Use both the public and private keys to sign and send push notifications.
+Set these on the **backend** only:
+
+- `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`: the pair from step 2. The frontend fetches the public key from `/api/v1/notifications/vapid-public-key`, so the two can't drift apart.
+- `VAPID_SUBJECT` (optional): a contact for the push services, either an email address or an `https://` URL. Defaults to `ALLOWED_ORIGINS`, which must then be `https://` in production; Apple rejects anything else.
+
+Changing the key pair is safe: browsers re-subscribe with the new key the next time the user opens the app, and stale subscriptions are deleted when the push service reports them gone.
 
 **Keep your private key secure and do not expose it to the frontend.**
