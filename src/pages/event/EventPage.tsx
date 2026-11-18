@@ -84,7 +84,7 @@ const EventPage = () => {
     );
   }
 
-  const { event, stats, submissions, user } = recap;
+  const { event, submissions, user } = recap;
   const isLive = liveEvent?.slug === event.slug;
   // Stickers come from your own achievements, so they're only shown for you
   const stickers = viewingFriend
@@ -118,24 +118,6 @@ const EventPage = () => {
           {statusLine(event, isLive)}
         </p>
       </section>
-
-      <div className="grid grid-cols-3 gap-3 w-full stagger">
-        {[
-          { value: stats.doodles, label: 'doodles' },
-          { value: stats.reactionsReceived, label: 'reactions' },
-          { value: stats.longestStreak, label: 'best streak' },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="flex flex-col items-center py-2 bg-white border-[1.5px] border-ink rounded-sketch-alt"
-          >
-            <span className="font-accent font-bold text-3xl leading-none">
-              {stat.value}
-            </span>
-            <span className="text-pencil">{stat.label}</span>
-          </div>
-        ))}
-      </div>
 
       {event.countdownDays && (
         <Section
