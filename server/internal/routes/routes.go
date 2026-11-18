@@ -101,6 +101,8 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			authGroup.POST("/prompt/suggest", handlers.SuggestPrompt)
 
 			authGroup.GET("/events/active", handlers.HandleGetActiveEvent)
+			authGroup.GET("/events/:slug/leaderboard", handlers.HandleGetEventLeaderboard)
+			authGroup.GET("/events/:slug/recap", handlers.HandleGetEventRecap)
 
 			// Development-only debug endpoints for push notifications
 			log.Printf("🔔 Current environment: %s", cfg.Env)
@@ -183,6 +185,9 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				adminGroup.POST("/prompt", handlers.HandleCreatePrompt)
 				adminGroup.GET("/action-stats", handlers.HandleGetAdminActionStats)
 				adminGroup.GET("/prompt-suggestions", handlers.GetAllPromptSuggestions)
+				adminGroup.GET("/events", handlers.HandleAdminListEvents)
+				adminGroup.POST("/events", handlers.HandleAdminCreateEvent)
+				adminGroup.PUT("/events/:id", handlers.HandleAdminUpdateEvent)
 			}
 		}
 	}

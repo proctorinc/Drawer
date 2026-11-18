@@ -10,5 +10,6 @@ type Event struct {
 	Theme         string
 	StartsAt      time.Time
 	EndsAt        time.Time
-	CountdownDays *int // Optional length of a "day N of X" countdown, counted from StartsAt
+	CountdownDays *int     // Optional length of a "day N of X" countdown, counted from StartsAt
+	Reactions     []string // Extra reaction ids allowed only while the event is active
 }

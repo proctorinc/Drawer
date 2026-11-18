@@ -225,7 +225,11 @@ func HandleSubmissionToggleReaction(c *gin.Context) {
 		"face-meh":  true,
 		"fire":      true,
 	}
-	if !validReactions[body.ReactionID] {
+	if allowed, err := isReactionAllowed(c, validReactions, body.ReactionID); err != nil {
+		log.Printf("Error checking event reactions for %s: %v", body.ReactionID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to toggle reaction"})
+		return
+	} else if !allowed {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid reaction ID"})
 		return
 	}

@@ -162,6 +162,8 @@ func (as *AchievementService) UpdateSubmissionAchievements(userId string) error 
 	return as.updateUserAchievementsByAchievementField(as.DB, as.Ctx, userId, []string{
 		string(stats.SUBMISSION_STREAK),
 		string(stats.SUBMISSION_TOTAL),
+		string(stats.EVENT_SUBMISSION_TOTAL),
+		string(stats.EVENT_COUNTDOWN_TOTAL),
 	})
 }
 

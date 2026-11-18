@@ -137,6 +137,55 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 		VALUES
 			('event1', 'christmas-2026', '29 Doodles of Christmas', 'christmas', '2026-11-27T00:00:00Z', '2027-01-01T00:00:00Z', 29);
 
+		-- Event reactions, stickers and prompts (mirror migrations/1795035100_add_event_features.up.sql
+		-- and 1795035200_seed_christmas_prompts.up.sql)
+		INSERT OR IGNORE INTO event_reactions (event_id, reaction_id) VALUES
+			('event1', 'snowflake'),
+			('event1', 'gift');
+
+		INSERT OR IGNORE INTO achievements (id, name, description, image_url, achievement_field, achievement_value)
+		VALUES
+			('christmas-2026-first-snow', 'first snow', 'Draw your first doodle of the 29 Doodles of Christmas', '', 'EVENT_SUBMISSION_TOTAL', 1),
+			('christmas-2026-twelve-days', 'twelve days of doodles', 'Draw 12 doodles during the 29 Doodles of Christmas', '', 'EVENT_SUBMISSION_TOTAL', 12),
+			('christmas-2026-doodle-claus', 'doodle claus', 'Doodle every day from Nov 27 to Dec 25', '', 'EVENT_COUNTDOWN_TOTAL', 29);
+
+		INSERT OR IGNORE INTO event_achievements (achievement_id, event_id) VALUES
+			('christmas-2026-first-snow', 'event1'),
+			('christmas-2026-twelve-days', 'event1'),
+			('christmas-2026-doodle-claus', 'event1');
+
+		-- Inserted before the relative demo prompts below so these win on overlapping days
+		INSERT OR IGNORE INTO daily_prompts (day, colors, prompt) VALUES
+			('2026-11-27', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'leftovers in disguise'),
+			('2026-11-28', '["#3A7BD5", "#9FD3F0", "#E5483B", "#F4F9FF"]', 'a snowman''s first day'),
+			('2026-11-29', '["#8B5A2B", "#E5483B", "#F2E3C6", "#FFF8EC"]', 'a reindeer stuck in a chimney'),
+			('2026-11-30', '["#2F9E5B", "#B22D4A", "#F2C14E", "#FBF6EE"]', 'a gingerbread house with a problem'),
+			('2026-12-01', '["#6C3FC4", "#FF8FB1", "#FFD45A", "#FFF6FB"]', 'a penguin in a scarf'),
+			('2026-12-02', '["#1F3A5F", "#FFB400", "#9FB6CF", "#F3F6FA"]', 'the world''s ugliest sweater'),
+			('2026-12-03', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'a cat versus the christmas tree'),
+			('2026-12-04', '["#3A7BD5", "#9FD3F0", "#E5483B", "#F4F9FF"]', 'an epic snowball fight'),
+			('2026-12-05', '["#8B5A2B", "#E5483B", "#F2E3C6", "#FFF8EC"]', 'hot cocoa with too many marshmallows'),
+			('2026-12-06', '["#2F9E5B", "#B22D4A", "#F2C14E", "#FBF6EE"]', 'an elf on strike'),
+			('2026-12-07', '["#6C3FC4", "#FF8FB1", "#FFD45A", "#FFF6FB"]', 'a polar bear ice skating'),
+			('2026-12-08', '["#1F3A5F", "#FFB400", "#9FB6CF", "#F3F6FA"]', 'a present that''s way too big'),
+			('2026-12-09', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'santa''s sleigh breaking down'),
+			('2026-12-10', '["#3A7BD5", "#9FD3F0", "#E5483B", "#F4F9FF"]', 'a candy cane in love'),
+			('2026-12-11', '["#8B5A2B", "#E5483B", "#F2E3C6", "#FFF8EC"]', 'a mitten that lost its twin'),
+			('2026-12-12', '["#2F9E5B", "#B22D4A", "#F2C14E", "#FBF6EE"]', 'a tangle of christmas lights'),
+			('2026-12-13', '["#6C3FC4", "#FF8FB1", "#FFD45A", "#FFF6FB"]', 'a sledding disaster'),
+			('2026-12-14', '["#1F3A5F", "#FFB400", "#9FB6CF", "#F3F6FA"]', 'a nutcracker at the gym'),
+			('2026-12-15', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'cookies left for santa (half eaten)'),
+			('2026-12-16', '["#3A7BD5", "#9FD3F0", "#E5483B", "#F4F9FF"]', 'someone trapped in a snow globe'),
+			('2026-12-17', '["#8B5A2B", "#E5483B", "#F2E3C6", "#FFF8EC"]', 'a reindeer''s day off'),
+			('2026-12-18', '["#2F9E5B", "#B22D4A", "#F2C14E", "#FBF6EE"]', 'awkward under the mistletoe'),
+			('2026-12-19', '["#6C3FC4", "#FF8FB1", "#FFD45A", "#FFF6FB"]', 'gift-wrapping a pet'),
+			('2026-12-20', '["#1F3A5F", "#FFB400", "#9FB6CF", "#F3F6FA"]', 'caroling animals'),
+			('2026-12-21', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'the longest night of the year'),
+			('2026-12-22', '["#3A7BD5", "#9FD3F0", "#E5483B", "#F4F9FF"]', 'stockings by the fireplace'),
+			('2026-12-23', '["#8B5A2B", "#E5483B", "#F2E3C6", "#FFF8EC"]', 'the north pole''s busiest workshop'),
+			('2026-12-24', '["#2F9E5B", "#B22D4A", "#F2C14E", "#FBF6EE"]', 'santa checking his list twice'),
+			('2026-12-25', '["#6C3FC4", "#FF8FB1", "#FFD45A", "#FFF6FB"]', 'christmas morning');
+
 		-- Insert demo users
 		INSERT OR IGNORE INTO users (id, username, email, role, created_at, avatar_type, avatar_url) VALUES
 			('user1', 'tankard_wellington', 'user1@example.com', 'admin', date('now', '-63 days'), 'custom', '/example.png'),
@@ -215,6 +264,18 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 			('sub10', 'user1', date('now', '-1 days')),
 			('sub11', 'user1', date('now'));
 
+		-- Christmas event doodles, so the event's progress, leaderboard and recap have data when
+		-- QA'ing with EVENTS_FAKE_NOW (e.g. 2026-12-05)
+		INSERT OR IGNORE INTO user_submissions (id, user_id, day) VALUES
+			('xmas1', 'user1', '2026-11-27'),
+			('xmas2', 'user1', '2026-11-28'),
+			('xmas3', 'user1', '2026-11-29'),
+			('xmas4', 'user1', '2026-12-01'),
+			('xmas5', 'user1', '2026-12-02'),
+			('xmas6', 'user2', '2026-11-27'),
+			('xmas7', 'user2', '2026-11-28'),
+			('xmas8', 'user3', '2026-11-30');
+
 		INSERT INTO comments (submission_id, user_id, text, created_at) VALUES
 			('sub1', 'user2', 'Nice drawing!', date('now', '-6 days')),
 			('sub1', 'user3', 'Love the colors!', date('now', '-6 days')),
@@ -236,6 +297,12 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 			('user1', 'submission', 'sub3', 'fire', date('now', '-3 days')),
 			('user2', 'submission', 'sub4', 'fire', date('now', '-2 days')),
 			('user3', 'submission', 'sub4', 'cry-laugh', date('now', '-2 days'));
+
+		INSERT INTO reactions (user_id, content_type, content_id, reaction_id, created_at) VALUES
+			('user2', 'submission', 'xmas1', 'snowflake', '2026-11-27'),
+			('user3', 'submission', 'xmas1', 'gift', '2026-11-27'),
+			('user2', 'submission', 'xmas2', 'heart', '2026-11-28'),
+			('user1', 'submission', 'xmas6', 'snowflake', '2026-11-27');
 
 		-- Add heart reactions on comments (only heart reactions on comments, use subqueries for comment id)
 		INSERT INTO reactions (user_id, content_type, content_id, reaction_id, created_at) VALUES

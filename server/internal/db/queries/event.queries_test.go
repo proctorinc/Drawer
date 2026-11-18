@@ -3,29 +3,15 @@ package queries
 import (
 	"context"
 	"database/sql"
+	"drawer-service-backend/internal/db/dbtest"
 	"errors"
-	"os"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
-// Runs the real events migration (including its seed) against an in-memory SQLite DB.
+// Runs the real events migrations (including their seeds) against an in-memory SQLite DB.
 func TestGetActiveEvent(t *testing.T) {
-	repo, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer repo.Close()
-
-	migration, err := os.ReadFile("../../../migrations/1795032990_add_events.up.sql")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := repo.Exec(string(migration)); err != nil {
-		t.Fatalf("applying migration: %v", err)
-	}
+	repo := dbtest.NewEventsDB(t)
 
 	tests := []struct {
 		now        string

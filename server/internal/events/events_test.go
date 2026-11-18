@@ -120,3 +120,115 @@ func TestNowHonorsFakeNowOnlyOutsideProduction(t *testing.T) {
 		t.Error("invalid EVENTS_FAKE_NOW should fall back to the real time")
 	}
 }
+
+func TestDays(t *testing.T) {
+	event := christmasEvent()
+	if got := Days(event); got != (DayRange{First: "2026-11-27", Last: "2026-12-31"}) {
+		t.Errorf("Days = %+v", got)
+	}
+	countdown, ok := CountdownDayRange(event)
+	if !ok || countdown != (DayRange{First: "2026-11-27", Last: "2026-12-25"}) {
+		t.Errorf("CountdownDayRange = %+v, %v", countdown, ok)
+	}
+
+	// An end time after midnight includes that day.
+	event.EndsAt = utc("2027-01-01T12:00:00Z")
+	if got := Days(event).Last; got != "2027-01-01" {
+		t.Errorf("Days.Last with a midday end = %s", got)
+	}
+
+	// A countdown longer than the event is capped to its last day.
+	long := 400
+	event.CountdownDays = &long
+	if countdown, _ := CountdownDayRange(event); countdown.Last != "2027-01-01" {
+		t.Errorf("capped countdown Last = %s", countdown.Last)
+	}
+
+	event.CountdownDays = nil
+	if _, ok := CountdownDayRange(event); ok {
+		t.Error("expected no countdown range")
+	}
+}
+
+func TestNewActiveEventDefaults(t *testing.T) {
+	event := christmasEvent()
+	event.Reactions = []string{"snowflake", "gift"}
+	got := NewActiveEvent(event, utc("2026-12-01T00:00:00Z"))
+	if got.Progress.DoodledDays == nil || got.Progress.Count != 0 {
+		t.Errorf("Progress = %+v, want empty non-nil days", got.Progress)
+	}
+	if len(got.Reactions) != 2 {
+		t.Errorf("Reactions = %v", got.Reactions)
+	}
+
+	event.Reactions = nil
+	if got := NewActiveEvent(event, utc("2026-12-01T00:00:00Z")); got.Reactions == nil {
+		t.Error("Reactions should serialize as [] rather than null")
+	}
+
+	progress := NewProgress([]string{"2026-11-27", "2026-11-28"})
+	if progress.Count != 2 {
+		t.Errorf("NewProgress count = %d", progress.Count)
+	}
+}
+
+func TestLongestStreak(t *testing.T) {
+	tests := []struct {
+		days []string
+		want int
+	}{
+		{nil, 0},
+		{[]string{"2026-11-27"}, 1},
+		{[]string{"2026-11-27", "2026-11-28", "2026-11-30"}, 2},
+		{[]string{"2026-11-27", "2026-11-29", "2026-11-30", "2026-12-01", "2026-12-03"}, 3},
+		{[]string{"2026-11-30", "2026-12-01", "2026-12-02"}, 3}, // across a month boundary
+	}
+	for _, tt := range tests {
+		if got := LongestStreak(tt.days); got != tt.want {
+			t.Errorf("LongestStreak(%v) = %d, want %d", tt.days, got, tt.want)
+		}
+	}
+}
+
+func TestEventInputValidation(t *testing.T) {
+	days := func(n int) *int { return &n }
+	valid := EventInput{
+		Slug: "spooky-2027", Name: " Spooky ", Theme: "halloween",
+		StartsAt: utc("2027-10-29T00:00:00-07:00"), EndsAt: utc("2027-11-01T00:00:00Z"),
+		CountdownDays: days(3), Reactions: []string{"pumpkin", "ghost", "pumpkin"},
+	}
+
+	event, err := valid.ToEvent()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.Name != "Spooky" || event.StartsAt.Location() != time.UTC || len(event.Reactions) != 2 {
+		t.Errorf("unexpected normalized event %+v", event)
+	}
+
+	tests := map[string]func(in *EventInput){
+		"bad slug":           func(in *EventInput) { in.Slug = "Spooky 2027" },
+		"missing name":       func(in *EventInput) { in.Name = "  " },
+		"missing theme":      func(in *EventInput) { in.Theme = "" },
+		"missing startsAt":   func(in *EventInput) { in.StartsAt = time.Time{} },
+		"ends before starts": func(in *EventInput) { in.EndsAt = in.StartsAt.Add(-time.Hour) },
+		"ends at start":      func(in *EventInput) { in.EndsAt = in.StartsAt },
+		"zero countdown":     func(in *EventInput) { in.CountdownDays = days(0) },
+		"countdown too long": func(in *EventInput) { in.CountdownDays = days(30) },
+		"bad reaction id":    func(in *EventInput) { in.Reactions = []string{"Snow Flake"} },
+	}
+	for name, mutate := range tests {
+		in := valid
+		mutate(&in)
+		if _, err := in.ToEvent(); err == nil {
+			t.Errorf("%s: expected a validation error", name)
+		}
+	}
+
+	noCountdown := valid
+	noCountdown.CountdownDays = nil
+	noCountdown.Reactions = nil
+	if event, err := noCountdown.ToEvent(); err != nil || event.Reactions == nil {
+		t.Errorf("nil countdown/reactions: %+v, %v", event, err)
+	}
+}

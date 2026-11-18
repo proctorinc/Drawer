@@ -17,6 +17,9 @@ DROP TABLE IF EXISTS user_achievement_checks;
 DROP TABLE IF EXISTS user_stat_calculations;
 DROP TABLE IF EXISTS prompt_suggestions;
 DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS event_reactions;
+DROP TABLE IF EXISTS event_achievements;
+DROP TABLE IF EXISTS event_notifications_sent;
 
 -- CREATE TABLE users (
 --     id TEXT PRIMARY KEY,

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
+	"drawer-service-backend/internal/events"
+	"fmt"
 	"log"
 )
 
@@ -19,6 +21,10 @@ var (
 	REACTION_SUBMISSION_TOTAL StatsField = "REACTION_SUBMISSION_TOTAL"
 	REACTION_COMMENT_TOTAL    StatsField = "REACTION_COMMENT_TOTAL"
 	FRIEND_TOTAL              StatsField = "FRIEND_TOTAL"
+	// Event stickers: distinct days doodled during the achievement's event (see event_achievements)
+	EVENT_SUBMISSION_TOTAL StatsField = "EVENT_SUBMISSION_TOTAL"
+	// Event stickers: distinct days doodled during the event's countdown (e.g. Nov 27 - Dec 25)
+	EVENT_COUNTDOWN_TOTAL StatsField = "EVENT_COUNTDOWN_TOTAL"
 )
 
 type StatsService struct {
@@ -137,6 +143,12 @@ func (ss *StatsService) CheckStatCompletion(userId string, achievement models.Ac
 		count = val
 	case string(FRIEND_TOTAL):
 		val, err := ss.GetFriendTotal(ss.DB, ss.Ctx, userId)
+		if err != nil {
+			return 0, false, err
+		}
+		count = val
+	case string(EVENT_SUBMISSION_TOTAL), string(EVENT_COUNTDOWN_TOTAL):
+		val, err := ss.GetEventSubmissionTotal(userId, achievement)
 		if err != nil {
 			return 0, false, err
 		}
@@ -290,6 +302,30 @@ func (ss *StatsService) GetFriendTotal(repo *sql.DB, ctx context.Context, userId
 	}
 
 	return *friendCount, nil
+}
+
+// GetEventSubmissionTotal counts the days the user doodled during an event sticker's event
+// (or just its countdown, for EVENT_COUNTDOWN_TOTAL).
+func (ss *StatsService) GetEventSubmissionTotal(userId string, achievement models.Achievement) (int, error) {
+	event, err := queries.GetAchievementEvent(ss.DB, ss.Ctx, achievement.ID)
+	if err != nil {
+		return 0, fmt.Errorf("finding the event for achievement %s: %w", achievement.ID, err)
+	}
+
+	days := events.Days(event)
+	if achievement.AchievementField == string(EVENT_COUNTDOWN_TOTAL) {
+		countdown, ok := events.CountdownDayRange(event)
+		if !ok {
+			return 0, fmt.Errorf("event %s has no countdown for achievement %s", event.Slug, achievement.ID)
+		}
+		days = countdown
+	}
+
+	doodledDays, err := queries.GetUserSubmissionDays(ss.DB, ss.Ctx, userId, days.First, days.Last)
+	if err != nil {
+		return 0, err
+	}
+	return len(doodledDays), nil
 }
 
 // HERE

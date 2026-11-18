@@ -133,6 +133,7 @@ const (
 	NotificationTypeFriendSubmission NotificationType = "friend_submission"
 	NotificationTypeReaction         NotificationType = "reaction"
 	NotificationTypeComment          NotificationType = "comment"
+	NotificationTypeEvent            NotificationType = "event"
 )
 
 type NotificationData struct {
@@ -172,6 +173,7 @@ type Achievement struct {
 	AchievementValue int           `json:"achievementValue"`
 	Progress         int           `json:"progress"`
 	Reward           *RewardUnlock `json:"reward"`
+	EventSlug        *string       `json:"eventSlug"` // Set for event stickers, which count only that event's doodles
 }
 
 type RewardUnlock struct {

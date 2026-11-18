@@ -94,3 +94,7 @@ CREATE TABLE prompt_suggestions (id STRING PRIMARY KEY, prompt TEXT NOT NULL, us
 CREATE UNIQUE INDEX idx_users_clerk_id ON users (clerk_id);
 CREATE TABLE events (id TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL, theme TEXT NOT NULL, starts_at TIMESTAMP NOT NULL, ends_at TIMESTAMP NOT NULL, countdown_days INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE INDEX idx_events_starts_at_ends_at ON events (starts_at, ends_at);
+CREATE TABLE event_reactions (event_id TEXT NOT NULL, reaction_id TEXT NOT NULL, PRIMARY KEY (event_id, reaction_id), FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE);
+CREATE TABLE event_achievements (achievement_id TEXT PRIMARY KEY, event_id TEXT NOT NULL, FOREIGN KEY (achievement_id) REFERENCES achievements (id) ON DELETE CASCADE, FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE);
+CREATE INDEX idx_event_achievements_event_id ON event_achievements (event_id);
+CREATE TABLE event_notifications_sent (event_id TEXT NOT NULL, kind TEXT NOT NULL, sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (event_id, kind), FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE);
