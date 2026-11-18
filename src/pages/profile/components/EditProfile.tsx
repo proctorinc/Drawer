@@ -15,6 +15,7 @@ import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
 import { PencilIcon } from '@/components/icons';
 import { DECORATIONS, DECORATION_GROUPS } from '@/decorations/decorations';
+import { useChristmas } from '@/events/useChristmas';
 import { cn } from '@/utils';
 
 // Avatars inside a swatch would otherwise open your profile when tapped
@@ -129,11 +130,22 @@ const FacePicker = () => {
   );
 };
 
+type FlairGroupProps = { name: string; children: ReactNode };
+
+/** A labeled cluster of tiles; clusters sit side by side while they fit */
+const FlairGroup: FC<FlairGroupProps> = ({ name, children }) => (
+  <div className="flex flex-col gap-1.5">
+    <h4 className="text-sm text-pencil leading-none">{name}</h4>
+    <div className="flex flex-wrap gap-2">{children}</div>
+  </div>
+);
+
 /** One decoration to wear on your face, grouped by what unlocks them */
 const FlairPicker = () => {
   const user = useUser();
   const { reloadUser } = useAuth();
   const queryClient = useQueryClient();
+  const christmas = useChristmas();
   const { achievementsData } = useMyProfilePage();
   const updateDecoration = useUpdateDecoration();
   const [peeking, setPeeking] = useState<DecorationId | null>(null);
@@ -143,12 +155,13 @@ const FlairPicker = () => {
   const stickerFor = (id: DecorationId) =>
     achievementsData?.achievements.find((a) => a.reward?.id === id)?.name;
 
-  function tap(id: DecorationId) {
-    setPeeking(id);
+  /** Wears a decoration, or nothing with '' */
+  function wear(decoration: DecorationId | '') {
+    setPeeking(decoration || null);
     setError(null);
-    if (!isUnlocked(id) || updateDecoration.isPending) return;
-    // Tapping the one you're wearing takes it off
-    const decoration = id === user.decoration ? '' : id;
+    const locked = decoration !== '' && !isUnlocked(decoration);
+    if (locked || decoration === user.decoration || updateDecoration.isPending)
+      return;
     updateDecoration
       .mutateAsync(decoration)
       .then(() => {
@@ -165,24 +178,38 @@ const FlairPicker = () => {
       return `${DECORATIONS[peeking].name}: earn ${sticker ? `the ${sticker} sticker` : 'its sticker'} to wear it`;
     }
     if (user.decoration && user.decoration in DECORATIONS) {
-      return `wearing ${DECORATIONS[user.decoration].name}. tap it again to take it off`;
+      return `wearing ${DECORATIONS[user.decoration].name}`;
     }
-    return 'earn stickers to unlock flair for your face';
+    return christmas
+      ? "wearing nothing, so you get everyone's santa hat this season"
+      : 'wearing nothing. earn stickers to unlock flair';
   }
 
   return (
     <Section title="my flair" note={note()}>
-      {DECORATION_GROUPS.map((group) => (
-        <div key={group.name} className="flex flex-col gap-1.5">
-          <h4 className="text-sm text-pencil leading-none">{group.name}</h4>
-          <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-x-4 gap-y-3">
+        <FlairGroup name="free">
+          <Swatch
+            label="wear nothing"
+            isSelected={!user.decoration}
+            onClick={() => wear('')}
+          >
+            <UserProfileIcon
+              user={{ ...user, decoration: '' }}
+              size="lg"
+              onClick={ignoreClick}
+            />
+          </Swatch>
+        </FlairGroup>
+        {DECORATION_GROUPS.map((group) => (
+          <FlairGroup key={group.name} name={group.name}>
             {group.ids.map((id) => (
               <Swatch
                 key={id}
                 label={DECORATIONS[id].name}
                 isSelected={user.decoration === id}
                 isLocked={!isUnlocked(id)}
-                onClick={() => tap(id)}
+                onClick={() => wear(id)}
               >
                 <UserProfileIcon
                   user={{ ...user, decoration: id }}
@@ -191,9 +218,9 @@ const FlairPicker = () => {
                 />
               </Swatch>
             ))}
-          </div>
-        </div>
-      ))}
+          </FlairGroup>
+        ))}
+      </div>
     </Section>
   );
 };
