@@ -5,17 +5,15 @@ import { useGetAchievements } from '@/api/Api';
 import { useActiveEvent, useEventRecap } from '@/api/events';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
-import Chip from '@/components/Chip';
 import { TrophyIcon } from '@/components/icons';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
 import ChristmasTree from '@/events/christmas/ChristmasTree';
 import EventBadge from '@/events/christmas/EventBadge';
 import EventLeaderboard from '@/events/christmas/EventLeaderboard';
-import EventSticker from '@/events/christmas/EventSticker';
+import StickerReward from '@/events/christmas/StickerReward';
 import { countdownCopy } from '@/events/useChristmas';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
-import { cn } from '@/utils';
 
 const Section: FC<{
   title: string;
@@ -144,38 +142,9 @@ const EventPage = () => {
           title="christmas stickers"
           aside={`${stickersEarned}/${stickers.length} collected`}
         >
-          <ul className="flex justify-around gap-2 w-full p-4 bg-white border-2 border-ink rounded-sketch shadow-pencil stagger">
+          <ul className="grid grid-cols-3 gap-2 w-full stagger">
             {stickers.map((sticker) => (
-              <li
-                key={sticker.id}
-                className="flex flex-col items-center gap-1 w-24 text-center text-sm leading-tight"
-              >
-                <EventSticker
-                  achievement={sticker}
-                  locked={!sticker.achievedAt}
-                  className="w-12 h-13"
-                />
-                <span className={sticker.achievedAt ? '' : 'text-pencil'}>
-                  {sticker.name}
-                </span>
-                {!sticker.achievedAt && (
-                  <span className="text-xs text-pencil">
-                    {Math.min(sticker.progress, sticker.achievementValue)}/
-                    {sticker.achievementValue}
-                  </span>
-                )}
-                {sticker.reward && (
-                  <Chip
-                    className={cn(
-                      'h-auto mt-1 px-2 py-0.5 text-xs leading-tight text-center whitespace-normal',
-                      sticker.achievedAt ? 'bg-butter' : 'bg-white',
-                    )}
-                  >
-                    {sticker.achievedAt ? 'unlocked ' : 'unlocks '}
-                    {sticker.reward.name.toLowerCase()}
-                  </Chip>
-                )}
-              </li>
+              <StickerReward key={sticker.id} sticker={sticker} />
             ))}
           </ul>
         </Section>
