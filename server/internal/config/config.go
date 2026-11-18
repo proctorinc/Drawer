@@ -16,6 +16,7 @@ type Config struct {
 	ClerkSecretKey  string
 	DevUserEmail    string
 	EventsFakeNow   string // Non-production only: pretend "now" is this date for events
+	EventsNotify    bool   // Also send event push broadcasts outside production (always on in production)
 	S3BucketName    string
 	S3BucketRegion  string
 	AwsAccessKey    string
@@ -60,6 +61,7 @@ func LoadConfig() *Config {
 		ClerkSecretKey:  clerkSecretKey,
 		DevUserEmail:    getEnv("DEV_USER_EMAIL", ""),
 		EventsFakeNow:   getEnv("EVENTS_FAKE_NOW", ""),
+		EventsNotify:    getEnv("EVENT_NOTIFICATIONS_ENABLED", "") == "true",
 		S3BucketName:    getEnv("S3_BUCKET_NAME", ""),
 		S3BucketRegion:  getEnv("S3_BUCKET_REGION", ""),
 		AwsAccessKey:    getEnv("AWS_ACCESS_KEY_ID", ""),

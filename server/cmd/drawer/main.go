@@ -3,6 +3,7 @@ package main
 import (
 	"drawer-service-backend/internal/config"
 	"drawer-service-backend/internal/db"
+	"drawer-service-backend/internal/notifications"
 	"drawer-service-backend/internal/routes"
 	"errors"
 	"log"
@@ -35,6 +36,8 @@ func main() {
 	} else {
 		log.Println("Running in production mode")
 	}
+
+	notifications.StartEventNotifier(cfg, repo)
 
 	// --- Gin Router Setup ---
 	router := routes.InitRouter(cfg, repo)
