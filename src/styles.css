@@ -48,6 +48,28 @@
   --color-snow: #9fb6cf;
   --animate-blink: blink 1.8s ease-in-out infinite;
   --animate-twinkle: twinkle 1.4s ease-in-out infinite;
+  --animate-sway: sway 4s ease-in-out infinite;
+
+  /* A gentle rock with a little hop in the middle */
+  @keyframes sway {
+    0%,
+    100% {
+      rotate: -5deg;
+      translate: 0 0;
+    }
+    45% {
+      rotate: 5deg;
+      translate: 1px 0;
+    }
+    50% {
+      rotate: 4deg;
+      translate: 1px -2px;
+    }
+    55% {
+      rotate: 5deg;
+      translate: 1px 0;
+    }
+  }
 
   @keyframes blink {
     0%,

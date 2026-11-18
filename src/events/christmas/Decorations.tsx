@@ -103,25 +103,69 @@ export const Holly: FC<Props> = ({ className }) => (
   </svg>
 );
 
-/** Snow resting on the navbar: flat underneath, lumpy on top, tapering at the ends */
+/** Snow resting on the navbar: puffy lumps on top, a few drips over the edge */
 export const SnowCap: FC<Props> = ({ className }) => (
   <svg
     aria-hidden="true"
-    viewBox="0 0 342 16"
+    viewBox="0 0 342 24"
     preserveAspectRatio="none"
     className={cn(
-      'absolute -top-3 inset-x-0 w-full h-4 pointer-events-none',
+      // y=18 in the box lines up with the bar's top edge
+      'absolute -top-[18px] inset-x-0 w-full h-6 pointer-events-none',
       className,
     )}
   >
     <path
-      d="M18 15C20 10 24 7 30 7q10-4 20 0q11-2.5 22 0q12-4 24 0q10-2.5 20 0q11-4 22 0q12-2.5 24 0q10-4 20 0q11-2.5 22 0q12-4 24 0q10-2.5 20 0q11-4 22 0q12-2.5 24 0q10-4 20 0C320 7 322 10 324 15z"
+      d="M18 18C16 12 24 10 34 10a20 8 0 0 1 40 0 a24 6 0 0 1 48 0 a18 9 0 0 1 36 0 a26 6.5 0 0 1 52 0 a22 8.5 0 0 1 44 0 a29 7 0 0 1 58 0C321 10 326 14 324 18L292 18q-4 8-10 0L206 18q-4 7-9 0L126 18q-4 8-10 0L70 18q-4 6-8 0z"
       fill="#fff"
       stroke="var(--color-ink)"
       strokeWidth={1.8}
       strokeLinejoin="round"
       vectorEffect="non-scaling-stroke"
     />
+  </svg>
+);
+
+/** A little snowman who sits on the navbar's snow and sways */
+export const Snowman: FC<Props> = ({ className }) => (
+  <svg
+    aria-hidden="true"
+    width="30"
+    height="36"
+    viewBox="0 0 30 36"
+    className={cn(
+      'absolute pointer-events-none origin-bottom animate-sway',
+      className,
+    )}
+  >
+    <g stroke="var(--color-ink)" strokeWidth={1.8} strokeLinecap="round">
+      {/* Twig arms */}
+      <path d="M7 21L1 16M3 17.5l-1.5-3M23 21l6-5M27 17.5l1.5-3" fill="none" />
+      <circle cx="15" cy="26" r="8.5" fill="#fff" />
+      <circle cx="15" cy="13" r="6.5" fill="#fff" />
+      {/* Scarf, with a tail blowing to the side */}
+      <path
+        d="M9 18.5q6 3 12 0M19 19.5l2 5"
+        fill="none"
+        stroke="var(--color-xmas-red)"
+        strokeWidth={2.6}
+      />
+      {/* Hat */}
+      <path d="M9 7.5h12" />
+      <rect
+        x="11"
+        y="1"
+        width="8"
+        height="6.5"
+        rx="1"
+        fill="var(--color-ink)"
+      />
+    </g>
+    <circle cx="12.6" cy="12" r="1" fill="var(--color-ink)" />
+    <circle cx="17.4" cy="12" r="1" fill="var(--color-ink)" />
+    <path d="M15 14l5 1.2-5 1z" fill="#ff9f43" />
+    <circle cx="15" cy="24" r="0.9" fill="var(--color-ink)" />
+    <circle cx="15" cy="28" r="0.9" fill="var(--color-ink)" />
   </svg>
 );
 

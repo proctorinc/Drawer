@@ -6,7 +6,7 @@ import { cn } from '@/utils';
 import useUser from '@/auth/hooks/useUser';
 import { useGetInvitations } from '@/api/Api';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
-import { SnowCap } from '@/events/christmas/Decorations';
+import { SnowCap, Snowman } from '@/events/christmas/Decorations';
 import { useChristmas } from '@/events/useChristmas';
 
 const TABS = ['/draw/trophies', '/draw', '/draw/profile/me'] as const;
@@ -77,7 +77,12 @@ const Navbar = () => {
           )}
           style={{ left: blobLeft(blobTab === -1 ? 1 : blobTab) }}
         />
-        {christmas && <SnowCap />}
+        {christmas && (
+          <>
+            <SnowCap />
+            <Snowman className="-top-[42px] left-8" />
+          </>
+        )}
 
         <Link
           to="/draw/trophies"
