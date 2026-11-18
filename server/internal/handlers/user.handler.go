@@ -190,9 +190,9 @@ func HandleGetInvitations(c *gin.Context) {
 	// Query all pending invitations where the user is either user1 or user2, join inviter user object
 	query := `
 		SELECT f.created_at,
-			user1, user1.username, user1.email, user1.created_at, user1.avatar_type, user1.avatar_url,
-			user2, user2.username, user2.email, user2.created_at, user2.avatar_type, user2.avatar_url,
-			inviter.id, inviter.username, inviter.email, inviter.created_at, inviter.avatar_type, inviter.avatar_url
+			user1, user1.username, user1.email, user1.created_at, user1.avatar_type, user1.avatar_url, user1.decoration,
+			user2, user2.username, user2.email, user2.created_at, user2.avatar_type, user2.avatar_url, user2.decoration,
+			inviter.id, inviter.username, inviter.email, inviter.created_at, inviter.avatar_type, inviter.avatar_url, inviter.decoration
 		FROM friendships f
 		JOIN users inviter ON f.inviter_id = inviter.id
 		JOIN users user1 ON f.user1 = user1.id
@@ -215,9 +215,9 @@ func HandleGetInvitations(c *gin.Context) {
 		var friendshipCreatedAt string
 		var user1, user2, inviter models.User
 		err := rows.Scan(&friendshipCreatedAt,
-			&user1.ID, &user1.Username, &user1.Email, &user1.CreatedAt, &user1.AvatarType, &user1.AvatarURL,
-			&user2.ID, &user2.Username, &user2.Email, &user2.CreatedAt, &user2.AvatarType, &user2.AvatarURL,
-			&inviter.ID, &inviter.Username, &inviter.Email, &inviter.CreatedAt, &inviter.AvatarType, &inviter.AvatarURL)
+			&user1.ID, &user1.Username, &user1.Email, &user1.CreatedAt, &user1.AvatarType, &user1.AvatarURL, &user1.Decoration,
+			&user2.ID, &user2.Username, &user2.Email, &user2.CreatedAt, &user2.AvatarType, &user2.AvatarURL, &user2.Decoration,
+			&inviter.ID, &inviter.Username, &inviter.Email, &inviter.CreatedAt, &inviter.AvatarType, &inviter.AvatarURL, &inviter.Decoration)
 		if err != nil {
 			log.Printf("HandleGetInvitations: error scanning row %d: %v", rowCount, err)
 			continue
@@ -371,4 +371,43 @@ func HandleToggleAvatarType(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("Successfully toggles avatar type to %s for %s", avatarType, requester.ID)})
+}
+
+// HandleUpdateDecoration puts on one of the requester's unlocked decorations, or takes it off with ""
+func HandleUpdateDecoration(c *gin.Context) {
+	requester := middleware.GetUser(c)
+	appCtx := requestContext.GetCtx(c)
+
+	var body struct {
+		Decoration string `json:"decoration"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if body.Decoration != "" {
+		if !achievements.IsDecoration(achievements.RewardUnlockId(body.Decoration)) {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Unknown decoration"})
+			return
+		}
+		unlocked, err := queries.HasRewardUnlocked(appCtx.DB, c.Request.Context(), requester.ID, body.Decoration)
+		if err != nil {
+			log.Printf("Error checking decoration %s for %s: %v", body.Decoration, requester.ID, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update decoration"})
+			return
+		}
+		if !unlocked {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "You haven't unlocked that decoration yet"})
+			return
+		}
+	}
+
+	if err := queries.UpdateUserDecoration(appCtx.DB, c.Request.Context(), requester.ID, body.Decoration); err != nil {
+		log.Printf("Error updating decoration to %q for %s: %v", body.Decoration, requester.ID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update decoration"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"decoration": body.Decoration})
 }

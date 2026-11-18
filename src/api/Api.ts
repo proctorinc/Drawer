@@ -25,7 +25,15 @@ export interface User {
   createdAt: Date;
   avatarType: 'basic' | 'custom';
   avatarUrl: string;
+  /** The decoration worn on their avatar, or '' for none */
+  decoration: DecorationId | '';
 }
+
+/** Decorations are rewards worn on the avatar, one at a time */
+export type DecorationId =
+  | 'FIRST_SNOW'
+  | 'CHRISTMAS_LIGHTS'
+  | 'GOLDEN_SANTA_HAT';
 
 export interface ReactionCount {
   reactionId: ReactionId;
@@ -286,6 +294,12 @@ export function useUploadCustomAvatar() {
   });
 }
 
+export function useUpdateDecoration() {
+  return useMutation({
+    mutationFn: apiClient.updateDecoration,
+  });
+}
+
 export function useToggleAvatarType() {
   return useMutation({
     mutationFn: apiClient.toggleAvatarType,
@@ -341,7 +355,7 @@ export function useGetInvitations() {
   });
 }
 
-type AchievementRewardID = 'CUSTOM_PROFILE_PIC';
+type AchievementRewardID = 'CUSTOM_PROFILE_PIC' | DecorationId;
 
 export type AchievementsAndRewardsResponse = {
   achievements: Array<Achievement>;

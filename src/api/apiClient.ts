@@ -4,6 +4,7 @@ import type {
   Comment,
   DailyActionStat,
   DailyPrompt,
+  DecorationId,
   GetMeResponse,
   InvitationResponse,
   PromptSuggestion,
@@ -207,8 +208,8 @@ export const apiClient = {
       body: JSON.stringify({ username }),
     });
     if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to update username');
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "couldn't save your name, try again");
     }
     return response.json();
   },
@@ -267,6 +268,19 @@ export const apiClient = {
 
     if (!response.ok) {
       throw new Error(`Error toggling avatar type: ${response.text}`);
+    }
+    return response.json();
+  },
+
+  updateDecoration: async (
+    decoration: DecorationId | '',
+  ): Promise<{ decoration: DecorationId | '' }> => {
+    const response = await fetchAPI('PUT', '/user/decoration', {
+      body: JSON.stringify({ decoration }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "couldn't put that on, try again");
     }
     return response.json();
   },

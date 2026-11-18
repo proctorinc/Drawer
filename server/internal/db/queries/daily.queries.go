@@ -34,7 +34,7 @@ func CheckUserSubmittedToday(repo *sql.DB, ctx context.Context, userID string) (
 }
 
 func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.DailyPrompt, error) {
-	query := `SELECT dp.day, dp.colors, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url
+	query := `SELECT dp.day, dp.colors, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration
 		FROM daily_prompts dp
 		LEFT JOIN users u ON dp.created_by = u.id
 		WHERE day = ?`
@@ -49,9 +49,10 @@ func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.D
 		userCreatedAt sql.NullTime
 		avatarType    sql.NullString
 		avatarURL     sql.NullString
+		decoration    sql.NullString
 	)
 
-	err := row.Scan(&prompt.Day, &colorsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL)
+	err := row.Scan(&prompt.Day, &colorsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL, &decoration)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.DailyPrompt{}, sql.ErrNoRows
@@ -73,6 +74,7 @@ func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.D
 			CreatedAt:  userCreatedAt.Time,
 			AvatarType: avatarType.String,
 			AvatarURL:  avatarURL.String,
+			Decoration: decoration.String,
 		}
 	} else {
 		log.Println("UserID is not valid")
@@ -155,7 +157,7 @@ func GenerateAndInsertDailyPrompt(repo *sql.DB, ctx context.Context, dateStr str
 func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, error) {
 	today := utils.GetFormattedDate(time.Now())
 
-	query := `SELECT dp.day, dp.colors, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url
+	query := `SELECT dp.day, dp.colors, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration
 	FROM daily_prompts dp
 	LEFT JOIN users u ON dp.created_by = u.id
 	WHERE day >= ? ORDER BY day ASC`
@@ -176,9 +178,10 @@ func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, 
 			userCreatedAt sql.NullTime
 			avatarType    sql.NullString
 			avatarURL     sql.NullString
+			decoration    sql.NullString
 		)
 
-		err := rows.Scan(&prompt.Day, &colorsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL)
+		err := rows.Scan(&prompt.Day, &colorsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL, &decoration)
 		if err != nil {
 			log.Printf("Error scanning future prompt row AAA: %v", err)
 			continue
@@ -199,6 +202,7 @@ func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, 
 				CreatedAt:  userCreatedAt.Time,
 				AvatarType: avatarType.String,
 				AvatarURL:  avatarURL.String,
+				Decoration: decoration.String,
 			}
 		}
 

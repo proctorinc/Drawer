@@ -16,11 +16,11 @@ const activityWindow = "datetime('now', '-7 days')"
 // activityUserColumns selects a user from the users table under the given alias, in activityUserDest's order
 func activityUserColumns(alias string) string {
 	return alias + ".id, " + alias + ".username, " + alias + ".email, " + alias + ".created_at, " +
-		alias + ".avatar_type, " + alias + ".avatar_url"
+		alias + ".avatar_type, " + alias + ".avatar_url, " + alias + ".decoration"
 }
 
 func activityUserDest(u *models.User) []any {
-	return []any{&u.ID, &u.Username, &u.Email, &u.CreatedAt, &u.AvatarType, &u.AvatarURL}
+	return []any{&u.ID, &u.Username, &u.Email, &u.CreatedAt, &u.AvatarType, &u.AvatarURL, &u.Decoration}
 }
 
 // queryEach runs a query and, for each row, scans it into dest and calls each

@@ -154,6 +154,12 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 			('christmas-2026-twelve-days', 'event1'),
 			('christmas-2026-doodle-claus', 'event1');
 
+		-- Decorations (mirror migrations/1795040100_seed_christmas_decorations.up.sql)
+		INSERT OR IGNORE INTO reward_unlocks (id, name, description, achievement_id) VALUES
+			('FIRST_SNOW', 'First Snow', 'A drift of snow to wear on your face', 'christmas-2026-first-snow'),
+			('CHRISTMAS_LIGHTS', 'Christmas Lights', 'A strand of twinkly lights to wear on your face', 'christmas-2026-twelve-days'),
+			('GOLDEN_SANTA_HAT', 'Golden Santa Hat', 'A golden santa hat to wear on your face', 'christmas-2026-doodle-claus');
+
 		-- Inserted before the relative demo prompts below so these win on overlapping days
 		INSERT OR IGNORE INTO daily_prompts (day, colors, prompt) VALUES
 			('2026-11-27', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'leftovers in disguise'),
@@ -197,6 +203,11 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 			('user7', 'bufy', 'user7@example.com', 'user', date('now', '-13 days'), 'basic', ''),
 			('user8', 'anonymous_hippopotamus', 'user8@example.com', 'user', date('now', '-13 days'), 'basic', ''),
 			('user9', 'pro_tractor', 'user9@example.com', 'user', date('now', '-13 days'), 'basic', '');
+
+		-- A few friends already wearing decorations
+		UPDATE users SET decoration = 'GOLDEN_SANTA_HAT' WHERE id = 'user2';
+		UPDATE users SET decoration = 'CHRISTMAS_LIGHTS' WHERE id = 'user3';
+		UPDATE users SET decoration = 'FIRST_SNOW' WHERE id = 'user4';
 
 		-- Insert prompt suggestions
 		INSERT OR IGNORE INTO prompt_suggestions (id, user_id, prompt)

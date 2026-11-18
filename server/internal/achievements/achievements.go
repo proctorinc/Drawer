@@ -13,7 +13,20 @@ type RewardUnlockId string
 
 var (
 	CUSTOM_PROFILE_PIC RewardUnlockId = "CUSTOM_PROFILE_PIC"
+
+	FIRST_SNOW       RewardUnlockId = "FIRST_SNOW"
+	CHRISTMAS_LIGHTS RewardUnlockId = "CHRISTMAS_LIGHTS"
+	GOLDEN_SANTA_HAT RewardUnlockId = "GOLDEN_SANTA_HAT"
 )
+
+// IsDecoration reports whether a reward is a decoration, worn on the avatar one at a time
+func IsDecoration(id RewardUnlockId) bool {
+	switch id {
+	case FIRST_SNOW, CHRISTMAS_LIGHTS, GOLDEN_SANTA_HAT:
+		return true
+	}
+	return false
+}
 
 type AchievementService struct {
 	DB           *sql.DB

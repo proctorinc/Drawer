@@ -8,6 +8,7 @@ import type { FC } from 'react';
 import { cn } from '@/utils';
 import useUser from '@/auth/hooks/useUser';
 import { SantaHat } from '@/events/christmas/Decorations';
+import { AvatarDecoration } from '@/decorations/decorations';
 import { useChristmas } from '@/events/useChristmas';
 
 export const userProfileIconVariants = cva(
@@ -65,9 +66,14 @@ export const UserProfileIcon: FC<Props> = ({
     }
   };
 
-  // With a hat on, the wrapper takes the caller's classes (position, ring,
-  // tilt) so the hat moves and turns with the avatar
-  const iconClassName = christmas ? undefined : className;
+  // A worn decoration replaces the red hat everyone gets during Christmas
+  let decoration = null;
+  if (user.decoration) decoration = <AvatarDecoration id={user.decoration} />;
+  else if (christmas) decoration = <SantaHat />;
+
+  // With a decoration on, the wrapper takes the caller's classes (position,
+  // ring, tilt) so it moves and turns with the avatar
+  const iconClassName = decoration ? undefined : className;
   const icon =
     user.avatarType === 'custom' && user.avatarUrl !== '' ? (
       <CustomProfileIcon
@@ -85,12 +91,12 @@ export const UserProfileIcon: FC<Props> = ({
       />
     );
 
-  if (!christmas) return icon;
+  if (!decoration) return icon;
 
   return (
     <span className={cn('relative inline-flex flex-none', className)}>
       {icon}
-      <SantaHat />
+      {decoration}
     </span>
   );
 };

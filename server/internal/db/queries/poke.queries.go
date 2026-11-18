@@ -51,7 +51,7 @@ func GetPokeesOn(repo *sql.DB, ctx context.Context, pokerID, day string) (map[st
 // GetPokesReceived returns the pokes the user got in the last week as activity, newest first
 func GetPokesReceived(repo *sql.DB, ctx context.Context, userID string) ([]models.Activity, error) {
 	rows, err := repo.QueryContext(ctx, `
-		SELECT p.day, u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, p.created_at
+		SELECT p.day, u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration, p.created_at
 		FROM pokes p
 		JOIN users u ON u.id = p.poker_id
 		WHERE p.pokee_id = ? AND p.created_at >= datetime('now', '-7 days')
@@ -65,7 +65,7 @@ func GetPokesReceived(repo *sql.DB, ctx context.Context, userID string) ([]model
 		var day string
 		var poker models.User
 		var pokedAt time.Time
-		if err := rows.Scan(&day, &poker.ID, &poker.Username, &poker.Email, &poker.CreatedAt, &poker.AvatarType, &poker.AvatarURL, &pokedAt); err != nil {
+		if err := rows.Scan(&day, &poker.ID, &poker.Username, &poker.Email, &poker.CreatedAt, &poker.AvatarType, &poker.AvatarURL, &poker.Decoration, &pokedAt); err != nil {
 			return nil, err
 		}
 		pokes = append(pokes, models.Activity{

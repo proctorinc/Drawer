@@ -6,6 +6,7 @@ import (
 	"drawer-service-backend/internal/config"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	s3Config "github.com/aws/aws-sdk-go-v2/config"
@@ -55,8 +56,13 @@ func (s *StorageService) UploadSubmission(userId string, submissionId string, im
 }
 
 func (s *StorageService) UploadProfilePicture(userId string, imageData []byte) (string, error) {
-	filename := getProfileImageFilename(userId)
-	return s.uploadImage(filename, imageData)
+	url, err := s.uploadImage(getProfileImageFilename(userId), imageData)
+	if err != nil {
+		return "", err
+	}
+	// Every redraw overwrites the same file, so give each one its own URL;
+	// otherwise browsers keep showing the cached old face
+	return fmt.Sprintf("%s?v=%d", url, time.Now().Unix()), nil
 }
 
 func (s *StorageService) uploadImage(filename string, imageData []byte) (string, error) {

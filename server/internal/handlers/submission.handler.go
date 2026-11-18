@@ -40,7 +40,7 @@ func HandleGetSubmissionByID(c *gin.Context) {
 			u.email,
 			u.created_at,
 			u.avatar_type,
-			u.avatar_url,
+			u.avatar_url, u.decoration,
 			us.created_at as submission_created_at
 		FROM user_submissions us
 		JOIN daily_prompts dp ON us.day = dp.day
@@ -48,8 +48,8 @@ func HandleGetSubmissionByID(c *gin.Context) {
 		WHERE us.id = ?
 	`
 	var (
-		subID, day, colorsJSON, prompt, userID, username, email, userAvatarType, userAvatarURL string
-		userCreatedAt, submissionCreatedAt                                                     sql.NullTime
+		subID, day, colorsJSON, prompt, userID, username, email, userAvatarType, userAvatarURL, userDecoration string
+		userCreatedAt, submissionCreatedAt                                                                     sql.NullTime
 	)
 	err := appCtx.DB.QueryRowContext(c.Request.Context(), query, submissionID).Scan(
 		&subID,
@@ -62,6 +62,7 @@ func HandleGetSubmissionByID(c *gin.Context) {
 		&userCreatedAt,
 		&userAvatarType,
 		&userAvatarURL,
+		&userDecoration,
 		&submissionCreatedAt,
 	)
 	if err != nil {
@@ -80,7 +81,7 @@ func HandleGetSubmissionByID(c *gin.Context) {
 
 	// Query comments for this submission
 	commentsQuery := `
-		SELECT c.id, c.text, u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, c.created_at
+		SELECT c.id, c.text, u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration, c.created_at
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
 		WHERE c.submission_id = ?
@@ -94,9 +95,9 @@ func HandleGetSubmissionByID(c *gin.Context) {
 	defer rows.Close()
 	comments := []models.Comment{}
 	for rows.Next() {
-		var commentID, commentText, commentUserID, commentUsername, commentUserEmail, commentUserAvatarType, commentUserAvatarURL string
+		var commentID, commentText, commentUserID, commentUsername, commentUserEmail, commentUserAvatarType, commentUserAvatarURL, commentUserDecoration string
 		var commentUserCreatedAt, commentCreatedAt sql.NullTime
-		err := rows.Scan(&commentID, &commentText, &commentUserID, &commentUsername, &commentUserEmail, &commentUserCreatedAt, &commentUserAvatarType, &commentUserAvatarURL, &commentCreatedAt)
+		err := rows.Scan(&commentID, &commentText, &commentUserID, &commentUsername, &commentUserEmail, &commentUserCreatedAt, &commentUserAvatarType, &commentUserAvatarURL, &commentUserDecoration, &commentCreatedAt)
 		if err != nil {
 			log.Printf("Error scanning comment row: %v", err)
 			continue
@@ -110,6 +111,7 @@ func HandleGetSubmissionByID(c *gin.Context) {
 				CreatedAt:  commentUserCreatedAt.Time,
 				AvatarType: commentUserAvatarType,
 				AvatarURL:  commentUserAvatarURL,
+				Decoration: commentUserDecoration,
 			},
 			Text:      commentText,
 			CreatedAt: commentCreatedAt.Time,
@@ -164,6 +166,7 @@ func HandleGetSubmissionByID(c *gin.Context) {
 			CreatedAt:  userCreatedAt.Time,
 			AvatarType: userAvatarType,
 			AvatarURL:  userAvatarURL,
+			Decoration: userDecoration,
 		},
 		ImageUrl:  imageUrl,
 		Comments:  comments,

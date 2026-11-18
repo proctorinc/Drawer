@@ -101,6 +101,7 @@ func HandleGetActivity(c *gin.Context) {
 				CreatedAt:  friendUser.CreatedAt,
 				AvatarType: friendUser.AvatarType,
 				AvatarURL:  friendUser.AvatarURL,
+				Decoration: friendUser.Decoration,
 			},
 			HasSubmittedToday: hasSubmitted,
 			PokedToday:        pokedToday[fid],

@@ -27,22 +27,55 @@ const hatStyle = (() => {
   };
 })();
 
+/** A four-point twinkle, centered on (x, y) */
+const Sparkle: FC<{ x: number; y: number; r: number; delay: string }> = ({
+  x,
+  y,
+  r,
+  delay,
+}) => (
+  <path
+    d={`M${x} ${y - r}Q${x} ${y} ${x + r} ${y}Q${x} ${y} ${x} ${y + r}Q${x} ${y} ${x - r} ${y}Q${x} ${y} ${x} ${y - r}z`}
+    fill="#fff"
+    className="animate-twinkle [transform-box:fill-box] origin-center"
+    style={{ animationDelay: delay }}
+  />
+);
+
 /** Fits on any round avatar; its parent must be the avatar's square, positioned box */
-export const SantaHat: FC<Props> = ({ className }) => (
+export const SantaHat: FC<Props & { golden?: boolean }> = ({
+  className,
+  golden,
+}) => (
   <svg
     aria-hidden="true"
     viewBox="0 0 40 32"
+    overflow="visible"
     className={cn('absolute pointer-events-none', className)}
     style={hatStyle}
   >
     <path
       d="M6 24C10 10 22 2 34 6c-4 4-4 10-2 16z"
-      fill="var(--color-xmas-red)"
+      fill={golden ? 'var(--color-xmas-gold)' : 'var(--color-xmas-red)'}
       stroke="var(--color-ink)"
       strokeWidth={2}
       strokeLinejoin="round"
       vectorEffect="non-scaling-stroke"
     />
+    {golden && (
+      <>
+        {/* A sheen down the hat, and a couple of glints */}
+        <path
+          d="M12 20C14 13 20 8 27 7"
+          fill="none"
+          stroke="var(--color-butter)"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+        />
+        <Sparkle x={20} y={15} r={3.5} delay="0s" />
+        <Sparkle x={39} y={1} r={2.5} delay="0.7s" />
+      </>
+    )}
     <path
       d="M3 22q16-6 32 0v6q-16-6-32 0z"
       fill="#fff"

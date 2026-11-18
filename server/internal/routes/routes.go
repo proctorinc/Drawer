@@ -74,6 +74,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			userGroup.PUT("/profile-pic/toggle",
 				middleware.RewardUnlockRequired(repo, achievements.CUSTOM_PROFILE_PIC),
 				handlers.HandleToggleAvatarType)
+			userGroup.PUT("/decoration", handlers.HandleUpdateDecoration)
 
 			userGroup.GET("/:id/profile", handlers.HandleGetUserByID)
 			userGroup.GET("/:id/achievements", handlers.HandlerGetUserAchievements)

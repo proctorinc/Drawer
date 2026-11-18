@@ -28,6 +28,7 @@ type User struct {
 	CreatedAt  time.Time `json:"createdAt"`
 	AvatarType string    `json:"avatarType"`
 	AvatarURL  string    `json:"avatarUrl"`
+	Decoration string    `json:"decoration"` // The worn decoration's reward id, or "" for none
 }
 
 // Account is a User as its owner (or an admin) sees it: email included.
