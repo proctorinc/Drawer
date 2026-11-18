@@ -13,6 +13,7 @@ type Config struct {
 	DatabaseURL     string
 	AllowedOrigin   string
 	Env             string
+	EventsFakeNow   string // Non-production only: pretend "now" is this date for events
 	FromEmail       string
 	BaseURL         string
 	ResendAPIKey    string
@@ -52,6 +53,7 @@ func LoadConfig() *Config {
 		DatabaseURL:     dbURL,
 		AllowedOrigin:   getEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
 		Env:             env,
+		EventsFakeNow:   getEnv("EVENTS_FAKE_NOW", ""),
 		FromEmail:       getEnv("FROM_EMAIL", "your.email@gmail.com"),
 		BaseURL:         getEnv("BASE_URL", "http://localhost:3000"),
 		ResendAPIKey:    getEnv("RESEND_API_KEY", ""),

@@ -98,6 +98,8 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 
 			authGroup.POST("/prompt/suggest", handlers.SuggestPrompt)
 
+			authGroup.GET("/events/active", handlers.HandleGetActiveEvent)
+
 			// Development-only debug endpoints for push notifications
 			log.Printf("🔔 Current environment: %s", cfg.Env)
 			if cfg.Env == "development" || true { // Temporarily force debug endpoints
