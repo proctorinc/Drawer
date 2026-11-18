@@ -132,6 +132,11 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 		VALUES
 			('CUSTOM_PROFILE_PIC', 'Custom Profile Picture', 'You can now draw your own profile picture', date('now'), 'achievement4');
 
+		-- Insert events (mirrors the seed in migrations/1795032990_add_events.up.sql)
+		INSERT OR IGNORE INTO events (id, slug, name, theme, starts_at, ends_at, countdown_days)
+		VALUES
+			('event1', 'christmas-2026', '29 Doodles of Christmas', 'christmas', '2026-11-27T00:00:00Z', '2027-01-01T00:00:00Z', 29);
+
 		-- Insert demo users
 		INSERT OR IGNORE INTO users (id, username, email, role, created_at, avatar_type, avatar_url) VALUES
 			('user1', 'tankard_wellington', 'user1@example.com', 'admin', date('now', '-63 days'), 'custom', '/example.png'),

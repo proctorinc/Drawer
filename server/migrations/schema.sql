@@ -92,3 +92,5 @@ CREATE TABLE "daily_prompts" (day TEXT PRIMARY KEY, colors TEXT NOT NULL, prompt
 CREATE INDEX idx_daily_prompts_created_by ON daily_prompts (created_by);
 CREATE TABLE prompt_suggestions (id STRING PRIMARY KEY, prompt TEXT NOT NULL, user_id TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
 CREATE UNIQUE INDEX idx_users_clerk_id ON users (clerk_id);
+CREATE TABLE events (id TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL, theme TEXT NOT NULL, starts_at TIMESTAMP NOT NULL, ends_at TIMESTAMP NOT NULL, countdown_days INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX idx_events_starts_at_ends_at ON events (starts_at, ends_at);

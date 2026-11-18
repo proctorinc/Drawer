@@ -15,6 +15,7 @@ type Config struct {
 	Env             string
 	ClerkSecretKey  string
 	DevUserEmail    string
+	EventsFakeNow   string // Non-production only: pretend "now" is this date for events
 	S3BucketName    string
 	S3BucketRegion  string
 	AwsAccessKey    string
@@ -58,6 +59,7 @@ func LoadConfig() *Config {
 		Env:             env,
 		ClerkSecretKey:  clerkSecretKey,
 		DevUserEmail:    getEnv("DEV_USER_EMAIL", ""),
+		EventsFakeNow:   getEnv("EVENTS_FAKE_NOW", ""),
 		S3BucketName:    getEnv("S3_BUCKET_NAME", ""),
 		S3BucketRegion:  getEnv("S3_BUCKET_REGION", ""),
 		AwsAccessKey:    getEnv("AWS_ACCESS_KEY_ID", ""),
