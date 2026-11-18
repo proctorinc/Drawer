@@ -5,6 +5,7 @@ import { useGetAchievements } from '@/api/Api';
 import { useActiveEvent, useEventRecap } from '@/api/events';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
+import Chip from '@/components/Chip';
 import { TrophyIcon } from '@/components/icons';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -14,6 +15,7 @@ import EventLeaderboard from '@/events/christmas/EventLeaderboard';
 import EventSticker from '@/events/christmas/EventSticker';
 import { countdownCopy } from '@/events/useChristmas';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
+import { cn } from '@/utils';
 
 const Section: FC<{
   title: string;
@@ -161,6 +163,17 @@ const EventPage = () => {
                     {Math.min(sticker.progress, sticker.achievementValue)}/
                     {sticker.achievementValue}
                   </span>
+                )}
+                {sticker.reward && (
+                  <Chip
+                    className={cn(
+                      'h-auto mt-1 px-2 py-0.5 text-xs leading-tight text-center whitespace-normal',
+                      sticker.achievedAt ? 'bg-butter' : 'bg-white',
+                    )}
+                  >
+                    {sticker.achievedAt ? 'unlocked ' : 'unlocks '}
+                    {sticker.reward.name.toLowerCase()}
+                  </Chip>
                 )}
               </li>
             ))}
