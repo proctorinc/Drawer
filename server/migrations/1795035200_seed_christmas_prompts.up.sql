@@ -1,0 +1,33 @@
+-- The "29 Doodles of Christmas" prompt schedule: day N of the event is Nov 26 + N.
+-- Colors are a JSON array of three drawing colors plus the canvas background, as the
+-- frontend reads them. INSERT OR IGNORE keeps any day an admin has already scheduled.
+INSERT OR IGNORE INTO daily_prompts (day, colors, prompt) VALUES
+    ('2026-11-27', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'leftovers in disguise'),
+    ('2026-11-28', '["#3A7BD5", "#9FD3F0", "#E5483B", "#F4F9FF"]', 'a snowman''s first day'),
+    ('2026-11-29', '["#8B5A2B", "#E5483B", "#F2E3C6", "#FFF8EC"]', 'a reindeer stuck in a chimney'),
+    ('2026-11-30', '["#2F9E5B", "#B22D4A", "#F2C14E", "#FBF6EE"]', 'a gingerbread house with a problem'),
+    ('2026-12-01', '["#6C3FC4", "#FF8FB1", "#FFD45A", "#FFF6FB"]', 'a penguin in a scarf'),
+    ('2026-12-02', '["#1F3A5F", "#FFB400", "#9FB6CF", "#F3F6FA"]', 'the world''s ugliest sweater'),
+    ('2026-12-03', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'a cat versus the christmas tree'),
+    ('2026-12-04', '["#3A7BD5", "#9FD3F0", "#E5483B", "#F4F9FF"]', 'an epic snowball fight'),
+    ('2026-12-05', '["#8B5A2B", "#E5483B", "#F2E3C6", "#FFF8EC"]', 'hot cocoa with too many marshmallows'),
+    ('2026-12-06', '["#2F9E5B", "#B22D4A", "#F2C14E", "#FBF6EE"]', 'an elf on strike'),
+    ('2026-12-07', '["#6C3FC4", "#FF8FB1", "#FFD45A", "#FFF6FB"]', 'a polar bear ice skating'),
+    ('2026-12-08', '["#1F3A5F", "#FFB400", "#9FB6CF", "#F3F6FA"]', 'a present that''s way too big'),
+    ('2026-12-09', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'santa''s sleigh breaking down'),
+    ('2026-12-10', '["#3A7BD5", "#9FD3F0", "#E5483B", "#F4F9FF"]', 'a candy cane in love'),
+    ('2026-12-11', '["#8B5A2B", "#E5483B", "#F2E3C6", "#FFF8EC"]', 'a mitten that lost its twin'),
+    ('2026-12-12', '["#2F9E5B", "#B22D4A", "#F2C14E", "#FBF6EE"]', 'a tangle of christmas lights'),
+    ('2026-12-13', '["#6C3FC4", "#FF8FB1", "#FFD45A", "#FFF6FB"]', 'a sledding disaster'),
+    ('2026-12-14', '["#1F3A5F", "#FFB400", "#9FB6CF", "#F3F6FA"]', 'a nutcracker at the gym'),
+    ('2026-12-15', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'cookies left for santa (half eaten)'),
+    ('2026-12-16', '["#3A7BD5", "#9FD3F0", "#E5483B", "#F4F9FF"]', 'someone trapped in a snow globe'),
+    ('2026-12-17', '["#8B5A2B", "#E5483B", "#F2E3C6", "#FFF8EC"]', 'a reindeer''s day off'),
+    ('2026-12-18', '["#2F9E5B", "#B22D4A", "#F2C14E", "#FBF6EE"]', 'awkward under the mistletoe'),
+    ('2026-12-19', '["#6C3FC4", "#FF8FB1", "#FFD45A", "#FFF6FB"]', 'gift-wrapping a pet'),
+    ('2026-12-20', '["#1F3A5F", "#FFB400", "#9FB6CF", "#F3F6FA"]', 'caroling animals'),
+    ('2026-12-21', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'the longest night of the year'),
+    ('2026-12-22', '["#3A7BD5", "#9FD3F0", "#E5483B", "#F4F9FF"]', 'stockings by the fireplace'),
+    ('2026-12-23', '["#8B5A2B", "#E5483B", "#F2E3C6", "#FFF8EC"]', 'the north pole''s busiest workshop'),
+    ('2026-12-24', '["#2F9E5B", "#B22D4A", "#F2C14E", "#FBF6EE"]', 'santa checking his list twice'),
+    ('2026-12-25', '["#6C3FC4", "#FF8FB1", "#FFD45A", "#FFF6FB"]', 'christmas morning');
