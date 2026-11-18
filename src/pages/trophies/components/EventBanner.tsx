@@ -2,8 +2,6 @@ import type { FC } from 'react';
 import Chip from '@/components/Chip';
 import { ClockIcon } from '@/components/icons';
 import { cn } from '@/utils';
-import ChristmasEventCard from '@/events/christmas/ChristmasEventCard';
-import { useChristmas } from '@/events/useChristmas';
 
 type SeasonalEvent = {
   name: string;
@@ -64,10 +62,6 @@ function daysLeft(now: Date, to: string) {
 }
 
 const EventBanner: FC = () => {
-  // A live server-run event replaces the flavor banners below
-  const christmas = useChristmas();
-  if (christmas) return <ChristmasEventCard event={christmas} />;
-
   const now = new Date();
   const today = monthDay(now);
   const event = events.find((e) => e.from <= today && today <= e.to);

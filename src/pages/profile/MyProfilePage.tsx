@@ -15,7 +15,6 @@ import LoadingScreen from '@/components/LoadingScreen';
 import Layout from '@/components/Layout';
 import Chip from '@/components/Chip';
 import Button from '@/components/Button';
-import ChristmasBookSection from '@/events/christmas/ChristmasBookSection';
 
 type SheetId = 'friends' | 'edit' | 'settings';
 
@@ -95,7 +94,6 @@ const MyProfilePage = () => {
       }
     >
       <IncomingInvites />
-      <ChristmasBookSection />
       <Sketchbook profile={profile} />
 
       <Sheet

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import AchievementCard, {
   AchievementSticker,
 } from './components/AchievementCard';
@@ -14,6 +15,8 @@ import Button from '@/components/Button';
 import Chip from '@/components/Chip';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
+import ChristmasTrophies from '@/events/christmas/ChristmasTrophies';
+import { useChristmas } from '@/events/useChristmas';
 
 const SectionTitle: FC<{ children: ReactNode; aside?: ReactNode }> = ({
   children,
@@ -45,8 +48,28 @@ const byClosestToDone = (a: Achievement, b: Achievement) =>
 const byMostRecent = (a: Achievement, b: Achievement) =>
   new Date(b.achievedAt!).getTime() - new Date(a.achievedAt!).getTime();
 
+/** During an event, year-round progress stays folded away under the event */
+const YearRound: FC<{ children: ReactNode }> = ({ children }) => {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((isOpen) => !isOpen)}
+        className="w-full pt-4 border-t-2 border-dashed border-line font-accent font-bold text-xl text-pencil hover:text-ink transition-colors"
+      >
+        {open ? 'hide' : 'see'} your year-round trophies
+      </button>
+      {open && children}
+    </>
+  );
+};
+
 const TrophiesPage = () => {
   const me = useUser();
+  const christmas = useChristmas();
   const trophies = useGetTrophies();
   const achievementsQuery = useGetAchievements();
 
@@ -74,21 +97,26 @@ const TrophiesPage = () => {
   }
 
   const { quests, leaderboard, week, xpRules } = trophies.data;
-  const { achievements } = achievementsQuery.data;
+  // Event stickers live in the event's own section, not the year-round book
+  const achievements = achievementsQuery.data.achievements.filter(
+    (a) => !a.eventSlug,
+  );
+  const eventStickers = christmas
+    ? achievementsQuery.data.achievements.filter(
+        (a) => a.eventSlug === christmas.slug,
+      )
+    : [];
   const earned = achievements.filter((a) => a.achievedAt).sort(byMostRecent);
   const inProgress = achievements
     .filter((a) => !a.achievedAt)
     .sort(byClosestToDone);
   const questsDone = quests.filter((q) => q.progress >= q.goal).length;
 
-  return (
-    <Layout
-      header={
-        <LevelCard trophies={trophies.data} stickerCount={earned.length} />
-      }
-    >
-      <EventBanner />
-
+  const levelCard = (
+    <LevelCard trophies={trophies.data} stickerCount={earned.length} />
+  );
+  const yearRound = (
+    <>
       <SectionTitle aside={<Chip>{weekResetLabel(week.resetsAt)}</Chip>}>
         weekly quests
       </SectionTitle>
@@ -157,6 +185,25 @@ const TrophiesPage = () => {
           ))}
         </ul>
       </section>
+    </>
+  );
+
+  if (christmas) {
+    return (
+      <Layout>
+        <ChristmasTrophies event={christmas} stickers={eventStickers} />
+        <YearRound>
+          {levelCard}
+          {yearRound}
+        </YearRound>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout header={levelCard}>
+      <EventBanner />
+      {yearRound}
     </Layout>
   );
 };

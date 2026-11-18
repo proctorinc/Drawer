@@ -43,7 +43,7 @@ const EventLeaderboard: FC<Props> = ({ slug, className }) => {
             <b className="font-accent font-bold text-xl text-ink">
               {entry.doodles}
             </b>{' '}
-            doodles
+            {entry.doodles === 1 ? 'doodle' : 'doodles'}
           </span>
         </li>
       ))}
