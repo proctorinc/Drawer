@@ -68,12 +68,17 @@ func SendDueEventNotifications(ctx context.Context, repo *sql.DB, now time.Time,
 
 			title, body := events.NotificationMessage(event, kind)
 			log.Printf("Sending event notification %s/%s: %s", event.Slug, kind, body)
+			url := "/draw"
+			if kind == events.NotificationEnd {
+				url = "/draw/event/" + event.Slug
+			}
 			err = broadcast(ctx, models.NotificationData{
 				Type:   models.NotificationTypeEvent,
 				Title:  title,
 				Body:   body,
-				URL:    "/draw",
+				URL:    url,
 				Action: string(kind),
+				Icon:   eventIcons[event.Theme],
 			})
 			if err != nil {
 				log.Printf("Failed to broadcast event notification %s/%s: %v", event.Slug, kind, err)
@@ -81,4 +86,10 @@ func SendDueEventNotifications(ctx context.Context, repo *sql.DB, now time.Time,
 		}
 	}
 	return nil
+}
+
+// eventIcons are themed versions of the app logo in frontend/public, rendered
+// from the same LogoIcon component the app uses; other themes keep the default
+var eventIcons = map[string]string{
+	"christmas": "/icons/logo-christmas.png",
 }

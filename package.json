@@ -10,7 +10,8 @@
     "test": "vitest run",
     "lint": "eslint",
     "format": "prettier",
-    "check": "prettier --write . && eslint --fix"
+    "check": "prettier --write . && eslint --fix",
+    "icons": "vite-node scripts/render-icons.tsx"
   },
   "dependencies": {
     "@clerk/react": "^6.19.0",

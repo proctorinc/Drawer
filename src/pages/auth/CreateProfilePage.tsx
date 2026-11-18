@@ -6,11 +6,14 @@ import Layout from '@/components/Layout';
 import Button from '@/components/Button';
 import { Card, CardContent } from '@/components/Card';
 import useAuth from '@/auth/hooks/useAuth';
+import { useLogoIconUrl } from '@/components/logo/BrandProvider';
 import LoadingScreen from '@/components/LoadingScreen';
 
 const CreateProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, isSignedIn, isLoading, createUser } = useAuth();
+  // Clerk's card shows our logo, themed for any live event
+  const logoUrl = useLogoIconUrl();
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
 
@@ -39,6 +42,7 @@ const CreateProfilePage: React.FC = () => {
       <Layout>
         <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
           <SignUp
+            appearance={{ options: { logoImageUrl: logoUrl } }}
             routing="hash"
             signInUrl="/auth/login"
             fallbackRedirectUrl="/auth/sign-up"

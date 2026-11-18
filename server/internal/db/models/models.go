@@ -178,6 +178,8 @@ type NotificationData struct {
 	UserID   string           `json:"userId,omitempty"`
 	Username string           `json:"username,omitempty"`
 	Action   string           `json:"action,omitempty"`
+	// Icon overrides the default app logo, e.g. an event's themed logo
+	Icon string `json:"icon,omitempty"`
 }
 
 type Invitation struct {

@@ -23,6 +23,7 @@ import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/UserProfilePage.tsx';
 import PromptSubmissionPage from './pages/feed/PromptSubmissionPage';
+import { BrandProvider } from './components/logo/BrandProvider.tsx';
 import EventRecapPage from './pages/event/EventRecapPage.tsx';
 import TrophiesPage from './pages/trophies/TrophiesPage.tsx';
 import { AuthProvider } from './auth/AuthContext.tsx';
@@ -45,11 +46,13 @@ const rootRoute = createRootRoute({
     >
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <NotificationProvider>
-            <DailyPromptProvider>
-              <Outlet />
-            </DailyPromptProvider>
-          </NotificationProvider>
+          <BrandProvider>
+            <NotificationProvider>
+              <DailyPromptProvider>
+                <Outlet />
+              </DailyPromptProvider>
+            </NotificationProvider>
+          </BrandProvider>
         </AuthProvider>
       </QueryClientProvider>
     </ClerkProvider>

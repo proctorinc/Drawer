@@ -2,13 +2,6 @@ import type { ActiveEvent } from '@/api/events';
 import { useActiveEvent } from '@/api/events';
 import useAuth from '@/auth/hooks/useAuth';
 
-/** Theme of the live event, e.g. "christmas", or null outside events */
-export function useEventTheme(): string | null {
-  const { isAuthenticated } = useAuth();
-  const { data: event } = useActiveEvent(isAuthenticated);
-  return event?.theme ?? null;
-}
-
 /** The live event when it's the Christmas one, otherwise null */
 export function useChristmas(): ActiveEvent | null {
   const { isAuthenticated } = useAuth();
