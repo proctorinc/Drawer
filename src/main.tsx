@@ -24,6 +24,7 @@ import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/UserProfilePage.tsx';
 import PromptSubmissionPage from './pages/feed/PromptSubmissionPage';
 import { BrandProvider } from './components/logo/BrandProvider.tsx';
+import EventHomePage from './pages/event/EventHomePage.tsx';
 import EventRecapPage from './pages/event/EventRecapPage.tsx';
 import TrophiesPage from './pages/trophies/TrophiesPage.tsx';
 import { AuthProvider } from './auth/AuthContext.tsx';
@@ -134,6 +135,16 @@ const trophiesRoute = createRoute({
   ),
 });
 
+const eventHomeRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/event',
+  component: () => (
+    <AuthRoute>
+      <EventHomePage />
+    </AuthRoute>
+  ),
+});
+
 const eventRecapRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/draw/event/$slug',
@@ -197,6 +208,7 @@ const routeTree = rootRoute.addChildren([
   drawProfilePicRoute,
   friendProfileRoute,
   trophiesRoute,
+  eventHomeRoute,
   eventRecapRoute,
   legacyActivityRoute,
   createProfileRoute,

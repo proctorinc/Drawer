@@ -7,10 +7,16 @@ import { cn } from '@/utils';
 import useUser from '@/auth/hooks/useUser';
 import { useGetInvitations } from '@/api/Api';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
-import { SnowCap, Snowman } from '@/events/christmas/Decorations';
+import { SnowCap, Snowman, TreeIcon } from '@/events/christmas/Decorations';
 import { useChristmas } from '@/events/useChristmas';
 
-const TABS = ['/draw/trophies', '/draw', '/draw/profile/me'] as const;
+// Each tab with the pages it lights up for. During an event the left tab opens
+// the event, whose page links on to the usual trophies.
+const TABS = [
+  ['/draw/event', '/draw/trophies'],
+  ['/draw'],
+  ['/draw/profile/me'],
+];
 
 // Each page mounts its own Navbar, so tab changes are tracked at module level.
 // A freshly mounted bar starts on the previous tab and animates to the new one.
@@ -45,7 +51,7 @@ const Navbar = () => {
   const { dailyPrompt } = useDailyPrompt();
   const christmas = useChristmas();
   const navbarScale = useNavbarScale();
-  const activeTab = TABS.indexOf(pathname as (typeof TABS)[number]);
+  const activeTab = TABS.findIndex((paths) => paths.includes(pathname));
   noteTab(activeTab);
   const [blobTab, setBlobTab] = useState(() => startingTab(activeTab));
   const [enter] = useState(() => !hasEntered);
@@ -91,19 +97,30 @@ const Navbar = () => {
         )}
 
         <Link
-          to="/draw/trophies"
-          aria-label="Trophies"
+          to={christmas ? '/draw/event' : '/draw/trophies'}
+          aria-label={christmas ? christmas.name : 'Trophies'}
           aria-current={activeTab === 0 ? 'page' : undefined}
           className="relative flex items-center justify-center w-14 h-[46px] active:scale-90 transition-[scale] duration-300 ease-[var(--ease-spring)]"
         >
-          <TrophyIcon
-            size={27}
-            key={activeTab === 0 ? 'on' : 'off'}
-            className={cn(
-              'transition-colors duration-300',
-              activeTab === 0 ? 'text-ink animate-wiggle' : 'text-paper',
-            )}
-          />
+          {christmas ? (
+            <TreeIcon
+              size={24}
+              key={activeTab === 0 ? 'on' : 'off'}
+              className={cn(
+                'transition-colors duration-300',
+                activeTab === 0 ? 'text-ink animate-wiggle' : 'text-paper',
+              )}
+            />
+          ) : (
+            <TrophyIcon
+              size={27}
+              key={activeTab === 0 ? 'on' : 'off'}
+              className={cn(
+                'transition-colors duration-300',
+                activeTab === 0 ? 'text-ink animate-wiggle' : 'text-paper',
+              )}
+            />
+          )}
         </Link>
 
         {/* Fixed-width slot so the side tabs stay put while the button grows */}

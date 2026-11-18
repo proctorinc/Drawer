@@ -1,7 +1,10 @@
+import { Link } from '@tanstack/react-router';
 import type { FC } from 'react';
 import Chip from '@/components/Chip';
 import { ClockIcon } from '@/components/icons';
 import { cn } from '@/utils';
+import { useChristmas } from '@/events/useChristmas';
+import { TreeIcon, candyCaneTape } from '@/events/christmas/Decorations';
 
 type SeasonalEvent = {
   name: string;
@@ -61,7 +64,29 @@ function daysLeft(now: Date, to: string) {
   return Math.ceil((end.getTime() - now.getTime()) / 86_400_000);
 }
 
+/** While a real event runs, point to its page instead of a flavor banner */
+const LiveEventLink: FC<{ name: string }> = ({ name }) => (
+  <Link
+    to="/draw/event"
+    className="press relative flex items-center gap-3 w-full px-4 py-3 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil -rotate-1"
+  >
+    <span
+      aria-hidden="true"
+      className="absolute -top-2.5 left-6 w-16 h-5 border border-ink/20 -rotate-3"
+      style={{ background: candyCaneTape() }}
+    />
+    <TreeIcon size={26} className="flex-none text-ink" />
+    <span className="flex-1 font-accent font-bold text-2xl leading-none">
+      {name}
+    </span>
+    <span className="text-pencil">see the event →</span>
+  </Link>
+);
+
 const EventBanner: FC = () => {
+  const christmas = useChristmas();
+  if (christmas) return <LiveEventLink name={christmas.name} />;
+
   const now = new Date();
   const today = monthDay(now);
   const event = events.find((e) => e.from <= today && today <= e.to);
