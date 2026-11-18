@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import { PencilIcon, TrophyIcon } from './icons';
+import { useNavbarScale } from './useNavbarScale';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { cn } from '@/utils';
 import useUser from '@/auth/hooks/useUser';
@@ -43,6 +44,7 @@ const Navbar = () => {
   const { data: invitationsData } = useGetInvitations();
   const { dailyPrompt } = useDailyPrompt();
   const christmas = useChristmas();
+  const navbarScale = useNavbarScale();
   const activeTab = TABS.indexOf(pathname as (typeof TABS)[number]);
   noteTab(activeTab);
   const [blobTab, setBlobTab] = useState(() => startingTab(activeTab));
@@ -61,7 +63,11 @@ const Navbar = () => {
   const drawExpanded = blobTab === 1;
 
   return (
-    <div className="z-50 fixed inset-x-0 bottom-0 flex justify-center px-6 pb-[max(18px,env(safe-area-inset-bottom))] pointer-events-none">
+    <div
+      className="z-50 fixed inset-x-0 bottom-0 flex justify-center px-6 pb-[max(18px,env(safe-area-inset-bottom))] pointer-events-none"
+      // Zooming the page in would otherwise grow the bar without limit
+      style={{ zoom: navbarScale }}
+    >
       <nav
         aria-label="Main"
         className={cn(
@@ -80,7 +86,7 @@ const Navbar = () => {
         {christmas && (
           <>
             <SnowCap />
-            <Snowman className="-top-[42px] left-8" />
+            <Snowman className="-top-[38px] left-8" />
           </>
         )}
 

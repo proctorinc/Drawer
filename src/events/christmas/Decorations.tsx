@@ -126,7 +126,7 @@ export const SnowCap: FC<Props> = ({ className }) => (
   </svg>
 );
 
-/** A little snowman who sits on the navbar's snow and sways */
+/** A little snowman built into the navbar's snow, swaying a little */
 export const Snowman: FC<Props> = ({ className }) => (
   <svg
     aria-hidden="true"
@@ -141,7 +141,9 @@ export const Snowman: FC<Props> = ({ className }) => (
     <g stroke="var(--color-ink)" strokeWidth={1.8} strokeLinecap="round">
       {/* Twig arms */}
       <path d="M7 21L1 16M3 17.5l-1.5-3M23 21l6-5M27 17.5l1.5-3" fill="none" />
-      <circle cx="15" cy="26" r="8.5" fill="#fff" />
+      {/* Body: outlined only over the top, so its base melts into the snow */}
+      <circle cx="15" cy="26" r="8.5" fill="#fff" stroke="none" />
+      <path d="M8 30.9A8.5 8.5 0 1 1 22 30.9" fill="none" />
       <circle cx="15" cy="13" r="6.5" fill="#fff" />
       {/* Scarf, with a tail blowing to the side */}
       <path
