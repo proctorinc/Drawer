@@ -9,7 +9,6 @@ import {
   useGetUserProfile,
   usePromptSubmission,
   useCreateUser,
-  useLoginUser,
   useLogoutUser,
   useAddFriend,
   useUpdateUsername,
@@ -30,7 +29,6 @@ vi.mock('../apiClient', () => ({
     getUserProfile: vi.fn(),
     getPromptSubmission: vi.fn(),
     createUser: vi.fn(),
-    loginUser: vi.fn(),
     logoutUser: vi.fn(),
     addFriend: vi.fn(),
     updateUsername: vi.fn(),
@@ -95,7 +93,7 @@ describe('React Query Hooks', () => {
 
       vi.mocked(apiClient.getMe).mockResolvedValue(mockData);
 
-      const { result } = renderHook(() => useGetMe(), {
+      const { result } = renderHook(() => useGetMe(true), {
         wrapper: createWrapper(),
       });
 
@@ -221,8 +219,15 @@ describe('React Query Hooks', () => {
 
   describe('Mutation Hooks', () => {
     it('should use createUser mutation successfully', async () => {
-      const userData = { username: 'testuser', email: 'test@example.com' };
-      const mockResponse = { message: 'User created successfully' };
+      const username = 'testuser';
+      const mockResponse = {
+        id: 'user1',
+        username,
+        email: 'test@example.com',
+        createdAt: new Date('2024-01-01'),
+        avatarType: 'basic' as const,
+        avatarUrl: '',
+      };
 
       vi.mocked(apiClient.createUser).mockResolvedValue(mockResponse);
 
@@ -230,34 +235,14 @@ describe('React Query Hooks', () => {
         wrapper: createWrapper(),
       });
 
-      result.current.mutate(userData);
+      result.current.mutate(username);
 
       await waitFor(() => {
         expect(result.current.isSuccess).toBe(true);
       });
 
       expect(result.current.data).toEqual(mockResponse);
-      expect(apiClient.createUser).toHaveBeenCalledWith(userData);
-    });
-
-    it('should use loginUser mutation successfully', async () => {
-      const email = 'test@example.com';
-      const mockResponse = { message: 'Login successful' };
-
-      vi.mocked(apiClient.loginUser).mockResolvedValue(mockResponse);
-
-      const { result } = renderHook(() => useLoginUser(), {
-        wrapper: createWrapper(),
-      });
-
-      result.current.mutate(email);
-
-      await waitFor(() => {
-        expect(result.current.isSuccess).toBe(true);
-      });
-
-      expect(result.current.data).toEqual(mockResponse);
-      expect(apiClient.loginUser).toHaveBeenCalledWith(email);
+      expect(apiClient.createUser).toHaveBeenCalledWith(username);
     });
 
     it('should use addComment mutation successfully', async () => {
@@ -383,7 +368,7 @@ describe('React Query Hooks', () => {
         wrapper: createWrapper(),
       });
 
-      result.current.mutate({ username: 'test', email: 'test@example.com' });
+      result.current.mutate('test');
 
       await waitFor(() => {
         expect(result.current.isError).toBe(true);

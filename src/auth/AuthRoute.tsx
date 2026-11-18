@@ -10,12 +10,16 @@ type Props = {
 const AuthRoute: FC<Props> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, isFetching } = useAuth();
+  const { isAuthenticated, isSignedIn, needsProfile, isFetching } = useAuth();
 
   const isPrivateRoute = !location.pathname.startsWith('/auth');
 
-  if (!isFetching && !isAuthenticated && isPrivateRoute) {
-    navigate({ to: '/auth/login' });
+  if (!isFetching && isPrivateRoute) {
+    if (!isSignedIn) {
+      navigate({ to: '/auth/login' });
+    } else if (needsProfile) {
+      navigate({ to: '/auth/sign-up' });
+    }
   }
 
   return isAuthenticated ? children : <LoadingScreen />;

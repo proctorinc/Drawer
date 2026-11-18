@@ -9,6 +9,7 @@ import {
   createRouter,
 } from '@tanstack/react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ClerkProvider } from '@clerk/react';
 
 import './styles.css';
 import reportWebVitals from './reportWebVitals.ts';
@@ -31,20 +32,26 @@ import { NotificationProvider } from './notifications/NotificationContext.tsx';
 import AdminPage from './pages/admin/AdminPage.tsx';
 import { AdminDashboardProvider } from './pages/admin/context/AdminDashboardContext.tsx';
 import DrawProfilePicPage from './pages/profile/DrawProfilePicPage.tsx';
+import { Config } from './config/Config.ts';
 
 const queryClient = new QueryClient();
 
 const rootRoute = createRootRoute({
   component: () => (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <NotificationProvider>
-          <DailyPromptProvider>
-            <Outlet />
-          </DailyPromptProvider>
-        </NotificationProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ClerkProvider
+      publishableKey={Config.CLERK_PUBLISHABLE_KEY}
+      afterSignOutUrl="/auth/login"
+    >
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <NotificationProvider>
+            <DailyPromptProvider>
+              <Outlet />
+            </DailyPromptProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ClerkProvider>
   ),
 });
 

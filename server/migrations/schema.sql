@@ -8,7 +8,7 @@ CREATE TABLE users (
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-, role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')), avatar_type VARCHAR (255) NOT NULL DEFAULT 'default', avatar_url VARCHAR (255) NOT NULL DEFAULT '');
+, role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')), avatar_type VARCHAR (255) NOT NULL DEFAULT 'default', avatar_url VARCHAR (255) NOT NULL DEFAULT '', clerk_id TEXT);
 CREATE TABLE user_submissions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -91,3 +91,4 @@ CREATE INDEX idx_user_stat_updates_stat_type ON user_stat_calculations (stat_typ
 CREATE TABLE "daily_prompts" (day TEXT PRIMARY KEY, colors TEXT NOT NULL, prompt TEXT NOT NULL, created_by TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE CASCADE);
 CREATE INDEX idx_daily_prompts_created_by ON daily_prompts (created_by);
 CREATE TABLE prompt_suggestions (id STRING PRIMARY KEY, prompt TEXT NOT NULL, user_id TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
+CREATE UNIQUE INDEX idx_users_clerk_id ON users (clerk_id);

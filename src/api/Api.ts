@@ -204,10 +204,11 @@ export function useGetPromptSuggestions() {
   });
 }
 
-export function useGetMe() {
+export function useGetMe(enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.me,
     queryFn: apiClient.getMe,
+    enabled,
     retry: () => {
       return false;
     },
@@ -265,12 +266,6 @@ export function useToggleAvatarType() {
 export function useCreateUser() {
   return useMutation({
     mutationFn: apiClient.createUser,
-  });
-}
-
-export function useLoginUser() {
-  return useMutation({
-    mutationFn: apiClient.loginUser,
   });
 }
 

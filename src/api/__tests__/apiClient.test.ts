@@ -108,25 +108,10 @@ describe('API Client', () => {
 
   describe('Auth Endpoints', () => {
     it('should create user successfully', async () => {
-      const userData = {
-        username: 'testuser',
-        email: 'test@example.com',
-      };
-
-      const result = await apiClient.createUser(userData);
+      const result = await apiClient.createUser('testuser');
 
       expect(result).toBeDefined();
-      expect(result).toHaveProperty('message');
-      expect(result.message).toContain('successfully');
-    });
-
-    it('should login user successfully', async () => {
-      const email = 'test@example.com';
-      const result = await apiClient.loginUser(email);
-
-      expect(result).toBeDefined();
-      expect(result).toHaveProperty('message');
-      expect(result.message).toContain('successful');
+      expect(result.username).toBe('testuser');
     });
 
     it('should logout user successfully', async () => {

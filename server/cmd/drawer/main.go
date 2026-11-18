@@ -7,10 +7,14 @@ import (
 	"errors"
 	"log"
 	"net/http"
+
+	"github.com/clerk/clerk-sdk-go/v2"
 )
 
 func main() {
 	cfg := config.LoadConfig()
+	clerk.SetKey(cfg.ClerkSecretKey)
+
 	repo, err := db.InitDB(cfg)
 
 	if err != nil {

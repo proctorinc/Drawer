@@ -13,9 +13,8 @@ type Config struct {
 	DatabaseURL     string
 	AllowedOrigin   string
 	Env             string
-	FromEmail       string
-	BaseURL         string
-	ResendAPIKey    string
+	ClerkSecretKey  string
+	DevUserEmail    string
 	S3BucketName    string
 	S3BucketRegion  string
 	AwsAccessKey    string
@@ -47,14 +46,18 @@ func LoadConfig() *Config {
 		dbURL = "file:drawer.db?cache=shared&_journal=WAL&_timeout=5000"
 	}
 
+	clerkSecretKey := getEnv("CLERK_SECRET_KEY", "")
+	if clerkSecretKey == "" {
+		log.Fatal("CLERK_SECRET_KEY is required")
+	}
+
 	return &Config{
 		Port:            getEnv("PORT", "8080"),
 		DatabaseURL:     dbURL,
 		AllowedOrigin:   getEnv("ALLOWED_ORIGINS", "http://localhost:3000"),
 		Env:             env,
-		FromEmail:       getEnv("FROM_EMAIL", "your.email@gmail.com"),
-		BaseURL:         getEnv("BASE_URL", "http://localhost:3000"),
-		ResendAPIKey:    getEnv("RESEND_API_KEY", ""),
+		ClerkSecretKey:  clerkSecretKey,
+		DevUserEmail:    getEnv("DEV_USER_EMAIL", ""),
 		S3BucketName:    getEnv("S3_BUCKET_NAME", ""),
 		S3BucketRegion:  getEnv("S3_BUCKET_REGION", ""),
 		AwsAccessKey:    getEnv("AWS_ACCESS_KEY_ID", ""),

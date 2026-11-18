@@ -32,7 +32,7 @@ func InitDB(cfg *config.Config) (*sql.DB, error) {
 			return nil, fmt.Errorf("failed to open database connection: %w", err)
 		}
 
-		err = initializeDevData(res)
+		err = initializeDevData(res, cfg.DevUserEmail)
 
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize dev data: %w", err)
@@ -87,7 +87,7 @@ func initLocalDB() (*sql.DB, error) {
 	return db, nil
 }
 
-func initializeDevData(db *sql.DB) error {
+func initializeDevData(db *sql.DB, devUserEmail string) error {
 	log.Println("Initializing dev data")
 	schema, err := os.ReadFile("schema.sql")
 	if err != nil {
@@ -248,6 +248,13 @@ func initializeDevData(db *sql.DB) error {
 	_, err = db.Exec(demoData)
 	if err != nil {
 		return fmt.Errorf("failed to insert demo data: %w", err)
+	}
+
+	// Lets the developer sign in with Clerk as the seeded admin, user1
+	if devUserEmail != "" {
+		if _, err = db.Exec(`UPDATE users SET email = ? WHERE id = 'user1'`, devUserEmail); err != nil {
+			return fmt.Errorf("failed to set dev user email: %w", err)
+		}
 	}
 
 	log.Println("Demo data initialized successfully.")

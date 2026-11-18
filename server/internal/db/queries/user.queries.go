@@ -12,26 +12,12 @@ import (
 	"log"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 func GetUserByID(repo *sql.DB, ctx context.Context, userID string) (*models.User, error) {
 	var user models.User
 	query := `SELECT id, username, email, role, created_at, avatar_type, avatar_url FROM users WHERE id = ?`
 	err := repo.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &user, nil
-}
-
-func GetUserByEmail(repo *sql.DB, ctx context.Context, email string) (*models.User, error) {
-	var user models.User
-	query := `SELECT id, username, email, role, created_at, avatar_type, avatar_url FROM users WHERE email = ?`
-	err := repo.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL)
 
 	if err != nil {
 		return nil, err
@@ -1123,18 +1109,6 @@ func GetUserFriends(repo *sql.DB, ctx context.Context, userID string) ([]string,
 		friends = append(friends, friendID)
 	}
 	return friends, nil
-}
-
-func CreateUser(repo *sql.DB, ctx context.Context, username string, email string) (*models.User, error) {
-	var user models.User
-	insertSQL := `
-        INSERT INTO users (id, username, email)
-        VALUES (?, ?, ?)
-        RETURNING id, username, email
-    `
-	err := repo.QueryRowContext(ctx, insertSQL, uuid.New().String(), username, email).Scan(&user.ID, &user.Username, &user.Email)
-
-	return &user, err
 }
 
 // GetAllUsers gets all users with optional username search

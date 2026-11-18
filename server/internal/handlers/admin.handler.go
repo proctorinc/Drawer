@@ -99,8 +99,8 @@ func HandleImpersonateUser(c *gin.Context) {
 		return
 	}
 
-	// Set a cookie to impersonate the user
-	c.SetCookie("user_id", user.ID, 3600, "/", "", false, true) // 1 hour, secure in production
+	// AuthRequired swaps in this user while the Clerk session belongs to an admin
+	c.SetCookie(middleware.ImpersonateCookie, user.ID, 3600, "/", "", appCtx.Config.Env == "production", true) // 1 hour
 
 	log.Printf("Admin user %s (email: %s) impersonating user %s (username: %s)",
 		adminUser.ID, utils.MaskEmail(adminUser.Email), user.ID, user.Username)

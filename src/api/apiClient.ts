@@ -13,16 +13,33 @@ import type {
 } from './Api';
 import { Config } from '@/config/Config';
 
+let getAuthToken: () => Promise<string | null> = async () => null;
+
+// Called by AuthProvider so requests carry the Clerk session token
+export function setAuthTokenGetter(getter: () => Promise<string | null>) {
+  getAuthToken = getter;
+}
+
+// Thrown by getMe when the user is signed in to Clerk but has no profile yet
+export class ProfileRequiredError extends Error {}
+
 // Pure API client functions (no React Query dependencies)
 export async function fetchAPI(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   endpoint: string,
   options: RequestInit = {},
 ): Promise<Response> {
+  const headers = new Headers(options.headers);
+  const token = await getAuthToken();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
   return await fetch(`${Config.API_BASE_URL}${endpoint}`, {
     credentials: 'include',
     method,
     ...options,
+    headers,
   });
 }
 
@@ -40,6 +57,9 @@ export const apiClient = {
   // User endpoints
   getMe: async (): Promise<User> => {
     const response = await fetchAPI('GET', '/user/me');
+    if (response.status === 404) {
+      throw new ProfileRequiredError('Profile not found');
+    }
     if (!response.ok) {
       throw new Error(`Error fetching user: ${response.statusText}`);
     }
@@ -129,25 +149,14 @@ export const apiClient = {
   },
 
   // Auth endpoints
-  createUser: async (data: {
-    username: string;
-    email: string;
-  }): Promise<{ message: string }> => {
+  createUser: async (username: string): Promise<User> => {
     const response = await fetchAPI('POST', '/auth/register', {
-      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
     });
     if (!response.ok) {
-      throw new Error(`Error creating user: ${response.statusText}`);
-    }
-    return response.json();
-  },
-
-  loginUser: async (email: string): Promise<{ message: string }> => {
-    const response = await fetchAPI('POST', '/auth/login', {
-      body: JSON.stringify({ email }),
-    });
-    if (!response.ok) {
-      throw new Error(`Error logging in: ${response.statusText}`);
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to create profile');
     }
     return response.json();
   },

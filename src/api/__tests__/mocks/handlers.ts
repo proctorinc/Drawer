@@ -94,29 +94,18 @@ export const handlers = [
   }),
 
   // Auth endpoints
-  http.post(`${baseUrl}/register`, async ({ request }) => {
-    const body = (await request.json()) as {
-      username?: string;
-      email?: string;
-    };
-    if (!body?.username || !body?.email) {
+  http.post(`${baseUrl}/auth/register`, async ({ request }) => {
+    const body = (await request.json()) as { username?: string };
+    if (!body?.username) {
       return HttpResponse.json(
-        { error: 'Username and email are required' },
+        { error: 'Username is required' },
         { status: 400 },
       );
     }
-    return HttpResponse.json({ message: 'User created successfully' });
+    return HttpResponse.json({ ...mockUser, username: body.username });
   }),
 
-  http.post(`${baseUrl}/login`, async ({ request }) => {
-    const body = (await request.json()) as { email?: string };
-    if (!body?.email) {
-      return HttpResponse.json({ error: 'Email is required' }, { status: 400 });
-    }
-    return HttpResponse.json({ message: 'Login successful' });
-  }),
-
-  http.post(`${baseUrl}/logout`, () => {
+  http.post(`${baseUrl}/auth/logout`, () => {
     return HttpResponse.json({ message: 'Logout successful' });
   }),
 

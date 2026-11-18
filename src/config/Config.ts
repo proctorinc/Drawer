@@ -1,6 +1,7 @@
 export const Config = {
   ENV: import.meta.env.VITE_ENV || 'production',
   API_BASE_URL: import.meta.env.VITE_API_BASE_URL || '/api/v1',
+  CLERK_PUBLISHABLE_KEY: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
   VAPID_PUBLIC_KEY:
     import.meta.env.VITE_VAPID_PUBLIC_KEY ||
     'BPA-gbCMFRfVEVwaxNuZQ06iWePK3pgeIXwC2QqlOcCvInoWzH363rt9R9n-tffjgq_vJUSBpa4sl2P2It5EVYY',

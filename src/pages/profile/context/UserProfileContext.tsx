@@ -1,22 +1,11 @@
 import { createContext, useContext, type FC, type ReactNode } from 'react';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import type { GetMeResponse } from '@/api/Api';
-import {
-  useLogoutUser,
-  useCreateUser,
-  useLoginUser,
-  useGetUserProfile,
-} from '@/api/Api';
+import { useGetUserProfile } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 
 type UserProfileContextType = {
   userProfile?: GetMeResponse;
-  createUserProfile: (
-    username: string,
-    email: string,
-  ) => Promise<{ message: string }>;
-  loginUserProfile: (email: string) => Promise<{ message: string }>;
-  logout: () => Promise<void>;
   reloadUser: () => Promise<void>;
   isLoading: boolean;
 };
@@ -37,31 +26,11 @@ export const UserProfileProvider: FC<Props> = ({ children }) => {
     isLoading,
     refetch: refetchUserProfile,
   } = useGetUserProfile(userId);
-  const loginMutation = useLoginUser();
-  const logoutMutation = useLogoutUser();
-  const createUserMutation = useCreateUser();
   const navigate = useNavigate();
 
   async function reloadUser() {
     await refetchUserProfile();
   }
-
-  const createUserProfile = async (username: string, email: string) => {
-    return await createUserMutation.mutateAsync({ username, email });
-  };
-
-  const loginUserProfile = async (email: string) => {
-    return loginMutation.mutateAsync(email).catch(() => {
-      throw new Error('Invalid login');
-    });
-  };
-
-  const logout = async () => {
-    await logoutMutation.mutateAsync().then(() => {
-      reloadUser();
-      navigate({ to: '/auth/login' });
-    });
-  };
 
   if (userId === currentUser.id) {
     navigate({ to: '/draw/profile/me' });
@@ -69,9 +38,6 @@ export const UserProfileProvider: FC<Props> = ({ children }) => {
 
   const contextData: UserProfileContextType = {
     userProfile: data,
-    createUserProfile,
-    loginUserProfile,
-    logout,
     reloadUser,
     isLoading,
   };

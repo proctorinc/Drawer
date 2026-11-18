@@ -1,6 +1,6 @@
 module drawer-service-backend
 
-go 1.23.0
+go 1.24.0
 
 toolchain go1.24.2
 
@@ -9,12 +9,13 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/config v1.29.14
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.80.0
+	github.com/clerk/clerk-sdk-go/v2 v2.9.0
 	github.com/gin-contrib/cors v1.7.5
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.28
-	github.com/resendlabs/resend-go v1.7.0
 	github.com/tursodatabase/libsql-client-go v0.0.0-20240902231107-85af5b9d094d
 )
 

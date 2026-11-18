@@ -14,12 +14,16 @@ RUN npm install
 # Copy the rest of the frontend source code
 COPY . .
 
+# Clerk's publishable key is public and gets inlined into the bundle by Vite
+ARG VITE_CLERK_PUBLISHABLE_KEY
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+
 # Build the frontend
 # This should output static files into a 'dist' directory (or similar, adjust if needed)
 RUN npm run build
 
 # Stage 2: Build the backend
-FROM golang:1.23.0 AS backend-builder
+FROM golang:1.24 AS backend-builder
 
 # Set the working directory for the backend
 # This is where your go.mod and backend code live

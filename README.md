@@ -4,16 +4,23 @@
 
 # Getting started
 
-To run the frontend (port 3000):
+Auth is handled by [Clerk](https://clerk.com). Copy the env examples and fill in your Clerk Development instance keys:
+
+```bash
+cp .env.example .env.local          # VITE_CLERK_PUBLISHABLE_KEY
+cp server/.env.example server/.env  # CLERK_SECRET_KEY (+ optional DEV_USER_EMAIL)
+```
+
+To run the backend (port 8080). In development it resets and reseeds a local SQLite `drawer.db` on every start:
+
+```bash
+cd server && go run ./cmd/drawer
+```
+
+To run the frontend (port 3000, proxies `/api` to the backend):
 
 ```bash
 npm run dev
-```
-
-To run the backend (port 8002):
-
-```bash
-~/.air
 ```
 
 # Building for production
@@ -21,13 +28,13 @@ To run the backend (port 8002):
 To build the docker image:
 
 ```bash
-docker build -t drawer-service .
+docker build --build-arg VITE_CLERK_PUBLISHABLE_KEY='pk_live_...' -t drawer-service .
 ```
 
 To run the docker container:
 
 ```bash
-docker run -p 8080:8080 -e TURSO_DATABASE_URL='' -e TURSO_AUTH_TOKEN='' -e FROM_EMAIL='' -e GMAIL_APP_PASSWORD='' -e ENV='' -e BASE_URL='' drawer-service
+docker run -p 8080:8080 -e TURSO_DATABASE_URL='' -e TURSO_AUTH_TOKEN='' -e CLERK_SECRET_KEY='' -e S3_BUCKET_NAME='' -e S3_BUCKET_REGION='' -e AWS_ACCESS_KEY_ID='' -e AWS_SECRET_ACCESS_KEY='' -e VAPID_PUBLIC_KEY='' -e VAPID_PRIVATE_KEY='' -e ALLOWED_ORIGINS='' drawer-service
 ```
 
 ## Database schema

@@ -2,59 +2,42 @@ package queries
 
 import (
 	"context"
-	"crypto/rand"
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
-	"encoding/hex"
-	"errors"
-	"fmt"
-	"time"
+
+	"github.com/google/uuid"
 )
 
-func CreateVerificationToken(repo *sql.DB, ctx context.Context, userID string, email string) (string, error) {
-	// Generate a random token using crypto/rand
-	tokenBytes := make([]byte, 32)
-	if _, err := rand.Read(tokenBytes); err != nil {
-		return "", fmt.Errorf("failed to generate random token: %w", err)
-	}
-	token := hex.EncodeToString(tokenBytes)
+const userColumns = `id, username, email, role, created_at, avatar_type, avatar_url`
 
-	// Set expiration to 1 hour from now
-	expiresAt := time.Now().Add(1 * time.Hour)
-
-	query := `
-        INSERT INTO verification_tokens (token, user_id, email, expires_at)
-        VALUES (?, ?, ?, ?)
-    `
-
-	_, err := repo.ExecContext(ctx, query, token, userID, email, expiresAt)
-
-	return token, err
-}
-
-func VerifyToken(repo *sql.DB, ctx context.Context, token string) (*models.User, error) {
-	query := `
-        SELECT u.id, u.username, u.email
-        FROM verification_tokens vt
-        JOIN users u ON vt.user_id = u.id
-        WHERE vt.token = ? AND vt.expires_at > CURRENT_TIMESTAMP
-    `
-
+func scanUser(row *sql.Row) (*models.User, error) {
 	var user models.User
-	err := repo.QueryRowContext(ctx, query, token).Scan(&user.ID, &user.Username, &user.Email)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("invalid or expired token")
-		}
-		return nil, fmt.Errorf("error verifying token: %w", err)
-	}
-
-	// Delete the used token
-	_, err = repo.ExecContext(ctx, "DELETE FROM verification_tokens WHERE token = ?", token)
-
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL)
 	if err != nil {
 		return nil, err
 	}
-
 	return &user, nil
+}
+
+func GetUserByClerkID(repo *sql.DB, ctx context.Context, clerkID string) (*models.User, error) {
+	query := `SELECT ` + userColumns + ` FROM users WHERE clerk_id = ?`
+	return scanUser(repo.QueryRowContext(ctx, query, clerkID))
+}
+
+// LinkClerkIDByEmail attaches a Clerk account to the pre-Clerk user with the
+// same email (case-insensitive) and returns that user.
+func LinkClerkIDByEmail(repo *sql.DB, ctx context.Context, clerkID string, email string) (*models.User, error) {
+	query := `
+        UPDATE users SET clerk_id = ?
+        WHERE lower(email) = lower(?)
+        RETURNING ` + userColumns
+	return scanUser(repo.QueryRowContext(ctx, query, clerkID, email))
+}
+
+func CreateClerkUser(repo *sql.DB, ctx context.Context, clerkID string, username string, email string) (*models.User, error) {
+	query := `
+        INSERT INTO users (id, clerk_id, username, email)
+        VALUES (?, ?, ?, ?)
+        RETURNING ` + userColumns
+	return scanUser(repo.QueryRowContext(ctx, query, uuid.New().String(), clerkID, username, email))
 }

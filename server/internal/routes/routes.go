@@ -50,13 +50,15 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 	// API routes
 	apiGroup := router.Group("/api/v1")
 	{
-		// Auth routes
-		apiGroup.POST("/auth/register", handlers.HandleRegister)
-		apiGroup.POST("/auth/login", handlers.HandleLogin)
-		apiGroup.GET("/auth/verify", handlers.HandleVerifyEmail)
+		clerkGroup := apiGroup.Group("/")
+		clerkGroup.Use(middleware.ClerkSessionRequired())
+
+		// Signed in to Clerk, but may not have a Drawer profile yet
+		clerkGroup.POST("/auth/register", handlers.HandleRegister)
+		clerkGroup.POST("/auth/logout", handlers.HandleLogout)
 
 		// Authenticated routes
-		authGroup := apiGroup.Group("/")
+		authGroup := clerkGroup.Group("/")
 		authGroup.Use(middleware.AuthRequired(repo))
 		{
 			userGroup := authGroup.Group("/user")
@@ -168,8 +170,6 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 					c.JSON(200, gin.H{"message": "Test notification sent successfully"})
 				})
 			}
-
-			authGroup.POST("/auth/logout", handlers.HandleLogout)
 
 			// Admin routes (require admin role)
 			adminGroup := authGroup.Group("/admin")
