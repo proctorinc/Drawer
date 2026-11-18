@@ -10,39 +10,32 @@ const BOX = { w: 340, h: 440 };
 const CENTER = 170;
 
 /**
- * Ornament rows from the bottom up, evenly spaced: [y, how many, spread], where
- * spread is how far across the tree's width at that height they reach (the
- * bottom row reaches a little past the edge, hanging off the branches)
+ * Ornament rows from the bottom up: [y, how many]. Neighbouring rows alternate
+ * odd and even counts on the same pitch, so each ornament sits in the gap
+ * between the two below it, and every cap rests on a branch.
  */
-const ROWS: Array<[number, number, number]> = [
-  [362, 7, 1.02],
-  [325, 5, 0.85],
-  [288, 4, 0.85],
-  [251, 3, 0.8],
-  [214, 3, 0.8],
-  [177, 2, 0.8],
-  [140, 1, 0],
-  [103, 2, 0.85],
-  [66, 1, 0],
+const ROWS: Array<[number, number]> = [
+  [362, 6],
+  [324, 5],
+  [286, 4],
+  [248, 3],
+  [210, 4],
+  [172, 3],
+  [134, 2],
+  [96, 1],
 ];
+/** Space between ornaments' centres along a row */
+const PITCH = 48;
 /** The last day hangs where the star goes */
 const STAR = { x: CENTER, y: 26 };
 
-/** Half the tree's width at height y, following its three tiers */
-function halfWidth(y: number) {
-  if (y <= 130) return (y - 30) * 0.7;
-  if (y <= 240) return 40 + (y - 130) * 0.682;
-  return 80 + (y - 240) * 0.571;
-}
-
 /** Spots for every day but the last, bottom left first, climbing up the tree */
-const SPOTS = ROWS.flatMap(([y, count, reach]) => {
-  const spread = halfWidth(y) * reach;
-  return Array.from({ length: count }, (_, i) => ({
-    x: count === 1 ? CENTER : CENTER - spread + (i * 2 * spread) / (count - 1),
+const SPOTS = ROWS.flatMap(([y, count]) =>
+  Array.from({ length: count }, (_, i) => ({
+    x: CENTER + (i - (count - 1) / 2) * PITCH,
     y,
-  }));
-});
+  })),
+);
 
 const ORNAMENT_WIDTH = `${(32 / BOX.w) * 100}%`;
 
