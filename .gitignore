@@ -18,5 +18,6 @@ server/uploads/*
 drawer
 drawer-server
 server.log
-build-errors.log.claude/worktrees/
+build-errors.log
+.claude/worktrees/
 .claude/launch.json

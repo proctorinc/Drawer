@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
+	"drawer-service-backend/internal/utils"
 	"fmt"
 	"log"
 	"strings"
@@ -118,7 +119,7 @@ func CalculateCommentCount(repo *sql.DB, ctx context.Context, userId string) (in
 func CalculateReactionCount(repo *sql.DB, ctx context.Context, userId string) (int, error) {
 	query := `
 		SELECT COUNT(*)
-		FROM user_submissions
+		FROM reactions
 		WHERE user_id = ?
 	`
 
@@ -136,7 +137,7 @@ func CalculateReactionCommentCount(repo *sql.DB, ctx context.Context, userId str
 	query := `
 		SELECT COUNT(*)
 		FROM reactions
-		WHERE user_id = ? AND reaction_type = 'comment'
+		WHERE user_id = ? AND content_type = 'comment'
 	`
 
 	var count int
@@ -153,7 +154,7 @@ func CalculateReactionSubmissionCount(repo *sql.DB, ctx context.Context, userId 
 	query := `
 		SELECT COUNT(*)
 		FROM reactions
-		WHERE user_id = ? AND reaction_type = 'submission'
+		WHERE user_id = ? AND content_type = 'submission'
 	`
 
 	var count int
@@ -170,7 +171,7 @@ func CalculateFriendCount(repo *sql.DB, ctx context.Context, userId string) (int
 	query := `
 		SELECT COUNT(*)
 		FROM friendships
-		WHERE user1 = ? OR user2 = ?
+		WHERE (user1 = ? OR user2 = ?)
 		AND state = 'accepted'
 	`
 
@@ -350,58 +351,51 @@ func InsertUserAchievement(repo *sql.DB, ctx context.Context, userID, achievemen
 	return err
 }
 
+// CalculateSubmissionActiveStreak counts the consecutive days a user has drawn, up to
+// today, or up to yesterday while today's drawing isn't in yet.
 func CalculateSubmissionActiveStreak(repo *sql.DB, ctx context.Context, userID string) (int, error) {
-	var currentStreak int
 	rows, err := repo.QueryContext(ctx, `
 		SELECT day FROM user_submissions
 		WHERE user_id = ?
 		ORDER BY day DESC
 	`, userID)
 	if err != nil {
-		log.Printf("Error fetching submission days for streak: %v", err)
-		currentStreak = 0
-	} else {
-		defer rows.Close()
-		var days []string
-		for rows.Next() {
-			var day string
-			if err := rows.Scan(&day); err == nil {
-				days = append(days, day)
-			}
+		return 0, err
+	}
+	defer rows.Close()
+
+	var days []string
+	for rows.Next() {
+		var day string
+		if err := rows.Scan(&day); err != nil {
+			return 0, err
 		}
-		streak := 0
-		if len(days) > 0 {
-			today := time.Now().UTC().Truncate(24 * time.Hour)
-			firstDay, _ := time.Parse("2006-01-02", days[0])
-			var streakStart time.Time
-			if firstDay.Equal(today) {
-				streakStart = today
-			} else {
-				streakStart = today.AddDate(0, 0, -1)
-			}
-			for _, dayStr := range days {
-				d, err := time.Parse("2006-01-02", dayStr)
-				if err != nil {
-					log.Printf("Streak: skipping unparsable day string: %s", dayStr)
-					continue
-				}
-				d = d.Truncate(24 * time.Hour)
-				if d.Equal(streakStart) {
-					log.Printf("Streak: day %s matches streakStart %s, streak continues", d.Format("2006-01-02"), streakStart.Format("2006-01-02"))
-					streak++
-					streakStart = streakStart.AddDate(0, 0, -1)
-				} else if d.Before(streakStart) {
-					log.Printf("Streak: day %s is before streakStart %s, streak breaks here", d.Format("2006-01-02"), streakStart.Format("2006-01-02"))
-					break
-				} else if d.After(streakStart) {
-					log.Printf("Streak: day %s is after streakStart %s (should not happen if days are sorted desc)", d.Format("2006-01-02"), streakStart.Format("2006-01-02"))
-				}
-			}
-		}
-		currentStreak = streak
+		days = append(days, day)
+	}
+	if err := rows.Err(); err != nil {
+		return 0, err
 	}
 
-	return currentStreak, nil
+	return activeStreak(days, time.Now()), nil
+}
+
+// activeStreak counts the run of days, newest first as YYYY-MM-DD, that ends today or
+// yesterday. Days are compared on now's clock, the same one submissions are dated with.
+func activeStreak(days []string, now time.Time) int {
+	expected := now
+	if len(days) > 0 && days[0] != utils.GetFormattedDate(now) {
+		expected = now.AddDate(0, 0, -1)
+	}
+
+	streak := 0
+	for _, day := range days {
+		if day != utils.GetFormattedDate(expected) {
+			break
+		}
+		streak++
+		expected = expected.AddDate(0, 0, -1)
+	}
+	return streak
 }
 
 // CalculateMaxStreak calculates the maximum consecutive submission streak for a user.

@@ -1,7 +1,6 @@
 import Button from '@/components/Button';
 import { Card, CardContent, CardHeader } from '@/components/Card';
 import { useNotifications } from '@/notifications/NotificationContext';
-import { faCancel, faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 
 const NotificationSettings = () => {
   const {
@@ -17,35 +16,29 @@ const NotificationSettings = () => {
   return (
     <Card>
       <CardContent>
-        <CardHeader title="Notifications" />
-        {!isSupported && <p>Your browser does not support notifications</p>}
-        {isSupported && (
-          <div className="flex w-full gap-2">
+        <CardHeader
+          title="notifications"
+          subtitle={
+            isSupported
+              ? isEnabled
+                ? "on: we'll poke you about new doodles"
+                : 'off'
+              : "this browser can't do notifications"
+          }
+        >
+          {isSupported && (
             <Button
-              disabled={isEnabled}
               size="sm"
-              className="w-full"
-              onClick={() => subscribeToPush()}
-              icon={faCircleCheck}
+              variant={isEnabled ? 'base' : 'primary'}
+              onClick={() =>
+                isEnabled ? unsubscribeFromPush() : subscribeToPush()
+              }
             >
-              Enable{isEnabled && 'd'}
+              {isEnabled ? 'turn off' : 'turn on'}
             </Button>
-            <Button
-              disabled={!isEnabled}
-              size="sm"
-              className="w-full"
-              onClick={() => unsubscribeFromPush()}
-              icon={faCancel}
-            >
-              Disable{!isEnabled && 'd'}
-            </Button>
-          </div>
-        )}
-        {error && (
-          <p className="text-center text-sm font-bold text-red-700 mb-2">
-            {error}
-          </p>
-        )}
+          )}
+        </CardHeader>
+        {error && <p className="text-coral">{error}</p>}
       </CardContent>
     </Card>
   );

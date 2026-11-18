@@ -1,56 +1,54 @@
-import AccountDetails from './components/AccountDetails';
-import Layout from '@/components/Layout';
-import SubmissionCalendar from './components/SubmissionCalendar';
-import { useMyProfilePage } from './context/MyProfileContext';
-import { FriendList } from './components/friends/FriendList';
-import FavoriteSubmissions from './components/FavoriteSubmissions';
-import LoadingScreen from '@/components/LoadingScreen';
-import UserHeader from './components/UserHeader';
-import Button from '@/components/Button';
-import {
-  faAward,
-  faGear,
-  faUserCircle,
-} from '@fortawesome/free-solid-svg-icons';
-import AchievementCard from './components/AchievementCard';
-import { cn } from '@/utils';
-import { Card, CardContent } from '@/components/Card';
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
+import { faGear, faPen } from '@fortawesome/free-solid-svg-icons';
+import { useMyProfilePage } from './context/MyProfileContext';
+import AccountDetails from './components/AccountDetails';
+import EditProfile from './components/EditProfile';
+import Sheet from './components/Sheet';
+import Sketchbook from './components/Sketchbook';
+import UserHeader from './components/UserHeader';
+import FriendsPanel from './components/friends/FriendsPanel';
+import IncomingInvites from './components/friends/IncomingInvites';
+import { useFriendInvites } from './components/friends/useFriendInvites';
+import { FriendsIcon, TrophyIcon } from '@/components/icons';
+import LoadingScreen from '@/components/LoadingScreen';
+import Layout from '@/components/Layout';
+import Chip from '@/components/Chip';
+import Button from '@/components/Button';
 
-type TabState = 'profile' | 'settings' | 'achievements';
+type SheetId = 'friends' | 'edit' | 'settings';
+
+const SHEET_TITLES: Record<SheetId, string> = {
+  friends: 'friends',
+  edit: 'edit my cover',
+  settings: 'settings',
+};
+
+/** A peek at the trophy shelf, which lives on its own tab */
+const TrophyTeaser = () => {
+  const { achievementsData } = useMyProfilePage();
+  const won =
+    achievementsData?.achievements.filter((a) => a.achievedAt).length ?? 0;
+
+  return (
+    <Link to="/draw/trophies" className="self-start active:scale-95">
+      <Chip className="bg-butter">
+        <TrophyIcon size={16} />
+        {won > 0
+          ? `${won} ${won === 1 ? 'trophy' : 'trophies'}`
+          : 'win trophies'}{' '}
+        →
+      </Chip>
+    </Link>
+  );
+};
 
 const MyProfilePage = () => {
-  const { profile, achievementsData } = useMyProfilePage();
-  const [tab, setTab] = useState<TabState>('profile');
+  const { profile } = useMyProfilePage();
+  const { incoming } = useFriendInvites();
+  const [sheet, setSheet] = useState<SheetId | null>(null);
 
-  const completedAchievements = achievementsData?.achievements
-    ? achievementsData.achievements
-        .filter((achievement) => achievement.achievedAt)
-        .sort((a, b) => {
-          if (!a.achievedAt && !!b.achievedAt) {
-            return -1;
-          } else if (!!a.achievedAt && !b.achievedAt) {
-            return 1;
-          } else {
-            return 0;
-          }
-        })
-    : [];
-  const inProgressAchievements = achievementsData?.achievements
-    ? achievementsData.achievements
-        .filter((achievement) => !achievement.achievedAt)
-        .sort((a, b) => {
-          if (!a.achievedAt && !!b.achievedAt) {
-            return -1;
-          } else if (!!a.achievedAt && !b.achievedAt) {
-            return 1;
-          } else {
-            return 0;
-          }
-        })
-    : [];
-
-  if (!profile?.user) {
+  if (!profile) {
     return <LoadingScreen />;
   }
 
@@ -58,99 +56,55 @@ const MyProfilePage = () => {
     <Layout
       header={
         <UserHeader
-          className={cn(
-            'transition-all duration-300',
-            tab === 'profile'
-              ? 'opacity-100'
-              : 'h-0 -translate-y-[100px] opacity-0',
-          )}
           userProfile={profile}
-        />
+          onAvatarClick={() => setSheet('edit')}
+          extra={<TrophyTeaser />}
+        >
+          <Button size="sm" disableLoad onClick={() => setSheet('friends')}>
+            <FriendsIcon size={20} />
+            friends
+            {incoming.length > 0 && (
+              <span
+                aria-label={`${incoming.length} new requests`}
+                className="flex items-center justify-center min-w-6 h-6 px-1.5 -my-1 bg-coral text-ink border-2 border-paper rounded-full text-base animate-nudge"
+              >
+                {incoming.length}
+              </span>
+            )}
+          </Button>
+          <Button
+            size="sm"
+            variant="base"
+            icon={faPen}
+            disableLoad
+            onClick={() => setSheet('edit')}
+          >
+            edit
+          </Button>
+          <Button
+            size="sm"
+            variant="base"
+            icon={faGear}
+            aria-label="Settings"
+            disableLoad
+            className="ml-auto"
+            onClick={() => setSheet('settings')}
+          />
+        </UserHeader>
       }
     >
-      <div className="flex justify-center w-full">
-        <div className="w-full">
-          <Button
-            icon={faUserCircle}
-            size="sm"
-            variant={tab === 'profile' ? 'primary' : 'base'}
-            className=" disabled:text-primary w-full h-10"
-            onClick={() => setTab('profile')}
-            disableLoad
-          >
-            Profile
-          </Button>
-        </div>
-        <div className="w-full">
-          <Button
-            icon={faAward}
-            size="sm"
-            variant={tab === 'achievements' ? 'primary' : 'base'}
-            className=" disabled:text-primary w-full h-10"
-            onClick={() => setTab('achievements')}
-            disableLoad
-          >
-            Awards
-          </Button>
-        </div>
-        <div className="relative w-full">
-          <Button
-            icon={faGear}
-            size="sm"
-            className="disabled:text-primary w-full h-10"
-            variant={tab === 'settings' ? 'primary' : 'base'}
-            onClick={() => setTab('settings')}
-            disableLoad
-          >
-            Settings
-          </Button>
-          {/* <div className="absolute flex items-center justify-center top-1/2 -translate-y-1/2 left-4 w-4 h-4 bg-base text-red-500 rounded-full">
-            <FontAwesomeIcon icon={faExclamationCircle} />
-          </div> */}
-        </div>
-      </div>
-      {tab === 'profile' && (
-        <>
-          <FavoriteSubmissions profile={profile} />
-          <SubmissionCalendar profile={profile} />
-          <FriendList user={profile.user} friends={profile.friends} />
-        </>
-      )}
-      {tab === 'achievements' && (
-        <>
-          <div className="pl-1 font-bold w-full">
-            <h2 className="font-accent font-bold text-[28px] leading-none">Working on</h2>
-          </div>
-          <div className="flex flex-col gap-4 w-full stagger">
-            {inProgressAchievements.length === 0 && (
-              <Card>
-                <CardContent className="text-center text-secondary font-bold">
-                  More goals coming soon!
-                </CardContent>
-              </Card>
-            )}
-            {inProgressAchievements.map((achievement) => (
-              <AchievementCard achievement={achievement} />
-            ))}
-          </div>
-          <div className="pl-1 font-bold w-full">
-            <h2 className="font-accent font-bold text-[28px] leading-none">Achieved</h2>
-          </div>
-          <div className="flex flex-col gap-4 w-full stagger">
-            {completedAchievements.length === 0 && (
-              <Card>
-                <CardContent className="text-center text-secondary font-bold">
-                  You haven't completed any yet
-                </CardContent>
-              </Card>
-            )}
-            {completedAchievements.map((achievement) => (
-              <AchievementCard achievement={achievement} />
-            ))}
-          </div>
-        </>
-      )}
-      {tab === 'settings' && <AccountDetails />}
+      <IncomingInvites />
+      <Sketchbook profile={profile} />
+
+      <Sheet
+        title={sheet ? SHEET_TITLES[sheet] : ''}
+        open={sheet !== null}
+        onClose={() => setSheet(null)}
+      >
+        {sheet === 'friends' && <FriendsPanel profile={profile} />}
+        {sheet === 'edit' && <EditProfile />}
+        {sheet === 'settings' && <AccountDetails />}
+      </Sheet>
     </Layout>
   );
 };

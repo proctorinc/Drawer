@@ -1,5 +1,6 @@
-import { createContext, useContext, type FC, type ReactNode } from 'react';
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { createContext, useContext } from 'react';
+import { Navigate, useParams } from '@tanstack/react-router';
+import type { FC, ReactNode } from 'react';
 import type { GetMeResponse } from '@/api/Api';
 import { useGetUserProfile } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
@@ -8,6 +9,8 @@ type UserProfileContextType = {
   userProfile?: GetMeResponse;
   reloadUser: () => Promise<void>;
   isLoading: boolean;
+  /** True when there's no such user, or they couldn't be loaded */
+  isError: boolean;
 };
 
 const UserProfileContext = createContext<UserProfileContextType | undefined>(
@@ -24,22 +27,23 @@ export const UserProfileProvider: FC<Props> = ({ children }) => {
   const {
     data,
     isLoading,
+    isError,
     refetch: refetchUserProfile,
   } = useGetUserProfile(userId);
-  const navigate = useNavigate();
 
   async function reloadUser() {
     await refetchUserProfile();
   }
 
   if (userId === currentUser.id) {
-    navigate({ to: '/draw/profile/me' });
+    return <Navigate to="/draw/profile/me" replace />;
   }
 
   const contextData: UserProfileContextType = {
     userProfile: data,
     reloadUser,
     isLoading,
+    isError,
   };
 
   return (

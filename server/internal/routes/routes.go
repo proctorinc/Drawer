@@ -80,6 +80,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			userGroup.POST("/:id/invite", handlers.HandleInviteFriend)
 			userGroup.POST("/:id/accept-invitation", handlers.HandleAcceptInvitation)
 			userGroup.POST("/:id/deny-invitation", handlers.HandleDenyInvitation)
+			userGroup.POST("/:id/poke", handlers.HandlePokeFriend)
 
 			submissionGroup := authGroup.Group("/submission")
 
@@ -99,6 +100,8 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			authGroup.POST("/notifications/unsubscribe", handlers.HandleUnsubscribePush)
 
 			authGroup.POST("/prompt/suggest", handlers.SuggestPrompt)
+
+			authGroup.GET("/trophies", handlers.HandleGetTrophies)
 
 			// Development-only debug endpoints for push notifications
 			log.Printf("🔔 Current environment: %s", cfg.Env)

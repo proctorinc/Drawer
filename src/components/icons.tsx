@@ -36,6 +36,14 @@ export const FriendsIcon: FC<IconProps> = (props) => (
   </StrokeIcon>
 );
 
+export const TrophyIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M7 4h10v5a5 5 0 0 1-10 0z" />
+    <path d="M7 6H4.5c0 3 1.2 4.5 3 4.8M17 6h2.5c0 3-1.2 4.5-3 4.8" />
+    <path d="M12 14v3.5M8.5 20.5c.5-2 2-3 3.5-3s3 1 3.5 3z" />
+  </StrokeIcon>
+);
+
 export const ClockIcon: FC<IconProps> = (props) => (
   <StrokeIcon {...props}>
     <circle cx="12" cy="12" r="9" />
@@ -114,4 +122,17 @@ export const FlameIcon: FC<IconProps> = ({ size = 18, ...props }) => (
   >
     <path d="M12 2c1 4 7 7 7 13a7 7 0 0 1-14 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-7 2-10z" />
   </svg>
+);
+
+export const BellIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M6 16.5c1-1.2 1.2-3 1.2-5.2 0-3 2-5.3 4.8-5.3s4.9 2.2 4.9 5.2c0 2.3.3 4.1 1.3 5.3z" />
+    <path d="M10 19.5c.6 1 1.3 1.4 2 1.4s1.5-.4 2-1.4M12 3.5V6" />
+  </StrokeIcon>
+);
+
+export const CheckIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M5 12.5l4.5 4.5L19 7" />
+  </StrokeIcon>
 );

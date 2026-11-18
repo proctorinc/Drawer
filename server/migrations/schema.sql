@@ -92,3 +92,4 @@ CREATE TABLE "daily_prompts" (day TEXT PRIMARY KEY, colors TEXT NOT NULL, prompt
 CREATE INDEX idx_daily_prompts_created_by ON daily_prompts (created_by);
 CREATE TABLE prompt_suggestions (id STRING PRIMARY KEY, prompt TEXT NOT NULL, user_id TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
 CREATE UNIQUE INDEX idx_users_clerk_id ON users (clerk_id);
+CREATE TABLE pokes (poker_id TEXT NOT NULL, pokee_id TEXT NOT NULL, day TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (poker_id, pokee_id, day), FOREIGN KEY (poker_id) REFERENCES users (id) ON DELETE CASCADE, FOREIGN KEY (pokee_id) REFERENCES users (id) ON DELETE CASCADE);

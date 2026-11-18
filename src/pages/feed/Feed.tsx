@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { CountDownTimer } from '../../daily/CountdownTimer';
 import { useDailyPrompt } from '../../daily/DailyPromptContext';
-import { SubmissionFeedList } from './components/SubmissionFeedList';
+import { PastPages, TodayWall } from './components/DayPages';
+import { FriendsToday } from './components/FriendsToday';
 import DrawingCanvas from './components/DrawingCanvas';
 import type { CSSProperties } from 'react';
 import type { DailyPrompt } from '@/api/Api';
@@ -65,9 +66,11 @@ const SuggestPrompt = () => {
         setError(null);
         promptSuggestionMutation
           .mutateAsync(prompt)
-          .then(() => setSent(true))
+          .then(() => {
+            setSent(true);
+            setPrompt('');
+          })
           .catch((err) => setError(err.message));
-        setPrompt('');
       }}
     >
       <span
@@ -96,7 +99,7 @@ const SuggestPrompt = () => {
         <button
           type="submit"
           aria-label="Send suggestion"
-          disabled={prompt.length === 0}
+          disabled={prompt.length === 0 || promptSuggestionMutation.isPending}
           className="press flex flex-none items-center justify-center size-11 bg-ink text-paper border-2 border-ink rounded-sketch shadow-pencil-sm cursor-pointer disabled:cursor-default disabled:bg-transparent disabled:text-pencil disabled:border-dashed disabled:border-line disabled:shadow-none"
         >
           <SendIcon size={20} />
@@ -143,18 +146,26 @@ const Feed = () => {
       />
       {error && <p className="text-center text-coral">{error}</p>}
       {isDrawing && (
-        <Disclaimer title="Rules, you say?">
-          <DisclaimerItem>
-            Just kidding - no rules, but here's a tip
-          </DisclaimerItem>
-          <DisclaimerItem>
-            Don't write text, just draw and let people guess!
-          </DisclaimerItem>
-        </Disclaimer>
+        <>
+          <FriendsToday iDrew={false} />
+          <Disclaimer title="Rules, you say?">
+            <DisclaimerItem>
+              Just kidding - no rules, but here's a tip
+            </DisclaimerItem>
+            <DisclaimerItem>
+              Don't write text, just draw and let people guess!
+            </DisclaimerItem>
+          </Disclaimer>
+        </>
       )}
       {!isDrawing && !isLoading && (
-        <SubmissionFeedList afterToday={<SuggestPrompt />} />
+        <>
+          {dailyPrompt && <FriendsToday iDrew />}
+          <TodayWall />
+          <SuggestPrompt />
+        </>
       )}
+      {!isLoading && <PastPages />}
     </Layout>
   );
 };

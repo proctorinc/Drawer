@@ -6,60 +6,62 @@ import (
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
-	"net/http"
-	"time"
-
 	"log"
+	"net/http"
+	"sort"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
 
-// HandleGetActivity returns the user's activity feed (comments and reactions on their submissions)
+// HandleGetActivity returns the user's activity (friends' comments and reactions on their drawings,
+// plus pokes they got) and which friends have drawn today
 func HandleGetActivity(c *gin.Context) {
 	appCtx := context.GetCtx(c)
 	userID := middleware.GetUserID(c)
 	ctx := c.Request.Context()
 	requester := middleware.GetUser(c)
 
-	lastReadID, err := queries.GetLastReadActivityID(appCtx.DB, ctx, userID)
-	if err != nil {
-		log.Printf("HandleGetActivity: error getting lastReadID for user %s: %v", userID, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get last read activity id"})
-		return
-	}
-
-	activities, err := queries.GetActivityFeed(appCtx.DB, ctx, userID, lastReadID, appCtx.Config)
+	activities, err := queries.GetActivityFeed(appCtx.DB, ctx, userID, appCtx.Config)
 	if err != nil {
 		log.Printf("HandleGetActivity: error getting activity feed for user %s: %v", userID, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activity feed"})
 		return
 	}
 
-	// Filter out today's activity if the user hasn't submitted today
-	hasSubmittedToday, err := queries.CheckUserSubmittedToday(appCtx.DB, ctx, userID)
+	pokes, err := queries.GetPokesReceived(appCtx.DB, ctx, userID)
 	if err != nil {
-		log.Printf("HandleGetActivity: error checking submission status for user %s: %v", userID, err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to check submission status"})
+		log.Printf("HandleGetActivity: error getting pokes for user %s: %v", userID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activity feed"})
 		return
 	}
+	activities = append(activities, pokes...)
+	sort.SliceStable(activities, func(i, j int) bool {
+		return activities[i].Date.After(activities[j].Date)
+	})
 
-	if !hasSubmittedToday {
-		todayStr := utils.GetFormattedDate(time.Now())
-		filtered := activities[:0]
+	seenAt, err := queries.GetActivitySeenAt(appCtx.DB, ctx, userID)
+	if err != nil {
+		log.Printf("HandleGetActivity: error getting seenAt for user %s: %v", userID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activity feed"})
+		return
+	}
+	for i := range activities {
+		activities[i].IsRead = !activities[i].Date.After(seenAt)
+	}
 
-		for _, act := range activities {
-			if utils.GetFormattedDate(act.Date) != todayStr {
-				filtered = append(filtered, act)
-			}
-		}
-		activities = filtered
-		log.Printf("HandleGetActivity: filtered activities for user %s, now %d activities", userID, len(activities))
+	pokedToday, err := queries.GetPokeesOn(appCtx.DB, ctx, userID, utils.GetFormattedDate(time.Now()))
+	if err != nil {
+		log.Printf("HandleGetActivity: error getting today's pokes for user %s: %v", userID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get activity feed"})
+		return
 	}
 
 	// --- Add friends + submission status ---
 	type FriendSubmissionStatus struct {
 		User              models.User `json:"user"`
 		HasSubmittedToday bool        `json:"hasSubmittedToday"`
+		PokedToday        bool        `json:"pokedToday"`
 	}
 
 	friendIDs, err := queries.GetUserFriends(appCtx.DB, ctx, userID)
@@ -92,6 +94,7 @@ func HandleGetActivity(c *gin.Context) {
 				AvatarURL:  friendUser.AvatarURL,
 			},
 			HasSubmittedToday: hasSubmitted,
+			PokedToday:        pokedToday[fid],
 		})
 	}
 
@@ -101,25 +104,25 @@ func HandleGetActivity(c *gin.Context) {
 	})
 }
 
-// HandlePostActivity marks all activities up to the given activityId as read
+// HandlePostActivity marks all activity up to seenAt (the newest activity's date) as read
 func HandlePostActivity(c *gin.Context) {
 	appCtx := context.GetCtx(c)
 	userID := middleware.GetUserID(c)
 	ctx := c.Request.Context()
 
 	var req struct {
-		ActivityID string `json:"activityId" binding:"required"`
+		SeenAt time.Time `json:"seenAt" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Missing or invalid activityId"})
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Missing or invalid seenAt"})
 		return
 	}
 
-	err := queries.SetLastReadActivityID(appCtx.DB, ctx, userID, req.ActivityID)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update last read activity id"})
+	if err := queries.SetActivitySeenAt(appCtx.DB, ctx, userID, req.SeenAt); err != nil {
+		log.Printf("HandlePostActivity: saving seenAt for user %s: %v", userID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to mark activity read"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true})
+	c.JSON(http.StatusOK, gin.H{"message": "marked read"})
 }

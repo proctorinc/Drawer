@@ -23,7 +23,7 @@ import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/UserProfilePage.tsx';
 import PromptSubmissionPage from './pages/feed/PromptSubmissionPage';
-import ActivityPage from './pages/activity/ActivityPage.tsx';
+import TrophiesPage from './pages/trophies/TrophiesPage.tsx';
 import { AuthProvider } from './auth/AuthContext.tsx';
 import MyProfilePage from './pages/profile/MyProfilePage.tsx';
 import { MyProfilePageProvider } from './pages/profile/context/MyProfileContext.tsx';
@@ -118,16 +118,23 @@ const friendProfileRoute = createRoute({
   ),
 });
 
-const calendarRoute = createRoute({
+const trophiesRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/draw/activity',
+  path: '/draw/trophies',
   component: () => (
     <AuthRoute>
       <MyProfilePageProvider>
-        <ActivityPage />
+        <TrophiesPage />
       </MyProfilePageProvider>
     </AuthRoute>
   ),
+});
+
+// Old links (push notifications, bookmarks) still point here
+const legacyActivityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/activity',
+  component: () => <Navigate to="/draw/trophies" replace />,
 });
 
 const promptSubmissionRoute = createRoute({
@@ -172,7 +179,8 @@ const routeTree = rootRoute.addChildren([
   userProfileRoute,
   drawProfilePicRoute,
   friendProfileRoute,
-  calendarRoute,
+  trophiesRoute,
+  legacyActivityRoute,
   createProfileRoute,
   loginRoute,
   promptSubmissionRoute,

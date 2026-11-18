@@ -37,7 +37,7 @@ export interface ReactionResponse {
   counts: Array<ReactionCount>;
 }
 
-export type ActivityAction = 'comment' | 'reaction';
+export type ActivityAction = 'comment' | 'reaction' | 'poke';
 
 export interface Activity {
   id: string;
@@ -102,7 +102,8 @@ export interface GetMeResponse {
   friends: Array<User>;
   stats: UserStats;
   favorites: Array<FavoriteSubmission>;
-  invitation: InvitationStatus;
+  /** Where you stand with them; null when neither of you has invited the other */
+  invitation: InvitationStatus | null;
 }
 
 export type Achievement = {
@@ -184,6 +185,7 @@ export const queryKeys = {
   promptSubmission: (id: string) => ['promptSubmission', id] as const,
   activityFeed: ['activityFeed'] as const,
   promptSuggestions: ['promptSuggestions'] as const,
+  invitations: ['invitations'] as const,
 };
 
 // Queries
@@ -230,6 +232,8 @@ export function useGetUserProfile(userId: string) {
     queryKey: queryKeys.userProfile(userId),
     queryFn: () => apiClient.getUserProfile(userId),
     enabled: !!userId,
+    // A bad link shouldn't keep you waiting through three retries
+    retry: 1,
   });
 }
 
@@ -307,7 +311,7 @@ export interface InvitationResponse {
 
 export function useGetInvitations() {
   return useQuery<InvitationResponse>({
-    queryKey: ['invitations'],
+    queryKey: queryKeys.invitations,
     queryFn: apiClient.getInvitations,
   });
 }
@@ -401,6 +405,8 @@ export function useSwapFavoriteOrder() {
 export interface FriendSubmissionStatus {
   user: User;
   hasSubmittedToday: boolean;
+  /** You already poked them today */
+  pokedToday: boolean;
 }
 
 // Update the useActivityFeed hook to reflect the new response structure

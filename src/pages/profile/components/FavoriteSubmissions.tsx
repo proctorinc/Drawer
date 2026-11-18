@@ -1,241 +1,173 @@
-import { queryKeys, useSwapFavoriteOrder, type GetMeResponse } from '@/api/Api';
+import { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { useQueryClient } from '@tanstack/react-query';
+import type { FC } from 'react';
+import type { FavoriteSubmission, GetMeResponse } from '@/api/Api';
+import { queryKeys, useSwapFavoriteOrder } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import Banner from '@/components/Banner';
 import Button from '@/components/Button';
-import { Card, CardContent } from '@/components/Card';
+import { StarIcon } from '@/components/icons';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
-import {
-  faCheckCircle,
-  faEdit,
-  faInfoCircle,
-} from '@fortawesome/free-solid-svg-icons';
-import { faTrophy } from '@fortawesome/free-solid-svg-icons/faTrophy';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { useState, type FC } from 'react';
+import { cn } from '@/utils';
 
-type Props = {
-  profile?: GetMeResponse;
+// Podium order, left to right: 2nd, 1st, 3rd
+const PODIUM = [
+  { index: 1, medal: 'bg-sky', tilt: '-rotate-3', width: 'w-[30%]' },
+  { index: 0, medal: 'bg-butter', tilt: 'rotate-1', width: 'w-[40%]' },
+  { index: 2, medal: 'bg-blush', tilt: 'rotate-3', width: 'w-[30%]' },
+];
+
+type FrameProps = {
+  favorite: FavoriteSubmission;
+  isSelected: boolean;
+  onClick: () => void;
+  className?: string;
 };
 
+const FavoriteFrame: FC<FrameProps> = ({
+  favorite,
+  isSelected,
+  onClick,
+  className,
+}) => (
+  <button
+    onClick={onClick}
+    aria-label={favorite.submission.prompt}
+    aria-pressed={isSelected}
+    className={cn(
+      'block w-full p-1.5 bg-white shadow-[1px_2px_6px_rgba(43,42,51,0.18)] cursor-pointer transition-[rotate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 active:scale-95',
+      isSelected && 'rotate-0 scale-105 outline-3 outline-dashed outline-coral',
+      className,
+    )}
+  >
+    <DrawingImage
+      imageUrl={favorite.submission.imageUrl}
+      draggable={false}
+      className="bg-[#fff8ec]"
+    />
+  </button>
+);
+
+type Props = {
+  profile: GetMeResponse;
+};
+
+/** The owner's top three doodles on a little podium */
 const FavoriteSubmissions: FC<Props> = ({ profile }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const currentUser = useUser();
+  const swapFavorites = useSwapFavoriteOrder();
   const [isEditing, setIsEditing] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const swapFavorites = useSwapFavoriteOrder();
 
-  const favorites = profile?.favorites;
-  const isMe = currentUser.id === profile?.user.id;
-  const canEdit = !!favorites?.length && favorites?.length > 0 && isMe;
+  const { favorites } = profile;
+  const isMe = currentUser.id === profile.user.id;
 
-  function handleEditToggle() {
-    setIsEditing((prev) => !prev);
-    setSelectedId(null);
+  if (favorites.length === 0 && !isMe) {
+    return null;
   }
 
-  function handleImageClick(id: string) {
-    if (selectedId && selectedId !== id) {
+  function handleClick(favorite: FavoriteSubmission) {
+    if (!isEditing) {
+      navigate({
+        to: '/draw/submission/$submissionId',
+        params: { submissionId: favorite.submission.id },
+      });
+    } else if (!selectedId) {
+      setSelectedId(favorite.id);
+    } else if (selectedId === favorite.id) {
+      setSelectedId(null);
+    } else {
       swapFavorites.mutate(
-        { id1: selectedId, id2: id },
+        { id1: selectedId, id2: favorite.id },
         {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
-          },
+          onSuccess: () =>
+            queryClient.invalidateQueries({ queryKey: queryKeys.myProfile }),
         },
       );
-      setSelectedId(null);
-    } else if (!selectedId) {
-      setSelectedId(id);
-    } else if (selectedId === id) {
       setSelectedId(null);
     }
   }
 
+  function frameProps(favorite: FavoriteSubmission) {
+    return {
+      favorite,
+      isSelected: selectedId === favorite.id,
+      onClick: () => handleClick(favorite),
+    };
+  }
+
   return (
-    <div className="relative flex flex-col gap-2 w-full">
-      <div className="flex justify-between text-lg font-bold text-primary text-left w-full">
-        {canEdit && (
+    <section className="flex flex-col gap-4 w-full">
+      <div className="flex justify-between items-center">
+        <h2 className="font-accent font-bold text-[28px] leading-none">
+          hall of fame
+        </h2>
+        {isMe && favorites.length > 1 && (
           <Button
             size="sm"
-            className="absolute top-0 right-0"
-            icon={isEditing ? faCheckCircle : faEdit}
+            variant={isEditing ? 'primary' : 'base'}
             disableLoad
-            onClick={handleEditToggle}
-          ></Button>
+            onClick={() => {
+              setIsEditing((prev) => !prev);
+              setSelectedId(null);
+            }}
+          >
+            {isEditing ? 'done' : 'rearrange'}
+          </Button>
         )}
       </div>
-      {isEditing && (
-        <Banner icon={faInfoCircle} className="text-center mt-8">
-          Tap to swap drawings
+
+      {favorites.length === 0 && (
+        <Banner className="bg-paper border-dashed">
+          <StarIcon size={16} strokeWidth={2.2} />
+          star your best doodles to hang them here
         </Banner>
       )}
-      {favorites && favorites?.length > 0 && (
-        <div className="flex flex-row gap-1.5 w-full justify-between items-end font-bold">
-          {/* {favorites?.slice(0, 3).map((favorite, i) => ( */}
-          <div className="flex flex-col items-center gap-2 w-2/5">
-            {favorites?.[1] && (
-              <>
-                <div className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-300 shadow-[2px_2px_0_0_rgba(0,0,0,0.2)] border-2 border-gray-400 shadow-gray-400 text-gray-500">
-                  2
-                </div>
-                <Card className="rounded-xl shadow-[2px_2px_0_0_rgba(0,0,0,0.2)]">
-                  <DrawingImage
-                    imageUrl={favorites[1].submission.imageUrl}
-                    onClick={() =>
-                      isEditing
-                        ? handleImageClick(favorites[1].id)
-                        : navigate({
-                            to: `/draw/submission/${favorites[1].submission.id}`,
-                          })
-                    }
-                    style={{
-                      border:
-                        selectedId === favorites[1].id
-                          ? '3px solid #0070f3'
-                          : undefined,
-                      boxShadow:
-                        selectedId === favorites[1].id
-                          ? '0 0 0 4px #0070f355'
-                          : undefined,
-                      transition: 'box-shadow 0.2s, border 0.2s',
-                      cursor: isEditing ? 'pointer' : undefined,
-                    }}
+      {isEditing && <Banner>tap two doodles to swap their spots</Banner>}
+
+      {favorites.length > 0 && (
+        <div className="flex items-end justify-center gap-3 pt-2">
+          {PODIUM.map(({ index, medal, tilt, width }) => (
+            <div
+              key={index}
+              className={cn('flex flex-col items-center gap-2', width)}
+            >
+              {favorites[index] && (
+                <>
+                  <span
+                    className={cn(
+                      'flex items-center justify-center border-2 border-ink rounded-blob font-accent font-bold',
+                      medal,
+                      index === 0 ? 'size-11 text-2xl' : 'size-9 text-xl',
+                    )}
+                  >
+                    {index + 1}
+                  </span>
+                  <FavoriteFrame
+                    {...frameProps(favorites[index])}
+                    className={tilt}
                   />
-                </Card>
-              </>
-            )}
-          </div>
-          <div className="flex flex-col items-center gap-2 w-1/2">
-            {favorites?.[0] && (
-              <>
-                <div className="relative">
-                  <FontAwesomeIcon
-                    className="text-yellow-400 text-5xl"
-                    icon={faTrophy}
-                  />
-                  <p className="text-yellow-700 absolute left-1/2 top-[18px] -translate-x-1/2 -translate-y-1/2">
-                    1
-                  </p>
-                </div>
-                <Card className="rounded-xl shadow-[2px_2px_0_0_rgba(0,0,0,0.2)]">
-                  <DrawingImage
-                    imageUrl={favorites[0].submission.imageUrl}
-                    onClick={() =>
-                      isEditing
-                        ? handleImageClick(favorites[0].id)
-                        : navigate({
-                            to: `/draw/submission/${favorites[0].submission.id}`,
-                          })
-                    }
-                    style={{
-                      border:
-                        selectedId === favorites[0].id
-                          ? '3px solid #0070f3'
-                          : undefined,
-                      boxShadow:
-                        selectedId === favorites[0].id
-                          ? '0 0 0 4px #0070f355'
-                          : undefined,
-                      transition: 'box-shadow 0.2s, border 0.2s',
-                      cursor: isEditing ? 'pointer' : undefined,
-                    }}
-                  />
-                </Card>
-              </>
-            )}
-          </div>
-          <div className="flex flex-col items-center gap-2 w-2/5">
-            {favorites?.[2] && (
-              <>
-                <div className="flex items-center justify-center w-9 h-9 rounded-full bg-amber-400 shadow-[2px_2px_0_0_rgba(0,0,0,0.2)] border-2 border-amber-500 shadow-amber-500 text-amber-700">
-                  3
-                </div>
-                <Card className="rounded-xl shadow-[2px_2px_0_0_rgba(0,0,0,0.2)]">
-                  <DrawingImage
-                    imageUrl={favorites[2].submission.imageUrl}
-                    onClick={() =>
-                      isEditing
-                        ? handleImageClick(favorites[2].id)
-                        : navigate({
-                            to: `/draw/submission/${favorites[2].submission.id}`,
-                          })
-                    }
-                    style={{
-                      border:
-                        selectedId === favorites[2].id
-                          ? '3px solid #0070f3'
-                          : undefined,
-                      boxShadow:
-                        selectedId === favorites[2].id
-                          ? '0 0 0 4px #0070f355'
-                          : undefined,
-                      transition: 'box-shadow 0.2s, border 0.2s',
-                      cursor: isEditing ? 'pointer' : undefined,
-                    }}
-                  />
-                </Card>
-              </>
-            )}
-          </div>
+                </>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
-      {favorites?.length === 0 && (
-        <Card>
-          <CardContent className="text-center font-bold text-secondary">
-            No favorite doodles yet
-          </CardContent>
-        </Card>
-      )}
-      {/* <div className="flex justify-between px-4">
-        <div className="w-14 h-14 rounded-full bg-yellow-300"></div>
-        <div className="w-14 h-14 rounded-full bg-yellow-300"></div>
-        <div className="w-14 h-14 rounded-full bg-yellow-300"></div>
-      </div> */}
-      {isEditing && (
+      {isEditing && favorites.length > 3 && (
         <>
-          <span className="font-bold pt-4 text-primary">Other Favorites</span>
-          <div className="grid grid-cols-2 gap-4 w-full">
-            {favorites?.slice(3).map((favorite) => (
-              <Card key={favorite.id}>
-                <DrawingImage
-                  imageUrl={favorite.submission.imageUrl}
-                  onClick={() =>
-                    isEditing
-                      ? handleImageClick(favorite.id)
-                      : navigate({
-                          to: `/draw/submission/${favorite.submission.id}`,
-                        })
-                  }
-                  style={{
-                    border:
-                      selectedId === favorite.id
-                        ? '3px solid #0070f3'
-                        : undefined,
-                    boxShadow:
-                      selectedId === favorite.id
-                        ? '0 0 0 4px #0070f355'
-                        : undefined,
-                    transition: 'box-shadow 0.2s, border 0.2s',
-                    cursor: isEditing ? 'pointer' : undefined,
-                  }}
-                />
-              </Card>
+          <span className="text-pencil">the runners-up</span>
+          <div className="grid grid-cols-4 gap-3">
+            {favorites.slice(3).map((favorite) => (
+              <FavoriteFrame key={favorite.id} {...frameProps(favorite)} />
             ))}
           </div>
-          {favorites?.slice(3).length === 0 && (
-            <Card>
-              <CardContent className="text-center font-bold text-secondary">
-                Extra doodles that you favorite will show up here!
-              </CardContent>
-            </Card>
-          )}
         </>
       )}
-    </div>
+    </section>
   );
 };
 
