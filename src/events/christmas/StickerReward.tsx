@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { faLock } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { StickerCount, StickerFace, stickerCard } from './StickerGoal';
@@ -12,7 +13,8 @@ import { cn } from '@/utils';
 const ignoreClick = () => {};
 
 /**
- * A sticker by what it unlocks: a preview of you wearing its decoration.
+ * A sticker by what it unlocks: a preview of you wearing its decoration,
+ * linking to your flair once it's earned.
  * Cards sit in a grid and share its rows (subgrid), so names and previews line
  * up across a row of cards.
  */
@@ -23,14 +25,15 @@ const StickerReward: FC<{ sticker: Achievement }> = ({ sticker }) => {
   const decoration =
     reward && reward.id in DECORATIONS ? (reward.id as DecorationId) : null;
 
-  return (
-    <li className={cn(stickerCard(earned), 'row-span-3')}>
+  const wearable = earned && decoration;
+  const content = (
+    <>
       <StickerCount sticker={sticker} />
       <StickerFace sticker={sticker} />
 
       {reward && (
         <span className="self-end text-[11px] leading-none uppercase tracking-wider text-pencil">
-          {earned ? 'unlocked' : 'unlocks'}
+          {wearable ? 'wear it →' : earned ? 'unlocked' : 'unlocks'}
         </span>
       )}
 
@@ -59,8 +62,23 @@ const StickerReward: FC<{ sticker: Achievement }> = ({ sticker }) => {
           </span>
         </span>
       )}
-    </li>
+    </>
   );
+  const className = cn(stickerCard(earned), 'row-span-3');
+
+  // Once it's yours, the card goes straight to where you put it on
+  if (wearable) {
+    return (
+      <Link
+        to="/draw/profile/me"
+        hash="decorations"
+        className={cn(className, 'press hover:-rotate-1')}
+      >
+        {content}
+      </Link>
+    );
+  }
+  return <div className={className}>{content}</div>;
 };
 
 export default StickerReward;

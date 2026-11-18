@@ -44,11 +44,11 @@ const EventStickers: FC<{ stickers: Array<Achievement> }> = ({ stickers }) => {
         <p className="-mt-3 text-pencil">
           earn a sticker to wear its decoration on your face
         </p>
-        <ul className="grid grid-cols-3 gap-2 w-full">
+        <div className="grid grid-cols-3 gap-2 w-full">
           {stickers.map((sticker) => (
             <StickerReward key={sticker.id} sticker={sticker} />
           ))}
-        </ul>
+        </div>
       </Sheet>
     </>
   );
