@@ -94,6 +94,10 @@ const EventPage = () => {
       []);
   const stickersEarned = stickers.filter((s) => s.achievedAt).length;
   const whose = viewingFriend ? `${user.username}'s` : 'your';
+  // Each doodle hangs on the tree on its own day
+  const drawingsByDay = Object.fromEntries(
+    submissions.map((s) => [s.day.slice(0, 10), s.imageUrl]),
+  );
 
   return (
     <Layout back={viewingFriend || !isLive}>
@@ -134,12 +138,16 @@ const EventPage = () => {
       {event.countdownDays && (
         <Section
           title={`${whose} tree`}
-          aside={`${event.progress.count} of ${event.countdownDays} ornaments`}
+          aside={`${event.progress.count} of ${event.countdownDays} hung`}
         >
-          <ChristmasTree event={event} className="self-center" />
+          <ChristmasTree
+            event={event}
+            drawings={drawingsByDay}
+            className="self-center"
+          />
           {isLive && !viewingFriend && (
             <p className="-mt-1 text-center text-pencil">
-              every doodle hangs another ornament
+              every doodle you draw hangs on the tree
             </p>
           )}
         </Section>
