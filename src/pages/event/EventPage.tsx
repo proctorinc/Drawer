@@ -11,7 +11,7 @@ import LoadingScreen from '@/components/LoadingScreen';
 import ChristmasTree from '@/events/christmas/ChristmasTree';
 import EventBadge from '@/events/christmas/EventBadge';
 import EventLeaderboard from '@/events/christmas/EventLeaderboard';
-import StickerReward from '@/events/christmas/StickerReward';
+import EventStickers from '@/events/christmas/EventStickers';
 import { countdownCopy } from '@/events/useChristmas';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 
@@ -142,11 +142,7 @@ const EventPage = () => {
           title="christmas stickers"
           aside={`${stickersEarned}/${stickers.length} collected`}
         >
-          <ul className="grid grid-cols-3 gap-2 w-full stagger">
-            {stickers.map((sticker) => (
-              <StickerReward key={sticker.id} sticker={sticker} />
-            ))}
-          </ul>
+          <EventStickers stickers={stickers} />
         </Section>
       )}
 
