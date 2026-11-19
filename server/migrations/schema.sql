@@ -39,7 +39,7 @@ CREATE TABLE comments (
     FOREIGN KEY (submission_id) REFERENCES user_submissions(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
--- CREATE TABLE sqlite_sequence(name,seq);
+CREATE TABLE sqlite_sequence(name,seq);
 CREATE TABLE activity_reads (
     user_id TEXT PRIMARY KEY,
     last_read_activity_id TEXT,
@@ -92,7 +92,15 @@ CREATE TABLE "daily_prompts" (day TEXT PRIMARY KEY, colors TEXT NOT NULL, prompt
 CREATE INDEX idx_daily_prompts_created_by ON daily_prompts (created_by);
 CREATE TABLE prompt_suggestions (id STRING PRIMARY KEY, prompt TEXT NOT NULL, user_id TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
 CREATE UNIQUE INDEX idx_users_clerk_id ON users (clerk_id);
-CREATE TABLE pokes (poker_id TEXT NOT NULL, pokee_id TEXT NOT NULL, day TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (poker_id, pokee_id, day), FOREIGN KEY (poker_id) REFERENCES users (id) ON DELETE CASCADE, FOREIGN KEY (pokee_id) REFERENCES users (id) ON DELETE CASCADE);
+CREATE TABLE pokes (
+    poker_id TEXT NOT NULL,
+    pokee_id TEXT NOT NULL,
+    day TEXT NOT NULL, -- YYYY-MM-DD
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (poker_id, pokee_id, day),
+    FOREIGN KEY (poker_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (pokee_id) REFERENCES users(id) ON DELETE CASCADE
+);
 CREATE TABLE events (id TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL, theme TEXT NOT NULL, starts_at TIMESTAMP NOT NULL, ends_at TIMESTAMP NOT NULL, countdown_days INTEGER, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE INDEX idx_events_starts_at_ends_at ON events (starts_at, ends_at);
 CREATE TABLE event_reactions (event_id TEXT NOT NULL, reaction_id TEXT NOT NULL, PRIMARY KEY (event_id, reaction_id), FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE);
