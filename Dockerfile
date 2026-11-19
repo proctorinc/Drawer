@@ -1,5 +1,5 @@
 # Stage 1: Build the frontend
-FROM node:18 AS frontend-builder
+FROM node:22 AS frontend-builder
 
 # Set the working directory for the frontend
 # This is where your package.json and frontend code live
@@ -45,7 +45,7 @@ COPY server/ ./
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o drawer-service ./cmd/drawer/main.go || exit 1
 
 # Stage 3: Create the final image
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 # Install necessary tools and set timezone
 RUN apt-get update && apt-get install -y ca-certificates tzdata && rm -rf /var/lib/apt/lists/*
