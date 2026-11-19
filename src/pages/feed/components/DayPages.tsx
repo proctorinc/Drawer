@@ -9,7 +9,7 @@ import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
 import Chip from '@/components/Chip';
 import { ArrowLeftIcon, PencilIcon } from '@/components/icons';
-import { parseDay } from '@/days';
+import { isSameDay, parseDay } from '@/days';
 import { cn } from '@/utils';
 
 type DayGroup = {
@@ -29,9 +29,6 @@ function groupByDay(feed: Array<UserPromptSubmission>): Array<DayGroup> {
   }
   return groups;
 }
-
-// Compare dates only, in case one side carries a time
-const isSameDay = (a: string, b: string) => a.slice(0, 10) === b.slice(0, 10);
 
 const dayLabel = (day: string) =>
   parseDay(day)

@@ -12,3 +12,7 @@ export function parseDay(day: string): Date {
 export function monthIndex(date: Date): number {
   return date.getFullYear() * 12 + date.getMonth();
 }
+
+/** Whether two `day` strings are the same date, ignoring any time on either */
+export const isSameDay = (a: string, b: string) =>
+  a.slice(0, 10) === b.slice(0, 10);

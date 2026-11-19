@@ -270,10 +270,15 @@ export function useGetUserProfile(userId: string) {
   });
 }
 
-export function usePromptSubmission(submissionId: string) {
+/** `placeholder` (e.g. the feed's copy) shows while the full doodle loads */
+export function usePromptSubmission(
+  submissionId: string,
+  placeholder?: UserPromptSubmission,
+) {
   return useQuery({
     queryKey: queryKeys.promptSubmission(submissionId),
     queryFn: () => apiClient.getPromptSubmission(submissionId),
+    placeholderData: placeholder,
     retry: () => {
       return false;
     },

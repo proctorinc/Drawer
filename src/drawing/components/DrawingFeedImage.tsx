@@ -1,20 +1,12 @@
-import { Card } from '@/components/Card';
-import type { FC } from 'react';
+import { useRef, useState } from 'react';
 import { DrawingImage } from './DrawingImage';
 import { LockedDrawing } from './LockedDrawing';
+import type { FC } from 'react';
+import type {UserPromptSubmission} from '@/api/Api';
+import { Card } from '@/components/Card';
 import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
-import {
-  queryKeys,
-  useToggleSubmissionFavorite,
-  type UserPromptSubmission,
-} from '@/api/Api';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStar } from '@fortawesome/free-solid-svg-icons';
 import { cn } from '@/utils';
-import { useQueryClient } from '@tanstack/react-query';
-import useUser from '@/auth/hooks/useUser';
-import { useState, useRef } from 'react';
 
 type Props = {
   submission: UserPromptSubmission;
@@ -25,7 +17,6 @@ type Props = {
 const LONG_PRESS_DURATION = 200; // ms
 
 const DrawingFeedImage: FC<Props> = ({ submission, onClick, className }) => {
-  const user = useUser();
   const isLocked = useIsDrawingLocked()(submission);
   const [overlaysVisible, setOverlaysVisible] = useState(true);
   const longPressTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -98,12 +89,6 @@ const DrawingFeedImage: FC<Props> = ({ submission, onClick, className }) => {
         )}
         style={{ zIndex: 2 }}
       >
-        {/* Pin your own doodle to your book */}
-        {submission.user.id === user.id && (
-          <div className="absolute bottom-2 right-2 pointer-events-auto">
-            <FavoriteButton submission={submission} />
-          </div>
-        )}
         {/* Top right overlays */}
         <div
           id="hoverings"
@@ -113,44 +98,6 @@ const DrawingFeedImage: FC<Props> = ({ submission, onClick, className }) => {
         </div>
       </div>
     </Card>
-  );
-};
-
-type FavoriteButtonProps = {
-  submission: UserPromptSubmission;
-};
-
-const FavoriteButton: FC<FavoriteButtonProps> = ({ submission }) => {
-  const queryClient = useQueryClient();
-  const favoriteSubmission = useToggleSubmissionFavorite();
-
-  return (
-    <div className="absolute bottom-2 right-2">
-      <div
-        className={cn(
-          'flex justify-center items-center text-xl h-12 w-12 rounded-full bg-base/90 text-primary/80 hover:scale-110 transition-all duration-300',
-          submission.isFavorite && 'text-yellow-600/80 bg-yellow-300/90',
-        )}
-        onClick={() =>
-          favoriteSubmission.mutate(submission.id, {
-            onSuccess: () => {
-              queryClient.invalidateQueries({ queryKey: queryKeys.daily });
-              queryClient.invalidateQueries({
-                queryKey: queryKeys.activityFeed,
-              });
-              queryClient.invalidateQueries({
-                queryKey: queryKeys.myProfile,
-              });
-              queryClient.invalidateQueries({
-                queryKey: queryKeys.promptSubmission(submission.id),
-              });
-            },
-          })
-        }
-      >
-        <FontAwesomeIcon icon={faStar} />
-      </div>
-    </div>
   );
 };
 
