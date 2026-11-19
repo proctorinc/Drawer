@@ -4,7 +4,7 @@ import AchievementCard, {
 import EventBanner from './components/EventBanner';
 import Leaderboard from './components/Leaderboard';
 import LevelCard from './components/LevelCard';
-import QuestList from './components/QuestList';
+import QuestList, { weekResetLabel } from './components/QuestList';
 import type { FC, ReactNode } from 'react';
 import type { Achievement } from '@/api/Api';
 import { useGetAchievements } from '@/api/Api';
@@ -26,15 +26,6 @@ const SectionTitle: FC<{ children: ReactNode; aside?: ReactNode }> = ({
     {aside}
   </div>
 );
-
-function weekResetLabel(resetsAt: string) {
-  const hours = Math.ceil(
-    (new Date(resetsAt).getTime() - Date.now()) / 3_600_000,
-  );
-  if (hours < 24) return `resets in ${Math.max(hours, 1)}h`;
-  const days = Math.ceil(hours / 24);
-  return `resets in ${days} day${days === 1 ? '' : 's'}`;
-}
 
 const completion = (a: Achievement) =>
   a.achievementValue > 0 ? a.progress / a.achievementValue : 0;
@@ -73,7 +64,7 @@ const TrophiesPage = () => {
     );
   }
 
-  const { quests, leaderboard, week, xpRules } = trophies.data;
+  const { quests, questsEvent, leaderboard, week, xpRules } = trophies.data;
   const { achievements } = achievementsQuery.data;
   const earned = achievements.filter((a) => a.achievedAt).sort(byMostRecent);
   const inProgress = achievements
@@ -87,16 +78,21 @@ const TrophiesPage = () => {
         <LevelCard trophies={trophies.data} stickerCount={earned.length} />
       }
     >
-      <EventBanner />
+      <EventBanner liveEvent={questsEvent} />
 
-      <SectionTitle aside={<Chip>{weekResetLabel(week.resetsAt)}</Chip>}>
-        weekly quests
-      </SectionTitle>
-      <QuestList quests={quests} />
-      {questsDone === quests.length && (
-        <p className="-mt-2 font-accent font-bold text-xl text-center">
-          <span className="highlight">every quest done. show-off.</span>
-        </p>
+      {/* While an event is live, its page has this week's quests */}
+      {!questsEvent && (
+        <>
+          <SectionTitle aside={<Chip>{weekResetLabel(week.resetsAt)}</Chip>}>
+            weekly quests
+          </SectionTitle>
+          <QuestList quests={quests} />
+          {questsDone === quests.length && (
+            <p className="-mt-2 font-accent font-bold text-xl text-center">
+              <span className="highlight">every quest done. show-off.</span>
+            </p>
+          )}
+        </>
       )}
 
       <SectionTitle aside={<span className="text-pencil">this week</span>}>

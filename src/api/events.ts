@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchAPI } from './apiClient';
 import type { User, UserPromptSubmission } from './Api';
+import type { Quest, Week } from './trophies';
 
 export type EventTheme = 'christmas';
 
@@ -32,6 +33,23 @@ export interface EventLeaderboardEntry {
   user: User;
   doodles: number;
   reactionsReceived: number;
+  /** Everything earned during the event; breaks ties in doodles */
+  xp: number;
+}
+
+/** One way to earn XP that only the event offers */
+export interface EventXPLine {
+  action: string;
+  count: number;
+  xpEach: number;
+  xp: number;
+}
+
+export interface EventXP {
+  /** All XP earned while the event ran, event-related or not */
+  total: number;
+  /** The event's own share of total; the rest came from everyday activity */
+  lines: Array<EventXPLine>;
 }
 
 export interface EventRecap {
@@ -40,6 +58,9 @@ export interface EventRecap {
   event: ActiveEvent;
   submissions: Array<UserPromptSubmission>;
   stats: { doodles: number; reactionsReceived: number; longestStreak: number };
+  xp: EventXP;
+  /** This week's quests: only on your own recap, while the event is live */
+  quests: { week: Week; quests: Array<Quest> } | null;
 }
 
 export const eventKeys = {

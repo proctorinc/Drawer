@@ -2,11 +2,14 @@ package handlers
 
 import (
 	"cmp"
+	"database/sql"
 	"drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
+	"drawer-service-backend/internal/events"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
+	"errors"
 	"log"
 	"net/http"
 	"slices"
@@ -75,8 +78,11 @@ type TrophiesResponse struct {
 	Lifetime      queries.ActivityCounts `json:"lifetime"`
 	Week          Week                   `json:"week"`
 	Quests        []Quest                `json:"quests"`
-	Leaderboard   []LeaderboardEntry     `json:"leaderboard"`
-	XPRules       []XPRule               `json:"xpRules"`
+	// QuestsEvent is set while an event is live, when the weekly quests are on its page
+	// instead and Quests is empty
+	QuestsEvent *EventLink         `json:"questsEvent"`
+	Leaderboard []LeaderboardEntry `json:"leaderboard"`
+	XPRules     []XPRule           `json:"xpRules"`
 }
 
 func HandleGetTrophies(c *gin.Context) {
@@ -120,19 +126,25 @@ func HandleGetTrophies(c *gin.Context) {
 		return
 	}
 
+	quests, questsEvent := weeklyQuests(weekly[requester.ID]), (*EventLink)(nil)
+	event, err := queries.GetActiveEvent(repo, ctx, events.Now(context.GetCtx(c).Config))
+	if err == nil {
+		quests, questsEvent = []Quest{}, &EventLink{Slug: event.Slug, Name: event.Name, Theme: event.Theme}
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		fail("active event", err)
+		return
+	}
+
 	mine := lifetime[requester.ID]
 	c.JSON(http.StatusOK, TrophiesResponse{
 		Level:         levelForXP(xpFor(mine)),
 		CurrentStreak: streak,
 		Lifetime:      mine,
-		Week: Week{
-			Start:    utils.GetFormattedDate(week),
-			End:      utils.GetFormattedDate(nextWeek.AddDate(0, 0, -1)),
-			ResetsAt: nextWeek,
-		},
-		Quests:      weeklyQuests(weekly[requester.ID]),
-		Leaderboard: leaderboard(users, weekly),
-		XPRules:     xpRules,
+		Week:          weekOf(week, nextWeek),
+		Quests:        quests,
+		QuestsEvent:   questsEvent,
+		Leaderboard:   leaderboard(users, weekly),
+		XPRules:       xpRules,
 	})
 }
 
@@ -170,6 +182,14 @@ func weekBounds(now time.Time) (time.Time, time.Time) {
 	daysSinceMonday := (int(now.Weekday()) + 6) % 7
 	monday := time.Date(now.Year(), now.Month(), now.Day()-daysSinceMonday, 0, 0, 0, 0, now.Location())
 	return monday, monday.AddDate(0, 0, 7)
+}
+
+func weekOf(monday, nextMonday time.Time) Week {
+	return Week{
+		Start:    utils.GetFormattedDate(monday),
+		End:      utils.GetFormattedDate(nextMonday.AddDate(0, 0, -1)),
+		ResetsAt: nextMonday,
+	}
 }
 
 func weeklyQuests(a queries.ActivityCounts) []Quest {

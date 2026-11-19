@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"cmp"
 	"database/sql"
 	requestContext "drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
@@ -11,6 +12,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -81,7 +83,8 @@ type EventLeaderboardResponse struct {
 	Entries []queries.EventLeaderboardEntry `json:"entries"`
 }
 
-// HandleGetEventLeaderboard ranks the signed-in user and their friends by doodles during the event.
+// HandleGetEventLeaderboard ranks the signed-in user and their friends by doodles during
+// the event, then by XP earned during it.
 func HandleGetEventLeaderboard(c *gin.Context) {
 	appCtx := requestContext.GetCtx(c)
 	userID := middleware.GetUserID(c)
@@ -99,6 +102,24 @@ func HandleGetEventLeaderboard(c *gin.Context) {
 		return
 	}
 
+	userIDs := make([]string, len(entries))
+	for i, entry := range entries {
+		userIDs[i] = entry.User.ID
+	}
+	// Event days are UTC days, as are user_submissions.day
+	during, err := queries.GetActivityCounts(appCtx.DB, c.Request.Context(), userIDs, event.StartsAt.UTC(), event.EndsAt.UTC())
+	if err != nil {
+		log.Printf("Error fetching event %s leaderboard XP for user %s: %v", event.Slug, userID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to retrieve leaderboard"))
+		return
+	}
+	for i := range entries {
+		entries[i].XP = xpFor(during[entries[i].User.ID])
+	}
+	slices.SortStableFunc(entries, func(a, b queries.EventLeaderboardEntry) int {
+		return cmp.Or(b.Doodles-a.Doodles, b.XP-a.XP)
+	})
+
 	c.JSON(http.StatusOK, EventLeaderboardResponse{Entries: entries})
 }
 
@@ -114,6 +135,9 @@ type EventRecapResponse struct {
 	Event       events.ActiveEvent            `json:"event"`
 	Submissions []models.UserPromptSubmission `json:"submissions"`
 	Stats       EventRecapStats               `json:"stats"`
+	XP          EventXP                       `json:"xp"`
+	// Quests is this week's quests, only on your own recap while the event is live
+	Quests *EventQuests `json:"quests"`
 }
 
 // HandleGetEventRecap returns a user's doodles and stats for an event: the
@@ -139,7 +163,8 @@ func HandleGetEventRecap(c *gin.Context) {
 		return
 	}
 
-	recapEvent, err := eventWithProgress(c, event, events.Now(appCtx.Config), userID)
+	now := events.Now(appCtx.Config)
+	recapEvent, err := eventWithProgress(c, event, now, userID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to retrieve recap"))
 		return
@@ -160,6 +185,36 @@ func HandleGetEventRecap(c *gin.Context) {
 		return
 	}
 
+	fail := func(what string, err error) {
+		log.Printf("Error fetching event %s %s for user %s: %v", event.Slug, what, userID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to retrieve recap"))
+	}
+
+	// Event days are UTC days, as are user_submissions.day
+	during, duringEvent, err := activityIn(appCtx.DB, ctx, userID, event, event.StartsAt.UTC(), event.EndsAt.UTC())
+	if err != nil {
+		fail("XP", err)
+		return
+	}
+
+	// Quests follow the active event, as the trophy page does when it hides its own
+	active, err := queries.GetActiveEvent(appCtx.DB, ctx, now)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		fail("active event", err)
+		return
+	}
+	var quests *EventQuests
+	if err == nil && active.ID == event.ID && userID == requesterID {
+		// Same clock as the trophy page's weeks, which these quests stand in for
+		week, nextWeek := weekBounds(time.Now())
+		thisWeek, thisWeekEvent, err := activityIn(appCtx.DB, ctx, userID, event, week, nextWeek)
+		if err != nil {
+			fail("quests", err)
+			return
+		}
+		quests = &EventQuests{Week: weekOf(week, nextWeek), Quests: eventQuests(event, thisWeek, thisWeekEvent)}
+	}
+
 	c.JSON(http.StatusOK, EventRecapResponse{
 		User:        *user,
 		Event:       recapEvent,
@@ -169,6 +224,8 @@ func HandleGetEventRecap(c *gin.Context) {
 			ReactionsReceived: reactionsReceived,
 			LongestStreak:     events.LongestStreak(recapEvent.Progress.DoodledDays),
 		},
+		XP:     eventXP(event, during, duringEvent),
+		Quests: quests,
 	})
 }
 

@@ -11,7 +11,7 @@ type Props = {
   className?: string;
 };
 
-/** You and your friends, ranked by doodles drawn during the event */
+/** You and your friends, ranked by doodles drawn during the event, then XP */
 const EventLeaderboard: FC<Props> = ({ slug, className }) => {
   const me = useUser();
   const { data: entries } = useEventLeaderboard(slug);
@@ -19,34 +19,45 @@ const EventLeaderboard: FC<Props> = ({ slug, className }) => {
 
   return (
     <ol className={cn('flex flex-col gap-2 w-full stagger', className)}>
-      {entries.map((entry, rank) => (
-        <li
-          key={entry.user.id}
-          className={cn(
-            'flex items-center gap-3 px-3 py-2 border-[1.5px] border-ink rounded-sketch-alt',
-            entry.user.id === me.id ? 'bg-butter' : 'bg-white',
-          )}
-        >
-          <span
+      {entries.map((entry) => {
+        // Players tied on doodles and XP share the rank of the first of them
+        const rank = entries.findIndex(
+          (e) => e.doodles === entry.doodles && e.xp === entry.xp,
+        );
+        // Sitting the event out isn't a placing
+        const placed = entry.doodles > 0 || entry.xp > 0;
+        return (
+          <li
+            key={entry.user.id}
             className={cn(
-              'flex flex-none items-center justify-center size-7 rounded-full border-[1.5px] border-ink font-accent font-bold',
-              MEDALS[rank] ?? 'bg-paper',
+              'flex items-center gap-3 px-3 py-2 border-[1.5px] border-ink rounded-sketch-alt',
+              entry.user.id === me.id ? 'bg-butter' : 'bg-white',
             )}
           >
-            {rank + 1}
-          </span>
-          <UserProfileIcon user={entry.user} size="sm" />
-          <span className="flex-1 text-lg truncate">
-            {entry.user.id === me.id ? 'you' : entry.user.username}
-          </span>
-          <span className="text-pencil whitespace-nowrap">
-            <b className="font-accent font-bold text-xl text-ink">
-              {entry.doodles}
-            </b>{' '}
-            {entry.doodles === 1 ? 'doodle' : 'doodles'}
-          </span>
-        </li>
-      ))}
+            <span
+              className={cn(
+                'flex flex-none items-center justify-center size-7 rounded-full border-[1.5px] border-ink font-accent font-bold',
+                (placed && MEDALS[rank]) || 'bg-paper',
+              )}
+            >
+              {placed ? rank + 1 : '–'}
+            </span>
+            <UserProfileIcon user={entry.user} size="sm" />
+            <span className="flex-1 text-lg truncate">
+              {entry.user.id === me.id ? 'you' : entry.user.username}
+            </span>
+            <span className="text-pencil whitespace-nowrap">
+              <b className="font-accent font-bold text-xl text-ink">
+                {entry.doodles}
+              </b>{' '}
+              {entry.doodles === 1 ? 'doodle' : 'doodles'}
+              <span className="block text-right text-sm leading-none">
+                {entry.xp} xp
+              </span>
+            </span>
+          </li>
+        );
+      })}
     </ol>
   );
 };

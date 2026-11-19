@@ -54,10 +54,12 @@ type EventLeaderboardEntry struct {
 	User              models.User `json:"user"`
 	Doodles           int         `json:"doodles"`
 	ReactionsReceived int         `json:"reactionsReceived"`
+	// XP is everything earned during the event; the handler fills it in and ranks by it
+	XP int `json:"xp"`
 }
 
-// GetEventLeaderboard ranks the user and their accepted friends by doodles in [firstDay, lastDay],
-// then by reactions received on those doodles.
+// GetEventLeaderboard returns the user and their accepted friends with their doodles in
+// [firstDay, lastDay] and the reactions received on those doodles, most doodles first.
 func GetEventLeaderboard(repo *sql.DB, ctx context.Context, userID, firstDay, lastDay string) ([]EventLeaderboardEntry, error) {
 	query := `
 		SELECT u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration,

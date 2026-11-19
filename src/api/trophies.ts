@@ -27,6 +27,14 @@ export interface Quest {
   goal: number;
 }
 
+/** Monday to Sunday, YYYY-MM-DD */
+export interface Week {
+  start: string;
+  end: string;
+  /** ISO timestamp of when next week's quests begin */
+  resetsAt: string;
+}
+
 export interface LeaderboardEntry {
   user: User;
   xp: number;
@@ -37,14 +45,11 @@ export interface TrophiesResponse {
   level: Level;
   currentStreak: number;
   lifetime: ActivityCounts;
-  /** Monday to Sunday, YYYY-MM-DD */
-  week: {
-    start: string;
-    end: string;
-    /** ISO timestamp of when next week's quests begin */
-    resetsAt: string;
-  };
+  week: Week;
+  /** Empty while an event is live: its page has the week's quests instead */
   quests: Array<Quest>;
+  /** The live event whose page has this week's quests, if any */
+  questsEvent: { slug: string; name: string; theme: string } | null;
   /** You and your friends, by XP earned this week */
   leaderboard: Array<LeaderboardEntry>;
   xpRules: Array<{ action: string; xp: number }>;

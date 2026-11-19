@@ -204,3 +204,38 @@ func GetXPEventsSince(repo *sql.DB, ctx context.Context, userID string, since ti
 		})
 	return events, cmp.Or(err, parseErr)
 }
+
+// EventActivityCounts is what a user did in [from, to) that only an event makes possible:
+// using its reactions and earning its stickers. Like ActivityCounts, reactions only count
+// when they're aimed at someone else.
+type EventActivityCounts struct {
+	ReactionsGiven    int
+	DrawingsReacted   int // distinct friends' drawings given an event reaction
+	ReactionsReceived int
+	Stickers          int
+	// StickersOffered is how many stickers the event has, earned or not
+	StickersOffered int
+}
+
+func GetEventActivityCounts(repo *sql.DB, ctx context.Context, userID, eventID string, from, to time.Time) (EventActivityCounts, error) {
+	fromAt, toAt := from.UTC().Format(sqliteTimestamp), to.UTC().Format(sqliteTimestamp)
+	var c EventActivityCounts
+	err := repo.QueryRowContext(ctx, `
+		WITH ro AS (`+reactionOwners+`),
+		er AS (
+			SELECT * FROM ro
+			WHERE owner != reactor AND created_at >= ? AND created_at < ?
+				AND reaction_id IN (SELECT reaction_id FROM event_reactions WHERE event_id = ?)
+		)
+		SELECT
+			(SELECT COUNT(*) FROM er WHERE reactor = ?),
+			(SELECT COUNT(DISTINCT content_id) FROM er WHERE reactor = ? AND content_type = 'submission'),
+			(SELECT COUNT(*) FROM er WHERE owner = ?),
+			(SELECT COUNT(*) FROM user_achievements ua
+				JOIN event_achievements ea ON ea.achievement_id = ua.achievement_id
+				WHERE ua.user_id = ? AND ea.event_id = ? AND ua.created_at >= ? AND ua.created_at < ?),
+			(SELECT COUNT(*) FROM event_achievements WHERE event_id = ?)`,
+		fromAt, toAt, eventID, userID, userID, userID, userID, eventID, fromAt, toAt, eventID,
+	).Scan(&c.ReactionsGiven, &c.DrawingsReacted, &c.ReactionsReceived, &c.Stickers, &c.StickersOffered)
+	return c, err
+}

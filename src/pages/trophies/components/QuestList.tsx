@@ -84,6 +84,16 @@ const QuestItem: FC<{ quest: Quest }> = ({ quest }) => {
   );
 };
 
+/** "resets in 3 days" until next week's quests begin */
+export function weekResetLabel(resetsAt: string) {
+  const hours = Math.ceil(
+    (new Date(resetsAt).getTime() - Date.now()) / 3_600_000,
+  );
+  if (hours < 24) return `resets in ${Math.max(hours, 1)}h`;
+  const days = Math.ceil(hours / 24);
+  return `resets in ${days} day${days === 1 ? '' : 's'}`;
+}
+
 const QuestList: FC<{ quests: Array<Quest> }> = ({ quests }) => (
   <ul className="flex flex-col gap-3 w-full stagger">
     {quests.map((quest) => (

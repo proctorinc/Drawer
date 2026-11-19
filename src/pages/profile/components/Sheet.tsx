@@ -38,9 +38,10 @@ const Sheet: FC<Props> = ({ title, open, onClose, children }) => {
       ref={dialogRef}
       aria-label={title}
       onClose={onClose}
-      // A click on the dialog itself (not its contents) is on the backdrop
+      // A click on the dialog itself (not its contents) is on the backdrop.
+      // Text styles are reset, as the dialog inherits them from wherever it's rendered.
       onClick={(event) => event.target === event.currentTarget && onClose()}
-      className="w-full max-w-md max-h-[88dvh] mx-auto mt-auto mb-0 p-0 bg-transparent text-ink overflow-y-auto overscroll-contain backdrop:bg-ink/40 open:animate-in open:slide-in-from-bottom-1/2 open:fade-in open:duration-300"
+      className="w-full max-w-md max-h-[88dvh] mx-auto mt-auto mb-0 p-0 bg-transparent text-left text-base leading-normal text-ink overflow-y-auto overscroll-contain backdrop:bg-ink/40 open:animate-in open:slide-in-from-bottom-1/2 open:fade-in open:duration-300"
     >
       {open && (
         <div className="paper flex flex-col gap-5 min-h-[40dvh] px-6 pt-3 pb-[max(28px,env(safe-area-inset-bottom))] border-2 border-b-0 border-ink rounded-t-[28px_22px]">

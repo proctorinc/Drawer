@@ -1,10 +1,12 @@
 import { Link, useParams, useSearch } from '@tanstack/react-router';
+import StandingsAndQuests from './StandingsAndQuests';
 import type { FC, ReactNode } from 'react';
 import type { ActiveEvent } from '@/api/events';
 import { useGetAchievements } from '@/api/Api';
 import { useActiveEvent, useEventRecap } from '@/api/events';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
+import Chip from '@/components/Chip';
 import { TrophyIcon } from '@/components/icons';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -12,8 +14,12 @@ import ChristmasTree from '@/events/christmas/ChristmasTree';
 import EventBadge from '@/events/christmas/EventBadge';
 import EventLeaderboard from '@/events/christmas/EventLeaderboard';
 import EventStickers from '@/events/christmas/EventStickers';
+import { EventXPInfo } from '@/events/EventXPCard';
 import { countdownCopy } from '@/events/useChristmas';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
+import QuestList, {
+  weekResetLabel,
+} from '@/pages/trophies/components/QuestList';
 
 const Section: FC<{
   title: string;
@@ -40,15 +46,18 @@ const shortDate = (iso: string) =>
     })
     .toLowerCase();
 
-/** "day 23 of 29 · 6 sleeps till christmas" while live, the dates once it's over */
-function statusLine(event: ActiveEvent, isLive: boolean) {
+/** ["day 23 of 29", "6 sleeps till christmas"] while live, the dates once it's over */
+function status(event: ActiveEvent, isLive: boolean): [string, string] {
   if (isLive) {
     const copy = countdownCopy(event);
-    return `${copy.day} · ${copy.left}`;
+    return [copy.day, copy.left];
   }
   // endsAt is the moment it stopped, so the last day is the one before
   const lastDay = new Date(new Date(event.endsAt).getTime() - 86_400_000);
-  return `${shortDate(event.startsAt)} – ${shortDate(lastDay.toISOString())} · all wrapped up`;
+  return [
+    `${shortDate(event.startsAt)} – ${shortDate(lastDay.toISOString())}`,
+    'all wrapped up',
+  ];
 }
 
 /**
@@ -84,7 +93,7 @@ const EventPage = () => {
     );
   }
 
-  const { event, submissions, user } = recap;
+  const { event, submissions, user, xp, quests } = recap;
   const isLive = liveEvent?.slug === event.slug;
   // Stickers come from your own achievements, so they're only shown for you
   const stickers = viewingFriend
@@ -92,7 +101,7 @@ const EventPage = () => {
     : (achievements?.achievements.filter((a) => a.eventSlug === event.slug) ??
       []);
   const stickersEarned = stickers.filter((s) => s.achievedAt).length;
-  const whose = viewingFriend ? `${user.username}'s` : 'your';
+  const [day, left] = status(event, isLive);
   // Each doodle hangs on the tree on its own day
   const drawingsByDay = Object.fromEntries(
     submissions.map((s) => [
@@ -112,29 +121,40 @@ const EventPage = () => {
         </div>
       )}
 
-      <section className="flex flex-col items-center gap-3 w-full">
-        <EventBadge days={event.countdownDays ?? event.dayNumber} />
-        <p className="text-lg text-pencil text-center">
-          {statusLine(event, isLive)}
-        </p>
-      </section>
-
-      {event.countdownDays && (
-        <Section
-          title={`${whose} tree`}
-          aside={`${event.progress.count} of ${event.countdownDays} hung`}
-        >
-          <ChristmasTree
-            event={event}
-            drawings={drawingsByDay}
-            className="self-center"
+      {event.countdownDays ? (
+        // The title and status fill the empty corners beside the tree's tip
+        <section className="relative flex flex-col items-center gap-2 w-full">
+          <ChristmasTree event={event} drawings={drawingsByDay} />
+          <EventBadge
+            days={event.countdownDays}
+            className="absolute top-1 left-0 scale-[0.65] origin-top-left"
           />
+          <div className="absolute top-0 right-0 flex flex-col items-end gap-1.5 max-w-[34%] text-right text-sm text-pencil leading-tight">
+            <span>
+              <b className="block font-accent font-bold text-xl text-ink leading-none">
+                {day}
+              </b>
+              {left}
+            </span>
+            <span>
+              {event.progress.count} of {event.countdownDays} hung
+            </span>
+            <EventXPInfo xp={xp} title="christmas XP" />
+          </div>
           {isLive && !viewingFriend && (
-            <p className="-mt-1 text-center text-pencil">
+            <p className="text-center text-pencil">
               every doodle you draw hangs on the tree
             </p>
           )}
-        </Section>
+        </section>
+      ) : (
+        <section className="flex flex-col items-center gap-3 w-full">
+          <EventBadge days={event.dayNumber} />
+          <p className="text-lg text-pencil text-center">
+            {day} · {left}
+          </p>
+          <EventXPInfo xp={xp} title="christmas XP" />
+        </section>
       )}
 
       {stickers.length > 0 && (
@@ -146,10 +166,26 @@ const EventPage = () => {
         </Section>
       )}
 
-      {!viewingFriend && (
-        <Section title="christmas standings" aside="doodles drawn">
-          <EventLeaderboard slug={event.slug} />
-        </Section>
+      {/* Quests come only while the event is live, in place of the trophy page's */}
+      {quests ? (
+        <StandingsAndQuests
+          standings={{
+            label: 'standings',
+            aside: 'doodles, then XP',
+            content: <EventLeaderboard slug={event.slug} />,
+          }}
+          quests={{
+            label: 'quests',
+            aside: <Chip>{weekResetLabel(quests.week.resetsAt)}</Chip>,
+            content: <QuestList quests={quests.quests} />,
+          }}
+        />
+      ) : (
+        !viewingFriend && (
+          <Section title="christmas standings" aside="doodles, then XP">
+            <EventLeaderboard slug={event.slug} />
+          </Section>
+        )
       )}
 
       {!viewingFriend && (

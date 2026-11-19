@@ -153,3 +153,11 @@ export const LockIcon: FC<IconProps> = ({ fill, ...props }) => (
     <path d="M12 14.8v2.4" />
   </StrokeIcon>
 );
+
+export const InfoIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M12 3.2c5-.2 8.9 3.6 8.8 8.9-.1 5-3.9 8.8-8.9 8.7-5-.1-8.7-4-8.6-9 .1-4.9 3.8-8.5 8.7-8.6z" />
+    <path d="M12 11v5.5" />
+    <path d="M12 7.6v.1" />
+  </StrokeIcon>
+);

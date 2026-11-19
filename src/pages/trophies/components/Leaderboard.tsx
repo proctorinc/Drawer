@@ -51,7 +51,8 @@ const Leaderboard: FC<Props> = ({ entries, myId }) => {
                 medal?.className,
               )}
             >
-              {medal?.label ?? rank}
+              {/* No XP this week isn't a placing */}
+              {isNapping ? '–' : (medal?.label ?? rank)}
             </span>
             <UserProfileIcon size="sm" user={entry.user} />
             <div className="flex flex-col flex-1 min-w-0">
