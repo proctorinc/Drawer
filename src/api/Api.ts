@@ -116,6 +116,40 @@ export interface UserPromptSubmission extends DailyPrompt {
   counts: Array<ReactionCount>;
   isFavorite?: boolean;
   createdAt: Date;
+  /** The AI judge's score and comment; null until it has one */
+  aiReview?: AIReview | null;
+}
+
+/** An AI judge as players see it: never a real user, so it has no profile */
+export interface AIJudge {
+  id: string;
+  name: string;
+  bio: string;
+  avatarUrl: string;
+  /** An AI-only decoration id (see src/ai/decorations.tsx), or '' */
+  decoration: string;
+}
+
+/** One thing a judge scored separately, as it was when it judged */
+export interface AICriterionScore {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  /** A whole number out of 10 */
+  score: number;
+}
+
+export interface AIReview {
+  submissionId: string;
+  judge: AIJudge;
+  /** Pending while the judge is still squinting at it */
+  status: 'pending' | 'done';
+  /** Out of 10, to at most one decimal place; null until it's done */
+  score: number | null;
+  criteria: Array<AICriterionScore>;
+  comment: string;
+  createdAt: string;
 }
 
 export interface FavoriteSubmission {
@@ -283,6 +317,10 @@ export function usePromptSubmission(
     queryKey: queryKeys.promptSubmission(submissionId),
     queryFn: () => apiClient.getPromptSubmission(submissionId),
     placeholderData: placeholder,
+    // Check back while the AI judge is writing. A doodle drawn while judging was
+    // off has no review at all, so it never waits or shows any AI UI.
+    refetchInterval: (query) =>
+      query.state.data?.aiReview?.status === 'pending' ? 4000 : false,
     retry: () => {
       return false;
     },

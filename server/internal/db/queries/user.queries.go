@@ -1012,7 +1012,10 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 		CurrentStreak: currentStreak,
 	}
 
-	// Before favorites copy the submissions, so they come out hidden too
+	// Before favorites copy the submissions, so they get their reviews and come out hidden too
+	if err := AttachAIReviews(repo, ctx, append(append([]*models.UserPromptSubmission{}, response.Feed...), response.Prompts...)); err != nil {
+		log.Printf("Error fetching AI reviews for user %s: %v", userID, err)
+	}
 	if err := HideTodaysDrawings(repo, ctx, requesterID, response.Feed); err != nil {
 		log.Printf("Error checking whether user %s drew today: %v", requesterID, err)
 	}

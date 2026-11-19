@@ -21,6 +21,11 @@ DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS event_reactions;
 DROP TABLE IF EXISTS event_achievements;
 DROP TABLE IF EXISTS event_notifications_sent;
+DROP TABLE IF EXISTS ai_runs;
+DROP TABLE IF EXISTS ai_reviews;
+DROP TABLE IF EXISTS ai_criteria;
+DROP TABLE IF EXISTS ai_personalities;
+DROP TABLE IF EXISTS ai_settings;
 
 -- CREATE TABLE users (
 --     id TEXT PRIMARY KEY,

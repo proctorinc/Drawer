@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"drawer-service-backend/internal/achievements"
+	"drawer-service-backend/internal/ai"
 	requestContext "drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
@@ -142,6 +143,15 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 			log.Printf("Failed to send friend notifications for user %s: %v", utils.MaskEmail(requester.Email), err)
 		}
 	}()
+
+	// The AI judge scores it and leaves a comment, if the judges are switched on. It's marked
+	// pending before we answer, so the app knows to wait for it; with judging off there's
+	// no record at all and the doodle shows no AI UI.
+	if review, err := ai.StartNewSubmissionReview(ctx, appCtx.DB, appCtx.Config, submissionID); err != nil {
+		log.Printf("AI judge: couldn't start reviewing %s: %v", submissionID, err)
+	} else if review != nil {
+		go review.Run(buf)
+	}
 
 	go func() {
 		achievementService := achievements.NewAchievementService(appCtx.DB, context.Background(), requester.ID)

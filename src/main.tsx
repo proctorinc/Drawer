@@ -45,6 +45,9 @@ import LevelsPage from './pages/admin/pages/LevelsPage.tsx';
 import ReactionsPage from './pages/admin/pages/ReactionsPage.tsx';
 import ProgressionPage from './pages/admin/pages/ProgressionPage.tsx';
 import EventsPage from './pages/admin/pages/EventsPage.tsx';
+import AIJudgesPage from './pages/admin/pages/AIJudgesPage.tsx';
+import AITestingGroundPage from './pages/admin/pages/AITestingGroundPage.tsx';
+import AILogPage from './pages/admin/pages/AILogPage.tsx';
 import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
 import DrawProfilePicPage from './pages/profile/DrawProfilePicPage.tsx';
@@ -215,6 +218,9 @@ const adminPages = [
   adminPage('progression', ProgressionPage),
   adminPage('levels', LevelsPage),
   adminPage('events', EventsPage),
+  adminPage('ai', AIJudgesPage),
+  adminPage('ai/test', AITestingGroundPage),
+  adminPage('ai/log', AILogPage),
   createRoute({
     getParentRoute: () => adminRoute,
     path: 'drawing',

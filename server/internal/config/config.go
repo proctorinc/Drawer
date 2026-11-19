@@ -25,6 +25,10 @@ type Config struct {
 	VAPIDPrivateKey string
 	VAPIDPublicKey  string
 	VAPIDSubject    string
+	// Fallback OpenAI key for the AI judges, used when none is saved in the admin screen
+	OpenAIAPIKey string
+	// Optional: another OpenAI-compatible endpoint (a proxy or gateway), e.g. https://example.com/v1
+	OpenAIBaseURL string
 }
 
 func LoadConfig() *Config {
@@ -74,7 +78,9 @@ func LoadConfig() *Config {
 		VAPIDPublicKey:  getEnv("VAPID_PUBLIC_KEY", ""),
 		// Contact for push services: an https URL or an email address. webpush-go
 		// adds "mailto:" to anything that isn't https, and Apple rejects an empty one.
-		VAPIDSubject: strings.TrimPrefix(getEnv("VAPID_SUBJECT", allowedOrigin), "mailto:"),
+		VAPIDSubject:  strings.TrimPrefix(getEnv("VAPID_SUBJECT", allowedOrigin), "mailto:"),
+		OpenAIAPIKey:  getEnv("OPENAI_API_KEY", ""),
+		OpenAIBaseURL: getEnv("OPENAI_BASE_URL", ""),
 	}
 }
 

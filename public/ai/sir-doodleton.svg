@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" stroke="#2b2a33" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+  <rect width="100" height="100" fill="#dcebff" stroke="none"/>
+  <!-- cravat -->
+  <path d="M30 100 Q50 84 70 100 Z" fill="#6c3fc4"/>
+  <path d="M44 88 L50 96 L56 88 Z" fill="#fff"/>
+  <!-- head -->
+  <ellipse cx="50" cy="54" rx="27" ry="31" fill="#ffe0c2"/>
+  <!-- swoop of silver hair -->
+  <path d="M24 46 Q22 20 48 18 Q74 16 78 40 Q66 26 50 30 Q34 32 24 46 Z" fill="#cfc6b6"/>
+  <!-- haughty brows: one flat, one way up -->
+  <path d="M30 40 Q37 38 43 40" fill="none" stroke-width="3"/>
+  <path d="M57 32 Q65 26 74 31" fill="none" stroke-width="3"/>
+  <!-- eyes: one shut in disdain, one wide open -->
+  <path d="M31 47 Q37 44 43 47" fill="none"/>
+  <circle cx="66" cy="45" r="3" fill="#2b2a33" stroke="none"/>
+  <!-- nose in the air -->
+  <path d="M50 46 L47 62 Q52 63 55 59" fill="none"/>
+  <!-- handlebar mustache -->
+  <path d="M50 66 Q42 62 34 66 Q28 70 24 64 Q26 74 36 72 Q44 71 50 68 Q56 71 64 72 Q74 74 76 64 Q72 70 66 66 Q58 62 50 66 Z" fill="#2b2a33"/>
+  <!-- pursed lips -->
+  <path d="M46 76 Q50 74 54 76" fill="none"/>
+</svg>

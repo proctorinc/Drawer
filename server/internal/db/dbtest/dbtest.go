@@ -13,12 +13,15 @@ import (
 )
 
 // Migrations applied on top of the schema dump, so their seeds are tested too.
+// The AI judge tables are left out of the dump and come from their migrations as well.
 var eventMigrations = []string{
 	"1795032990_add_events.up.sql",
 	"1795035100_add_event_features.up.sql",
 	"1795035200_seed_christmas_prompts.up.sql",
 	"1795040100_seed_christmas_decorations.up.sql",
 	"1795120000_rename_christmas_event.up.sql",
+	"1795130000_add_ai_judges.up.sql",
+	"1795130100_seed_ai_judges.up.sql",
 }
 
 // NewEventsDB returns an in-memory database with the schema from migrations/schema.sql, where
@@ -37,7 +40,7 @@ func NewEventsDB(t *testing.T) *sql.DB {
 	schema := readMigration(t, "schema.sql")
 	var baseSchema []string
 	for _, line := range strings.Split(schema, "\n") {
-		if !strings.Contains(line, " events ") && !strings.Contains(line, "idx_events_") && !strings.Contains(line, " event_") {
+		if !strings.Contains(line, " events ") && !strings.Contains(line, "idx_events_") && !strings.Contains(line, " event_") && !strings.Contains(line, " ai_") {
 			baseSchema = append(baseSchema, line)
 		}
 	}

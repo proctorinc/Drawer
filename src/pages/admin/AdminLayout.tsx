@@ -7,6 +7,7 @@ import {
   faCalendarDays,
   faChartLine,
   faFaceSmile,
+  faFlask,
   faHatWizard,
   faImages,
   faLayerGroup,
@@ -14,6 +15,8 @@ import {
   faListUl,
   faMedal,
   faPalette,
+  faRobot,
+  faScroll,
   faStairs,
   faUsers,
 } from '@fortawesome/free-solid-svg-icons';
@@ -67,6 +70,14 @@ const NAV: Array<{ group: string; items: Array<NavItem> }> = [
   {
     group: 'seasonal',
     items: [{ to: '/draw/admin/events', label: 'events', icon: faLayerGroup }],
+  },
+  {
+    group: 'ai',
+    items: [
+      { to: '/draw/admin/ai', label: 'ai judges', icon: faRobot },
+      { to: '/draw/admin/ai/test', label: 'testing ground', icon: faFlask },
+      { to: '/draw/admin/ai/log', label: 'ai log', icon: faScroll },
+    ],
   },
   {
     group: 'demos',

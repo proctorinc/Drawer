@@ -46,6 +46,10 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
     (sum, reaction) => sum + reaction.count,
     0,
   );
+  // The AI judge's verdict counts as a comment once it's written
+  const commentCount =
+    submission.comments.length +
+    (submission.aiReview?.status === 'done' ? 1 : 0);
   const tilt = TILTS[index % TILTS.length];
 
   function refresh() {
@@ -168,11 +172,11 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
         <Link
           to="/draw/submission/$submissionId"
           params={{ submissionId: submission.id }}
-          aria-label={`${submission.comments.length} comments`}
+          aria-label={`${commentCount} comments`}
           className={cn(pillClass, 'ml-auto flex-none bg-white')}
         >
           <CommentIcon size={14} strokeWidth={2.2} />
-          {submission.comments.length > 0 && submission.comments.length}
+          {commentCount > 0 && commentCount}
         </Link>
       </figcaption>
     </figure>

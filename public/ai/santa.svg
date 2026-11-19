@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" stroke="#2b2a33" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+  <rect width="100" height="100" fill="#ffd9d2" stroke="none"/>
+  <!-- red coat at the bottom -->
+  <path d="M14 100 Q50 80 86 100 Z" fill="#e5483b"/>
+  <!-- face -->
+  <circle cx="50" cy="48" r="25" fill="#ffe0c2"/>
+  <!-- white hair at the sides -->
+  <path d="M24 46 Q18 34 28 28 Q26 38 30 44 Z" fill="#fff"/>
+  <path d="M76 46 Q82 34 72 28 Q74 38 70 44 Z" fill="#fff"/>
+  <!-- bushy brows -->
+  <path d="M33 37 Q38 32 44 36 Q38 36 33 39 Z" fill="#fff"/>
+  <path d="M67 37 Q62 32 56 36 Q62 36 67 39 Z" fill="#fff"/>
+  <!-- twinkly eyes -->
+  <path d="M35 44 Q39 40 43 44" fill="none"/>
+  <path d="M57 44 Q61 40 65 44" fill="none"/>
+  <!-- rosy cheeks -->
+  <circle cx="33" cy="53" r="5" fill="#ff8f8f" stroke="none"/>
+  <circle cx="67" cy="53" r="5" fill="#ff8f8f" stroke="none"/>
+  <!-- big fluffy beard -->
+  <path d="M22 52 Q20 70 30 82 Q36 92 50 94 Q64 92 70 82 Q80 70 78 52 Q72 62 64 62 Q56 66 50 64 Q44 66 36 62 Q28 62 22 52 Z" fill="#fff"/>
+  <!-- mustache -->
+  <path d="M50 60 Q42 54 34 60 Q40 66 50 63 Q60 66 66 60 Q58 54 50 60 Z" fill="#fff"/>
+  <!-- nose -->
+  <circle cx="50" cy="53" r="5" fill="#ff6b57"/>
+  <!-- jolly mouth -->
+  <path d="M44 70 Q50 76 56 70" fill="#b22d4a"/>
+</svg>

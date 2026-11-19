@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" stroke="#2b2a33" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+  <rect width="100" height="100" fill="#ffe08a" stroke="none"/>
+  <!-- bow tie -->
+  <path d="M38 92 L50 86 L62 92 L62 80 L50 86 L38 80 Z" fill="#6c3fc4"/>
+  <!-- the pickle -->
+  <path d="M50 10 Q74 10 76 40 Q78 70 66 84 Q50 96 34 84 Q22 70 24 40 Q26 10 50 10 Z" fill="#7cc36a"/>
+  <!-- bumps -->
+  <circle cx="34" cy="30" r="2" fill="#4f9a45" stroke="none"/>
+  <circle cx="67" cy="26" r="2" fill="#4f9a45" stroke="none"/>
+  <circle cx="30" cy="62" r="2" fill="#4f9a45" stroke="none"/>
+  <circle cx="70" cy="66" r="2" fill="#4f9a45" stroke="none"/>
+  <circle cx="58" cy="80" r="1.8" fill="#4f9a45" stroke="none"/>
+  <!-- round professor glasses with googly eyes -->
+  <circle cx="40" cy="42" r="9" fill="#fff"/>
+  <circle cx="61" cy="42" r="9" fill="#fff"/>
+  <path d="M49 42 L52 42" fill="none"/>
+  <circle cx="42" cy="45" r="3.5" fill="#2b2a33" stroke="none"/>
+  <circle cx="58" cy="39" r="3.5" fill="#2b2a33" stroke="none"/>
+  <!-- huge grin with a tongue -->
+  <path d="M34 58 Q50 76 66 58 Z" fill="#2b2a33"/>
+  <path d="M44 66 Q50 72 56 66 Q50 62 44 66 Z" fill="#ff6b57" stroke="none"/>
+</svg>

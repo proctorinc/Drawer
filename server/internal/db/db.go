@@ -333,6 +333,60 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 		return fmt.Errorf("failed to insert demo data: %w", err)
 	}
 
+	// The AI judges, from the same seed production gets (it needs event1 from above)
+	aiSeed, err := os.ReadFile("./migrations/1795130100_seed_ai_judges.up.sql")
+	if err != nil {
+		return fmt.Errorf("failed to read AI judge seed: %w", err)
+	}
+	if _, err = db.Exec(string(aiSeed)); err != nil {
+		return fmt.Errorf("failed to seed AI judges: %w", err)
+	}
+
+	// Sample reviews, so the AI comments show up without an OpenAI key
+	_, err = db.Exec(`
+		INSERT INTO ai_reviews (submission_id, personality_id, status, score, criteria_scores, comment, model, created_at, updated_at) VALUES
+			('sub4', 'ai-sir-doodleton', 'done', 3.5,
+			 '[{"id":"ai-sir-doodleton-skill","name":"skill","description":"How well it is drawn: confident lines, shapes, proportion, use of the palette. Would it survive a gallery wall?","imageUrl":"/reactions/palette.png","score":3},{"id":"ai-sir-doodleton-recognizability","name":"recognizability","description":"How unmistakably it shows the prompt. Could a stranger name the prompt from the doodle alone?","imageUrl":"/reactions/bullseye.png","score":4}]',
+			 'Magnifique! Truly the Mona Lisa of things a toddler might tape to a fridge. One simply cannot call this a football.',
+			 'seed', date('now', '-2 days'), date('now', '-2 days')),
+			('sub3', 'ai-sir-doodleton', 'done', 8.5,
+			 '[{"id":"ai-sir-doodleton-skill","name":"skill","description":"How well it is drawn: confident lines, shapes, proportion, use of the palette. Would it survive a gallery wall?","imageUrl":"/reactions/palette.png","score":8},{"id":"ai-sir-doodleton-recognizability","name":"recognizability","description":"How unmistakably it shows the prompt. Could a stranger name the prompt from the doodle alone?","imageUrl":"/reactions/bullseye.png","score":9}]',
+			 'I wept. Not from joy, from jealousy. Do not tell anyone I said this.',
+			 'seed', date('now', '-3 days'), date('now', '-3 days')),
+			('sub2', 'ai-professor-pickles', 'done', 8.7,
+			 '[{"id":"ai-professor-pickles-funny","name":"funny bone","description":"How hard it made you laugh: jokes, sight gags, ridiculous details.","imageUrl":"/reactions/cry-laugh.png","score":9},{"id":"ai-professor-pickles-clever","name":"big brain","description":"How clever the take on the prompt is: puns, wordplay, a twist nobody else would think of.","imageUrl":"/reactions/brain.png","score":8},{"id":"ai-professor-pickles-freestyle","name":"freestyle","description":"Creative freedom: wild ideas, bold choices, going somewhere unexpected with it.","imageUrl":"/reactions/rainbow.png","score":9}]',
+			 'A peanut butter sandwich with a face?! Now THAT is my jam! I laughed so hard I lost some brine!',
+			 'seed', date('now', '-4 days'), date('now', '-4 days')),
+			('xmas1', 'ai-santa', 'done', 7.3,
+			 '[{"id":"ai-santa-nice-list","name":"nice list","description":"Effort and care. Did they try their very best, or phone it in?","imageUrl":"/reactions/star.png","score":8},{"id":"ai-santa-christmas-spirit","name":"christmas spirit","description":"How festive, cheerful and cozy it feels.","imageUrl":"/reactions/snowflake.svg","score":7},{"id":"ai-santa-workshop-quality","name":"workshop quality","description":"How well it captures the prompt. Would the elves sign off on it?","imageUrl":"/reactions/gift.svg","score":7}]',
+			 'Ho ho ho! Those leftovers look tastier than Mrs. Claus''s fruitcake, but that is NOT how my turkey sits.',
+			 'seed', '2026-11-27', '2026-11-27');
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to insert sample AI reviews: %w", err)
+	}
+
+	// The AI log entries those reviews would have made, plus a failed test run
+	_, err = db.Exec(`
+		INSERT INTO ai_runs (id, kind, personality_id, judge_name, judge_avatar_url, judge_decoration, system_prompt,
+			submission_id, prompt, user_id, status, score, criteria_scores, comment, model, duration_ms, created_at)
+		SELECT 'seed-' || r.submission_id, 'submission', p.id, p.name, p.avatar_url, p.decoration, p.system_prompt,
+			r.submission_id, COALESCE(dp.prompt, ''), s.user_id, 'done', r.score, r.criteria_scores, r.comment, 'seed', 2300, r.created_at
+		FROM ai_reviews r
+		JOIN ai_personalities p ON p.id = r.personality_id
+		JOIN user_submissions s ON s.id = r.submission_id
+		LEFT JOIN daily_prompts dp ON dp.day = s.day;
+
+		INSERT INTO ai_runs (id, kind, batch_id, personality_id, judge_name, judge_avatar_url, judge_decoration, system_prompt,
+			prompt, user_id, status, model, error, duration_ms, created_at)
+		SELECT 'seed-failed-test', 'test', 'seed-batch', id, name, avatar_url, decoration, system_prompt,
+			'a cat riding a skateboard', 'user1', 'failed', 'seed', 'OpenAI error (429): Rate limit reached', 900, datetime('now', '-1 hours')
+		FROM ai_personalities WHERE id = 'ai-professor-pickles';
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to insert sample AI runs: %w", err)
+	}
+
 	// Lets the developer sign in with Clerk as the seeded admin, user1
 	if devUserEmail != "" {
 		if _, err = db.Exec(`UPDATE users SET email = ? WHERE id = 'user1'`, devUserEmail); err != nil {

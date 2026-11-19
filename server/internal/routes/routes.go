@@ -107,6 +107,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			authGroup.POST("/prompt/suggest", handlers.SuggestPrompt)
 
 			authGroup.GET("/trophies", handlers.HandleGetTrophies)
+			authGroup.GET("/ai/judge/today", handlers.HandleGetTodaysJudge)
 			authGroup.GET("/events/active", handlers.HandleGetActiveEvent)
 			authGroup.GET("/events/upcoming", handlers.HandleGetUpcomingEvent)
 			authGroup.GET("/events/:slug/leaderboard", handlers.HandleGetEventLeaderboard)
@@ -213,6 +214,16 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				adminGroup.GET("/reactions", handlers.HandleAdminReactionUsage)
 				adminGroup.GET("/progression", handlers.HandleAdminProgression)
 				adminGroup.GET("/activity", handlers.HandleAdminActivityLog)
+				adminGroup.GET("/ai/settings", handlers.HandleAdminGetAISettings)
+				adminGroup.PUT("/ai/settings", handlers.HandleAdminUpdateAISettings)
+				adminGroup.GET("/ai/personalities", handlers.HandleAdminListAIPersonalities)
+				adminGroup.POST("/ai/personalities", handlers.HandleAdminCreateAIPersonality)
+				adminGroup.PUT("/ai/personalities/:id", handlers.HandleAdminUpdateAIPersonality)
+				adminGroup.DELETE("/ai/personalities/:id", handlers.HandleAdminDeleteAIPersonality)
+				adminGroup.POST("/ai/test", handlers.HandleAdminTestAI)
+				adminGroup.GET("/ai/runs", handlers.HandleAdminListAIRuns)
+				adminGroup.GET("/ai/reviews", handlers.HandleAdminListAIReviews)
+				adminGroup.POST("/ai/reviews/:submissionId/rerun", handlers.HandleAdminRerunAIReview)
 			}
 		}
 	}

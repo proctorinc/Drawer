@@ -5,6 +5,7 @@ import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { PinButton } from './PinButton';
 import type { FC } from 'react';
 import type { Comment, ReactionId, UserPromptSubmission } from '@/api/Api';
+import { AIReviewComment } from '@/ai/AIReviewComment';
 import {
   queryKeys,
   useAddComment,
@@ -146,7 +147,17 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
       <div className="flex flex-col w-full gap-4">
         <Card>
           <CardContent className="gap-2">
-            {submission.comments.length === 0 && (
+            {/* The AI judge's verdict always comes first */}
+            {submission.aiReview && (
+              <AIReviewComment
+                review={submission.aiReview}
+                className={cn(
+                  submission.comments.length > 0 &&
+                    'pb-3 mb-1 border-b-2 border-dashed border-line',
+                )}
+              />
+            )}
+            {submission.comments.length === 0 && !submission.aiReview && (
               <span className="font-bold text-center text-secondary">
                 Be the first to comment!
               </span>

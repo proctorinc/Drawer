@@ -24,6 +24,7 @@ import Snowfall from '@/events/christmas/Snowfall';
 import { useChristmas } from '@/events/useChristmas';
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { PinCeremony } from '@/drawing/components/PinCeremony';
+import { TodaysJudgeChip } from '@/ai/TodaysJudge';
 
 /** When tomorrow's prompt drops; fixed-width digits so it never jiggles */
 const NextPromptCountdown = () => (
@@ -52,6 +53,7 @@ const PromptHeading = ({ dailyPrompt }: { dailyPrompt: DailyPrompt }) => (
       {dailyPrompt.createdBy && (
         <span>prompt by {dailyPrompt.createdBy.username}</span>
       )}
+      <TodaysJudgeChip />
     </span>
     <PromptTitle prompt={dailyPrompt.prompt} colors={dailyPrompt.colors} />
   </section>

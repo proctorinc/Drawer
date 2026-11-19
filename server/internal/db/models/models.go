@@ -89,6 +89,8 @@ type UserPromptSubmission struct {
 	IsFavorite bool            `json:"isFavorite"`
 	CreatedAt  time.Time       `json:"createdAt"`
 	CreatedBy  *User           `json:"createdBy"`
+	// The AI judge's score and comment, once it has one (or while it's writing it)
+	AIReview *AIReview `json:"aiReview"`
 }
 
 type UserStats struct {

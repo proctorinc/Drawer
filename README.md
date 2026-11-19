@@ -119,6 +119,17 @@ npm run check
 
 This project uses [TanStack Router](https://tanstack.com/router). The initial setup is a code based router. Which means that the routes are defined in code (in the `./src/main.tsx` file). If you like you can also use a file based routing setup by following the [File Based Routing](https://tanstack.com/router/latest/docs/framework/react/guide/file-based-routing) guide.
 
+## AI judges
+
+Each new doodle can get a score and a short in-character comment from an AI judge (OpenAI). Set it up in **Admin → AI judges**: paste an OpenAI API key, pick a model (default `gpt-4.1-mini`; it needs image input and structured outputs) and switch judging on. The key is stored server-side and never sent back to the browser; `OPENAI_API_KEY` on the backend works as a fallback.
+
+- One judge is the **default**; a judge tied to an **event** takes over while that event runs.
+- Every score is **out of 10**. A judge can score up to **3 criteria** (the overall score is then their average, to one decimal), or just one overall score.
+- The **AI judges on** switch stops judging new doodles. Doodles drawn while it's off have no AI record and show no AI UI; reviews already written stay up.
+- **Admin → Testing ground** runs one or more judges side by side on a past doodle or your own prompt and drawing, with unsaved prompt/criteria tweaks. Nothing there reaches players.
+- **Admin → AI log** lists every judge run (real doodles, admin re-runs, tests), failures included, with totals. `OPENAI_BASE_URL` can point the judges at an OpenAI-compatible proxy.
+- AI-only avatar decorations live in `src/ai/decorations.tsx`. Judge logic is in `server/internal/ai/`; another model provider only has to implement `ai.Provider`.
+
 ## Generating VAPID Keys for Push Notifications
 
 To enable web push notifications, you need a VAPID public/private key pair. These are used to authenticate your server and encrypt push messages.
