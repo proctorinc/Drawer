@@ -42,18 +42,9 @@ const Sparkle: FC<{ x: number; y: number; r: number; delay: string }> = ({
   />
 );
 
-/** Fits on any round avatar; its parent must be the avatar's square, positioned box */
-export const SantaHat: FC<Props & { golden?: boolean }> = ({
-  className,
-  golden,
-}) => (
-  <svg
-    aria-hidden="true"
-    viewBox="0 0 40 32"
-    overflow="visible"
-    className={cn('absolute pointer-events-none', className)}
-    style={hatStyle}
-  >
+/** The hat itself, drawn in a 40×32 box */
+const SantaHatArt: FC<{ golden?: boolean }> = ({ golden }) => (
+  <>
     <path
       d="M6 24C10 10 22 2 34 6c-4 4-4 10-2 16z"
       fill={golden ? 'var(--color-xmas-gold)' : 'var(--color-xmas-red)'}
@@ -93,6 +84,39 @@ export const SantaHat: FC<Props & { golden?: boolean }> = ({
       strokeWidth={2}
       vectorEffect="non-scaling-stroke"
     />
+  </>
+);
+
+/** Fits on any round avatar; its parent must be the avatar's square, positioned box */
+export const SantaHat: FC<Props & { golden?: boolean }> = ({
+  className,
+  golden,
+}) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 40 32"
+    overflow="visible"
+    className={cn('absolute pointer-events-none', className)}
+    style={hatStyle}
+  >
+    <SantaHatArt golden={golden} />
+  </svg>
+);
+
+/** A santa hat on its own, as an icon */
+export const SantaHatIcon: FC<Props & { size?: number }> = ({
+  className,
+  size = 20,
+}) => (
+  <svg
+    aria-hidden="true"
+    width={size}
+    height={size}
+    viewBox="0 -2 40 36"
+    overflow="visible"
+    className={className}
+  >
+    <SantaHatArt />
   </svg>
 );
 

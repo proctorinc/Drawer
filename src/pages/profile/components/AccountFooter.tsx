@@ -19,7 +19,7 @@ const AccountFooter = () => {
     <footer className="flex flex-col items-center gap-4 w-full pt-6 border-t-2 border-dashed border-line">
       {owner && <NotificationSettings />}
       <div className="flex flex-wrap justify-center gap-2">
-        {owner && (
+        {user.isAdmin && (
           <Button
             size="sm"
             variant="base"

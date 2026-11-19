@@ -24,6 +24,9 @@ type AdminEvent struct {
 	EndsAt        time.Time `json:"endsAt"` // Exclusive
 	CountdownDays *int      `json:"countdownDays"`
 	Reactions     []string  `json:"reactions"`
+	// The YYYY-MM-DD prompt days it covers, inclusive
+	FirstDay string `json:"firstDay"`
+	LastDay  string `json:"lastDay"`
 }
 
 func newAdminEvent(event models.Event) AdminEvent {
@@ -31,7 +34,10 @@ func newAdminEvent(event models.Event) AdminEvent {
 	if reactions == nil {
 		reactions = []string{}
 	}
+	days := events.Days(event)
 	return AdminEvent{
+		FirstDay:      days.First,
+		LastDay:       days.Last,
 		ID:            event.ID,
 		Slug:          event.Slug,
 		Name:          event.Name,
@@ -129,4 +135,55 @@ func bindEventInput(c *gin.Context, eventID string) (models.Event, bool) {
 	}
 
 	return event, true
+}
+
+// EventStats is how an event went for everyone
+type EventStats struct {
+	Standings []queries.EventStanding `json:"standings"`
+	Reactions []queries.ReactionUsage `json:"reactions"`
+	Comments  int                     `json:"comments"`
+	// Countdown days, or 0 when the event has no countdown
+	CountdownDays int `json:"countdownDays"`
+}
+
+func HandleAdminEventStats(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	ctx := c.Request.Context()
+	id := c.Param("id")
+
+	event, err := queries.GetEventByID(appCtx.DB, ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.AbortWithStatusJSON(http.StatusNotFound, Error("Event not found"))
+		return
+	}
+	fail := func(what string, err error) {
+		log.Printf("Error loading %s for event %s: %v", what, id, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load event stats"))
+	}
+	if err != nil {
+		fail("event", err)
+		return
+	}
+
+	days := events.Days(event)
+	// Without a countdown, the empty range "" .. "" matches no days
+	countdown, _ := events.CountdownDayRange(event)
+	stats := EventStats{}
+	if event.CountdownDays != nil {
+		stats.CountdownDays = *event.CountdownDays
+	}
+
+	if stats.Standings, err = queries.GetEventStandings(appCtx.DB, ctx, days.First, days.Last, countdown.First, countdown.Last); err != nil {
+		fail("standings", err)
+		return
+	}
+	if stats.Reactions, err = queries.GetReactionUsageBetween(appCtx.DB, ctx, event.StartsAt, event.EndsAt); err != nil {
+		fail("reactions", err)
+		return
+	}
+	if stats.Comments, err = queries.CountCommentsBetween(appCtx.DB, ctx, event.StartsAt, event.EndsAt); err != nil {
+		fail("comments", err)
+		return
+	}
+	c.JSON(http.StatusOK, stats)
 }

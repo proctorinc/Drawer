@@ -35,11 +35,12 @@ type User struct {
 // Everyone else gets a plain User, so emails never leak to other players.
 type Account struct {
 	User
-	Email string `json:"email"`
+	Email   string `json:"email"`
+	IsAdmin bool   `json:"isAdmin"`
 }
 
 func (u User) Account() Account {
-	return Account{User: u, Email: u.Email}
+	return Account{User: u, Email: u.Email, IsAdmin: u.Role == "admin"}
 }
 
 // Reaction represents a user's reaction to content

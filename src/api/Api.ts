@@ -27,6 +27,8 @@ export interface User {
   avatarUrl: string;
   /** The decoration worn on their avatar, or '' for none */
   decoration: DecorationId | '';
+  /** Only sent for your own account */
+  isAdmin?: boolean;
 }
 
 /** Decorations are rewards worn on the avatar, one at a time */
@@ -495,8 +497,8 @@ export function useCreatePrompt() {
   return useMutation({
     mutationFn: apiClient.createPrompt,
     onSuccess: () => {
-      // Invalidate admin dashboard to refresh future prompts
-      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
+      // Refresh every admin list that shows prompts
+      queryClient.invalidateQueries({ queryKey: ['admin'] });
     },
   });
 }

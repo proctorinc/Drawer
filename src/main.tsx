@@ -31,10 +31,23 @@ import MyProfilePage from './pages/profile/MyProfilePage.tsx';
 import { MyProfilePageProvider } from './pages/profile/context/MyProfileContext.tsx';
 import AuthRoute from './auth/AuthRoute.tsx';
 import { NotificationProvider } from './notifications/NotificationContext.tsx';
-import AdminPage from './pages/admin/AdminPage.tsx';
-import { AdminDashboardProvider } from './pages/admin/context/AdminDashboardContext.tsx';
+import AdminLayout from './pages/admin/AdminLayout.tsx';
+import OverviewPage from './pages/admin/pages/OverviewPage.tsx';
+import ActivityPage from './pages/admin/pages/ActivityPage.tsx';
+import UsersPage from './pages/admin/pages/UsersPage.tsx';
+import DrawingsPage from './pages/admin/pages/DrawingsPage.tsx';
+import PromptsPage from './pages/admin/pages/PromptsPage.tsx';
+import SuggestionsPage from './pages/admin/pages/SuggestionsPage.tsx';
+import AchievementsPage from './pages/admin/pages/AchievementsPage.tsx';
+import DecorationsPage from './pages/admin/pages/DecorationsPage.tsx';
+import ReactionsPage from './pages/admin/pages/ReactionsPage.tsx';
+import ProgressionPage from './pages/admin/pages/ProgressionPage.tsx';
+import EventsPage from './pages/admin/pages/EventsPage.tsx';
+import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
+import BrandPage from './pages/admin/pages/BrandPage.tsx';
 import DrawProfilePicPage from './pages/profile/DrawProfilePicPage.tsx';
 import { Config } from './config/Config.ts';
+import type { FC } from 'react';
 
 const queryClient = new QueryClient();
 
@@ -169,14 +182,45 @@ const adminRoute = createRoute({
   path: '/draw/admin',
   component: () => (
     <AuthRoute>
-      <DrawingProvider localStorageKey="ADMIN_DRAWING">
-        <AdminDashboardProvider>
-          <AdminPage />
-        </AdminDashboardProvider>
-      </DrawingProvider>
+      <AdminLayout />
     </AuthRoute>
   ),
 });
+
+const adminPage = <TPath extends string>(path: TPath, component: FC) =>
+  createRoute({ getParentRoute: () => adminRoute, path, component });
+
+const adminPages = [
+  adminPage('/', OverviewPage),
+  adminPage('activity', ActivityPage),
+  adminPage('users', UsersPage),
+  adminPage('drawings', DrawingsPage),
+  createRoute({
+    getParentRoute: () => adminRoute,
+    path: 'prompts',
+    // ?event=<slug> shows just that event's days
+    validateSearch: (search: Record<string, unknown>): { event?: string } => ({
+      event: typeof search.event === 'string' ? search.event : undefined,
+    }),
+    component: PromptsPage,
+  }),
+  adminPage('suggestions', SuggestionsPage),
+  adminPage('achievements', AchievementsPage),
+  adminPage('decorations', DecorationsPage),
+  adminPage('reactions', ReactionsPage),
+  adminPage('progression', ProgressionPage),
+  adminPage('events', EventsPage),
+  createRoute({
+    getParentRoute: () => adminRoute,
+    path: 'drawing',
+    // ?day=YYYY-MM-DD previews that day's prompt
+    validateSearch: (search: Record<string, unknown>): { day?: string } => ({
+      day: typeof search.day === 'string' ? search.day : undefined,
+    }),
+    component: DrawingDemoPage,
+  }),
+  adminPage('brand', BrandPage),
+];
 
 const createProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -202,7 +246,7 @@ const routeTree = rootRoute.addChildren([
   createProfileRoute,
   loginRoute,
   promptSubmissionRoute,
-  adminRoute,
+  adminRoute.addChildren(adminPages),
 ]);
 
 const router = createRouter({

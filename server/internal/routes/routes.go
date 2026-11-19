@@ -190,9 +190,20 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				adminGroup.POST("/prompt", handlers.HandleCreatePrompt)
 				adminGroup.GET("/action-stats", handlers.HandleGetAdminActionStats)
 				adminGroup.GET("/prompt-suggestions", handlers.GetAllPromptSuggestions)
+				adminGroup.POST("/prompt-suggestions/:id/accept", handlers.HandleAcceptPromptSuggestion)
+				adminGroup.DELETE("/prompt-suggestions/:id", handlers.HandleDismissPromptSuggestion)
 				adminGroup.GET("/events", handlers.HandleAdminListEvents)
 				adminGroup.POST("/events", handlers.HandleAdminCreateEvent)
 				adminGroup.PUT("/events/:id", handlers.HandleAdminUpdateEvent)
+				adminGroup.GET("/events/:id/stats", handlers.HandleAdminEventStats)
+				adminGroup.GET("/users", handlers.HandleAdminListUsers)
+				adminGroup.GET("/prompts", handlers.HandleAdminListPrompts)
+				adminGroup.GET("/submissions", handlers.HandleAdminListSubmissions)
+				adminGroup.GET("/achievements", handlers.HandleAdminListAchievements)
+				adminGroup.GET("/rewards", handlers.HandleAdminListRewards)
+				adminGroup.GET("/reactions", handlers.HandleAdminReactionUsage)
+				adminGroup.GET("/progression", handlers.HandleAdminProgression)
+				adminGroup.GET("/activity", handlers.HandleAdminActivityLog)
 			}
 		}
 	}

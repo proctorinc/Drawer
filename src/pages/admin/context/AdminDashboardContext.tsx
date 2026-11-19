@@ -42,12 +42,13 @@ type AdminDashboardContextType = {
             reactionsToday: number;
             commentsToday: number;
           };
+          /** null when nobody joined this week */
           recentUsers: Array<{
             ID: string;
             Username: string;
             Email: string;
             CreatedAt: string;
-          }>;
+          }> | null;
         };
       }
     | undefined;

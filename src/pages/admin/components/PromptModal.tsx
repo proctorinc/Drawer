@@ -7,6 +7,7 @@ import { useAdminDashboard } from '../context/AdminDashboardContext';
 import { UserSelector } from './UserSelector';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { generateRandomColors } from '../utils';
+import EventIcon from '@/events/EventIcon';
 
 interface PromptModalProps {
   isOpen: boolean;
@@ -15,6 +16,8 @@ interface PromptModalProps {
   existingPrompt?: string;
   existingColors?: Array<string>;
   existingCreatedBy?: User;
+  /** The event this day belongs to, if any */
+  event?: { name: string; theme: string };
 }
 
 export function PromptModal({
@@ -24,6 +27,7 @@ export function PromptModal({
   existingPrompt,
   existingColors,
   existingCreatedBy,
+  event,
 }: PromptModalProps) {
   const { dashboardData } = useAdminDashboard();
   const [prompt, setPrompt] = useState('');
@@ -40,15 +44,16 @@ export function PromptModal({
   // Reset form when modal opens/closes or when editing different prompt
   useEffect(() => {
     if (isOpen) {
-      if (existingColors && existingColors.length === 3) {
+      if (existingColors?.length) {
         setColors(existingColors);
       } else {
         setColors(generateRandomColors());
       }
       setPrompt(existingPrompt || '');
+      setCreatedBy(existingCreatedBy);
       setError('');
     }
-  }, [isOpen, existingPrompt, existingColors]);
+  }, [isOpen, existingPrompt, existingColors, existingCreatedBy]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,15 +107,17 @@ export function PromptModal({
             <label className="block text-sm font-medium text-secondary mb-1">
               Date
             </label>
-            <div className="text-primary font-medium">
+            <div className="flex items-center gap-2 text-primary font-medium">
               {day
-                ? new Date(day).toLocaleDateString('en-US', {
+                ? // A bare YYYY-MM-DD parses as UTC midnight, the day before in the US
+                  new Date(`${day}T00:00:00`).toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
                   })
                 : 'Select a date'}
+              {event && <EventIcon theme={event.theme} name={event.name} />}
             </div>
           </div>
           {createdBy && (
