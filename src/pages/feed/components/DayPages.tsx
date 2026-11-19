@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Polaroid from './Polaroid';
-import { Crayons, PromptTitle } from './PromptTitle';
+import { ColorDabs, PromptTitle } from './PromptTitle';
 import type { FC, ReactNode } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
 import { useChristmas } from '@/events/useChristmas';
@@ -81,7 +81,7 @@ const DayPage: FC<DayPageProps> = ({
           </div>
           <div className="flex flex-wrap gap-2">
             <Chip>
-              <Crayons colors={colors} size="sm" />
+              <ColorDabs colors={colors} size="sm" />
               {prompt.toLowerCase()}
             </Chip>
             {createdBy && (
@@ -158,7 +158,7 @@ export const TodayWall = () => {
             colors={dailyPrompt.colors}
           />
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-pencil">
-            <Crayons colors={dailyPrompt.colors} />
+            <ColorDabs colors={dailyPrompt.colors} />
             {dailyPrompt.createdBy && (
               <Chip className="bg-sky">
                 by {dailyPrompt.createdBy.username}

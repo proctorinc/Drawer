@@ -31,14 +31,14 @@ const StreakBadge = () => {
 };
 
 /** Today's three colors as little paint dabs */
-export const TodaysCrayons = () => {
+export const TodaysColors = () => {
   const { dailyPrompt } = useDailyPrompt();
   const colors = dailyPrompt?.colors.slice(0, 3) ?? [];
   if (colors.length === 0) return null;
 
   return (
     <span className="flex items-center gap-1.5">
-      today's crayons
+      today's colors
       {colors.map((color, i) => (
         <span
           key={color + i}
@@ -76,7 +76,7 @@ const BackButton = () => {
 
 type Props = {
   back?: boolean;
-  /** Right side of the date line; defaults to today's crayons */
+  /** Right side of the date line; defaults to today's colors */
   aside?: ReactNode;
 };
 
@@ -116,7 +116,7 @@ const Masthead: FC<Props> = ({ back, aside }) => {
       <div className="flex items-center justify-between gap-2 h-[30px] border-b-2 border-dashed border-line text-pencil">
         <span>{countdown ? countdown.day : dateLabel(pageDate)}</span>
         {aside ??
-          (countdown ? <span>{countdown.left}</span> : <TodaysCrayons />)}
+          (countdown ? <span>{countdown.left}</span> : <TodaysColors />)}
       </div>
     </header>
   );

@@ -45,7 +45,7 @@ const PencilPoint: FC<{ halfWidth: number; baseX: number }> = ({
 
 // Marks are drawn in a 32×32 box, angled 45° with the point at bottom left
 
-/** A crayon pencil striped in the house colors */
+/** A pencil striped in the house colors */
 export const PencilMark: FC<MarkProps> = ({ animateScribble }) => (
   <g stroke={INK} strokeWidth={1.6} strokeLinejoin="round">
     <Scribble color={CORAL} animate={animateScribble} />

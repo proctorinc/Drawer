@@ -24,7 +24,7 @@ export const PromptTitle: FC<{
 );
 
 /** A day's three colors as big paint dabs */
-export const Crayons: FC<{ colors: Array<string>; size?: 'sm' | 'lg' }> = ({
+export const ColorDabs: FC<{ colors: Array<string>; size?: 'sm' | 'lg' }> = ({
   colors,
   size = 'lg',
 }) => (

@@ -44,7 +44,7 @@ export const Toolbar: FC<Props> = ({ colors }) => {
   const [undoSpin, setUndoSpin] = useState(0);
   const firstColor = colors.at(0);
 
-  // Start with a crayon in hand rather than the eraser
+  // Start with a color in hand rather than the eraser
   useEffect(() => {
     if (firstColor) setSelectedColor(firstColor);
   }, [firstColor, setSelectedColor]);
@@ -57,7 +57,7 @@ export const Toolbar: FC<Props> = ({ colors }) => {
           return (
             <button
               key={`toolbar-color-${index}`}
-              aria-label={`Crayon ${index + 1}`}
+              aria-label={`Color ${index + 1}`}
               aria-pressed={isSelected}
               className={cn(
                 colors.length > 3 ? 'size-[42px]' : 'size-[50px]',

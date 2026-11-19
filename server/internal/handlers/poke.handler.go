@@ -24,7 +24,7 @@ var pokeMessages = []string{
 	"%s is waiting on your masterpiece",
 	"%s says: pencils up! today's doodle won't draw itself",
 	"psst. %s wants to see what you draw today",
-	"%s poked you with a crayon. it's time.",
+	"%s poked you. grab your colors, it's time.",
 }
 
 // HandlePokeFriend nudges a friend who hasn't drawn today, at most once per friend per day
