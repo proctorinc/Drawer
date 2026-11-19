@@ -14,9 +14,8 @@ RUN npm install
 # Copy the rest of the frontend source code
 COPY . .
 
-# Clerk's publishable key is public and gets inlined into the bundle by Vite
-ARG VITE_CLERK_PUBLISHABLE_KEY
-ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+# Clerk's publishable key comes from .env.production. Don't set it with ENV here:
+# Vite gives real env vars priority over .env files, so an empty value would win.
 
 # Build the frontend
 # This should output static files into a 'dist' directory (or similar, adjust if needed)
