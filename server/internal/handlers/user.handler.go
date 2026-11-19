@@ -10,6 +10,7 @@ import (
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/storage"
 	"drawer-service-backend/internal/utils"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
@@ -339,7 +340,8 @@ func HandleUpdateAvatarUrl(c *gin.Context) {
 			return
 		}
 	} else {
-		avatarURL = "/default-avatar.png"
+		// No S3 locally, so keep the drawing itself in the row
+		avatarURL = "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf)
 	}
 
 	err = queries.UpdateUserAvatarURL(appCtx.DB, c.Request.Context(), requester.ID, avatarURL)

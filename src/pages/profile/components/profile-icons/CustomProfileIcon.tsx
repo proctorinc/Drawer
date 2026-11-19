@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { userProfileIconVariants } from './UserProfileIcon';
+import { BasicProfileIcon } from './BasicProfileIcon';
 import type { VariantProps } from 'class-variance-authority';
 import type { User } from '@/api/Api';
 import type { FC } from 'react';
@@ -23,6 +24,8 @@ export const CustomProfileIcon: FC<Props> = ({
   const navigate = useNavigate();
   const currentUser = useUser();
   const [isLoaded, setIsLoaded] = useState(false);
+  // Keyed by URL so a redrawn face gets a fresh chance to load
+  const [brokenUrl, setBrokenUrl] = useState<string>();
 
   useEffect(() => {
     // Trigger the scale-down animation after mount
@@ -53,6 +56,17 @@ export const CustomProfileIcon: FC<Props> = ({
     }
   };
 
+  if (user.avatarUrl === brokenUrl) {
+    return (
+      <BasicProfileIcon
+        user={user}
+        size={size}
+        onClick={handleClick}
+        className={className}
+      />
+    );
+  }
+
   return (
     <div className={cn('flex relative group justify-center', className)}>
       <div
@@ -68,10 +82,11 @@ export const CustomProfileIcon: FC<Props> = ({
         }}
       >
         <img
-          src={user.avatarUrl === '' ? '/default-avatar.png' : user.avatarUrl}
+          src={user.avatarUrl}
           alt={name}
           className="rounded-full"
           onClick={handleClick}
+          onError={() => setBrokenUrl(user.avatarUrl)}
         />
       </div>
     </div>
