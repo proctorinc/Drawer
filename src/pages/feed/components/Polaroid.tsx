@@ -12,11 +12,11 @@ import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 import { CommentIcon, HeartIcon } from '@/components/icons';
 import { ReactionSticker } from '@/reactions/ReactionSticker';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
-import { cn, tapeColor } from '@/utils';
+import { PIN_COLORS, PushPin } from '@/components/PushPin';
+import { cn } from '@/utils';
 
 // Repeating per-card variety, so the wall looks hand-pinned rather than gridded
 const TILTS = [-2, 1.8, 1, -1.4, 2, -0.8];
-const TAPES = ['#ffb400', '#3a7bd5', '#ff6b57'];
 
 type Props = {
   submission: UserPromptSubmission;
@@ -90,10 +90,10 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
           className="absolute z-10 -top-3 left-1/2 -ml-[5px] w-2.5 h-[22px] bg-[#c99060] border-[1.5px] border-ink rounded-[3px]"
         />
       ) : (
-        <span
-          aria-hidden="true"
-          className="absolute z-10 -top-2.5 left-1/2 -ml-7 w-14 h-[18px] rotate-3"
-          style={{ backgroundColor: tapeColor(TAPES[index % TAPES.length]) }}
+        <PushPin
+          color={PIN_COLORS[index % PIN_COLORS.length]}
+          lean={index % 2 === 0 ? 20 : -16}
+          className="absolute z-10 -top-[23px] left-1/2 -ml-4"
         />
       )}
       {/* Whose doodle it is, pinned to the corner so you can tell at a glance */}

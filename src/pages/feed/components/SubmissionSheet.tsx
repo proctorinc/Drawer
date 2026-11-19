@@ -15,6 +15,7 @@ import {
 } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
+import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { Card, CardContent } from '@/components/Card';
 import Tooltip from '@/components/Tooltip';
 import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
@@ -24,6 +25,13 @@ import { ShareButton } from '@/pages/profile/components/friends/ShareButton';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { ReactionBar } from '@/reactions/ReactionBar';
 import { cn, timeAgo } from '@/utils';
+
+/** A pin color that varies page to page but stays put for a given doodle */
+function pinColor(id: string) {
+  let hash = 0;
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  return PIN_COLORS[Math.abs(hash) % PIN_COLORS.length];
+}
 
 type Props = {
   /** The feed's copy shows straight away; the full doodle loads over it */
@@ -70,9 +78,10 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
   return (
     <div className="flex flex-col items-center gap-6 w-full">
       <div className="relative w-full px-2 animate-drop [--tilt:-1deg] -rotate-1">
-        <span
-          aria-hidden="true"
-          className="absolute z-10 -top-2.5 left-1/2 -ml-10 w-20 h-6 bg-butter/70 rotate-3"
+        <PushPin
+          color={pinColor(submission.id)}
+          size={40}
+          className="absolute z-10 -top-[30px] left-1/2 -ml-5"
         />
         <div className="p-3 bg-white shadow-[1px_3px_10px_rgba(43,42,51,0.2)]">
           <DrawingFeedImage
