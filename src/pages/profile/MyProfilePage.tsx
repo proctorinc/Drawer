@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
-import { faGear, faPen } from '@fortawesome/free-solid-svg-icons';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import { useMyProfilePage } from './context/MyProfileContext';
-import AccountDetails from './components/AccountDetails';
+import AccountFooter from './components/AccountFooter';
 import EditProfile from './components/EditProfile';
 import Sheet from './components/Sheet';
 import Sketchbook from './components/Sketchbook';
@@ -10,18 +9,23 @@ import UserHeader from './components/UserHeader';
 import FriendsPanel from './components/friends/FriendsPanel';
 import IncomingInvites from './components/friends/IncomingInvites';
 import { useFriendInvites } from './components/friends/useFriendInvites';
-import { FriendsIcon, TrophyIcon } from '@/components/icons';
+import { FriendsIcon, PencilIcon, TrophyIcon } from '@/components/icons';
 import LoadingScreen from '@/components/LoadingScreen';
 import Layout from '@/components/Layout';
 import Chip from '@/components/Chip';
 import Button from '@/components/Button';
 
-type SheetId = 'friends' | 'edit' | 'settings';
+type SheetId = 'friends' | 'edit';
 
 const SHEET_TITLES: Record<SheetId, string> = {
   friends: 'friends',
   edit: 'edit my cover',
-  settings: 'settings',
+};
+
+/** Links can open a sheet straight away: #friends, or #decorations in the edit sheet */
+const SHEET_FOR_HASH: Record<string, SheetId | undefined> = {
+  friends: 'friends',
+  decorations: 'edit',
 };
 
 /** A peek at the trophy shelf, which lives on its own tab */
@@ -47,10 +51,32 @@ const MyProfilePage = () => {
   const { profile } = useMyProfilePage();
   const { incoming } = useFriendInvites();
   const [sheet, setSheet] = useState<SheetId | null>(null);
+  const navigate = useNavigate();
+  const hash = useLocation({ select: (location) => location.hash });
+
+  useEffect(() => {
+    const linked = SHEET_FOR_HASH[hash];
+    if (linked) setSheet(linked);
+  }, [hash]);
+
+  // Runs after the sheet has opened, so the linked section exists to scroll to
+  useEffect(() => {
+    if (sheet && SHEET_FOR_HASH[hash] === sheet) {
+      document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [sheet, hash]);
+
+  function closeSheet() {
+    setSheet(null);
+    // Drop the hash so the same link opens the sheet again next time
+    if (hash) navigate({ to: '/draw/profile/me', replace: true });
+  }
 
   if (!profile) {
     return <LoadingScreen />;
   }
+
+  const friendCount = profile.friends.length;
 
   return (
     <Layout
@@ -58,11 +84,20 @@ const MyProfilePage = () => {
         <UserHeader
           userProfile={profile}
           onAvatarClick={() => setSheet('edit')}
+          avatarBadge={
+            <button
+              aria-label="Edit my cover"
+              onClick={() => setSheet('edit')}
+              className="press grid place-items-center size-8 bg-butter border-2 border-ink rounded-full shadow-pencil-sm cursor-pointer"
+            >
+              <PencilIcon size={16} />
+            </button>
+          }
           extra={<TrophyTeaser />}
         >
           <Button size="sm" disableLoad onClick={() => setSheet('friends')}>
             <FriendsIcon size={20} />
-            friends
+            {friendCount} {friendCount === 1 ? 'friend' : 'friends'}
             {incoming.length > 0 && (
               <span
                 aria-label={`${incoming.length} new requests`}
@@ -72,38 +107,20 @@ const MyProfilePage = () => {
               </span>
             )}
           </Button>
-          <Button
-            size="sm"
-            variant="base"
-            icon={faPen}
-            disableLoad
-            onClick={() => setSheet('edit')}
-          >
-            edit
-          </Button>
-          <Button
-            size="sm"
-            variant="base"
-            icon={faGear}
-            aria-label="Settings"
-            disableLoad
-            className="ml-auto"
-            onClick={() => setSheet('settings')}
-          />
         </UserHeader>
       }
     >
       <IncomingInvites />
       <Sketchbook profile={profile} />
+      <AccountFooter />
 
       <Sheet
         title={sheet ? SHEET_TITLES[sheet] : ''}
         open={sheet !== null}
-        onClose={() => setSheet(null)}
+        onClose={closeSheet}
       >
         {sheet === 'friends' && <FriendsPanel profile={profile} />}
         {sheet === 'edit' && <EditProfile />}
-        {sheet === 'settings' && <AccountDetails />}
       </Sheet>
     </Layout>
   );

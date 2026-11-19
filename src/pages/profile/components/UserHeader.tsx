@@ -6,6 +6,8 @@ type Props = {
   userProfile: GetMeResponse;
   /** Tapping the avatar; defaults to opening the profile */
   onAvatarClick?: () => void;
+  /** Pinned to the avatar's bottom-right corner, e.g. an edit button */
+  avatarBadge?: ReactNode;
   /** Extra lines under the stats, e.g. a trophy count */
   extra?: ReactNode;
   /** The row of buttons under the cover */
@@ -16,6 +18,7 @@ type Props = {
 const UserHeader: FC<Props> = ({
   userProfile,
   onAvatarClick,
+  avatarBadge,
   extra,
   children,
 }) => {
@@ -32,12 +35,15 @@ const UserHeader: FC<Props> = ({
           aria-hidden="true"
           className="absolute -top-2.5 right-8 w-12 h-[18px] bg-coral/50 rotate-6"
         />
-        <div className="flex-none -rotate-4">
+        <div className="relative flex-none -rotate-4">
           <UserProfileIcon
             user={userProfile.user}
             size="xl"
             onClick={onAvatarClick}
           />
+          {avatarBadge && (
+            <div className="absolute -bottom-1 -right-1">{avatarBadge}</div>
+          )}
         </div>
         <div className="flex flex-col gap-1.5 min-w-0">
           <h1 className="font-accent font-bold text-[30px] leading-none truncate">

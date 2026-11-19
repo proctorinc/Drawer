@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { useProfile } from './context/UserProfileContext';
+import { FriendLevelCard, FriendStickers } from './components/FriendTrophies';
 import Sketchbook from './components/Sketchbook';
 import UserHeader from './components/UserHeader';
 import { FriendList } from './components/friends/FriendList';
@@ -63,7 +64,9 @@ const UserProfilePage = () => {
       }
     >
       <FriendEventLink user={user} />
+      <FriendLevelCard user={user} />
       <Sketchbook profile={userProfile} />
+      <FriendStickers user={user} />
       <FriendList user={user} friends={userProfile.friends} />
     </Layout>
   );

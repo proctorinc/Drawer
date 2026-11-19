@@ -16,7 +16,7 @@ const levelTitles = [
   'Pencil Legend',
 ];
 
-const levelTitle = (level: number) =>
+export const levelTitle = (level: number) =>
   levelTitles[Math.min(level, levelTitles.length) - 1];
 
 const StatSticker: FC<{

@@ -61,14 +61,16 @@ const Swatch: FC<SwatchProps> = ({
 );
 
 type SectionProps = {
+  /** Lets a link scroll straight to the section, e.g. #decorations */
+  id?: string;
   title: ReactNode;
   /** One line under the section: what's picked, how to unlock, or an error */
   note?: string;
   children: ReactNode;
 };
 
-const Section: FC<SectionProps> = ({ title, note, children }) => (
-  <section className="flex flex-col gap-2">
+const Section: FC<SectionProps> = ({ id, title, note, children }) => (
+  <section id={id} className="flex flex-col gap-2 scroll-mt-4">
     <h3 className="font-accent font-bold text-xl leading-none">{title}</h3>
     {children}
     {note && <p className="text-sm text-pencil">{note}</p>}
@@ -186,7 +188,7 @@ const FlairPicker = () => {
   }
 
   return (
-    <Section title="my flair" note={note()}>
+    <Section id="decorations" title="my flair" note={note()}>
       <div className="flex flex-wrap gap-x-4 gap-y-3">
         <FlairGroup name="free">
           <Swatch

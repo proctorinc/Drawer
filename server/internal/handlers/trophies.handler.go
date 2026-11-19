@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"cmp"
+	gocontext "context"
 	"database/sql"
 	"drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
@@ -95,14 +96,9 @@ func HandleGetTrophies(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, Error("Failed to load trophies"))
 	}
 
-	lifetime, err := queries.GetActivityCounts(repo, ctx, []string{requester.ID}, queries.BeginningOfTime, queries.EndOfTime)
+	mine, err := publicTrophies(repo, ctx, requester.ID)
 	if err != nil {
-		fail("lifetime activity", err)
-		return
-	}
-	streak, err := queries.CalculateSubmissionActiveStreak(repo, ctx, requester.ID)
-	if err != nil {
-		fail("streak", err)
+		fail("lifetime trophies", err)
 		return
 	}
 
@@ -135,17 +131,52 @@ func HandleGetTrophies(c *gin.Context) {
 		return
 	}
 
-	mine := lifetime[requester.ID]
 	c.JSON(http.StatusOK, TrophiesResponse{
-		Level:         levelForXP(xpFor(mine)),
-		CurrentStreak: streak,
-		Lifetime:      mine,
+		Level:         mine.Level,
+		CurrentStreak: mine.CurrentStreak,
+		Lifetime:      mine.Lifetime,
 		Week:          weekOf(week, nextWeek),
 		Quests:        quests,
 		QuestsEvent:   questsEvent,
 		Leaderboard:   leaderboard(users, weekly),
 		XPRules:       xpRules,
 	})
+}
+
+// PublicTrophies is the part of someone's trophy cabinet shown on their book
+type PublicTrophies struct {
+	Level         Level                  `json:"level"`
+	CurrentStreak int                    `json:"currentStreak"`
+	Lifetime      queries.ActivityCounts `json:"lifetime"`
+}
+
+func HandleGetUserTrophies(c *gin.Context) {
+	userID := c.Param("id")
+	theirs, err := publicTrophies(context.GetCtx(c).DB, c.Request.Context(), userID)
+	if err != nil {
+		log.Printf("Trophies: error fetching trophies for user %s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, Error("Failed to load trophies"))
+		return
+	}
+	c.JSON(http.StatusOK, theirs)
+}
+
+// publicTrophies scores someone's whole history: their level, streak and totals
+func publicTrophies(repo *sql.DB, ctx gocontext.Context, userID string) (PublicTrophies, error) {
+	lifetime, err := queries.GetActivityCounts(repo, ctx, []string{userID}, queries.BeginningOfTime, queries.EndOfTime)
+	if err != nil {
+		return PublicTrophies{}, err
+	}
+	streak, err := queries.CalculateSubmissionActiveStreak(repo, ctx, userID)
+	if err != nil {
+		return PublicTrophies{}, err
+	}
+	theirs := lifetime[userID]
+	return PublicTrophies{
+		Level:         levelForXP(xpFor(theirs)),
+		CurrentStreak: streak,
+		Lifetime:      theirs,
+	}, nil
 }
 
 func xpFor(a queries.ActivityCounts) int {

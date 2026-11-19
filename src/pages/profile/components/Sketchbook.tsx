@@ -34,7 +34,7 @@ type Props = {
   profile: GetMeResponse;
 };
 
-/** The heart of a profile: a calendar of every doodle, then the best ones */
+/** The heart of a profile: the best doodles, then a calendar of every one */
 const Sketchbook: FC<Props> = ({ profile }) => {
   const currentUser = useUser();
   const isMe = currentUser.id === profile.user.id;
@@ -45,8 +45,8 @@ const Sketchbook: FC<Props> = ({ profile }) => {
 
   return (
     <>
-      <SubmissionCalendar profile={profile} />
       <FavoriteSubmissions profile={profile} />
+      <SubmissionCalendar profile={profile} />
     </>
   );
 };

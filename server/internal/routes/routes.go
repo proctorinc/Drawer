@@ -78,6 +78,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 
 			userGroup.GET("/:id/profile", handlers.HandleGetUserByID)
 			userGroup.GET("/:id/achievements", handlers.HandlerGetUserAchievements)
+			userGroup.GET("/:id/trophies", handlers.HandleGetUserTrophies)
 			userGroup.POST("/:id/invite", handlers.HandleInviteFriend)
 			userGroup.POST("/:id/accept-invitation", handlers.HandleAcceptInvitation)
 			userGroup.POST("/:id/deny-invitation", handlers.HandleDenyInvitation)
