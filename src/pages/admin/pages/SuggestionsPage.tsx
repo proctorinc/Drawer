@@ -15,7 +15,7 @@ import {
   useDismissSuggestion,
 } from '../api';
 import { AdminPage, Loaded, Panel, Section, formatDay } from '../components/ui';
-import { dayAfter, nextOpenDay, openDays, toDay } from '../schedule';
+import { nextOpenDay, openDays, toDay } from '../schedule';
 import { generateRandomColors } from '../utils';
 import type { AdminEvent } from '../api';
 import type { FC } from 'react';
@@ -33,7 +33,7 @@ type Calendar = {
   /** Days that already have a prompt */
   taken: Set<string>;
   events: Array<AdminEvent>;
-  /** Prompts are scheduled from here on: tomorrow */
+  /** "next open" and "random" look from here on: today. A picked date can be any day */
   firstDay: string;
 };
 
@@ -120,8 +120,8 @@ const PromptDraft: FC<{
   let problem = '';
   if (!prompt.trim()) problem = 'write a prompt first';
   else if (!day) problem = `no open days in the next ${withinDays}`;
-  else if (day < firstDay) problem = 'pick a day in the future';
-  else if (taken.has(day)) problem = 'that day already has a prompt';
+  // "next" and "random" only land on open days; a picked date replaces what's there
+  const replacing = !!day && taken.has(day);
   const event = day ? eventOnDay(events, day) : undefined;
 
   const schedule = async () => {
@@ -203,7 +203,6 @@ const PromptDraft: FC<{
         {when === 'date' && (
           <input
             type="date"
-            min={firstDay}
             value={date}
             onChange={(e) => setDate(e.target.value)}
             className={cn(inputClass, 'py-1')}
@@ -215,7 +214,17 @@ const PromptDraft: FC<{
             problem ? 'text-coral' : 'font-bold',
           )}
         >
-          {problem || (day && <>→ {formatDay(day)}</>)}
+          {problem ||
+            (day && (
+              <>
+                → {formatDay(day)}
+                {replacing && (
+                  <span className="font-normal text-coral">
+                    replaces that day's prompt
+                  </span>
+                )}
+              </>
+            ))}
           {!problem && event && (
             <EventIcon theme={event.theme} name={event.name} />
           )}
@@ -313,7 +322,7 @@ const SuggestionsPage = () => {
           const calendar: Calendar = {
             taken: new Set(list.map((p) => p.day)),
             events,
-            firstDay: dayAfter(toDay(new Date())),
+            firstDay: toDay(new Date()),
           };
           return (
             <>
