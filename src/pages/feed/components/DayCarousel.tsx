@@ -89,9 +89,9 @@ const DayCarousel: FC<Props> = ({ submission }) => {
   return (
     <Layout
       back
-      aside={
+      header={
         doodles.length > 1 && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-3 text-pencil">
             <button
               aria-label="Previous doodle"
               disabled={index <= 0}

@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import FavoriteSubmissions from './FavoriteSubmissions';
 import SubmissionCalendar from './SubmissionCalendar';
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 import type { GetMeResponse } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import Banner from '@/components/Banner';
@@ -32,10 +32,12 @@ const EmptyBook: FC<{ profile: GetMeResponse; isMe: boolean }> = ({
 
 type Props = {
   profile: GetMeResponse;
+  /** Right end of the hall of fame's title row */
+  aside?: ReactNode;
 };
 
 /** The heart of a profile: the best doodles, then a calendar of every one */
-const Sketchbook: FC<Props> = ({ profile }) => {
+const Sketchbook: FC<Props> = ({ profile, aside }) => {
   const currentUser = useUser();
   const isMe = currentUser.id === profile.user.id;
 
@@ -45,7 +47,7 @@ const Sketchbook: FC<Props> = ({ profile }) => {
 
   return (
     <>
-      <FavoriteSubmissions profile={profile} />
+      <FavoriteSubmissions profile={profile} aside={aside} />
       <SubmissionCalendar profile={profile} />
     </>
   );

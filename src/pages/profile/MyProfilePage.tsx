@@ -77,6 +77,22 @@ const MyProfilePage = () => {
   }
 
   const friendCount = profile.friends.length;
+  // Sits beside the hall of fame; a blank book has no hall, so it stays under the cover
+  const hasSketchbook = profile.prompts.length > 0;
+  const friendsButton = (
+    <Button size="sm" disableLoad onClick={() => setSheet('friends')}>
+      <FriendsIcon size={20} />
+      {friendCount} {friendCount === 1 ? 'friend' : 'friends'}
+      {incoming.length > 0 && (
+        <span
+          aria-label={`${incoming.length} new requests`}
+          className="flex items-center justify-center min-w-6 h-6 px-1.5 -my-1 bg-coral text-ink border-2 border-paper rounded-full text-base animate-nudge"
+        >
+          {incoming.length}
+        </span>
+      )}
+    </Button>
+  );
 
   return (
     <Layout
@@ -95,23 +111,12 @@ const MyProfilePage = () => {
           }
           extra={<TrophyTeaser />}
         >
-          <Button size="sm" disableLoad onClick={() => setSheet('friends')}>
-            <FriendsIcon size={20} />
-            {friendCount} {friendCount === 1 ? 'friend' : 'friends'}
-            {incoming.length > 0 && (
-              <span
-                aria-label={`${incoming.length} new requests`}
-                className="flex items-center justify-center min-w-6 h-6 px-1.5 -my-1 bg-coral text-ink border-2 border-paper rounded-full text-base animate-nudge"
-              >
-                {incoming.length}
-              </span>
-            )}
-          </Button>
+          {!hasSketchbook && friendsButton}
         </UserHeader>
       }
     >
       <IncomingInvites />
-      <Sketchbook profile={profile} />
+      <Sketchbook profile={profile} aside={friendsButton} />
       <AccountFooter />
 
       <Sheet

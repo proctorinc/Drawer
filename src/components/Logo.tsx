@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import LogoIcon, { logoTheme } from './logo/LogoIcon';
 import { useLogoTheme } from './logo/useLogoTheme';
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 import { cn } from '@/utils';
 
 // The intro animation plays once per app load, not on every page change
@@ -24,11 +24,13 @@ type Props = {
   size?: keyof typeof sizes;
   /** Force a theme; by default it follows the live event */
   theme?: string | null;
+  /** Stands in for the pencil mark, e.g. a back arrow */
+  icon?: ReactNode;
   className?: string;
 };
 
 /** The app's logo lockup: the themed icon beside the wordmark */
-const Logo: FC<Props> = ({ size = 'md', theme, className }) => {
+const Logo: FC<Props> = ({ size = 'md', theme, icon, className }) => {
   const liveTheme = useLogoTheme();
   const themeKey = theme === undefined ? liveTheme : theme;
   const { accent } = logoTheme(themeKey);
@@ -48,25 +50,27 @@ const Logo: FC<Props> = ({ size = 'md', theme, className }) => {
       className={cn('flex items-center gap-2', className)}
       onPointerDown={() => setWiggleKey((key) => key + 1)}
     >
-      <div className="-rotate-5">
-        {/* Keyed by theme too, so a mark that arrives with the event pops in */}
-        <div
-          key={`${wiggleKey}-${themeKey ?? 'default'}`}
-          className={cn(
-            'flex flex-none',
-            wiggleKey > 0 && 'animate-wiggle',
-            wiggleKey === 0 &&
-              (playIntro || themeKey) &&
-              'animate-in zoom-in-50 spin-in-45 duration-500 ease-[var(--ease-spring)]',
-          )}
-        >
-          <LogoIcon
-            theme={themeKey}
-            size={s.icon}
-            animateScribble={playIntro}
-          />
+      {icon ?? (
+        <div className="-rotate-5">
+          {/* Keyed by theme too, so a mark that arrives with the event pops in */}
+          <div
+            key={`${wiggleKey}-${themeKey ?? 'default'}`}
+            className={cn(
+              'flex flex-none',
+              wiggleKey > 0 && 'animate-wiggle',
+              wiggleKey === 0 &&
+                (playIntro || themeKey) &&
+                'animate-in zoom-in-50 spin-in-45 duration-500 ease-[var(--ease-spring)]',
+            )}
+          >
+            <LogoIcon
+              theme={themeKey}
+              size={s.icon}
+              animateScribble={playIntro}
+            />
+          </div>
         </div>
-      </div>
+      )}
       <div
         className={cn(
           'flex flex-col leading-none',

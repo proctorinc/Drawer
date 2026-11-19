@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import type { FC } from 'react';
+import Sheet from './Sheet';
+import type { FC, ReactNode } from 'react';
 import type { FavoriteSubmission, GetMeResponse } from '@/api/Api';
 import { queryKeys, useSwapFavoriteOrder } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import Banner from '@/components/Banner';
-import Button from '@/components/Button';
-import { CommentIcon, StarIcon } from '@/components/icons';
+import { CommentIcon, PencilIcon, StarIcon } from '@/components/icons';
 import { polaroidFrameClass } from '@/components/polaroid';
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { ReactionPile } from '@/reactions/ReactionPile';
@@ -93,10 +93,12 @@ const FavoriteFrame: FC<FrameProps> = ({
 
 type Props = {
   profile: GetMeResponse;
+  /** Sits at the right end of the title row, e.g. the friends button */
+  aside?: ReactNode;
 };
 
 /** The owner's top three doodles on a little podium */
-const FavoriteSubmissions: FC<Props> = ({ profile }) => {
+const FavoriteSubmissions: FC<Props> = ({ profile, aside }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const currentUser = useUser();
@@ -133,6 +135,11 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
     }
   }
 
+  function closeEditor() {
+    setIsEditing(false);
+    setSelectedId(null);
+  }
+
   function frameProps(favorite: FavoriteSubmission, index: number) {
     return {
       favorite,
@@ -144,23 +151,20 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
 
   return (
     <section className="flex flex-col gap-4 w-full">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center gap-2">
         <h2 className="font-accent font-bold text-[28px] leading-none">
           hall of fame
         </h2>
         {isMe && favorites.length > 1 && (
-          <Button
-            size="sm"
-            variant={isEditing ? 'primary' : 'base'}
-            disableLoad
-            onClick={() => {
-              setIsEditing((prev) => !prev);
-              setSelectedId(null);
-            }}
+          <button
+            aria-label="Edit hall of fame"
+            onClick={() => setIsEditing(true)}
+            className="press grid place-items-center size-8 bg-white border-2 border-ink rounded-full shadow-pencil-sm cursor-pointer hover:-rotate-6"
           >
-            {isEditing ? 'done' : 'rearrange'}
-          </Button>
+            <PencilIcon size={16} />
+          </button>
         )}
+        {aside && <div className="ml-auto">{aside}</div>}
       </div>
 
       {favorites.length === 0 && (
@@ -168,10 +172,6 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
           <StarIcon size={16} strokeWidth={2.2} />
           star your best doodles to hang them here
         </Banner>
-      )}
-      {isEditing && <Banner>tap two doodles to swap their spots</Banner>}
-      {swapFavorites.isError && (
-        <Banner className="bg-blush">that swap didn't stick. try again?</Banner>
       )}
 
       {favorites.length > 0 && (
@@ -203,19 +203,29 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
         </div>
       )}
 
-      {isEditing && favorites.length > 3 && (
-        <>
-          <span className="text-pencil">the runners-up</span>
-          <div className="grid grid-cols-4 gap-x-3 gap-y-6 pt-3">
-            {favorites.slice(3).map((favorite, i) => (
-              <FavoriteFrame
-                key={favorite.id}
-                {...frameProps(favorite, i + 3)}
-              />
-            ))}
-          </div>
-        </>
-      )}
+      <Sheet title="hall of fame" open={isEditing} onClose={closeEditor}>
+        <Banner>tap two doodles to swap their spots</Banner>
+        {swapFavorites.isError && (
+          <Banner className="bg-blush">
+            that swap didn't stick. try again?
+          </Banner>
+        )}
+        <ol className="grid grid-cols-3 gap-x-4 gap-y-8 pt-4">
+          {favorites.map((favorite, i) => (
+            <li key={favorite.id} className="flex flex-col items-center gap-3">
+              <FavoriteFrame {...frameProps(favorite, i)} />
+              <span
+                className={cn(
+                  'flex items-center justify-center size-8 border-2 border-ink rounded-blob font-accent font-bold text-lg',
+                  PODIUM.find((p) => p.index === i)?.medal ?? 'bg-white',
+                )}
+              >
+                {i + 1}
+              </span>
+            </li>
+          ))}
+        </ol>
+      </Sheet>
     </section>
   );
 };

@@ -25,11 +25,21 @@ import { useChristmas } from '@/events/useChristmas';
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { PinCeremony } from '@/drawing/components/PinCeremony';
 
-const NextPageCountdown = () => (
-  <span className="flex items-center gap-1.5">
-    <ClockIcon size={14} />
-    new page in <CountDownTimer />
-  </span>
+/** When tomorrow's prompt drops; fixed-width digits so it never jiggles */
+const NextPromptCountdown = () => (
+  <section
+    aria-label="Next prompt"
+    className="flex flex-col items-center gap-1 self-center px-6 pt-2.5 pb-3 bg-white border-2 border-ink rounded-sketch"
+  >
+    <span className="flex items-center gap-1.5 text-sm text-pencil">
+      <ClockIcon size={14} />
+      next prompt in
+    </span>
+    <CountDownTimer
+      monospace
+      className="font-accent font-bold text-[32px] leading-none"
+    />
+  </section>
 );
 
 const PromptHeading = ({ dailyPrompt }: { dailyPrompt: DailyPrompt }) => (
@@ -253,7 +263,8 @@ const Feed = () => {
   }
 
   return (
-    <Layout aside={<NextPageCountdown />}>
+    <Layout>
+      <NextPromptCountdown />
       {dailyPrompt && <FriendsToday />}
       <TodayWall />
       <ComingSoonCard />

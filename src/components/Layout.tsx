@@ -11,12 +11,10 @@ type Props = {
   /** Page-specific block rendered between the masthead and the content */
   header?: ReactNode;
   back?: boolean;
-  /** Right side of the masthead's date line */
-  aside?: ReactNode;
   children: ReactNode;
 };
 
-const Layout: FC<Props> = ({ header, back, aside, children }) => {
+const Layout: FC<Props> = ({ header, back, children }) => {
   const { isAuthenticated } = useAuth();
   const christmas = useChristmas();
 
@@ -25,7 +23,7 @@ const Layout: FC<Props> = ({ header, back, aside, children }) => {
       {christmas && <Snowfall />}
       {/* relative so the page paints over the snow */}
       <div className="relative flex flex-col w-full max-w-md">
-        <Masthead back={back} aside={aside} />
+        <Masthead back={back} />
         {christmas && <Lights className="-mt-1.5 -mb-3" />}
         {header && <div className="px-6 pt-5 animate-rise">{header}</div>}
         <main className="flex flex-col flex-grow items-center gap-6 px-6 pt-5 pb-36 animate-rise [animation-delay:60ms]">
