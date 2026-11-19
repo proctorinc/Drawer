@@ -56,6 +56,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 		// Signed in to Clerk, but may not have a Drawer profile yet
 		clerkGroup.POST("/auth/register", handlers.HandleRegister)
 		clerkGroup.POST("/auth/logout", handlers.HandleLogout)
+		clerkGroup.POST("/auth/stop-impersonating", handlers.HandleStopImpersonating)
 
 		// Authenticated routes
 		authGroup := clerkGroup.Group("/")

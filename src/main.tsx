@@ -47,6 +47,7 @@ import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
 import DrawProfilePicPage from './pages/profile/DrawProfilePicPage.tsx';
 import { Config } from './config/Config.ts';
+import ImpersonationBanner from './components/ImpersonationBanner.tsx';
 import type { FC } from 'react';
 
 const queryClient = new QueryClient();
@@ -62,6 +63,7 @@ const rootRoute = createRootRoute({
           <BrandProvider>
             <NotificationProvider>
               <DailyPromptProvider>
+                <ImpersonationBanner />
                 <Outlet />
               </DailyPromptProvider>
             </NotificationProvider>

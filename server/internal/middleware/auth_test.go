@@ -120,6 +120,9 @@ func newTestRouter(db *sql.DB) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 	router.GET("/me", ClerkSessionRequired(), AuthRequired(db), func(c *gin.Context) {
+		if admin := GetImpersonator(c); admin != nil {
+			c.Header("X-Impersonator", admin.ID)
+		}
 		c.String(http.StatusOK, GetUserID(c))
 	})
 	return router
@@ -200,15 +203,29 @@ func TestAuthRequired(t *testing.T) {
 	impersonate := &http.Cookie{Name: ImpersonateCookie, Value: "old-user"}
 
 	t.Run("lets an admin impersonate", func(t *testing.T) {
-		if w := get(router, fake.token(t, "user_admin"), impersonate); w.Body.String() != "old-user" {
+		w := get(router, fake.token(t, "user_admin"), impersonate)
+		if w.Body.String() != "old-user" {
 			t.Fatalf("got %d %q, want old-user", w.Code, w.Body.String())
+		}
+		if got := w.Header().Get("X-Impersonator"); got != "admin-user" {
+			t.Fatalf("impersonator = %q, want admin-user", got)
+		}
+	})
+
+	t.Run("has no impersonator without the cookie", func(t *testing.T) {
+		if got := get(router, fake.token(t, "user_admin")).Header().Get("X-Impersonator"); got != "" {
+			t.Fatalf("impersonator = %q, want none", got)
 		}
 	})
 
 	t.Run("ignores the impersonation cookie for non-admins", func(t *testing.T) {
 		cookie := &http.Cookie{Name: ImpersonateCookie, Value: "admin-user"}
-		if w := get(router, fake.token(t, "user_old"), cookie); w.Body.String() != "old-user" {
+		w := get(router, fake.token(t, "user_old"), cookie)
+		if w.Body.String() != "old-user" {
 			t.Fatalf("got %d %q, want old-user", w.Code, w.Body.String())
+		}
+		if got := w.Header().Get("X-Impersonator"); got != "" {
+			t.Fatalf("impersonator = %q, want none", got)
 		}
 	})
 }

@@ -19,6 +19,9 @@ import (
 var UserIDContextKey = "USER_ID"
 var UserContextKey = "USER"
 
+// ImpersonatorContextKey holds the admin behind the request while they impersonate someone.
+var ImpersonatorContextKey = "IMPERSONATOR"
+
 const ImpersonateCookie = "impersonate_user_id"
 
 // ProfileRequiredCode tells the frontend the Clerk user is signed in but has
@@ -73,6 +76,7 @@ func AuthRequired(repo *sql.DB) gin.HandlerFunc {
 			if err != nil {
 				log.Printf("Impersonation failed: user '%s' not found: %v", impersonatedID, err)
 			} else {
+				c.Set(ImpersonatorContextKey, *user)
 				user = impersonated
 			}
 		}
@@ -135,4 +139,13 @@ func GetUserID(ctx *gin.Context) string {
 
 func GetUser(ctx *gin.Context) models.User {
 	return ctx.MustGet(UserContextKey).(models.User)
+}
+
+// GetImpersonator returns the admin impersonating the current user, or nil if nobody is.
+func GetImpersonator(ctx *gin.Context) *models.User {
+	if admin, ok := ctx.Get(ImpersonatorContextKey); ok {
+		user := admin.(models.User)
+		return &user
+	}
+	return nil
 }

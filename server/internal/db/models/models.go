@@ -37,6 +37,8 @@ type Account struct {
 	User
 	Email   string `json:"email"`
 	IsAdmin bool   `json:"isAdmin"`
+	// ImpersonatedBy is the username of the admin viewing as this user, if any
+	ImpersonatedBy string `json:"impersonatedBy,omitempty"`
 }
 
 func (u User) Account() Account {
