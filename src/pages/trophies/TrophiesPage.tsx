@@ -1,5 +1,8 @@
+import { useLocation } from '@tanstack/react-router';
+import { useEffect } from 'react';
 import AchievementCard, {
   AchievementSticker,
+  stickerAnchor,
 } from './components/AchievementCard';
 import EventBanner from './components/EventBanner';
 import Leaderboard from './components/Leaderboard';
@@ -40,6 +43,18 @@ const TrophiesPage = () => {
   const me = useUser();
   const trophies = useGetTrophies();
   const achievementsQuery = useGetAchievements();
+  const linkedSticker = useLocation().hash.replace(/^#/, '');
+  const loaded = !!trophies.data && !!achievementsQuery.data;
+
+  // Links like /draw/trophies#sticker-12 land on that sticker. The router
+  // scrolls to the hash itself, but only if the sticker was already rendered.
+  useEffect(() => {
+    if (loaded && linkedSticker) {
+      document
+        .getElementById(linkedSticker)
+        ?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [loaded, linkedSticker]);
 
   if (trophies.isLoading || achievementsQuery.isLoading) {
     return <LoadingScreen />;
@@ -116,6 +131,7 @@ const TrophiesPage = () => {
               key={achievement.id}
               achievement={achievement}
               index={i}
+              highlighted={stickerAnchor(achievement) === linkedSticker}
             />
           ))}
         </ul>

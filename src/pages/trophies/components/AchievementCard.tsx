@@ -3,16 +3,32 @@ import ProgressBar from './ProgressBar';
 import type { CSSProperties, FC } from 'react';
 import type { Achievement } from '@/api/Api';
 import Chip from '@/components/Chip';
+import { cn } from '@/utils';
 
 const stickerTilts = ['-6deg', '4deg', '-2deg', '7deg', '-4deg'];
+
+/** Element id that `/draw/trophies#sticker-<id>` links scroll to */
+export const stickerAnchor = (achievement: Achievement) =>
+  `sticker-${achievement.id}`;
+
+/** The router scrolls hash targets to the top; this margin centers them */
+const anchorMargin = 'scroll-mt-[calc(50vh-5rem)]';
 
 /** An earned achievement, stuck into the sticker book */
 export const AchievementSticker: FC<{
   achievement: Achievement;
   index: number;
-}> = ({ achievement, index }) => (
+  /** The sticker a link pointed at: glows and wiggles */
+  highlighted?: boolean;
+}> = ({ achievement, index, highlighted }) => (
   <li
-    className="flex flex-col items-center gap-1 text-center animate-drop rotate-[var(--tilt)]"
+    id={stickerAnchor(achievement)}
+    className={cn(
+      'flex flex-col items-center gap-1 text-center animate-drop rotate-[var(--tilt)]',
+      anchorMargin,
+      highlighted &&
+        'bg-butter rounded-sketch shadow-[0_0_0_6px_var(--color-butter)]',
+    )}
     style={
       {
         '--tilt': stickerTilts[index % stickerTilts.length],
@@ -20,7 +36,12 @@ export const AchievementSticker: FC<{
       } as CSSProperties
     }
   >
-    <div className="relative">
+    <div
+      className={cn(
+        'relative',
+        highlighted && 'animate-[wiggle_0.6s_ease-in-out_600ms_2]',
+      )}
+    >
       <Badge achievement={achievement} className="size-20" />
       {achievement.reward && (
         <span className="absolute -top-1 -right-3 px-1.5 bg-coral text-white text-xs border-2 border-ink rounded-sketch rotate-12">
@@ -52,7 +73,13 @@ const AchievementCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
   const almostThere = goal > 0 && progress / goal >= 0.75;
 
   return (
-    <li className="flex items-center gap-3 w-full p-3 bg-white border-2 border-ink rounded-sketch shadow-pencil-sm">
+    <li
+      id={stickerAnchor(achievement)}
+      className={cn(
+        'flex items-center gap-3 w-full p-3 bg-white border-2 border-ink rounded-sketch shadow-pencil-sm',
+        anchorMargin,
+      )}
+    >
       <Badge achievement={achievement} locked className="size-14 shrink-0" />
       <div className="flex flex-col gap-1.5 flex-1 min-w-0">
         <div className="flex items-baseline justify-between gap-2">
