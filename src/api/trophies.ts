@@ -50,7 +50,7 @@ export interface TrophiesResponse {
   quests: Array<Quest>;
   /** The live event whose page has this week's quests, if any */
   questsEvent: { slug: string; name: string; theme: string } | null;
-  /** You and your friends, by XP earned this week */
+  /** You and your friends, by all-time XP */
   leaderboard: Array<LeaderboardEntry>;
   xpRules: Array<{ action: string; xp: number }>;
 }

@@ -1,6 +1,6 @@
-import { candyCaneTape } from './Decorations';
 import type { FC } from 'react';
 import { cn } from '@/utils';
+import { PushPin } from '@/components/PushPin';
 
 type Props = {
   /** Days in the countdown, e.g. 29 */
@@ -18,10 +18,10 @@ const EventBadge: FC<Props> = ({ days, className }) => (
       className,
     )}
   >
-    <span
-      aria-hidden="true"
-      className="absolute -top-2.5 left-1/2 -ml-9 w-[72px] h-5 border border-ink/20 rotate-3"
-      style={{ background: candyCaneTape() }}
+    <PushPin
+      color={'var(--color-xmas-red)'}
+      lean={16}
+      className="absolute z-10 -top-[23px] left-1/2 -ml-4"
     />
     <span className="text-sm tracking-[3px] uppercase text-pencil">the</span>
     <span className="flex items-baseline gap-2">

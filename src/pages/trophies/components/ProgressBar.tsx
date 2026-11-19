@@ -1,12 +1,17 @@
 import type { FC } from 'react';
 import { cn } from '@/utils';
 
+const HATCH =
+  'repeating-linear-gradient(-45deg, transparent 0 5px, rgb(43 42 51 / 0.14) 5px 7px)';
+
 type Props = {
   value: number;
   max: number;
   label: string;
   /** Background class for the filled part */
   fill?: string;
+  /** A CSS color or gradient for the filled part; wins over `fill` */
+  fillBackground?: string;
   className?: string;
 };
 
@@ -16,6 +21,7 @@ const ProgressBar: FC<Props> = ({
   max,
   label,
   fill = 'bg-butter',
+  fillBackground,
   className,
 }) => {
   const percent = max > 0 ? Math.min(100, (value / max) * 100) : 0;
@@ -37,12 +43,14 @@ const ProgressBar: FC<Props> = ({
           className={cn(
             'h-full border-r-2 border-ink animate-in slide-in-from-left-full duration-700 ease-[var(--ease-spring)]',
             percent === 100 && 'border-r-0',
-            fill,
+            !fillBackground && fill,
           )}
           style={{
             width: `${percent}%`,
-            backgroundImage:
-              'repeating-linear-gradient(-45deg, transparent 0 5px, rgb(43 42 51 / 0.14) 5px 7px)',
+            // The last layer of a background may be a plain color
+            ...(fillBackground
+              ? { background: `${HATCH}, ${fillBackground}` }
+              : { backgroundImage: HATCH }),
           }}
         />
       )}

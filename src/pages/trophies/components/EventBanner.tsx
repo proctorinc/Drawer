@@ -4,7 +4,10 @@ import type { TrophiesResponse } from '@/api/trophies';
 import Chip from '@/components/Chip';
 import { ClockIcon, StarIcon } from '@/components/icons';
 import { cn } from '@/utils';
-import { TreeIcon, candyCaneTape } from '@/events/christmas/Decorations';
+import { TreeIcon } from '@/events/christmas/Decorations';
+import { PushPin } from '@/components/PushPin';
+import ComingSoonCard from '@/events/ComingSoonCard';
+import { useUpcomingEvent } from '@/api/events';
 
 type SeasonalEvent = {
   name: string;
@@ -46,13 +49,6 @@ const events: Array<SeasonalEvent> = [
     to: '11-30',
     className: 'bg-butter',
   },
-  {
-    name: 'Festive Scribbles',
-    blurb: 'Hide a tiny snowman in every drawing. Friends get to find it.',
-    from: '12-01',
-    to: '12-31',
-    className: 'bg-[#d8f0dc]',
-  },
 ];
 
 const monthDay = (date: Date) =>
@@ -78,10 +74,10 @@ const LiveEventLink: FC<{ event: LiveEvent }> = ({
     params={{ slug }}
     className="press relative flex items-center gap-3 w-full px-4 py-3 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil -rotate-1"
   >
-    <span
-      aria-hidden="true"
-      className="absolute -top-2.5 left-6 w-16 h-5 border border-ink/20 -rotate-3"
-      style={{ background: candyCaneTape() }}
+    <PushPin
+      color={'var(--color-xmas-red)'}
+      lean={-16}
+      className="absolute z-10 -top-[23px] left-6"
     />
     {theme === 'christmas' ? (
       <TreeIcon size={26} className="flex-none text-ink" />
@@ -103,7 +99,10 @@ const LiveEventLink: FC<{ event: LiveEvent }> = ({
 );
 
 const EventBanner: FC<{ liveEvent: LiveEvent | null }> = ({ liveEvent }) => {
+  const { data: upcoming } = useUpcomingEvent(!liveEvent);
   if (liveEvent) return <LiveEventLink event={liveEvent} />;
+  // A real event on its way outranks the seasonal flavor
+  if (upcoming) return <ComingSoonCard />;
 
   const now = new Date();
   const today = monthDay(now);

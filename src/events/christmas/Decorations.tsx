@@ -228,10 +228,6 @@ export const Snowman: FC<Props> = ({ className }) => (
   </svg>
 );
 
-/** Red-and-white striped tape, for taping canvases and cards */
-export const candyCaneTape = (color = 'var(--color-xmas-red)') =>
-  `repeating-linear-gradient(45deg, ${color} 0 8px, #fff 8px 16px)`;
-
 /** A small tree icon for buttons */
 export const TreeIcon: FC<Props & { size?: number }> = ({
   className,

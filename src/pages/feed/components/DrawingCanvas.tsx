@@ -4,22 +4,20 @@ import Button from '@/components/Button';
 import Canvas from '@/drawing/Canvas';
 import { useDrawing } from '@/drawing/DrawingContext';
 import { Toolbar } from '@/drawing/Toolbar';
-import { cn, tapeColor } from '@/utils';
+import { cn } from '@/utils';
 import { PinIcon } from '@/components/icons';
-import { candyCaneTape } from '@/events/christmas/Decorations';
 
 type Props = {
   colors?: Array<string>;
   variant?: 'round' | 'square';
-  onSubmit?: (png: Blob) => void;
+  /** Gets the drawing, and the canvas it came from so callers can animate it */
+  onSubmit?: (png: Blob, canvas: HTMLCanvasElement | null) => void;
   submitLabel?: ReactNode;
   downloadEnabled?: boolean;
   canvasProps?: HTMLAttributes<HTMLCanvasElement>;
   backgroundColor?: string;
   /** Shrink the canvas to fit the height this component is given */
   fit?: boolean;
-  /** Christmas event: candy-cane tape instead of colored tape */
-  festive?: boolean;
 } & Omit<HTMLAttributes<HTMLDivElement>, 'onSubmit'>;
 
 const DrawingCanvas: FC<Props> = ({
@@ -36,24 +34,14 @@ const DrawingCanvas: FC<Props> = ({
   canvasProps,
   backgroundColor,
   fit = false,
-  festive = false,
   ...props
 }) => {
-  const { hasInk, getPng } = useDrawing();
+  const { canvasRef, hasInk, getPng } = useDrawing();
   const { className: divClassName, ...divProps } = props;
-  const tapes = colors?.length ? colors : ['#ff6b57', '#3a7bd5'];
-  const tapeStyle = (i: number) =>
-    festive
-      ? {
-          background: candyCaneTape(
-            i === 0 ? 'var(--color-xmas-red)' : 'var(--color-xmas-green)',
-          ),
-        }
-      : { backgroundColor: tapeColor(tapes[i] ?? tapes[0]) };
 
   async function handleSubmitCanvas() {
     const blob = await getPng(backgroundColor);
-    onSubmit?.(blob);
+    onSubmit?.(blob, canvasRef.current);
   }
 
   async function handleDownloadCanvas() {
@@ -97,7 +85,7 @@ const DrawingCanvas: FC<Props> = ({
           fit && 'flex-1 min-h-0 items-center [container-type:size]',
         )}
       >
-        {/* The canvas itself stays square to the screen so strokes land where the finger is */}
+        {/* Not pinned yet: the button pins it. Square to the screen so strokes land where the finger is */}
         <div className="relative animate-drop">
           <div
             className={cn(
@@ -116,20 +104,6 @@ const DrawingCanvas: FC<Props> = ({
               {...canvasProps}
             />
           </div>
-          {variant === 'square' && (
-            <>
-              <span
-                aria-hidden="true"
-                className="absolute -top-2.5 -left-3.5 w-[84px] h-[26px] -rotate-[32deg] animate-in fade-in zoom-in-150 duration-300 delay-500 fill-mode-both"
-                style={tapeStyle(0)}
-              />
-              <span
-                aria-hidden="true"
-                className="absolute -bottom-2 -right-3.5 w-[84px] h-[26px] -rotate-[28deg] animate-in fade-in zoom-in-150 duration-300 delay-700 fill-mode-both"
-                style={tapeStyle(1)}
-              />
-            </>
-          )}
         </div>
       </div>
       {colors && <Toolbar colors={colors} />}

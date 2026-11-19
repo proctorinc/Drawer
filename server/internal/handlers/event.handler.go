@@ -76,7 +76,52 @@ func eventFromSlug(c *gin.Context) (models.Event, bool) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to retrieve event"))
 		return models.Event{}, false
 	}
+	// An event stays a secret until it starts: nothing about it is served before then
+	if events.Now(appCtx.Config).Before(event.StartsAt) {
+		c.AbortWithStatusJSON(http.StatusNotFound, Error("Event not found"))
+		return models.Event{}, false
+	}
 	return event, true
+}
+
+// upcomingEventWindow is how far ahead an event is teased before it starts
+const upcomingEventWindow = 14 * 24 * time.Hour
+
+// UpcomingEvent is all that's revealed of an event before it starts: enough for a teaser.
+type UpcomingEvent struct {
+	Slug     string    `json:"slug"`
+	Name     string    `json:"name"`
+	Theme    string    `json:"theme"`
+	StartsAt time.Time `json:"startsAt"`
+}
+
+type UpcomingEventResponse struct {
+	Event *UpcomingEvent `json:"event"`
+}
+
+// HandleGetUpcomingEvent returns the next event starting within upcomingEventWindow, if any.
+// Only its name, theme and start are given; the rest waits until it starts.
+func HandleGetUpcomingEvent(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	now := events.Now(appCtx.Config)
+
+	event, err := queries.GetNextEvent(appCtx.DB, c.Request.Context(), now)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && event.StartsAt.Sub(now) > upcomingEventWindow) {
+		c.JSON(http.StatusOK, UpcomingEventResponse{Event: nil})
+		return
+	}
+	if err != nil {
+		log.Printf("Error fetching upcoming event at %s: %v", now, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to retrieve upcoming event"))
+		return
+	}
+
+	c.JSON(http.StatusOK, UpcomingEventResponse{Event: &UpcomingEvent{
+		Slug:     event.Slug,
+		Name:     event.Name,
+		Theme:    event.Theme,
+		StartsAt: event.StartsAt.UTC(),
+	}})
 }
 
 type EventLeaderboardResponse struct {

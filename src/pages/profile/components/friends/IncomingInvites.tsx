@@ -1,6 +1,7 @@
 import { UserProfileIcon } from '../profile-icons/UserProfileIcon';
 import { useFriendInvites } from './useFriendInvites';
 import Button from '@/components/Button';
+import { PushPin } from '@/components/PushPin';
 
 /** Friend requests as sticky notes, each answerable with one tap */
 const IncomingInvites = () => {
@@ -17,9 +18,10 @@ const IncomingInvites = () => {
           key={inviter.id}
           className={`relative flex flex-col gap-3 p-4 pt-5 bg-blush shadow-[1px_2px_6px_rgba(43,42,51,0.18)] ${i % 2 ? 'rotate-1' : '-rotate-1'}`}
         >
-          <span
-            aria-hidden="true"
-            className="absolute -top-2.5 left-1/2 -ml-7 w-14 h-[18px] bg-butter/90 -rotate-3"
+          <PushPin
+            color={'#ffb400'}
+            lean={-14}
+            className="absolute z-10 -top-[23px] left-1/2 -ml-4"
           />
           <div className="flex items-center gap-3">
             <UserProfileIcon user={inviter} />

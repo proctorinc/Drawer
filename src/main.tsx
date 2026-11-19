@@ -41,6 +41,7 @@ import PromptsPage from './pages/admin/pages/PromptsPage.tsx';
 import SuggestionsPage from './pages/admin/pages/SuggestionsPage.tsx';
 import AchievementsPage from './pages/admin/pages/AchievementsPage.tsx';
 import DecorationsPage from './pages/admin/pages/DecorationsPage.tsx';
+import LevelsPage from './pages/admin/pages/LevelsPage.tsx';
 import ReactionsPage from './pages/admin/pages/ReactionsPage.tsx';
 import ProgressionPage from './pages/admin/pages/ProgressionPage.tsx';
 import EventsPage from './pages/admin/pages/EventsPage.tsx';
@@ -212,6 +213,7 @@ const adminPages = [
   adminPage('decorations', DecorationsPage),
   adminPage('reactions', ReactionsPage),
   adminPage('progression', ProgressionPage),
+  adminPage('levels', LevelsPage),
   adminPage('events', EventsPage),
   createRoute({
     getParentRoute: () => adminRoute,

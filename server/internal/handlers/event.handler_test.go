@@ -35,6 +35,8 @@ func newEventsRouter(t *testing.T, fakeNow string) (*gin.Engine, *sql.DB) {
 		c.Set(middleware.UserContextKey, models.User{ID: "me", Username: "me"})
 	})
 	router.GET("/events/active", HandleGetActiveEvent)
+	router.GET("/events/upcoming", HandleGetUpcomingEvent)
+	router.GET("/user/:id/achievements", HandlerGetUserAchievements)
 	router.GET("/events/:slug/leaderboard", HandleGetEventLeaderboard)
 	router.GET("/events/:slug/recap", HandleGetEventRecap)
 	router.GET("/trophies", HandleGetTrophies)
@@ -312,5 +314,60 @@ func TestEventReactionsAllowedOnlyDuringEvent(t *testing.T) {
 		if err != nil || got != tt.want {
 			t.Errorf("%s on %s: allowed = %v, %v; want %v", tt.reaction, tt.fakeNow, got, err, tt.want)
 		}
+	}
+}
+
+func TestEventStaysSecretUntilItStarts(t *testing.T) {
+	// Eight days out: teased by name and start, but nothing else is served
+	router, _ := newEventsRouter(t, "2026-11-19")
+	_, body := request(t, router, "GET", "/events/upcoming", nil)
+	upcoming, _ := body["event"].(map[string]any)
+	if upcoming == nil || upcoming["slug"] != "christmas-2026" || upcoming["startsAt"] != "2026-11-27T00:00:00Z" {
+		t.Errorf("upcoming = %v", body["event"])
+	}
+	if len(upcoming) != 4 {
+		t.Errorf("upcoming reveals %d fields, want only slug, name, theme and startsAt", len(upcoming))
+	}
+	for _, path := range []string{"/events/christmas-2026/recap", "/events/christmas-2026/leaderboard"} {
+		if code, _ := request(t, router, "GET", path, nil); code != http.StatusNotFound {
+			t.Errorf("%s before the start = %d, want 404", path, code)
+		}
+	}
+	countEventStickers := func(router *gin.Engine) int {
+		_, body := request(t, router, "GET", "/user/me/achievements", nil)
+		n := 0
+		for _, a := range body["achievements"].([]any) {
+			if a.(map[string]any)["eventSlug"] != nil {
+				n++
+			}
+		}
+		return n
+	}
+	if n := countEventStickers(router); n != 0 {
+		t.Errorf("%d event stickers shown before the start, want 0", n)
+	}
+
+	// Too far out to tease
+	router, _ = newEventsRouter(t, "2026-11-01")
+	if _, body := request(t, router, "GET", "/events/upcoming", nil); body["event"] != nil {
+		t.Errorf("upcoming 26 days out = %v, want null", body["event"])
+	}
+
+	// Once it starts it's no longer upcoming, and its stickers show
+	router, _ = newEventsRouter(t, "2026-11-27")
+	if _, body := request(t, router, "GET", "/events/upcoming", nil); body["event"] != nil {
+		t.Errorf("upcoming on the first day = %v, want null", body["event"])
+	}
+	if n := countEventStickers(router); n != 3 {
+		t.Errorf("%d event stickers shown during the event, want 3", n)
+	}
+	if code, _ := request(t, router, "GET", "/events/christmas-2026/recap", nil); code != http.StatusOK {
+		t.Errorf("recap on the first day = %d, want 200", code)
+	}
+
+	// After it, unearned stickers go away again
+	router, _ = newEventsRouter(t, "2027-01-05")
+	if n := countEventStickers(router); n != 0 {
+		t.Errorf("%d unearned event stickers shown after the event, want 0", n)
 	}
 }

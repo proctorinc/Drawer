@@ -11,6 +11,10 @@ import { DrawingProvider } from '@/drawing/DrawingContext';
 import EventIcon from '@/events/EventIcon';
 import Snowfall from '@/events/christmas/Snowfall';
 import { TreeIcon } from '@/events/christmas/Decorations';
+import { PinCeremony } from '@/drawing/components/PinCeremony';
+import { PIN_COLORS } from '@/components/PushPin';
+import { cn } from '@/utils';
+import useUser from '@/auth/hooks/useUser';
 import useLocalStorage from '@/hooks/useLocalStorage';
 import DrawingCanvas from '@/pages/feed/components/DrawingCanvas';
 import { PromptTitle } from '@/pages/feed/components/PromptTitle';
@@ -108,13 +112,24 @@ const PromptPreview: FC<{ prompt: AdminPrompt }> = ({ prompt }) => {
   const original = toPalette(prompt.colors);
   const [palette, setPalette] = useState(original);
   const changed = colorsOf(palette).join() !== colorsOf(original).join();
+  const user = useUser();
+  // Pinning plays the real animation; nothing is uploaded
+  const [pinning, setPinning] = useState<{
+    imageUrl: string;
+    from: DOMRect;
+  } | null>(null);
 
   return (
     <div className="grid grid-cols-[auto_1fr] gap-8 items-start">
       {/* translate-z keeps the snow's position:fixed inside the phone */}
       <div className="paper relative flex flex-col gap-4 w-[390px] h-[780px] px-5 py-4 overflow-hidden border-[3px] border-ink rounded-[36px] shadow-pencil [transform:translateZ(0)]">
         {christmas && <Snowfall />}
-        <header className="relative flex flex-col gap-1">
+        <header
+          className={cn(
+            'relative flex flex-col gap-1 transition-opacity duration-300',
+            pinning && 'opacity-0',
+          )}
+        >
           <span className="text-sm text-pencil">
             {prompt.createdBy
               ? `prompt by ${prompt.createdBy.username}`
@@ -125,11 +140,20 @@ const PromptPreview: FC<{ prompt: AdminPrompt }> = ({ prompt }) => {
         <DrawingProvider localStorageKey="ADMIN_PROMPT_PREVIEW">
           <DrawingCanvas
             fit
-            className="relative flex-1 min-h-0"
+            className={cn(
+              'relative flex-1 min-h-0 transition-opacity duration-300',
+              pinning && 'opacity-0 pointer-events-none',
+            )}
             colors={palette.colors}
             backgroundColor={palette.paper}
-            festive={christmas}
             downloadEnabled
+            onSubmit={(png, canvas) => {
+              if (!canvas) return;
+              setPinning({
+                imageUrl: URL.createObjectURL(png),
+                from: canvas.getBoundingClientRect(),
+              });
+            }}
             submitLabel={
               christmas ? (
                 <>
@@ -140,6 +164,18 @@ const PromptPreview: FC<{ prompt: AdminPrompt }> = ({ prompt }) => {
             }
           />
         </DrawingProvider>
+        {pinning && (
+          <PinCeremony
+            imageUrl={pinning.imageUrl}
+            from={pinning.from}
+            pinColor={PIN_COLORS[0]}
+            user={user}
+            onDone={() => {
+              URL.revokeObjectURL(pinning.imageUrl);
+              setPinning(null);
+            }}
+          />
+        )}
       </div>
 
       <Panel className="flex flex-col gap-4 p-5 max-w-sm">
@@ -204,7 +240,6 @@ const FreePlay = () => {
     10000,
   );
   const [round, setRound] = useState(false);
-  const [festive, setFestive] = useState(false);
   const palette = toPalette(colors);
 
   return (
@@ -216,7 +251,6 @@ const FreePlay = () => {
               variant={round ? 'round' : 'square'}
               colors={palette.colors}
               backgroundColor={palette.paper}
-              festive={festive}
               downloadEnabled
             />
           </DrawingProvider>
@@ -231,11 +265,6 @@ const FreePlay = () => {
           label="round (profile pic)"
           checked={round}
           onChange={setRound}
-        />
-        <Checkbox
-          label="christmas tape"
-          checked={festive}
-          onChange={setFestive}
         />
       </Panel>
     </div>

@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { DrawingImage } from './DrawingImage';
 import { LockedDrawing } from './LockedDrawing';
 import type { FC } from 'react';
-import type {UserPromptSubmission} from '@/api/Api';
+import type { UserPromptSubmission } from '@/api/Api';
 import { Card } from '@/components/Card';
 import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
@@ -12,11 +12,18 @@ type Props = {
   submission: UserPromptSubmission;
   className?: string;
   onClick?: () => void;
+  /** The artist's avatar over the corner; polaroids show it below instead */
+  showAvatar?: boolean;
 };
 
 const LONG_PRESS_DURATION = 200; // ms
 
-const DrawingFeedImage: FC<Props> = ({ submission, onClick, className }) => {
+const DrawingFeedImage: FC<Props> = ({
+  submission,
+  onClick,
+  className,
+  showAvatar = true,
+}) => {
   const isLocked = useIsDrawingLocked()(submission);
   const [overlaysVisible, setOverlaysVisible] = useState(true);
   const longPressTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -82,21 +89,23 @@ const DrawingFeedImage: FC<Props> = ({ submission, onClick, className }) => {
         />
       )}
       {/* Unified overlays container */}
-      <div
-        className={cn(
-          'absolute inset-0 transition-opacity duration-200',
-          !overlaysVisible && 'opacity-0 pointer-events-none',
-        )}
-        style={{ zIndex: 2 }}
-      >
-        {/* Top right overlays */}
+      {showAvatar && (
         <div
-          id="hoverings"
-          className="flex flex-col gap-2 absolute top-2 right-2 pointer-events-auto"
+          className={cn(
+            'absolute inset-0 transition-opacity duration-200',
+            !overlaysVisible && 'opacity-0 pointer-events-none',
+          )}
+          style={{ zIndex: 2 }}
         >
-          <UserProfileIcon user={submission.user} />
+          {/* Top right overlays */}
+          <div
+            id="hoverings"
+            className="flex flex-col gap-2 absolute top-2 right-2 pointer-events-auto"
+          >
+            <UserProfileIcon user={submission.user} />
+          </div>
         </div>
-      </div>
+      )}
     </Card>
   );
 };

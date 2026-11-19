@@ -1,65 +1,80 @@
 import { useGetUserAchievements, useGetUserTrophies } from '../api';
-import type { FC } from 'react';
-import type { User } from '@/api/Api';
+import UserHeader from './UserHeader';
+import type { PublicTrophies } from '../api';
+import type { FC, ReactNode } from 'react';
+import type { GetMeResponse, User } from '@/api/Api';
 import type { LeaderboardEntry } from '@/api/trophies';
 import { useGetTrophies } from '@/api/trophies';
 import { AchievementSticker } from '@/pages/trophies/components/AchievementCard';
 import { levelTitle } from '@/pages/trophies/components/LevelCard';
 import ProgressBar from '@/pages/trophies/components/ProgressBar';
+import { rankCardFor } from '@/levels/rankCards';
 
-/** Where they sit on your friend leaderboard this week, ties sharing a place */
-function weeklyPlace(board: Array<LeaderboardEntry>, userId: string) {
+/** Where they sit on your friend leaderboard, ties sharing a place */
+function boardPlace(board: Array<LeaderboardEntry>, userId: string) {
   const entry = board.find((e) => e.user.id === userId);
   if (!entry) return null;
-  if (entry.xp === 0) return 'napping this week';
+  if (entry.xp === 0) return null;
   const place = board.findIndex((e) => e.xp === entry.xp) + 1;
-  return `#${place} of ${board.length} on your board this week`;
+  return `#${place} of ${board.length} on your board`;
 }
 
-/** Their level, XP and weekly rank, like the top of the Trophies page */
-export const FriendLevelCard: FC<{ user: User }> = ({ user }) => {
-  const { data: trophies } = useGetUserTrophies(user.id);
+/** Their level, XP and board rank, for the bottom of their cover */
+const FriendLevel: FC<{ user: User; trophies: PublicTrophies }> = ({
+  user,
+  trophies,
+}) => {
   const { data: mine } = useGetTrophies();
-
-  if (!trophies) return null;
-
   const { level, xp, levelStartXp, nextLevelXp } = trophies.level;
-  const place = mine && weeklyPlace(mine.leaderboard, user.id);
+  const { tier, card } = rankCardFor(level);
+  const place = mine && boardPlace(mine.leaderboard, user.id);
 
   return (
-    <section className="relative flex flex-col gap-3 w-full p-4 pt-5 bg-white border-2 border-ink rounded-sketch shadow-pencil">
-      <span
-        aria-hidden="true"
-        className="absolute -top-2.5 left-1/2 -ml-8 w-16 h-5 bg-sky/90 rotate-2"
-      />
-      <div className="flex items-center gap-4">
-        <div className="relative grid place-items-center size-16 shrink-0 bg-butter border-2 border-ink rounded-blob -rotate-6">
-          <span className="font-accent font-bold text-[36px] leading-none">
-            {level}
-          </span>
-          <span className="absolute -bottom-2 px-1.5 bg-coral text-white text-xs border-2 border-ink rounded-sketch rotate-3">
-            LEVEL
-          </span>
-        </div>
-        <div className="flex flex-col min-w-0">
-          <span className="text-pencil truncate">{user.username} is a…</span>
-          <h2 className="font-accent font-bold text-[30px] leading-none">
-            <span className="highlight">{levelTitle(level).toLowerCase()}</span>
-          </h2>
-        </div>
+    <div className="flex flex-col gap-2 pt-3 border-t-2 border-dashed border-current/25">
+      <div className="flex items-end justify-between gap-2">
+        <h2 className="font-accent font-bold text-[26px] leading-none">
+          <span className="highlight">{levelTitle(level).toLowerCase()}</span>
+        </h2>
+        <span className="text-pencil text-right">
+          lv {level} · {tier.name.toLowerCase()}
+        </span>
       </div>
       <ProgressBar
         value={xp - levelStartXp}
         max={nextLevelXp - levelStartXp}
         label={`${user.username}'s level ${level} progress`}
+        fillBackground={card.fill}
       />
       <div className="flex justify-between gap-2 text-pencil">
         <span>
-          <b className="font-accent text-xl text-ink">{xp}</b> XP
+          <b className="font-accent text-xl text-[color:var(--rank-text)]">
+            {xp}
+          </b>{' '}
+          XP
         </span>
         {place && <span className="text-right">{place}</span>}
       </div>
-    </section>
+    </div>
+  );
+};
+
+/** Their cover and level in one card, dressed for their rank */
+export const FriendHeader: FC<{
+  userProfile: GetMeResponse;
+  children?: ReactNode;
+}> = ({ userProfile, children }) => {
+  const { user } = userProfile;
+  const { data: trophies } = useGetUserTrophies(user.id);
+
+  return (
+    <UserHeader
+      userProfile={userProfile}
+      ranked
+      level={trophies?.level.level}
+      footer={trophies && <FriendLevel user={user} trophies={trophies} />}
+    >
+      {children}
+    </UserHeader>
   );
 };
 

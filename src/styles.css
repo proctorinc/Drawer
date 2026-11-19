@@ -329,3 +329,154 @@ body {
     opacity: 0;
   }
 }
+
+/* Level badges on avatars (src/levels/LevelBadge.tsx) */
+@property --rank-angle {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+/* Turns conic foils and rims that use var(--rank-angle) */
+.rank-spin {
+  animation: rank-spin 4s linear infinite;
+}
+@keyframes rank-spin {
+  to {
+    --rank-angle: 360deg;
+  }
+}
+/* A flat, hard-edged stripe that slides across the badge every few seconds */
+.rank-sheen {
+  position: absolute;
+  inset: -20%;
+  background: linear-gradient(
+    105deg,
+    transparent 44%,
+    rgb(255 255 255 / 0.6) 44% 56%,
+    transparent 56%
+  );
+  translate: -110% 0;
+  animation: rank-sheen 3.6s ease-in-out infinite;
+}
+@keyframes rank-sheen {
+  0%,
+  55% {
+    translate: -110% 0;
+  }
+  85%,
+  100% {
+    translate: 110% 0;
+  }
+}
+/* A flat outline in the rank's color that ripples out and fades */
+.rank-pulse {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border-style: solid;
+  opacity: 0;
+  animation: rank-pulse 2.4s ease-out infinite;
+}
+@keyframes rank-pulse {
+  0% {
+    opacity: 0.9;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 1.55;
+  }
+}
+/* Four-pointed twinkles */
+.rank-spark {
+  position: absolute;
+  clip-path: polygon(
+    50% 0%,
+    61% 39%,
+    100% 50%,
+    61% 61%,
+    50% 100%,
+    39% 61%,
+    0% 50%,
+    39% 39%
+  );
+  scale: 0;
+  animation: rank-twinkle 2.6s ease-in-out infinite;
+}
+@keyframes rank-twinkle {
+  0%,
+  60%,
+  100% {
+    scale: 0;
+    rotate: 0deg;
+  }
+  75% {
+    scale: 1;
+    rotate: 45deg;
+  }
+}
+/* Rank cards (src/levels/RankCard.tsx): a slow, narrow glint across the card */
+.rank-card-sheen {
+  position: absolute;
+  inset: 0 -40%;
+  background: linear-gradient(
+    105deg,
+    transparent 46%,
+    rgb(255 255 255 / 0.4) 46% 50%,
+    transparent 50% 52%,
+    rgb(255 255 255 / 0.4) 52% 53%,
+    transparent 53%
+  );
+  translate: -100% 0;
+  animation: rank-card-sheen 6s ease-in-out infinite;
+}
+@keyframes rank-card-sheen {
+  0%,
+  60% {
+    translate: -100% 0;
+  }
+  90%,
+  100% {
+    translate: 100% 0;
+  }
+}
+/* A flat outline in the rank's glow color that ripples off the card */
+.rank-card-glow {
+  outline: 3px solid transparent;
+  animation: rank-card-glow 2.4s ease-out infinite;
+}
+.rank-card-glow.rank-spin {
+  animation:
+    rank-card-glow 2.4s ease-out infinite,
+    rank-spin 4s linear infinite;
+}
+@keyframes rank-card-glow {
+  0% {
+    outline-color: var(--glow);
+    outline-offset: 0px;
+  }
+  100% {
+    outline-color: transparent;
+    outline-offset: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rank-spin,
+  .rank-sheen,
+  .rank-pulse,
+  .rank-spark,
+  .rank-card-sheen,
+  .rank-card-glow,
+  .rank-card-glow.rank-spin {
+    animation: none;
+  }
+  .rank-card-glow {
+    outline-color: var(--glow);
+  }
+  .rank-card-sheen,
+  .rank-sheen,
+  .rank-pulse,
+  .rank-spark {
+    display: none;
+  }
+}

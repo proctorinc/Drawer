@@ -156,6 +156,13 @@ const FlairPicker = () => {
   const isUnlocked = (id: DecorationId) => !!achievementsData?.rewards.has(id);
   const stickerFor = (id: DecorationId) =>
     achievementsData?.achievements.find((a) => a.reward?.id === id)?.name;
+  // Flair from an event that hasn't started (or that you missed) stays out of
+  // sight: its sticker isn't listed, so there's nothing to earn it with
+  const isAvailable = (id: DecorationId) => isUnlocked(id) || !!stickerFor(id);
+  const groups = DECORATION_GROUPS.map((group) => ({
+    ...group,
+    ids: group.ids.filter(isAvailable),
+  })).filter((group) => group.ids.length > 0);
 
   /** Wears a decoration, or nothing with '' */
   function wear(decoration: DecorationId | '') {
@@ -200,10 +207,11 @@ const FlairPicker = () => {
               user={{ ...user, decoration: '' }}
               size="lg"
               onClick={ignoreClick}
+              showLevel={false}
             />
           </Swatch>
         </FlairGroup>
-        {DECORATION_GROUPS.map((group) => (
+        {groups.map((group) => (
           <FlairGroup key={group.name} name={group.name}>
             {group.ids.map((id) => (
               <Swatch
@@ -217,6 +225,7 @@ const FlairPicker = () => {
                   user={{ ...user, decoration: id }}
                   size="lg"
                   onClick={ignoreClick}
+                  showLevel={false}
                 />
               </Swatch>
             ))}

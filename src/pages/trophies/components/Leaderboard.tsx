@@ -51,7 +51,7 @@ const Leaderboard: FC<Props> = ({ entries, myId }) => {
                 medal?.className,
               )}
             >
-              {/* No XP this week isn't a placing */}
+              {/* No XP yet isn't a placing */}
               {isNapping ? '–' : (medal?.label ?? rank)}
             </span>
             <UserProfileIcon size="sm" user={entry.user} />
@@ -62,7 +62,7 @@ const Leaderboard: FC<Props> = ({ entries, myId }) => {
               </span>
               <span className="text-sm text-pencil leading-tight">
                 {isNapping
-                  ? 'napping on the job'
+                  ? 'just getting started'
                   : `${entry.drawings} drawing${entry.drawings === 1 ? '' : 's'}`}
               </span>
             </div>

@@ -7,7 +7,10 @@ import { queryKeys, useSwapFavoriteOrder } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import Banner from '@/components/Banner';
 import Button from '@/components/Button';
-import { StarIcon } from '@/components/icons';
+import { CommentIcon, StarIcon } from '@/components/icons';
+import { polaroidFrameClass } from '@/components/polaroid';
+import { PIN_COLORS, PushPin } from '@/components/PushPin';
+import { ReactionPile } from '@/reactions/ReactionPile';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { LockedDrawing } from '@/drawing/components/LockedDrawing';
 import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
@@ -24,38 +27,66 @@ type FrameProps = {
   favorite: FavoriteSubmission;
   isSelected: boolean;
   onClick: () => void;
+  /** Picks its pin's color and lean */
+  index: number;
   className?: string;
 };
 
+/** A favorite as a small polaroid, pinned up like the ones on the wall */
 const FavoriteFrame: FC<FrameProps> = ({
   favorite,
   isSelected,
   onClick,
+  index,
   className,
 }) => {
-  const isLocked = useIsDrawingLocked()(favorite.submission);
+  const { submission } = favorite;
+  const isLocked = useIsDrawingLocked()(submission);
 
   return (
     <button
       onClick={onClick}
-      aria-label={favorite.submission.prompt}
+      aria-label={submission.prompt}
       aria-pressed={isSelected}
       className={cn(
-        'block w-full p-1.5 bg-white shadow-[1px_2px_6px_rgba(43,42,51,0.18)] cursor-pointer transition-[rotate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 active:scale-95',
+        'relative block w-full p-1.5 pb-0 text-left cursor-pointer transition-[rotate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 active:scale-95',
+        polaroidFrameClass,
         isSelected &&
           'rotate-0 scale-105 outline-3 outline-dashed outline-coral',
         className,
       )}
     >
+      <PushPin
+        color={PIN_COLORS[index % PIN_COLORS.length]}
+        lean={index % 2 === 0 ? 18 : -16}
+        size={26}
+        className="absolute z-10 -top-[19px] left-1/2 -ml-[13px]"
+      />
       {isLocked ? (
         <LockedDrawing />
       ) : (
         <DrawingImage
-          imageUrl={favorite.submission.imageUrl}
+          imageUrl={submission.imageUrl}
           draggable={false}
           className="bg-[#fff8ec]"
         />
       )}
+      {/* The wall's caption strip, shrunk: its reactions and comments */}
+      <span className="flex items-center gap-1 min-h-7 py-1">
+        {submission.counts.length > 0 && (
+          <ReactionPile
+            counts={submission.counts}
+            size={16}
+            className="flex-1"
+          />
+        )}
+        {submission.comments.length > 0 && (
+          <span className="flex flex-none items-center gap-0.5 ml-auto font-accent font-bold text-xs">
+            <CommentIcon size={12} strokeWidth={2.4} />
+            {submission.comments.length}
+          </span>
+        )}
+      </span>
     </button>
   );
 };
@@ -102,9 +133,10 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
     }
   }
 
-  function frameProps(favorite: FavoriteSubmission) {
+  function frameProps(favorite: FavoriteSubmission, index: number) {
     return {
       favorite,
+      index,
       isSelected: selectedId === favorite.id,
       onClick: () => handleClick(favorite),
     };
@@ -147,7 +179,7 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
           {PODIUM.map(({ index, medal, tilt, width }) => (
             <div
               key={index}
-              className={cn('flex flex-col items-center gap-2', width)}
+              className={cn('flex flex-col items-center gap-6', width)}
             >
               {favorites[index] && (
                 <>
@@ -161,7 +193,7 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
                     {index + 1}
                   </span>
                   <FavoriteFrame
-                    {...frameProps(favorites[index])}
+                    {...frameProps(favorites[index], index)}
                     className={tilt}
                   />
                 </>
@@ -174,9 +206,12 @@ const FavoriteSubmissions: FC<Props> = ({ profile }) => {
       {isEditing && favorites.length > 3 && (
         <>
           <span className="text-pencil">the runners-up</span>
-          <div className="grid grid-cols-4 gap-3">
-            {favorites.slice(3).map((favorite) => (
-              <FavoriteFrame key={favorite.id} {...frameProps(favorite)} />
+          <div className="grid grid-cols-4 gap-x-3 gap-y-6 pt-3">
+            {favorites.slice(3).map((favorite, i) => (
+              <FavoriteFrame
+                key={favorite.id}
+                {...frameProps(favorite, i + 3)}
+              />
             ))}
           </div>
         </>

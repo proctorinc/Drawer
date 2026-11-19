@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import type { CSSProperties, FC } from 'react';
 import { cn } from '@/utils';
 
 /** Pin head colors, cycled so neighbouring polaroids get different pins */
@@ -18,6 +18,7 @@ type Props = {
   /** Rendered width in px; height follows */
   size?: number;
   className?: string;
+  style?: CSSProperties;
 };
 
 /**
@@ -30,6 +31,7 @@ export const PushPin: FC<Props> = ({
   lean = 18,
   size = 32,
   className,
+  style,
 }) => {
   const light = `color-mix(in srgb, ${color} 65%, white)`;
   const dark = `color-mix(in srgb, ${color} 80%, var(--color-ink))`;
@@ -41,6 +43,7 @@ export const PushPin: FC<Props> = ({
       height={size}
       viewBox="0 0 40 40"
       className={cn('pointer-events-none overflow-visible', className)}
+      style={style}
     >
       {/* Shadow cast on the paper, falling down and to the right */}
       <g

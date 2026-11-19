@@ -29,6 +29,14 @@ export interface ActiveEvent {
   reactions: Array<string>;
 }
 
+/** All that's known of an event before it starts: enough for a teaser */
+export interface UpcomingEvent {
+  slug: string;
+  name: string;
+  theme: EventTheme | (string & {});
+  startsAt: string;
+}
+
 export interface EventLeaderboardEntry {
   user: User;
   doodles: number;
@@ -65,6 +73,7 @@ export interface EventRecap {
 
 export const eventKeys = {
   active: ['events', 'active'] as const,
+  upcoming: ['events', 'upcoming'] as const,
   leaderboard: (slug: string) => ['events', slug, 'leaderboard'] as const,
   recap: (slug: string, userId?: string) =>
     ['events', slug, 'recap', userId ?? 'me'] as const,
@@ -87,6 +96,19 @@ export function useActiveEvent(enabled = true) {
         (body) => body.event,
       ),
     // An event only changes at a day boundary; the countdown refetches then
+    staleTime: 5 * 60_000,
+  });
+}
+
+/** The next event, once it's close enough to tease; null otherwise */
+export function useUpcomingEvent(enabled = true) {
+  return useQuery({
+    enabled,
+    queryKey: eventKeys.upcoming,
+    queryFn: () =>
+      getJSON<{ event: UpcomingEvent | null }>('/events/upcoming').then(
+        (body) => body.event,
+      ),
     staleTime: 5 * 60_000,
   });
 }
