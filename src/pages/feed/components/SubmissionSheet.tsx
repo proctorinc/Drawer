@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { faArrowRight, faHeart } from '@fortawesome/free-solid-svg-icons';
-import { faHeart as EmptyHeart } from '@fortawesome/free-regular-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { PinButton } from './PinButton';
 import type { FC } from 'react';
-import type { Comment, UserPromptSubmission } from '@/api/Api';
+import type { Comment, ReactionId, UserPromptSubmission } from '@/api/Api';
 import {
   queryKeys,
   useAddComment,
@@ -15,15 +13,27 @@ import {
 } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
+import { HeartIcon } from '@/components/icons';
+import { ReactionDrawer } from '@/reactions/ReactionDrawer';
+import { ReactionPile } from '@/reactions/ReactionPile';
+import { ReactionSticker } from '@/reactions/ReactionSticker';
+import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { Card, CardContent } from '@/components/Card';
-import Tooltip from '@/components/Tooltip';
 import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 import { parseDay } from '@/days';
 import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
 import { ShareButton } from '@/pages/profile/components/friends/ShareButton';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { ReactionBar } from '@/reactions/ReactionBar';
+import { bigPolaroidFrameClass } from '@/components/polaroid';
 import { cn, timeAgo } from '@/utils';
+
+/** A pin color that varies page to page but stays put for a given doodle */
+function pinColor(id: string) {
+  let hash = 0;
+  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  return PIN_COLORS[Math.abs(hash) % PIN_COLORS.length];
+}
 
 type Props = {
   /** The feed's copy shows straight away; the full doodle loads over it */
@@ -41,18 +51,21 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
   const addComment = useAddComment();
   const [newComment, setNewComment] = useState('');
 
-  function hasReacted(comment: Comment) {
-    return comment.reactions.some(
+  // The comment whose reaction drawer is open, if any
+  const [reactingTo, setReactingTo] = useState<Comment | null>(null);
+
+  function myReaction(comment: Comment) {
+    return comment.reactions.find(
       (reaction) => reaction.user.id === currentUser.id,
-    );
+    )?.reactionId;
   }
 
-  function heartComment(comment: Comment) {
+  function reactToComment(comment: Comment, reactionId: ReactionId) {
     toggleReaction.mutate(
       {
         submissionId: submission.id,
         commentId: comment.id,
-        reactionId: 'heart',
+        reactionId,
       },
       {
         onSuccess: () => {
@@ -70,21 +83,35 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
   return (
     <div className="flex flex-col items-center gap-6 w-full">
       <div className="relative w-full px-2 animate-drop [--tilt:-1deg] -rotate-1">
-        <span
-          aria-hidden="true"
-          className="absolute z-10 -top-2.5 left-1/2 -ml-10 w-20 h-6 bg-butter/70 rotate-3"
+        <PushPin
+          color={pinColor(submission.id)}
+          size={40}
+          className="absolute z-10 -top-[30px] left-1/2 -ml-5"
         />
-        <div className="p-3 bg-white shadow-[1px_3px_10px_rgba(43,42,51,0.2)]">
-          <DrawingFeedImage
-            submission={submission}
-            className="border-0 rounded-none shadow-none"
-          />
-          {/* Pin and reactions sit on the polaroid's bottom strip, as on the feed */}
-          <div className="flex items-center gap-1.5 mt-3">
+        <div className={cn('p-3', bigPolaroidFrameClass)}>
+          <div className="relative">
+            <DrawingFeedImage
+              submission={submission}
+              showAvatar={false}
+              className="border-0 rounded-none shadow-none"
+            />
+            {/* As on the wall, starring your own sits on the photo's corner */}
             {submission.user.id === currentUser.id && (
-              <PinButton submission={submission} />
+              <PinButton submission={submission} variant="corner" />
             )}
-            <ReactionBar submission={submission} className="min-h-8" />
+          </div>
+          {/* One line, as on the wall: whose it is, its reactions and the
+              way down to the comments */}
+          <div className="flex items-center gap-2 mt-3">
+            <UserProfileIcon
+              user={submission.user}
+              size="sm"
+              className="flex-none"
+            />
+            <ReactionBar
+              submission={submission}
+              className="flex-1 min-w-0 min-h-8"
+            />
           </div>
         </div>
       </div>
@@ -108,6 +135,14 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
           text={`Checkout ${submission.user.id === currentUser.id ? 'my' : `${submission.user.username}'s`} doodle of ${submission.prompt.toLowerCase()}!`}
         ></ShareButton>
       </div>
+      <ReactionDrawer
+        title="react to comment"
+        open={!!reactingTo}
+        onClose={() => setReactingTo(null)}
+        reactions={reactingTo?.reactions ?? []}
+        counts={reactingTo?.counts ?? []}
+        onToggle={(id) => reactingTo && reactToComment(reactingTo, id)}
+      />
       <div className="flex flex-col w-full gap-4">
         <Card>
           <CardContent className="gap-2">
@@ -118,7 +153,7 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
             )}
             {submission.comments.length > 0 &&
               submission.comments.map((comment) => {
-                const activeHeart = hasReacted(comment);
+                const mine = myReaction(comment);
 
                 return (
                   <div key={comment.id} className="flex flex-col gap-1">
@@ -140,48 +175,30 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
                           {timeAgo(comment.createdAt)}
                         </span>
                         {comment.user.id !== currentUser.id && (
-                          <button onClick={() => heartComment(comment)}>
-                            <FontAwesomeIcon
-                              className={cn(activeHeart && 'text-red-400')}
-                              icon={activeHeart ? faHeart : EmptyHeart}
-                            />
+                          <button
+                            type="button"
+                            aria-haspopup="dialog"
+                            aria-label={
+                              mine ? 'Change your reaction' : 'React to comment'
+                            }
+                            onClick={() => setReactingTo(comment)}
+                            className="grid place-items-center size-7 cursor-pointer transition-[scale] duration-300 ease-[var(--ease-spring)] hover:scale-110 active:scale-90"
+                          >
+                            {mine ? (
+                              <ReactionSticker reactionId={mine} size={22} />
+                            ) : (
+                              <HeartIcon size={16} strokeWidth={2.2} />
+                            )}
                           </button>
                         )}
                       </div>
                     </div>
-                    {comment.reactions.length > 0 && (
-                      <Tooltip
-                        location="bottom"
-                        show={comment.reactions.length > 1}
-                        content={
-                          <div className="flex flex-col w-full text-sm text-center">
-                            {comment.reactions.map((reaction) => (
-                              <div className="flex gap-2 items-center">
-                                <FontAwesomeIcon
-                                  icon={faHeart}
-                                  className="text-red-400"
-                                />
-                                <span>
-                                  {reaction.user.id === currentUser.id
-                                    ? 'you'
-                                    : reaction.user.username}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        }
-                      >
-                        <div className="flex align-right w-full pr-2">
-                          <h3 className="w-fit text-xs font-semibold text-secondary whitespace-nowrap">
-                            Loved by{' '}
-                            {comment.reactions[0].user.id === currentUser.id
-                              ? 'you'
-                              : comment.reactions[0].user.username}{' '}
-                            {comment.reactions.length > 1 &&
-                              `+ ${comment.reactions.length - 1} more`}
-                          </h3>
-                        </div>
-                      </Tooltip>
+                    {comment.counts.length > 0 && (
+                      <ReactionPile
+                        counts={comment.counts}
+                        size={20}
+                        className="self-end pr-1"
+                      />
                     )}
                   </div>
                 );

@@ -1,10 +1,11 @@
 import { Link } from '@tanstack/react-router';
 import { useChristmas } from '../useChristmas';
-import { TreeIcon, candyCaneTape } from './Decorations';
+import { TreeIcon } from './Decorations';
 import OrnamentTally from './OrnamentTally';
 import type { FC } from 'react';
 import type { User } from '@/api/Api';
 import { useEventRecap } from '@/api/events';
+import { PushPin } from '@/components/PushPin';
 
 type Props = { user: User };
 
@@ -23,10 +24,10 @@ const FriendEventLink: FC<Props> = ({ user }) => {
       search={{ user: user.id }}
       className="press relative flex flex-col gap-2 w-full px-4 pt-4 pb-3 bg-white border-2 border-ink rounded-sketch shadow-pencil hover:-rotate-1 animate-rise"
     >
-      <span
-        aria-hidden="true"
-        className="absolute -top-2.5 left-6 w-16 h-5 border border-ink/20 -rotate-3"
-        style={{ background: candyCaneTape() }}
+      <PushPin
+        color={'var(--color-xmas-red)'}
+        lean={-16}
+        className="absolute z-10 -top-[23px] left-6"
       />
       <span className="flex items-center gap-3">
         <TreeIcon size={26} className="flex-none text-ink" />

@@ -18,6 +18,7 @@ import App from './pages/feed/Feed.tsx';
 import CreateProfilePage from './pages/auth/CreateProfilePage.tsx';
 import { UserProfileProvider } from './pages/profile/context/UserProfileContext.tsx';
 import { DailyPromptProvider } from './daily/DailyPromptContext.tsx';
+import { TodayDrawingProvider } from './daily/TodayDrawingProvider.tsx';
 import { DrawingProvider } from './drawing/DrawingContext.tsx';
 import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
@@ -40,6 +41,7 @@ import PromptsPage from './pages/admin/pages/PromptsPage.tsx';
 import SuggestionsPage from './pages/admin/pages/SuggestionsPage.tsx';
 import AchievementsPage from './pages/admin/pages/AchievementsPage.tsx';
 import DecorationsPage from './pages/admin/pages/DecorationsPage.tsx';
+import LevelsPage from './pages/admin/pages/LevelsPage.tsx';
 import ReactionsPage from './pages/admin/pages/ReactionsPage.tsx';
 import ProgressionPage from './pages/admin/pages/ProgressionPage.tsx';
 import EventsPage from './pages/admin/pages/EventsPage.tsx';
@@ -47,6 +49,7 @@ import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
 import DrawProfilePicPage from './pages/profile/DrawProfilePicPage.tsx';
 import { Config } from './config/Config.ts';
+import ImpersonationBanner from './components/ImpersonationBanner.tsx';
 import type { FC } from 'react';
 
 const queryClient = new QueryClient();
@@ -62,6 +65,7 @@ const rootRoute = createRootRoute({
           <BrandProvider>
             <NotificationProvider>
               <DailyPromptProvider>
+                <ImpersonationBanner />
                 <Outlet />
               </DailyPromptProvider>
             </NotificationProvider>
@@ -89,9 +93,9 @@ const indexRoute = createRoute({
   component: () => (
     <AuthRoute>
       <MyProfilePageProvider>
-        <DrawingProvider localStorageKey="DRAWING_SUBMISSION_0">
+        <TodayDrawingProvider>
           <App />
-        </DrawingProvider>
+        </TodayDrawingProvider>
       </MyProfilePageProvider>
     </AuthRoute>
   ),
@@ -209,6 +213,7 @@ const adminPages = [
   adminPage('decorations', DecorationsPage),
   adminPage('reactions', ReactionsPage),
   adminPage('progression', ProgressionPage),
+  adminPage('levels', LevelsPage),
   adminPage('events', EventsPage),
   createRoute({
     getParentRoute: () => adminRoute,

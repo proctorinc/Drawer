@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -111,9 +112,15 @@ func HandleGetTrophies(c *gin.Context) {
 
 	// Same clock as daily submissions, so a drawing's day lands in the right week
 	week, nextWeek := weekBounds(time.Now())
-	weekly, err := queries.GetActivityCounts(repo, ctx, boardIDs, week, nextWeek)
+	weekly, err := queries.GetActivityCounts(repo, ctx, []string{requester.ID}, week, nextWeek)
 	if err != nil {
 		fail("weekly activity", err)
+		return
+	}
+	// The friend board is all-time XP, so nobody feels pressed to grind each week
+	allTime, err := queries.GetActivityCounts(repo, ctx, boardIDs, queries.BeginningOfTime, queries.EndOfTime)
+	if err != nil {
+		fail("leaderboard activity", err)
 		return
 	}
 	users, err := queries.GetUsersByIDs(repo, ctx, boardIDs)
@@ -138,7 +145,7 @@ func HandleGetTrophies(c *gin.Context) {
 		Week:          weekOf(week, nextWeek),
 		Quests:        quests,
 		QuestsEvent:   questsEvent,
-		Leaderboard:   leaderboard(users, weekly),
+		Leaderboard:   leaderboard(users, allTime),
 		XPRules:       xpRules,
 	})
 }
@@ -232,14 +239,47 @@ func weeklyQuests(a queries.ActivityCounts) []Quest {
 	}
 }
 
-func leaderboard(users []models.User, weekly map[string]queries.ActivityCounts) []LeaderboardEntry {
+func leaderboard(users []models.User, counts map[string]queries.ActivityCounts) []LeaderboardEntry {
 	entries := make([]LeaderboardEntry, 0, len(users))
 	for _, u := range users {
-		a := weekly[u.ID]
+		a := counts[u.ID]
 		entries = append(entries, LeaderboardEntry{User: u, XP: xpFor(a), Drawings: a.Drawings})
 	}
 	slices.SortFunc(entries, func(a, b LeaderboardEntry) int {
 		return cmp.Or(b.XP-a.XP, cmp.Compare(a.User.Username, b.User.Username))
 	})
 	return entries
+}
+
+// maxLevelsPerRequest caps how many users one levels lookup can score
+const maxLevelsPerRequest = 100
+
+// HandleGetUserLevels returns each asked-for user's level, so avatars anywhere
+// can show it: GET /user/levels?ids=a,b,c → {"levels": {"a": 3, ...}}
+func HandleGetUserLevels(c *gin.Context) {
+	ids := make([]string, 0)
+	seen := map[string]bool{}
+	for _, id := range strings.Split(c.Query("ids"), ",") {
+		if id = strings.TrimSpace(id); id != "" && !seen[id] {
+			seen[id] = true
+			ids = append(ids, id)
+		}
+	}
+	if len(ids) > maxLevelsPerRequest {
+		c.JSON(http.StatusBadRequest, Error("Too many users"))
+		return
+	}
+
+	lifetime, err := queries.GetActivityCounts(context.GetCtx(c).DB, c.Request.Context(), ids, queries.BeginningOfTime, queries.EndOfTime)
+	if err != nil {
+		log.Printf("Levels: error fetching activity for %d users: %v", len(ids), err)
+		c.JSON(http.StatusInternalServerError, Error("Failed to load levels"))
+		return
+	}
+
+	levels := make(map[string]int, len(ids))
+	for _, id := range ids {
+		levels[id] = levelForXP(xpFor(lifetime[id])).Level
+	}
+	c.JSON(http.StatusOK, gin.H{"levels": levels})
 }

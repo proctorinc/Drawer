@@ -1,5 +1,5 @@
 import type { CSSProperties, FC } from 'react';
-import { cn, dabShapes, tapeColor } from '@/utils';
+import { cn, dabShapes, highlightColor } from '@/utils';
 
 /** "draw a prehistoric city", with the prompt highlighted in one of its own colors */
 export const PromptTitle: FC<{
@@ -16,7 +16,7 @@ export const PromptTitle: FC<{
     draw{' '}
     <span
       className="highlight"
-      style={{ '--hl': tapeColor(colors[2] ?? '#ffd45a') } as CSSProperties}
+      style={{ '--hl': highlightColor(colors[2] ?? '#ffd45a') } as CSSProperties}
     >
       {prompt.toLowerCase()}
     </span>

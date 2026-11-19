@@ -170,6 +170,14 @@ export const apiClient = {
     return response.json();
   },
 
+  stopImpersonating: async (): Promise<{ message: string }> => {
+    const response = await fetchAPI('POST', '/auth/stop-impersonating');
+    if (!response.ok) {
+      throw new Error(`Error stopping impersonation: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
   // User management
   inviteFriend: async (userId: string): Promise<{ message: string }> => {
     const response = await fetchAPI('POST', `/user/${userId}/invite`);

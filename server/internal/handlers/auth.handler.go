@@ -73,6 +73,13 @@ func HandleLogout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Logged out successfully"})
 }
 
+// HandleStopImpersonating drops the admin back into their own account. It sits outside
+// the admin group because, while impersonating, the request is seen as the impersonated user.
+func HandleStopImpersonating(c *gin.Context) {
+	removeImpersonationCookie(c)
+	c.JSON(http.StatusOK, gin.H{"message": "Stopped impersonating"})
+}
+
 func removeImpersonationCookie(c *gin.Context) {
 	cookie := &http.Cookie{
 		Name:     middleware.ImpersonateCookie,

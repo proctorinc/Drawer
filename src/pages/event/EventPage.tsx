@@ -11,6 +11,7 @@ import { TrophyIcon } from '@/components/icons';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
 import ChristmasTree from '@/events/christmas/ChristmasTree';
+import { ChristmasIntroButton } from '@/events/christmas/ChristmasIntro';
 import EventBadge from '@/events/christmas/EventBadge';
 import EventLeaderboard from '@/events/christmas/EventLeaderboard';
 import EventStickers from '@/events/christmas/EventStickers';
@@ -141,10 +142,13 @@ const EventPage = () => {
             </span>
             <EventXPInfo xp={xp} title="christmas XP" />
           </div>
-          {isLive && !viewingFriend && (
-            <p className="text-center text-pencil">
-              every doodle you draw hangs on the tree
-            </p>
+          {liveEvent && isLive && !viewingFriend && (
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-center text-pencil">
+                every doodle you draw hangs on the tree
+              </p>
+              <ChristmasIntroButton event={liveEvent} />
+            </div>
           )}
         </section>
       ) : (
@@ -154,6 +158,9 @@ const EventPage = () => {
             {day} · {left}
           </p>
           <EventXPInfo xp={xp} title="christmas XP" />
+          {liveEvent && isLive && !viewingFriend && (
+            <ChristmasIntroButton event={liveEvent} />
+          )}
         </section>
       )}
 

@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import type { FC, ReactNode } from 'react';
+import { PushPin } from '@/components/PushPin';
 
 type Props = {
   title?: string;
   children?: ReactNode;
 };
 
-/** A taped-on sticky note that folds open */
+/** A pinned-up sticky note that folds open */
 const Disclaimer: FC<Props> = ({ title, children }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="relative flex flex-col gap-2 w-full px-5 pt-5 pb-3 bg-[#fff6c9] -rotate-1 shadow-[1px_2px_6px_rgba(43,42,51,0.15)]">
-      <span
-        aria-hidden="true"
-        className="absolute -top-2.5 left-1/2 -ml-8 w-16 h-5 bg-sky/80 rotate-3"
+      <PushPin
+        color={'#3a7bd5'}
+        lean={14}
+        className="absolute z-10 -top-[23px] left-1/2 -ml-4"
       />
       <span className="font-accent font-bold text-xl text-center leading-tight">
         {title}

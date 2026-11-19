@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getReaction } from './catalog';
-import { ReactionPicker } from './ReactionPicker';
+import { ReactionDrawer } from './ReactionDrawer';
 import { ReactionSticker } from './ReactionSticker';
 import type { CSSProperties, FC } from 'react';
 import type { ReactionId, UserPromptSubmission } from '@/api/Api';
@@ -38,10 +38,9 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
   const user = useUser();
   const queryClient = useQueryClient();
   const toggleReaction = useToggleSubmissionReaction();
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   // Bumped on tap to replay the pop on that sticker
   const [popped, setPopped] = useState<{ id: ReactionId; n: number }>();
-  const barRef = useRef<HTMLDivElement>(null);
 
   const canReact = submission.user.id !== user.id;
   const picked = new Set(
@@ -49,22 +48,6 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
       .filter((reaction) => reaction.user.id === user.id)
       .map((reaction) => reaction.reactionId),
   );
-
-  useEffect(() => {
-    if (!pickerOpen) return;
-    const closeOnOutside = (e: PointerEvent) => {
-      if (!barRef.current?.contains(e.target as Node)) setPickerOpen(false);
-    };
-    const closeOnEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPickerOpen(false);
-    };
-    document.addEventListener('pointerdown', closeOnOutside);
-    document.addEventListener('keydown', closeOnEscape);
-    return () => {
-      document.removeEventListener('pointerdown', closeOnOutside);
-      document.removeEventListener('keydown', closeOnEscape);
-    };
-  }, [pickerOpen]);
 
   function toggle(reactionId: ReactionId) {
     setPopped((prev) => ({ id: reactionId, n: (prev?.n ?? 0) + 1 }));
@@ -105,7 +88,6 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
 
   return (
     <div
-      ref={barRef}
       className={cn('relative flex flex-wrap items-center gap-1.5', className)}
     >
       {submission.counts.map(({ reactionId, count }, index) => {
@@ -126,6 +108,8 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
               PILL_SHAPES[index % PILL_SHAPES.length],
               canReact && pressableClass,
               isPicked && 'border-2 shadow-pencil-sm',
+              // Without a count the pill hugs its sticker
+              count <= 1 && 'pr-1.5',
             )}
             style={{
               ...pillStyle(index),
@@ -141,7 +125,8 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
               size={22}
               className={cn(popped?.id === reactionId && 'animate-pop')}
             />
-            {count}
+            {/* Only worth saying when more than one person picked it */}
+            {count > 1 && `×${count}`}
           </Pill>
         );
       })}
@@ -149,14 +134,13 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
         <button
           type="button"
           aria-label="Add a reaction"
-          aria-expanded={pickerOpen}
-          onClick={() => setPickerOpen((open) => !open)}
+          aria-haspopup="dialog"
+          onClick={() => setDrawerOpen(true)}
           className={cn(
             pillClass,
             pressableClass,
             PILL_SHAPES[submission.counts.length % PILL_SHAPES.length],
             'px-2 bg-white border-dashed text-pencil hover:text-ink',
-            pickerOpen && 'rotate-0 border-solid text-ink bg-butter',
           )}
           style={pillStyle(submission.counts.length)}
         >
@@ -166,14 +150,13 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
           )}
         </button>
       )}
-      {pickerOpen && (
-        <ReactionPicker
-          picked={picked}
-          onPick={(id) => {
-            toggle(id);
-            setPickerOpen(false);
-          }}
-          className="absolute top-full left-0 mt-2"
+      {canReact && (
+        <ReactionDrawer
+          open={drawerOpen}
+          onClose={() => setDrawerOpen(false)}
+          reactions={submission.reactions}
+          counts={submission.counts}
+          onToggle={toggle}
         />
       )}
     </div>

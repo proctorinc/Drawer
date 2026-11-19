@@ -2,6 +2,7 @@ import Navbar from './Navbar';
 import Masthead from './Masthead';
 import type { FC, ReactNode } from 'react';
 import useAuth from '@/auth/hooks/useAuth';
+import { ChristmasIntroOnce } from '@/events/christmas/ChristmasIntro';
 import Lights from '@/events/christmas/Lights';
 import Snowfall from '@/events/christmas/Snowfall';
 import { useChristmas } from '@/events/useChristmas';
@@ -32,6 +33,7 @@ const Layout: FC<Props> = ({ header, back, aside, children }) => {
         </main>
       </div>
       {isAuthenticated && <Navbar />}
+      <ChristmasIntroOnce />
     </div>
   );
 };

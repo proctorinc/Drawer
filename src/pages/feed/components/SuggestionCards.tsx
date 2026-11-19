@@ -14,9 +14,9 @@ import { useFriendInvites } from '@/pages/profile/components/friends/useFriendIn
 import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import Badge from '@/pages/trophies/components/Badge';
-import { cn, tapeColor } from '@/utils';
+import { cn } from '@/utils';
+import { PIN_COLORS, PushPin } from '@/components/PushPin';
 
-const TAPES = ['#ff6b57', '#3a7bd5', '#ffb400'];
 
 const IconArt: FC<{ children: ReactNode }> = ({ children }) => (
   <span className="flex items-center justify-center size-12 bg-butter border-2 border-ink rounded-sketch-alt rotate-3">
@@ -114,7 +114,7 @@ type CardProps = TipView & {
   onSeen: () => void;
 };
 
-/** A little taped-up note with a picture, a line and a button that takes you there */
+/** A little pinned-up note with a picture, a line and a button that takes you there */
 const TipCard: FC<CardProps> = ({ index, art, title, action, to, onSeen }) => (
   <li
     className={cn(
@@ -123,10 +123,10 @@ const TipCard: FC<CardProps> = ({ index, art, title, action, to, onSeen }) => (
     )}
     style={{ animationDelay: `${index * 90}ms` }}
   >
-    <span
-      aria-hidden="true"
-      className="absolute -top-2 left-6 w-12 h-4 -rotate-3"
-      style={{ backgroundColor: tapeColor(TAPES[index % TAPES.length]) }}
+    <PushPin
+      color={PIN_COLORS[index % PIN_COLORS.length]}
+      lean={index % 2 === 0 ? 16 : -16}
+      className="absolute z-10 -top-[23px] left-6"
     />
     <button
       aria-label="Close"

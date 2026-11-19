@@ -3,6 +3,8 @@ import type { FC, ReactNode } from 'react';
 import type { TrophiesResponse } from '@/api/trophies';
 import { FlameIcon, PencilIcon, StarIcon } from '@/components/icons';
 import { cn } from '@/utils';
+import { LevelSeal, RankCard } from '@/levels/RankCard';
+import { rankCardFor } from '@/levels/rankCards';
 
 const levelTitles = [
   'Doodler',
@@ -46,23 +48,17 @@ type Props = {
 
 const LevelCard: FC<Props> = ({ trophies, stickerCount }) => {
   const { level, xp, levelStartXp, nextLevelXp } = trophies.level;
+  const { tier, card } = rankCardFor(level);
 
   return (
     <section className="flex flex-col gap-4 w-full">
-      <div className="relative flex flex-col gap-3 w-full p-4 pt-5 bg-white border-2 border-ink rounded-sketch shadow-pencil">
-        <span
-          aria-hidden="true"
-          className="absolute -top-2.5 left-1/2 -ml-8 w-16 h-5 bg-sky/90 rotate-2"
-        />
+      <RankCard
+        level={level}
+        pin
+        contentClassName="flex flex-col gap-3 p-4 pt-5"
+      >
         <div className="flex items-center gap-4">
-          <div className="relative grid place-items-center size-20 shrink-0 bg-butter border-2 border-ink rounded-blob -rotate-6 animate-drop">
-            <span className="font-accent font-bold text-[44px] leading-none">
-              {level}
-            </span>
-            <span className="absolute -bottom-2 px-1.5 bg-coral text-white text-xs border-2 border-ink rounded-sketch rotate-3">
-              LEVEL
-            </span>
-          </div>
+          <LevelSeal level={level} size={76} />
           <div className="flex flex-col min-w-0">
             <span className="text-lg text-pencil">you are a…</span>
             <h1 className="font-accent font-bold text-[36px] leading-none">
@@ -70,24 +66,28 @@ const LevelCard: FC<Props> = ({ trophies, stickerCount }) => {
                 {levelTitle(level).toLowerCase()}
               </span>
             </h1>
+            <span className="mt-1 text-sm text-pencil">
+              {tier.name.toLowerCase()} rank
+            </span>
           </div>
         </div>
         <ProgressBar
           value={xp - levelStartXp}
           max={nextLevelXp - levelStartXp}
           label={`Level ${level} progress`}
+          fillBackground={card.fill}
           className="h-5"
         />
         <div className="flex justify-between gap-2 text-pencil">
           <span>{xp} XP</span>
           <span className="text-right">
             {nextLevelXp - xp} XP to{' '}
-            <span className="text-ink">
+            <span className="text-[color:var(--rank-text)]">
               {levelTitle(level + 1).toLowerCase()}
             </span>
           </span>
         </div>
-      </div>
+      </RankCard>
       <div className="flex gap-3 w-full">
         <StatSticker
           icon={

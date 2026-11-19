@@ -30,7 +30,11 @@ func HandleGetMe(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, response.Account())
+	account := response.Account()
+	if admin := middleware.GetImpersonator(c); admin != nil {
+		account.ImpersonatedBy = admin.Username
+	}
+	c.JSON(http.StatusCreated, account)
 }
 
 func HandleGetUserByID(c *gin.Context) {

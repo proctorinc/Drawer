@@ -1,32 +1,39 @@
-import React, { forwardRef } from 'react';
-import { useDrawing } from './DrawingContext'; // Adjust the path as needed
-import { createCursorImage } from './utils';
+import { useDrawing } from './DrawingContext';
+import { createCursor } from './utils';
+import type { CSSProperties, FC, HTMLAttributes } from 'react';
 import { Config } from '@/config/Config';
 import { cn } from '@/utils';
 
-const Canvas = forwardRef<
-  HTMLCanvasElement,
-  React.HTMLProps<HTMLCanvasElement>
->((props, ref) => {
-  const { selectedColor } = useDrawing();
-  const { className, style, ...otherProps } = props;
-  const cursorImage = createCursorImage(selectedColor);
-  const cursorStyle = {
-    cursor: `url(${cursorImage}), 8 8 auto`,
-    touchAction: 'none',
-  };
+/** The drawing surface. Shown no larger than its drawing size, smaller to fit */
+const Canvas: FC<HTMLAttributes<HTMLCanvasElement>> = ({
+  className,
+  style,
+  ...props
+}) => {
+  const { selectedColor, canvasBindings } = useDrawing();
 
   return (
     <canvas
       id="drawingCanvas"
-      ref={ref}
-      className={cn('max-w-full', className)}
-      width={Config.CANVAS_WIDTH}
-      height={Config.CANVAS_HEIGHT}
-      style={{ ...cursorStyle, ...style }}
-      {...otherProps}
+      {...canvasBindings}
+      // The pixel buffer is denser than the canvas is shown, so cap its size
+      // here; width and height stay auto so it keeps its shape as it shrinks
+      className={cn(
+        'block max-w-[min(100%,var(--canvas-w))] max-h-[var(--canvas-h)]',
+        className,
+      )}
+      style={
+        {
+          '--canvas-w': `${Config.CANVAS_WIDTH}px`,
+          '--canvas-h': `${Config.CANVAS_HEIGHT}px`,
+          cursor: createCursor(selectedColor),
+          touchAction: 'none',
+          ...style,
+        } as CSSProperties
+      }
+      {...props}
     />
   );
-});
+};
 
 export default Canvas;

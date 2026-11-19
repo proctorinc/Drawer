@@ -17,6 +17,7 @@ import Button from '@/components/Button';
 import Chip from '@/components/Chip';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
+import { PushPin } from '@/components/PushPin';
 
 const SectionTitle: FC<{ children: ReactNode; aside?: ReactNode }> = ({
   children,
@@ -110,7 +111,7 @@ const TrophiesPage = () => {
         </>
       )}
 
-      <SectionTitle aside={<span className="text-pencil">this week</span>}>
+      <SectionTitle aside={<span className="text-pencil">all time</span>}>
         friend leaderboard
       </SectionTitle>
       <Leaderboard entries={leaderboard} myId={me.id} />
@@ -153,9 +154,10 @@ const TrophiesPage = () => {
       )}
 
       <section className="relative flex flex-col gap-1 w-full px-4 pt-5 pb-4 bg-[#fff6c9] rotate-1 shadow-[1px_2px_6px_rgba(43,42,51,0.15)]">
-        <span
-          aria-hidden="true"
-          className="absolute -top-2.5 left-1/2 -ml-8 w-16 h-5 bg-blush/90 -rotate-2"
+        <PushPin
+          color={'#ff6b57'}
+          lean={-14}
+          className="absolute z-10 -top-[23px] left-1/2 -ml-4"
         />
         <h2 className="font-accent font-bold text-xl leading-tight">
           how to earn XP

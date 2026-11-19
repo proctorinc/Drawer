@@ -29,6 +29,8 @@ export interface User {
   decoration: DecorationId | '';
   /** Only sent for your own account */
   isAdmin?: boolean;
+  /** Username of the admin viewing as you; only set while impersonating */
+  impersonatedBy?: string;
 }
 
 /** Decorations are rewards worn on the avatar, one at a time */
@@ -322,6 +324,12 @@ export function useCreateUser() {
 export function useLogoutUser() {
   return useMutation({
     mutationFn: apiClient.logoutUser,
+  });
+}
+
+export function useStopImpersonating() {
+  return useMutation({
+    mutationFn: apiClient.stopImpersonating,
   });
 }
 

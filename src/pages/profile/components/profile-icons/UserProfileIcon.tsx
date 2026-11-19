@@ -10,6 +10,11 @@ import useUser from '@/auth/hooks/useUser';
 import { SantaHat } from '@/events/christmas/Decorations';
 import { AvatarDecoration } from '@/decorations/decorations';
 import { useChristmas } from '@/events/useChristmas';
+import { LevelBadge } from '@/levels/LevelBadge';
+import { useUserLevel } from '@/levels/useUserLevel';
+
+// Level badge diameter for each avatar size
+const BADGE_SIZES = { sm: 17, lg: 21, xl: 30, '2xl': 44 } as const;
 
 export const userProfileIconVariants = cva(
   'cursor-pointer select-none rounded-full border-ink flex items-center justify-center hover:scale-110 hover:-rotate-6 transition-[scale,rotate] duration-300 ease-[var(--ease-spring)]',
@@ -32,6 +37,8 @@ type Props = {
   user?: User;
   className?: string;
   onClick?: () => void;
+  /** Off where a badge would get in the way, like decoration previews */
+  showLevel?: boolean;
 } & VariantProps<typeof userProfileIconVariants>;
 
 export const UserProfileIcon: FC<Props> = ({
@@ -39,10 +46,12 @@ export const UserProfileIcon: FC<Props> = ({
   className,
   size,
   onClick,
+  showLevel = true,
 }) => {
   const navigate = useNavigate();
   const currentUser = useUser();
   const christmas = useChristmas();
+  const { data: level } = useUserLevel(showLevel ? user?.id : undefined);
 
   if (!user) {
     return (
@@ -71,9 +80,21 @@ export const UserProfileIcon: FC<Props> = ({
   if (user.decoration) decoration = <AvatarDecoration id={user.decoration} />;
   else if (christmas) decoration = <SantaHat />;
 
-  // With a decoration on, the wrapper takes the caller's classes (position,
-  // ring, tilt) so it moves and turns with the avatar
-  const iconClassName = decoration ? undefined : className;
+  const badgeSize = BADGE_SIZES[size ?? 'lg'];
+  const badge =
+    showLevel && level !== undefined ? (
+      <LevelBadge
+        level={level}
+        size={badgeSize}
+        className="absolute z-30"
+        style={{ right: -badgeSize * 0.22, bottom: -badgeSize * 0.22 }}
+      />
+    ) : null;
+  const wrapped = !!decoration || !!badge;
+
+  // When wrapped, the wrapper takes the caller's classes (position, ring,
+  // tilt) so the decoration and badge move and turn with the avatar
+  const iconClassName = wrapped ? undefined : className;
   const icon =
     user.avatarType === 'custom' && user.avatarUrl !== '' ? (
       <CustomProfileIcon
@@ -91,12 +112,20 @@ export const UserProfileIcon: FC<Props> = ({
       />
     );
 
-  if (!decoration) return icon;
+  if (!wrapped) return icon;
 
+  // The wrapper is exactly the circle, so rows line up on the circle itself.
+  // Decorations live in a layer of their own and spill over whatever's
+  // around them rather than taking up room
   return (
     <span className={cn('relative inline-flex flex-none', className)}>
       {icon}
-      {decoration}
+      {decoration && (
+        <span className="absolute inset-0 z-20 pointer-events-none">
+          {decoration}
+        </span>
+      )}
+      {badge}
     </span>
   );
 };

@@ -123,7 +123,7 @@ const DayCarousel: FC<Props> = ({ submission }) => {
         className="flex items-start w-[calc(100%+3rem)] -mx-6 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none]"
       >
         {doodles.map((doodle) => (
-          // Top padding leaves room for the polaroid's tape
+          // Top padding leaves room for the polaroid's push pin
           <li
             key={doodle.id}
             className="w-full shrink-0 snap-center snap-always px-6 pt-3"

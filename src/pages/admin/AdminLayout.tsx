@@ -12,6 +12,7 @@ import {
   faLayerGroup,
   faLightbulb,
   faListUl,
+  faMedal,
   faPalette,
   faStairs,
   faUsers,
@@ -60,6 +61,7 @@ const NAV: Array<{ group: string; items: Array<NavItem> }> = [
         label: 'levels & quests',
         icon: faStairs,
       },
+      { to: '/draw/admin/levels', label: 'level ranks', icon: faMedal },
     ],
   },
   {

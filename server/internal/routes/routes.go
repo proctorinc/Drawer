@@ -55,6 +55,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 		// Signed in to Clerk, but may not have a Drawer profile yet
 		clerkGroup.POST("/auth/register", handlers.HandleRegister)
 		clerkGroup.POST("/auth/logout", handlers.HandleLogout)
+		clerkGroup.POST("/auth/stop-impersonating", handlers.HandleStopImpersonating)
 
 		// Authenticated routes
 		authGroup := clerkGroup.Group("/")
@@ -75,6 +76,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				handlers.HandleToggleAvatarType)
 			userGroup.PUT("/decoration", handlers.HandleUpdateDecoration)
 
+			userGroup.GET("/levels", handlers.HandleGetUserLevels)
 			userGroup.GET("/:id/profile", handlers.HandleGetUserByID)
 			userGroup.GET("/:id/achievements", handlers.HandlerGetUserAchievements)
 			userGroup.GET("/:id/trophies", handlers.HandleGetUserTrophies)
@@ -105,6 +107,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 
 			authGroup.GET("/trophies", handlers.HandleGetTrophies)
 			authGroup.GET("/events/active", handlers.HandleGetActiveEvent)
+			authGroup.GET("/events/upcoming", handlers.HandleGetUpcomingEvent)
 			authGroup.GET("/events/:slug/leaderboard", handlers.HandleGetEventLeaderboard)
 			authGroup.GET("/events/:slug/recap", handlers.HandleGetEventRecap)
 

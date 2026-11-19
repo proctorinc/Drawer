@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { CountDownTimer } from '../../daily/CountdownTimer';
 import { useDailyPrompt } from '../../daily/DailyPromptContext';
@@ -9,16 +9,21 @@ import DrawingCanvas from './components/DrawingCanvas';
 import { PromptTitle } from './components/PromptTitle';
 import type { DailyPrompt } from '@/api/Api';
 import Layout from '@/components/Layout';
+import { cn } from '@/utils';
 import LoadingScreen from '@/components/LoadingScreen';
 import { useDrawing } from '@/drawing/DrawingContext';
 import { ClockIcon, SendIcon, TrophyIcon } from '@/components/icons';
 import { useSubmitPromptSuggestion } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
+import { ChristmasIntroOnce } from '@/events/christmas/ChristmasIntro';
 import { TreeIcon } from '@/events/christmas/Decorations';
+import ComingSoonCard from '@/events/ComingSoonCard';
 import OrnamentTally from '@/events/christmas/OrnamentTally';
 import Snowfall from '@/events/christmas/Snowfall';
 import { useChristmas } from '@/events/useChristmas';
+import { PIN_COLORS, PushPin } from '@/components/PushPin';
+import { PinCeremony } from '@/drawing/components/PinCeremony';
 
 const NextPageCountdown = () => (
   <span className="flex items-center gap-1.5">
@@ -60,20 +65,39 @@ const DeskLinks = () => {
   );
 };
 
+/** A drawing on its way to the wall, from where its canvas sat */
+export type Pinning = { imageUrl: string; from: DOMRect };
+
 type DrawingDeskProps = {
   dailyPrompt: DailyPrompt;
   error: string | null;
-  onSubmit: (png: Blob) => void;
+  onSubmit: (png: Blob, canvas: HTMLCanvasElement | null) => void;
+  /** Set while the drawing is being pinned: the tools fade and it animates */
+  pinning: Pinning | null;
+  onPinned: () => void;
 };
 
 /** Nothing but the prompt and the canvas, sized to fit any screen */
-const DrawingDesk = ({ dailyPrompt, error, onSubmit }: DrawingDeskProps) => {
+const DrawingDesk = ({
+  dailyPrompt,
+  error,
+  onSubmit,
+  pinning,
+  onPinned,
+}: DrawingDeskProps) => {
   const christmas = useChristmas();
+  const user = useUser();
 
   return (
     <div className="paper flex justify-center h-dvh overflow-hidden">
       {christmas && <Snowfall />}
-      <main className="relative flex flex-col gap-4 w-full max-w-md px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(16px,env(safe-area-inset-bottom))] animate-rise">
+      <main
+        className={cn(
+          'relative flex flex-col gap-4 w-full max-w-md px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(16px,env(safe-area-inset-bottom))] animate-rise transition-opacity duration-300',
+          // The polaroid takes over from the canvas, so everything here fades
+          pinning && 'opacity-0 pointer-events-none',
+        )}
+      >
         <header className="flex items-start justify-between gap-3">
           <PromptHeading dailyPrompt={dailyPrompt} />
           <DeskLinks />
@@ -87,7 +111,6 @@ const DrawingDesk = ({ dailyPrompt, error, onSubmit }: DrawingDeskProps) => {
           }
           onSubmit={onSubmit}
           colors={dailyPrompt.colors.slice(0, 3)}
-          festive={!!christmas}
           submitLabel={
             christmas ? (
               <>
@@ -99,6 +122,17 @@ const DrawingDesk = ({ dailyPrompt, error, onSubmit }: DrawingDeskProps) => {
         />
         {error && <p className="text-center text-coral">{error}</p>}
       </main>
+      {pinning && (
+        <PinCeremony
+          imageUrl={pinning.imageUrl}
+          from={pinning.from}
+          // Your polaroid leads the wall, which gives the first card this pin
+          pinColor={PIN_COLORS[0]}
+          user={user}
+          onDone={onPinned}
+        />
+      )}
+      <ChristmasIntroOnce />
     </div>
   );
 };
@@ -124,9 +158,10 @@ const SuggestPrompt = () => {
           .catch((err) => setError(err.message));
       }}
     >
-      <span
-        aria-hidden="true"
-        className="absolute -top-2.5 left-1/2 -ml-8 w-16 h-5 bg-blush/90 -rotate-2"
+      <PushPin
+        color={'#ff6b57'}
+        lean={-14}
+        className="absolute z-10 -top-[23px] left-1/2 -ml-4"
       />
       <label
         htmlFor="prompt-suggestion"
@@ -166,29 +201,53 @@ const Feed = () => {
   const { dailyPrompt, submitPrompt, isLoading } = useDailyPrompt();
   const { clearCanvas } = useDrawing();
   const [error, setError] = useState<string | null>(null);
+  // The pinning animation and the upload run side by side; the wall shows
+  // once both are done
+  const [pinning, setPinning] = useState<Pinning | null>(null);
+  const [isUploaded, setIsUploaded] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
 
-  function handleSubmit(png: Blob) {
+  function handleSubmit(png: Blob, canvas: HTMLCanvasElement | null) {
+    setError(null);
+    setIsUploaded(false);
+    setIsPinned(false);
+    if (canvas) {
+      setPinning({
+        imageUrl: URL.createObjectURL(png),
+        from: canvas.getBoundingClientRect(),
+      });
+    }
     submitPrompt(png, {
-      onSuccess: () => {
-        setError(null);
-        clearCanvas();
-        // Land at the top so the new polaroid drops in view
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      },
+      onSuccess: () => setIsUploaded(true),
       onError: () => {
+        setPinning(null);
         setError('Failed to submit drawing');
       },
     });
   }
 
+  // Both finished: tidy up and show the wall, where the new polaroid drops in
+  const isFinished = isUploaded && (isPinned || !pinning);
+  useEffect(() => {
+    if (!isFinished) return;
+    if (pinning) URL.revokeObjectURL(pinning.imageUrl);
+    setPinning(null);
+    setIsUploaded(false);
+    setIsPinned(false);
+    clearCanvas();
+    window.scrollTo({ top: 0 });
+  }, [isFinished, pinning, clearCanvas]);
+
   if (isLoading) return <LoadingScreen />;
 
-  if (dailyPrompt && !dailyPrompt.isCompleted) {
+  if (dailyPrompt && (pinning || !dailyPrompt.isCompleted)) {
     return (
       <DrawingDesk
         dailyPrompt={dailyPrompt}
         error={error}
         onSubmit={handleSubmit}
+        pinning={pinning}
+        onPinned={() => setIsPinned(true)}
       />
     );
   }
@@ -197,6 +256,7 @@ const Feed = () => {
     <Layout aside={<NextPageCountdown />}>
       {dailyPrompt && <FriendsToday />}
       <TodayWall />
+      <ComingSoonCard />
       <SuggestionCards />
       <SuggestPrompt />
       <PastPages />

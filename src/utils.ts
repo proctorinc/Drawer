@@ -82,7 +82,7 @@ export const dabShapes = [
   'rounded-[52%_48%_62%_38%/42%_60%_40%_58%]',
 ];
 
-/** A translucent strip of tape in one of the given colors */
-export function tapeColor(color: string) {
+/** A see-through marker stroke in one of the given colors */
+export function highlightColor(color: string) {
   return `color-mix(in srgb, ${color} 55%, transparent)`;
 }

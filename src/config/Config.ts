@@ -4,7 +4,8 @@ export const Config = {
   CLERK_PUBLISHABLE_KEY: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
   APP_NAME: 'The Daily Doodle',
   CURSOR_SIZE: 20,
-  ERASER_COLOR: '#f5f4f0',
   CANVAS_WIDTH: 370,
   CANVAS_HEIGHT: 370,
+  // Pixels per drawing unit, for crisp strokes and uploads on dense screens
+  CANVAS_SCALE: 2,
 };

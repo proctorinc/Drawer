@@ -63,6 +63,11 @@ func GetActiveEvent(repo *sql.DB, ctx context.Context, now time.Time) (models.Ev
 	return getEvent(repo, ctx, `WHERE starts_at <= ? AND ends_at > ? ORDER BY starts_at DESC LIMIT 1`, nowStr, nowStr)
 }
 
+// GetNextEvent returns the soonest event that hasn't started at `now`, or sql.ErrNoRows.
+func GetNextEvent(repo *sql.DB, ctx context.Context, now time.Time) (models.Event, error) {
+	return getEvent(repo, ctx, `WHERE starts_at > ? ORDER BY starts_at ASC LIMIT 1`, formatEventTime(now))
+}
+
 // GetEventBySlug returns the event with this slug, or sql.ErrNoRows.
 func GetEventBySlug(repo *sql.DB, ctx context.Context, slug string) (models.Event, error) {
 	return getEvent(repo, ctx, `WHERE slug = ?`, slug)

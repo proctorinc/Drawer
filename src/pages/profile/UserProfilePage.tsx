@@ -1,8 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useProfile } from './context/UserProfileContext';
-import { FriendLevelCard, FriendStickers } from './components/FriendTrophies';
+import { FriendHeader, FriendStickers } from './components/FriendTrophies';
 import Sketchbook from './components/Sketchbook';
-import UserHeader from './components/UserHeader';
 import { FriendList } from './components/friends/FriendList';
 import FriendshipButton from './components/friends/FriendshipButton';
 import { ShareButton } from './components/friends/ShareButton';
@@ -51,7 +50,7 @@ const UserProfilePage = () => {
     <Layout
       back
       header={
-        <UserHeader userProfile={userProfile}>
+        <FriendHeader userProfile={userProfile}>
           <FriendshipButton profile={userProfile} />
           <ShareButton
             urlPath={`/draw/profile/${user.id}`}
@@ -60,11 +59,10 @@ const UserProfilePage = () => {
           >
             share
           </ShareButton>
-        </UserHeader>
+        </FriendHeader>
       }
     >
       <FriendEventLink user={user} />
-      <FriendLevelCard user={user} />
       <Sketchbook profile={userProfile} />
       <FriendStickers user={user} />
       <FriendList user={user} friends={userProfile.friends} />
