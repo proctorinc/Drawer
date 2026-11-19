@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,6 +30,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			staticFilePath := filepath.Join("./frontend", requestedPath)
 
 			if _, err := os.Stat(staticFilePath); err == nil {
+				setFrontendCacheHeaders(c, requestedPath)
 				c.File(staticFilePath)
 				return
 			}
@@ -36,15 +38,12 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			// If the request path doesn't match any route and isn't a static file, return a 404
 			c.Status(http.StatusNotFound)
 		})
-		frontendGroup := router.Group("/draw")
-		frontendGroup.GET("/*filepath", func(c *gin.Context) {
+		serveIndex := func(c *gin.Context) {
+			setFrontendCacheHeaders(c, "/index.html")
 			c.File("./frontend/index.html")
-		})
-
-		frontendAuthGroup := router.Group("/auth")
-		frontendAuthGroup.GET("/*filepath", func(c *gin.Context) {
-			c.File("./frontend/index.html")
-		})
+		}
+		router.Group("/draw").GET("/*filepath", serveIndex)
+		router.Group("/auth").GET("/*filepath", serveIndex)
 	}
 
 	// API routes
@@ -209,4 +208,15 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 	}
 
 	return router
+}
+
+// setFrontendCacheHeaders lets browsers keep Vite's hashed /assets/ files forever,
+// since a new build gives them new names, but makes them check back for everything
+// else (index.html above all) so a deploy shows up without a hard refresh.
+func setFrontendCacheHeaders(c *gin.Context, requestedPath string) {
+	if strings.HasPrefix(requestedPath, "/assets/") {
+		c.Header("Cache-Control", "public, max-age=31536000, immutable")
+		return
+	}
+	c.Header("Cache-Control", "no-cache")
 }
