@@ -33,6 +33,9 @@ func TestSendNotificationToUser(t *testing.T) {
 		switch r.URL.Path {
 		case "/gone":
 			w.WriteHeader(http.StatusGone)
+		case "/old-key":
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte("the VAPID credentials in the authorization header do not correspond to the credentials used to create the subscriptions."))
 		case "/rejected":
 			w.WriteHeader(http.StatusForbidden)
 			w.Write([]byte("BadJwtToken"))
@@ -50,7 +53,7 @@ func TestSendNotificationToUser(t *testing.T) {
 	if _, err := db.Exec(`CREATE TABLE push_subscriptions (id TEXT, user_id TEXT, endpoint TEXT UNIQUE, p256dh TEXT, auth TEXT, created_at TIMESTAMP)`); err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{"/ok", "/gone", "/rejected"} {
+	for _, path := range []string{"/ok", "/gone", "/old-key", "/rejected"} {
 		p256dh, auth := browserKeys(t)
 		if _, err := db.Exec(`INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth) VALUES (?, 'ann', ?, ?, ?)`,
 			path, pushService.URL+path, p256dh, auth); err != nil {
@@ -64,7 +67,10 @@ func TestSendNotificationToUser(t *testing.T) {
 	}
 	cfg := &config.Config{VAPIDPublicKey: public, VAPIDPrivateKey: private, VAPIDSubject: "https://example.com"}
 
-	err = SendNotificationToUser(db, "ann", models.NotificationData{Title: "hi"}, cfg)
+	delivered, err := DeliverToUser(db, "ann", models.NotificationData{Title: "hi"}, cfg)
+	if delivered != 1 {
+		t.Errorf("want 1 delivered, got %d", delivered)
+	}
 	if err == nil || !strings.Contains(err.Error(), "403") || strings.Contains(err.Error(), "410") {
 		t.Errorf("want only the 403 reported, got %v", err)
 	}
@@ -81,7 +87,7 @@ func TestSendNotificationToUser(t *testing.T) {
 		remaining = append(remaining, id)
 	}
 	if strings.Join(remaining, ",") != "/ok,/rejected" {
-		t.Errorf("want the gone subscription deleted, remaining: %v", remaining)
+		t.Errorf("want the gone and old-key subscriptions deleted, remaining: %v", remaining)
 	}
 }
 

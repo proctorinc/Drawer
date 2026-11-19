@@ -44,6 +44,28 @@ async function syncSubscription(registration: ServiceWorkerRegistration) {
   return subscription;
 }
 
+// Remembers, per device, that the user turned notifications off in the app, so
+// the silent re-subscribe on open doesn't switch them back on. Storage can be
+// unavailable (private mode, blocked site data); then we just don't remember.
+const OPTED_OUT_KEY = 'drawer.push.optedOut';
+
+function isOptedOut() {
+  try {
+    return localStorage.getItem(OPTED_OUT_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function setOptedOut(optedOut: boolean) {
+  try {
+    if (optedOut) localStorage.setItem(OPTED_OUT_KEY, '1');
+    else localStorage.removeItem(OPTED_OUT_KEY);
+  } catch {
+    // Nothing to remember it in
+  }
+}
+
 function errorMessage(err: unknown, fallback: string) {
   return err instanceof Error ? err.message : fallback;
 }
@@ -77,18 +99,22 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   );
   const [error, setError] = useState<string | null>(null);
 
-  // Re-sync an existing subscription on sign-in: subscriptions made with an
-  // old key, or never saved by the server, would otherwise stay silent forever
+  // Re-sync on every signed-in open: a subscription made with an old key,
+  // never saved by the server, or dropped by the browser would otherwise stay
+  // silent forever. Permission is already granted, so this never prompts.
   useEffect(() => {
     if (!isSupported || !isAuthenticated) return;
 
     (async () => {
-      const registration = await navigator.serviceWorker.getRegistration();
+      let registration = await navigator.serviceWorker.getRegistration();
       const existing = await registration?.pushManager.getSubscription();
-      if (!registration || !existing) return;
-      setSubscription(existing);
+      if (existing) setSubscription(existing);
       if (Notification.permission !== 'granted') return;
+      // Without a subscription, only recreate one the user hasn't turned off
+      if (!existing && isOptedOut()) return;
 
+      registration ??=
+        await navigator.serviceWorker.register('/service-worker.js');
       setSubscription(await syncSubscription(registration));
     })().catch((err: unknown) => {
       console.error('Failed to sync push subscription:', err);
@@ -113,6 +139,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      setOptedOut(false);
       setSubscription(await syncSubscription(registration));
     } catch (err) {
       setError(errorMessage(err, 'Failed to subscribe to push notifications.'));
@@ -126,6 +153,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    setOptedOut(true);
     try {
       const registration = await navigator.serviceWorker.getRegistration();
       const sub = await registration?.pushManager.getSubscription();

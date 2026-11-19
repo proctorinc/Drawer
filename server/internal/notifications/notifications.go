@@ -22,6 +22,16 @@ import (
 // (the user revoked permission, cleared site data, or it expired).
 var errSubscriptionGone = errors.New("push subscription is gone")
 
+// madeWithOtherKey reports FCM's rejection of a subscription created under a
+// previous VAPID key pair. Such a subscription can never receive pushes from
+// this server, and its browser saves a replacement on its next sign-in, so it
+// is as good as gone. Other 403s (a bad JWT, say) are the server's fault and
+// must not wipe subscriptions.
+func madeWithOtherKey(status int, body []byte) bool {
+	return status == http.StatusForbidden &&
+		strings.Contains(strings.ToLower(string(body)), "credentials used to create the subscription")
+}
+
 func sendWebPush(sub models.PushSubscription, message []byte, cfg *config.Config) error {
 	resp, err := webpush.SendNotification(message, &webpush.Subscription{
 		Endpoint: sub.Endpoint,
@@ -38,11 +48,14 @@ func sendWebPush(sub models.PushSubscription, message []byte, cfg *config.Config
 	defer resp.Body.Close()
 
 	// Push services report rejections as ordinary HTTP responses, not errors
-	switch {
-	case resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone:
+	if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone {
 		return errSubscriptionGone
-	case resp.StatusCode >= 300:
+	}
+	if resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		if madeWithOtherKey(resp.StatusCode, body) {
+			return errSubscriptionGone
+		}
 		return fmt.Errorf("push service returned %d: %s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 	return nil
@@ -50,21 +63,30 @@ func sendWebPush(sub models.PushSubscription, message []byte, cfg *config.Config
 
 // SendNotificationToUser sends a notification to every device the user has subscribed
 func SendNotificationToUser(repo *sql.DB, userID string, data models.NotificationData, cfg *config.Config) error {
+	_, err := DeliverToUser(repo, userID, data, cfg)
+	return err
+}
+
+// DeliverToUser is SendNotificationToUser that also counts the devices the
+// push services accepted the notification for. Dead subscriptions are deleted
+// and count as neither delivered nor failed.
+func DeliverToUser(repo *sql.DB, userID string, data models.NotificationData, cfg *config.Config) (int, error) {
 	if cfg.VAPIDPublicKey == "" || cfg.VAPIDPrivateKey == "" {
-		return errors.New("VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be set to send push notifications")
+		return 0, errors.New("VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY must be set to send push notifications")
 	}
 
 	ctx := context.Background()
 	subscriptions, err := queries.GetUserPushSubscriptions(repo, ctx, userID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	message, err := json.Marshal(data)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
+	delivered := 0
 	var failures []error
 	for _, sub := range subscriptions {
 		err := sendWebPush(models.PushSubscription(sub), message, cfg)
@@ -76,9 +98,11 @@ func SendNotificationToUser(repo *sql.DB, userID string, data models.Notificatio
 		}
 		if err != nil {
 			failures = append(failures, fmt.Errorf("%s: %w", endpointHost(sub.Endpoint), err))
+			continue
 		}
+		delivered++
 	}
-	return errors.Join(failures...)
+	return delivered, errors.Join(failures...)
 }
 
 // endpointHost identifies the push service without logging the per-device token in the URL

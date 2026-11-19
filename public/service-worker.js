@@ -54,23 +54,9 @@ self.addEventListener('notificationclick', function(event) {
   event.notification.close();
   
   const data = event.notification.data || {};
-  let url = data.url || '/';
-  
-  // Handle different notification types with specific navigation
-  switch (data.type) {
-    case 'friend_submission':
-      // Navigate to the specific submission
-      url = data.url || '/feed';
-      break;
-    case 'reaction':
-    case 'comment':
-      // Navigate to the submission where the reaction/comment occurred
-      url = data.url || '/feed';
-      break;
-    default:
-      url = data.url || '/';
-  }
-  
+  // Every app page lives under /draw; anything else is a 404
+  const url = data.url || '/draw';
+
   // Service workers have no `window`; resolve against the worker's own origin
   const target = new URL(url, self.location.origin).href;
 
@@ -86,6 +72,22 @@ self.addEventListener('notificationclick', function(event) {
       }
       return clients.openWindow(target);
     })
+  );
+});
+
+// The browser can expire or rotate a subscription on its own. Replace it right
+// away with the same key so pushes keep arriving; the worker can't reach the
+// signed-in API, so the app saves the new one to the server on its next open.
+self.addEventListener('pushsubscriptionchange', function(event) {
+  const key = event.oldSubscription && event.oldSubscription.options.applicationServerKey;
+  if (event.newSubscription || !key) return;
+
+  event.waitUntil(
+    self.registration.pushManager
+      .subscribe({ userVisibleOnly: true, applicationServerKey: key })
+      .catch(function(error) {
+        console.error('🔔 Service Worker: Failed to renew push subscription:', error);
+      })
   );
 });
 

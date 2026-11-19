@@ -10,6 +10,7 @@ import (
 	"drawer-service-backend/internal/handlers"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/notifications"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -167,18 +168,24 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 						Type:     models.NotificationTypeFriendSubmission,
 						Title:    "Test Notification",
 						Body:     "This is a test notification from the backend!",
-						URL:      "/feed",
+						URL:      "/draw",
 						UserID:   user.ID,
 						Username: user.Username,
 						Action:   "tested",
 					}
 
-					if err := notifications.SendNotificationToUser(repo, user.ID, data, appCtx.Config); err != nil {
+					// Only fail when no device got it: one stale device shouldn't
+					// hide that the others were notified
+					delivered, err := notifications.DeliverToUser(repo, user.ID, data, appCtx.Config)
+					if delivered == 0 && err != nil {
 						c.JSON(500, gin.H{"error": "Failed to send notification: " + err.Error()})
 						return
 					}
-
-					c.JSON(200, gin.H{"message": "Test notification sent successfully"})
+					response := gin.H{"message": fmt.Sprintf("Test notification sent to %d device(s)", delivered), "delivered": delivered}
+					if err != nil {
+						response["failed"] = err.Error()
+					}
+					c.JSON(200, response)
 				})
 			}
 
