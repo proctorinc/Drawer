@@ -20,6 +20,7 @@ import (
 
 func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 	router := gin.Default()
+	router.Use(middleware.LegacyDomainRedirect(cfg.AllowedOrigin))
 	router.Use(middleware.CorsMiddleware(cfg))
 	router.Use(middleware.ContextMiddleware(cfg, repo))
 
