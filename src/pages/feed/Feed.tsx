@@ -4,6 +4,7 @@ import { CountDownTimer } from '../../daily/CountdownTimer';
 import { useDailyPrompt } from '../../daily/DailyPromptContext';
 import { PastPages, TodayWall } from './components/DayPages';
 import { FriendsToday } from './components/FriendsToday';
+import { SuggestionCards } from './components/SuggestionCards';
 import DrawingCanvas from './components/DrawingCanvas';
 import { PromptTitle } from './components/PromptTitle';
 import type { DailyPrompt } from '@/api/Api';
@@ -196,6 +197,7 @@ const Feed = () => {
     <Layout aside={<NextPageCountdown />}>
       {dailyPrompt && <FriendsToday />}
       <TodayWall />
+      <SuggestionCards />
       <SuggestPrompt />
       <PastPages />
     </Layout>

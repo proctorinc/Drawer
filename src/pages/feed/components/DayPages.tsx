@@ -65,7 +65,7 @@ const DayPage: FC<DayPageProps> = ({
   lastTile,
   festive = false,
 }) => {
-  const { prompt, colors, createdBy } = submissions[0];
+  const { prompt, createdBy } = submissions[0];
 
   return (
     <section className="flex flex-col gap-3 w-full">
@@ -80,10 +80,7 @@ const DayPage: FC<DayPageProps> = ({
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Chip>
-              <ColorDabs colors={colors} size="sm" />
-              {prompt.toLowerCase()}
-            </Chip>
+            <Chip>draw {prompt.toLowerCase()}</Chip>
             {createdBy && (
               <Chip className="bg-sky">by {createdBy.username}</Chip>
             )}

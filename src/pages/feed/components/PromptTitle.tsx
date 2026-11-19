@@ -24,20 +24,13 @@ export const PromptTitle: FC<{
 );
 
 /** A day's three colors as big paint dabs */
-export const ColorDabs: FC<{ colors: Array<string>; size?: 'sm' | 'lg' }> = ({
-  colors,
-  size = 'lg',
-}) => (
-  <span
-    aria-hidden="true"
-    className={cn('flex items-center', size === 'lg' ? 'gap-2' : 'gap-1')}
-  >
+export const ColorDabs: FC<{ colors: Array<string> }> = ({ colors }) => (
+  <span aria-hidden="true" className="flex items-center gap-2">
     {colors.slice(0, 3).map((color, i) => (
       <span
         key={color + i}
         className={cn(
-          'border-ink',
-          size === 'lg' ? 'size-8 border-2' : 'size-4 border-[1.5px]',
+          'size-8 border-2 border-ink',
           dabShapes[i % dabShapes.length],
         )}
         style={{ backgroundColor: color }}
