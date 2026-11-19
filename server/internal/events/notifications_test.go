@@ -27,9 +27,9 @@ func TestDueNotifications(t *testing.T) {
 func TestChristmasNotificationMessages(t *testing.T) {
 	event := christmasEvent()
 	want := map[NotificationKind]string{
-		NotificationStart:        "The 29 Doodles of Christmas start today 🎄 — day 1 of 29",
+		NotificationStart:        "Doodle-vember starts today 🎄 — day 1 of 29",
 		NotificationCountdownEnd: "Day 29: merry christmas! Hang your last ornament",
-		NotificationEnd:          "That's a wrap on the 29 Doodles of Christmas — see your recap",
+		NotificationEnd:          "That's a wrap on Doodle-vember — see your recap",
 	}
 	for kind, wantBody := range want {
 		if _, body := NotificationMessage(event, kind); body != wantBody {

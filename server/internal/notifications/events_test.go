@@ -34,7 +34,7 @@ func TestSendDueEventNotificationsOnce(t *testing.T) {
 	run("2026-11-27T00:05:00Z")
 	run("2026-11-27T01:05:00Z")
 	run("2026-11-27T23:05:00Z")
-	if len(sent) != 1 || sent[0].Body != "The 29 Doodles of Christmas start today 🎄 — day 1 of 29" || sent[0].Type != models.NotificationTypeEvent {
+	if len(sent) != 1 || sent[0].Body != "Doodle-vember starts today 🎄 — day 1 of 29" || sent[0].Type != models.NotificationTypeEvent {
 		t.Fatalf("after day 1: %+v", sent)
 	}
 
@@ -44,7 +44,7 @@ func TestSendDueEventNotificationsOnce(t *testing.T) {
 	run("2027-01-01T01:05:00Z")
 	if len(sent) != 3 ||
 		sent[1].Body != "Day 29: merry christmas! Hang your last ornament" ||
-		sent[2].Body != "That's a wrap on the 29 Doodles of Christmas — see your recap" {
+		sent[2].Body != "That's a wrap on Doodle-vember — see your recap" {
 		t.Fatalf("after the event: %+v", sent)
 	}
 

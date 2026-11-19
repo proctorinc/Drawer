@@ -41,7 +41,7 @@ func NotificationMessage(event models.Event, kind NotificationKind) (title, body
 	switch kind {
 	case NotificationStart:
 		if christmas && event.CountdownDays != nil {
-			return event.Name, fmt.Sprintf("The %s start today 🎄 — day 1 of %d", event.Name, *event.CountdownDays)
+			return event.Name, fmt.Sprintf("%s starts today 🎄 — day 1 of %d", event.Name, *event.CountdownDays)
 		}
 		return event.Name, fmt.Sprintf("%s starts today!", event.Name)
 	case NotificationCountdownEnd:
@@ -50,6 +50,6 @@ func NotificationMessage(event models.Event, kind NotificationKind) (title, body
 		}
 		return event.Name, fmt.Sprintf("It's the last day of the %s countdown!", event.Name)
 	default:
-		return event.Name, fmt.Sprintf("That's a wrap on the %s — see your recap", event.Name)
+		return event.Name, fmt.Sprintf("That's a wrap on %s — see your recap", event.Name)
 	}
 }

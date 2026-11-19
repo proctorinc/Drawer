@@ -83,7 +83,7 @@ const ChristmasTeaser: FC<{ event: UpcomingEvent; className?: string }> = ({
             <span className="px-1.5 bg-white text-xmas-green text-[11px] font-bold uppercase tracking-[2px] border-2 border-ink rounded-sketch -rotate-2">
               coming soon
             </span>
-            <h2 className="font-cursive font-bold text-[26px] leading-none text-white [text-shadow:2px_2px_0_var(--color-ink)]">
+            <h2 className="font-accent font-bold text-[30px] leading-none text-white [text-shadow:2px_2px_0_var(--color-ink)]">
               {event.name}
             </h2>
           </div>

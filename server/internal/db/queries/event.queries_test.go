@@ -35,7 +35,7 @@ func TestGetActiveEvent(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", tt.now, err)
 		}
-		if event.Slug != "christmas-2026" || event.Name != "29 Doodles of Christmas" || event.Theme != "christmas" {
+		if event.Slug != "christmas-2026" || event.Name != "Doodle-vember" || event.Theme != "christmas" {
 			t.Errorf("%s: unexpected event %+v", tt.now, event)
 		}
 		if !event.StartsAt.Equal(time.Date(2026, 11, 27, 0, 0, 0, 0, time.UTC)) ||
