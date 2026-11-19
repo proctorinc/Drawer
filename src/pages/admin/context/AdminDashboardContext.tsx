@@ -1,18 +1,8 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  type FC,
-  type ReactNode,
-} from 'react';
-import {
-  useGetAdminDashboard,
-  useGetPromptSuggestions,
-  type DailyActionStat,
-  type PromptSuggestion,
-  type User,
-} from '@/api/Api';
+import { createContext, useContext, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import type { FC, ReactNode } from 'react';
+import type { DailyActionStat, PromptSuggestion, User } from '@/api/Api';
+import { useGetAdminDashboard, useGetPromptSuggestions } from '@/api/Api';
 import { apiClient } from '@/api/apiClient';
 
 type AdminDashboardContextType = {
@@ -101,7 +91,7 @@ export const AdminDashboardProvider: FC<Props> = ({ children }) => {
             actionStatsParams.start,
             actionStatsParams.end,
           )
-      : async () => [],
+      : () => Promise.resolve([]),
     enabled: !!actionStatsParams,
     staleTime: 1000 * 60, // 1 minute
   });

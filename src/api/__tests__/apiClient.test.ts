@@ -1,12 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { apiClient } from '../apiClient';
-import type {
-  DailyPrompt,
-  User,
-  GetMeResponse,
-  UserPromptSubmission,
-  Activity,
-} from '../Api';
+import type { Activity } from '../Api';
 
 // Import setup to configure MSW
 import './setup';
@@ -23,7 +17,7 @@ describe('API Client', () => {
       expect(result).toHaveProperty('isCompleted');
 
       // Type check
-      const typedResult = result as DailyPrompt;
+      const typedResult = result;
       expect(typeof typedResult.day).toBe('string');
       expect(Array.isArray(typedResult.colors)).toBe(true);
       expect(typeof typedResult.prompt).toBe('string');
@@ -42,7 +36,7 @@ describe('API Client', () => {
       expect(result).toHaveProperty('createdAt');
 
       // Type check
-      const typedResult = result as User;
+      const typedResult = result;
       expect(typeof typedResult.id).toBe('string');
       expect(typeof typedResult.username).toBe('string');
       expect(typeof typedResult.email).toBe('string');
@@ -60,7 +54,7 @@ describe('API Client', () => {
       expect(result).toHaveProperty('stats');
 
       // Type check
-      const typedResult = result as GetMeResponse;
+      const typedResult = result;
       expect(typedResult.user).toBeDefined();
       expect(Array.isArray(typedResult.prompts)).toBe(true);
       expect(Array.isArray(typedResult.feed)).toBe(true);
@@ -77,7 +71,7 @@ describe('API Client', () => {
       expect(result.user.id).toBe(userId);
 
       // Type check
-      const typedResult = result as GetMeResponse;
+      const typedResult = result;
       expect(typedResult.user.id).toBe(userId);
     });
   });
@@ -96,7 +90,7 @@ describe('API Client', () => {
       expect(result).toHaveProperty('counts');
 
       // Type check
-      const typedResult = result as UserPromptSubmission;
+      const typedResult = result;
       expect(typedResult.id).toBe(submissionId);
       expect(typeof typedResult.imageUrl).toBe('string');
       expect(typedResult.user).toBeDefined();
@@ -124,9 +118,8 @@ describe('API Client', () => {
   });
 
   describe('User Management', () => {
-    it('should add friend successfully', async () => {
-      const username = 'frienduser';
-      const result = await apiClient.addFriend(username);
+    it('should invite a friend successfully', async () => {
+      const result = await apiClient.inviteFriend('user2');
 
       expect(result).toBeDefined();
       expect(result).toHaveProperty('message');
@@ -186,9 +179,11 @@ describe('API Client', () => {
     });
 
     it('should toggle comment reaction successfully', async () => {
+      const submissionId = 'sub123';
       const commentId = 'comment123';
       const reactionId = 'fire';
       const result = await apiClient.toggleCommentReaction(
+        submissionId,
         commentId,
         reactionId,
       );
@@ -212,29 +207,26 @@ describe('API Client', () => {
       const result = await apiClient.getActivityFeed();
 
       expect(result).toBeDefined();
-      expect(Array.isArray(result)).toBe(true);
+      expect(Array.isArray(result.activities)).toBe(true);
+      expect(Array.isArray(result.friends)).toBe(true);
+      expect(result.activities.length).toBeGreaterThan(0);
 
-      if (result.length > 0) {
-        const activity = result[0];
-        expect(activity).toHaveProperty('id');
-        expect(activity).toHaveProperty('user');
-        expect(activity).toHaveProperty('action');
-        expect(activity).toHaveProperty('date');
-        expect(activity).toHaveProperty('isRead');
+      const activity: Activity = result.activities[0];
+      expect(typeof activity.id).toBe('string');
+      expect(typeof activity.action).toBe('string');
+      expect(activity).toHaveProperty('user');
+      // Dates come over the wire as ISO strings
+      expect(Number.isNaN(new Date(activity.date).getTime())).toBe(false);
+      expect(typeof activity.isRead).toBe('boolean');
 
-        // Type check
-        const typedActivity = activity as Activity;
-        expect(typeof typedActivity.id).toBe('string');
-        expect(typeof typedActivity.action).toBe('string');
-        expect(typedActivity.date).toBeInstanceOf(Date);
-        expect(typeof typedActivity.isRead).toBe('boolean');
-      }
+      const friend = result.friends[0];
+      expect(friend).toHaveProperty('user');
+      expect(typeof friend.hasSubmittedToday).toBe('boolean');
+      expect(typeof friend.pokedToday).toBe('boolean');
     });
 
     it('should mark activity as read successfully', async () => {
-      const result = await apiClient.markActivityRead(
-        '2026-11-18T12:00:00Z',
-      );
+      const result = await apiClient.markActivityRead('2026-11-18T12:00:00Z');
 
       expect(result).toBeDefined();
       expect(result).toHaveProperty('message');
@@ -243,7 +235,7 @@ describe('API Client', () => {
   });
 
   describe('Error Handling', () => {
-    it('should handle network errors gracefully', async () => {
+    it('should handle network errors gracefully', () => {
       // This would require additional MSW handlers for error scenarios
       // For now, we'll test that our error handling structure is in place
       expect(apiClient.getDailyPrompt).toBeDefined();

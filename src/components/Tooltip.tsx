@@ -1,6 +1,8 @@
+import { useEffect, useState } from 'react';
+import { cva } from 'class-variance-authority';
+import type { FC, ReactNode } from 'react';
+import type { VariantProps } from 'class-variance-authority';
 import { cn } from '@/utils';
-import { useState, type FC, type ReactNode, useEffect } from 'react';
-import { cva, type VariantProps } from 'class-variance-authority';
 
 const tooltipVariants = cva(
   'z-30 absolute bg-white text-ink p-3 border-2 border-ink rounded-sketch shadow-pencil transition-[opacity,scale] duration-300 ease-[var(--ease-spring)]',
@@ -67,20 +69,18 @@ const Tooltip: FC<Props> = ({
   return (
     <div className={cn('relative', className)} onClick={handleClick}>
       {children}
-      {show && (
-        <div
-          className={cn(
-            tooltipVariants({ location }),
-            isTooltipVisible
-              ? 'opacity-100 scale-100'
-              : 'opacity-0 scale-75 pointer-events-none',
-            tooltipClassName,
-          )}
-          onClick={handleTooltipClick}
-        >
-          {content}
-        </div>
-      )}
+      <div
+        className={cn(
+          tooltipVariants({ location }),
+          isTooltipVisible
+            ? 'opacity-100 scale-100'
+            : 'opacity-0 scale-75 pointer-events-none',
+          tooltipClassName,
+        )}
+        onClick={handleTooltipClick}
+      >
+        {content}
+      </div>
     </div>
   );
 };

@@ -36,7 +36,7 @@ export function nameToColor(name: string) {
 }
 
 export function isFriend(userId: string, friends: Array<User>) {
-  return friends?.some((friend) => friend.id === userId);
+  return friends.some((friend) => friend.id === userId);
 }
 
 export function getTwoCapitalLetters(input: string): string {

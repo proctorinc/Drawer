@@ -1,0 +1,6 @@
+{
+  // Type-aware linting covers the tests and root config files too, which tsconfig.json leaves out
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "allowJs": true },
+  "exclude": ["node_modules", "scripts", "dist", "build", "public"]
+}

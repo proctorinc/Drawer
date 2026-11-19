@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw';
+import { HttpResponse, http } from 'msw';
 import { Config } from '../../../config/Config';
 
 const baseUrl = Config.API_BASE_URL;
@@ -96,7 +96,7 @@ export const handlers = [
   // Auth endpoints
   http.post(`${baseUrl}/auth/register`, async ({ request }) => {
     const body = (await request.json()) as { username?: string };
-    if (!body?.username) {
+    if (!body.username) {
       return HttpResponse.json(
         { error: 'Username is required' },
         { status: 400 },
@@ -110,20 +110,13 @@ export const handlers = [
   }),
 
   // User management
-  http.post(`${baseUrl}/add-friend`, async ({ request }) => {
-    const body = (await request.json()) as { username?: string };
-    if (!body?.username) {
-      return HttpResponse.json(
-        { error: 'Username is required' },
-        { status: 400 },
-      );
-    }
-    return HttpResponse.json({ message: 'Friend added successfully' });
+  http.post(`${baseUrl}/user/:userId/invite`, () => {
+    return HttpResponse.json({ message: 'Invitation sent successfully' });
   }),
 
   http.put(`${baseUrl}/user/username`, async ({ request }) => {
     const body = (await request.json()) as { username?: string };
-    if (!body?.username) {
+    if (!body.username) {
       return HttpResponse.json(
         { error: 'Username is required' },
         { status: 400 },
@@ -152,7 +145,7 @@ export const handlers = [
     `${baseUrl}/submission/:submissionId/comment`,
     async ({ request }) => {
       const body = (await request.json()) as { text?: string };
-      if (!body?.text) {
+      if (!body.text) {
         return HttpResponse.json(
           { error: 'Comment text is required' },
           { status: 400 },
@@ -175,7 +168,7 @@ export const handlers = [
     `${baseUrl}/submission/:submissionId/reaction`,
     async ({ request }) => {
       const body = (await request.json()) as { reactionId?: string };
-      if (!body?.reactionId) {
+      if (!body.reactionId) {
         return HttpResponse.json(
           { error: 'Reaction ID is required' },
           { status: 400 },
@@ -201,43 +194,47 @@ export const handlers = [
     },
   ),
 
-  http.post(`${baseUrl}/comment/:commentId/reaction`, async ({ request }) => {
-    const body = (await request.json()) as { reactionId?: string };
-    if (!body?.reactionId) {
-      return HttpResponse.json(
-        { error: 'Reaction ID is required' },
-        { status: 400 },
-      );
-    }
+  http.post(
+    `${baseUrl}/submission/:submissionId/comment/:commentId/reaction`,
+    async ({ request }) => {
+      const body = (await request.json()) as { reactionId?: string };
+      if (!body.reactionId) {
+        return HttpResponse.json(
+          { error: 'Reaction ID is required' },
+          { status: 400 },
+        );
+      }
 
-    return HttpResponse.json({
-      reactions: [
-        {
-          id: 1,
-          reactionId: body.reactionId,
-          user: mockUser,
-          createdAt: new Date().toISOString(),
-        },
-      ],
-      counts: [
-        {
-          reactionId: body.reactionId,
-          count: 1,
-        },
-      ],
-    });
-  }),
+      return HttpResponse.json({
+        reactions: [
+          {
+            id: 1,
+            reactionId: body.reactionId,
+            user: mockUser,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+        counts: [
+          {
+            reactionId: body.reactionId,
+            count: 1,
+          },
+        ],
+      });
+    },
+  ),
 
   // Activity
   http.get(`${baseUrl}/activity`, () => {
     return HttpResponse.json({
       activities: [mockActivity],
+      friends: [{ user: mockUser, hasSubmittedToday: true, pokedToday: false }],
     });
   }),
 
   http.post(`${baseUrl}/activity/view`, async ({ request }) => {
     const body = (await request.json()) as { seenAt?: string };
-    if (!body?.seenAt) {
+    if (!body.seenAt) {
       return HttpResponse.json(
         { error: 'seenAt is required' },
         { status: 400 },

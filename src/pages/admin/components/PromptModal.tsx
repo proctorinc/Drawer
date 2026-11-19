@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlusCircle, faTimes } from '@fortawesome/free-solid-svg-icons';
 import Button from '../../../components/Button';
-import { useCreatePrompt, type User } from '../../../api/Api';
+import { useCreatePrompt } from '../../../api/Api';
 import { useAdminDashboard } from '../context/AdminDashboardContext';
-import { UserSelector } from './UserSelector';
-import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { generateRandomColors } from '../utils';
+import { UserSelector } from './UserSelector';
+import type { User } from '../../../api/Api';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import EventIcon from '@/events/EventIcon';
 
 interface PromptModalProps {

@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import type { User } from '@/api/Api';
+import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 
 interface UserSelectorProps {
   users: Array<User>;

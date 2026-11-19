@@ -1,10 +1,11 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner } from '@fortawesome/free-solid-svg-icons';
 import { useState } from 'react';
+import { cva } from 'class-variance-authority';
+import type { VariantProps } from 'class-variance-authority';
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons';
 import type { ButtonHTMLAttributes, FC, MouseEvent, ReactNode } from 'react';
 import { cn } from '@/utils';
-import { cva, type VariantProps } from 'class-variance-authority';
 
 const buttonVariants = cva(
   'press inline-flex justify-center items-center gap-2 cursor-pointer disabled:cursor-default font-accent font-bold leading-none border-2 border-ink hover:-rotate-1 disabled:rotate-0 disabled:border-dashed disabled:border-line disabled:bg-transparent disabled:text-pencil disabled:shadow-none',

@@ -1,7 +1,7 @@
-import type { FC, ReactNode } from 'react';
-import useAuth from './hooks/useAuth';
-import LoadingScreen from '@/components/LoadingScreen';
 import { useLocation, useNavigate } from '@tanstack/react-router';
+import useAuth from './hooks/useAuth';
+import type { FC, ReactNode } from 'react';
+import LoadingScreen from '@/components/LoadingScreen';
 
 type Props = {
   children: ReactNode;

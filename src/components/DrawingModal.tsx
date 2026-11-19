@@ -1,11 +1,11 @@
 import { faXmark } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { DrawingImage } from '@/drawing/components/DrawingImage';
-import { cn } from '@/utils';
-import type { UserPromptSubmission } from '@/api/Api';
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader } from './Card';
 import Button from './Button';
+import type { UserPromptSubmission } from '@/api/Api';
+import { cn } from '@/utils';
+import { DrawingImage } from '@/drawing/components/DrawingImage';
 
 type Props = {
   drawing: UserPromptSubmission | null;

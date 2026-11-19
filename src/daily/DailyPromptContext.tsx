@@ -1,12 +1,9 @@
-import { createContext, useContext, type FC } from 'react';
-import {
-  queryKeys,
-  useGetDailyPrompt,
-  useSubmitDailyPrompt,
-  type DailyPrompt,
-} from '@/api/Api';
-import { type ReactNode } from '@tanstack/react-router';
+import { createContext, useContext } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import type { FC } from 'react';
+import type { ReactNode } from '@tanstack/react-router';
+import type { DailyPrompt } from '@/api/Api';
+import { queryKeys, useGetDailyPrompt, useSubmitDailyPrompt } from '@/api/Api';
 
 type DailyPromptContextType = {
   dailyPrompt: DailyPrompt | undefined;

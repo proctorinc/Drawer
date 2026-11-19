@@ -1,8 +1,10 @@
-import { createContext, type FC, type ReactNode } from 'react';
+import { createContext } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useAuth as useClerkAuth } from '@clerk/react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useLogoutUser, useCreateUser, useGetMe, type User } from '@/api/Api';
+import type { FC, ReactNode } from 'react';
+import type { User } from '@/api/Api';
+import { useCreateUser, useGetMe, useLogoutUser } from '@/api/Api';
 import { ProfileRequiredError, setAuthTokenGetter } from '@/api/apiClient';
 
 type AuthContextType = {

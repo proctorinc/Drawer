@@ -14,7 +14,7 @@ import type {
 } from './Api';
 import { Config } from '@/config/Config';
 
-let getAuthToken: () => Promise<string | null> = async () => null;
+let getAuthToken: () => Promise<string | null> = () => Promise.resolve(null);
 
 // Called by AuthProvider so requests carry the Clerk session token
 export function setAuthTokenGetter(getter: () => Promise<string | null>) {

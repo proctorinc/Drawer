@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  CartesianGrid,
 } from 'recharts';
-import { useAdminDashboard } from '../context/AdminDashboardContext';
 import { format, subDays, subMonths } from 'date-fns';
+import { useAdminDashboard } from '../context/AdminDashboardContext';
 import { Card, CardContent, CardHeader } from '@/components/Card';
 
 const ACTION_COLORS = {
