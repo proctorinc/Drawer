@@ -11,6 +11,7 @@ import type { GetMeResponse } from '@/api/Api';
 import { monthIndex, parseDay } from '@/days';
 import { Card, CardContent } from '@/components/Card';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
+import { useCalendarEvent } from '@/events/useCalendarEvent';
 
 const monthButtonClass =
   'press flex items-center justify-center size-10 bg-white border-2 border-ink rounded-blob shadow-pencil-sm cursor-pointer disabled:invisible';
@@ -38,11 +39,18 @@ const SubmissionCalendar: FC<Props> = ({ profile }) => {
     ? parseDay(dailyPrompt.day)
     : new Date(new Date().setHours(0, 0, 0, 0));
   const [month, setMonth] = useState(today);
+  const event = useCalendarEvent();
+  // Page ahead as far as the event's last day, so what's coming can be seen
+  const lastEventDay = event?.days.at(-1);
+  const lastMonth = Math.max(
+    monthIndex(today),
+    lastEventDay ? monthIndex(parseDay(lastEventDay)) : 0,
+  );
 
   const joined = new Date(profile.user.createdAt);
   joined.setHours(0, 0, 0, 0);
   const canGoBack = monthIndex(month) > monthIndex(joined);
-  const canGoForward = monthIndex(month) < monthIndex(today);
+  const canGoForward = monthIndex(month) < lastMonth;
 
   const drawn = profile.prompts.filter(
     (prompt) => monthIndex(parseDay(prompt.day)) === monthIndex(month),
@@ -71,8 +79,14 @@ const SubmissionCalendar: FC<Props> = ({ profile }) => {
               <span className="text-pencil">{month.getFullYear()}</span>
             </h2>
             <span className="text-pencil">
-              {drawn} of {drawable} {drawable === 1 ? 'day' : 'days'} drawn
-              {drawable > 0 && drawn === drawable && ' ⭐'}
+              {monthIndex(month) > monthIndex(today) && event ? (
+                `${event.name} ahead`
+              ) : (
+                <>
+                  {drawn} of {drawable} {drawable === 1 ? 'day' : 'days'} drawn
+                  {drawable > 0 && drawn === drawable && ' ⭐'}
+                </>
+              )}
             </span>
           </div>
           <button
@@ -90,6 +104,7 @@ const SubmissionCalendar: FC<Props> = ({ profile }) => {
           today={today}
           month={month}
           joined={joined}
+          event={event}
           prompts={profile.prompts}
           onDrawingClick={(drawing) =>
             navigate({

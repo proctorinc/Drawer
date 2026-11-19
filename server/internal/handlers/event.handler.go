@@ -93,6 +93,9 @@ type UpcomingEvent struct {
 	Name     string    `json:"name"`
 	Theme    string    `json:"theme"`
 	StartsAt time.Time `json:"startsAt"`
+	EndsAt   time.Time `json:"endsAt"` // Exclusive
+	// CountdownDays is the length of the "day N of X" countdown, or nil if the event has none.
+	CountdownDays *int `json:"countdownDays"`
 }
 
 type UpcomingEventResponse struct {
@@ -100,7 +103,7 @@ type UpcomingEventResponse struct {
 }
 
 // HandleGetUpcomingEvent returns the next event starting within upcomingEventWindow, if any.
-// Only its name, theme and start are given; the rest waits until it starts.
+// Only its name, theme and dates are given (enough to mark a calendar); the rest waits until it starts.
 func HandleGetUpcomingEvent(c *gin.Context) {
 	appCtx := requestContext.GetCtx(c)
 	now := events.Now(appCtx.Config)
@@ -117,10 +120,12 @@ func HandleGetUpcomingEvent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, UpcomingEventResponse{Event: &UpcomingEvent{
-		Slug:     event.Slug,
-		Name:     event.Name,
-		Theme:    event.Theme,
-		StartsAt: event.StartsAt.UTC(),
+		Slug:          event.Slug,
+		Name:          event.Name,
+		Theme:         event.Theme,
+		StartsAt:      event.StartsAt.UTC(),
+		EndsAt:        event.EndsAt.UTC(),
+		CountdownDays: event.CountdownDays,
 	}})
 }
 

@@ -318,15 +318,18 @@ func TestEventReactionsAllowedOnlyDuringEvent(t *testing.T) {
 }
 
 func TestEventStaysSecretUntilItStarts(t *testing.T) {
-	// Eight days out: teased by name and start, but nothing else is served
+	// Eight days out: teased by name and dates, but nothing else is served
 	router, _ := newEventsRouter(t, "2026-11-19")
 	_, body := request(t, router, "GET", "/events/upcoming", nil)
 	upcoming, _ := body["event"].(map[string]any)
 	if upcoming == nil || upcoming["slug"] != "christmas-2026" || upcoming["startsAt"] != "2026-11-27T00:00:00Z" {
 		t.Errorf("upcoming = %v", body["event"])
 	}
-	if len(upcoming) != 4 {
-		t.Errorf("upcoming reveals %d fields, want only slug, name, theme and startsAt", len(upcoming))
+	if upcoming["endsAt"] != "2027-01-01T00:00:00Z" || upcoming["countdownDays"] != float64(29) {
+		t.Errorf("upcoming dates = %v to %v, countdown %v", upcoming["startsAt"], upcoming["endsAt"], upcoming["countdownDays"])
+	}
+	if len(upcoming) != 6 {
+		t.Errorf("upcoming reveals %d fields, want only slug, name, theme, startsAt, endsAt and countdownDays", len(upcoming))
 	}
 	for _, path := range []string{"/events/christmas-2026/recap", "/events/christmas-2026/leaderboard"} {
 		if code, _ := request(t, router, "GET", path, nil); code != http.StatusNotFound {

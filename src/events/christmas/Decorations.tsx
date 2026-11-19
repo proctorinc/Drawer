@@ -251,3 +251,31 @@ export const TreeIcon: FC<Props & { size?: number }> = ({
     <circle cx="10" cy="2.5" r="2" fill="var(--color-xmas-gold)" />
   </svg>
 );
+
+/**
+ * A wrapped present filling a calendar day still to be doodled: a box, its
+ * lid, a ribbon both ways and a bow. Flat with ink outlines, like the rest.
+ */
+export const Present: FC<Props & { box: string; ribbon: string }> = ({
+  className,
+  box,
+  ribbon,
+}) => (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 40 40"
+    overflow="visible"
+    className={className}
+  >
+    <g stroke="var(--color-ink)" strokeWidth={2} strokeLinejoin="round">
+      {/* Bow loops, behind the lid */}
+      <path
+        d="M20 12c-3-6-10-7-10-3s6 4 10 3zM20 12c3-6 10-7 10-3s-6 4-10 3z"
+        fill={ribbon}
+      />
+      <rect x={7} y={18} width={26} height={19} rx={1.5} fill={box} />
+      <rect x={5} y={12} width={30} height={7} rx={1.5} fill={box} />
+      <rect x={17} y={12} width={6} height={25} fill={ribbon} />
+    </g>
+  </svg>
+);

@@ -35,6 +35,10 @@ export interface UpcomingEvent {
   name: string;
   theme: EventTheme | (string & {});
   startsAt: string;
+  /** The moment the event stops (exclusive), not its last day */
+  endsAt: string;
+  /** Length of the countdown, e.g. 29 days to Christmas; null if none */
+  countdownDays: number | null;
 }
 
 export interface EventLeaderboardEntry {
