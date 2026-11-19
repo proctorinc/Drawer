@@ -1,35 +1,21 @@
-export class Point {
+import { Config } from '@/config/Config';
+
+export type Point = {
   x: number;
   y: number;
-  constructor(x: number, y: number) {
-    this.x = x;
-    this.y = y;
-  }
-}
+};
 
+/**
+ * Where a pointer is on the canvas, in drawing units (0 to CANVAS_WIDTH),
+ * however large the canvas is shown or however dense its pixels are
+ */
 export function getEventPoint(
-  event: MouseEvent | TouchEvent,
+  event: { clientX: number; clientY: number },
   canvas: HTMLCanvasElement,
 ): Point {
   const rect = canvas.getBoundingClientRect();
-  let clientX, clientY;
-
-  if ('touches' in event) {
-    // Touch event
-    clientX = event.touches[0].clientX;
-    clientY = event.touches[0].clientY;
-  } else {
-    // Mouse event
-    clientX = event.clientX;
-    clientY = event.clientY;
-  }
-
-  // Adjust for canvas position and scale (if canvas CSS size is different from element size)
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-
-  const x = (clientX - rect.left) * scaleX;
-  const y = (clientY - rect.top) * scaleY;
-
-  return new Point(x, y);
+  return {
+    x: ((event.clientX - rect.left) * Config.CANVAS_WIDTH) / rect.width,
+    y: ((event.clientY - rect.top) * Config.CANVAS_HEIGHT) / rect.height,
+  };
 }

@@ -3,28 +3,97 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
+  useMemo,
   useRef,
   useState,
-  type FC,
 } from 'react';
 import { Path } from './shapes/Path';
 import { getEventPoint } from './shapes/Point';
+import type { FC, PointerEvent as ReactPointerEvent } from 'react';
 import type { SerializedPath } from './shapes/Path';
 import { Config } from '@/config/Config';
 
+/** What the <canvas> element needs to be drawn on */
+type CanvasBindings = {
+  ref: (canvas: HTMLCanvasElement | null) => void;
+  width: number;
+  height: number;
+  onPointerDown: (event: ReactPointerEvent<HTMLCanvasElement>) => void;
+  onPointerMove: (event: ReactPointerEvent<HTMLCanvasElement>) => void;
+  onPointerUp: (event: ReactPointerEvent<HTMLCanvasElement>) => void;
+  onPointerCancel: (event: ReactPointerEvent<HTMLCanvasElement>) => void;
+  onLostPointerCapture: (event: ReactPointerEvent<HTMLCanvasElement>) => void;
+};
+
 type DrawingContextType = {
+  /** null while the eraser is in hand */
   selectedColor: string | null;
   setSelectedColor: (color: string) => void;
-  canvasRef: React.RefObject<HTMLCanvasElement | null>;
-  clearCanvas: () => void;
-  getCanvasData: () => string;
-  undo: () => void;
   selectEraser: () => void;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  canvasBindings: CanvasBindings;
+  clearCanvas: () => void;
+  undo: () => void;
   canUndo: boolean;
+  /** Something's actually showing, not just strokes that were all erased */
+  hasInk: boolean;
   getPng: (backgroundColor?: string) => Promise<Blob>;
 };
 
 const DrawingContext = createContext<DrawingContextType | undefined>(undefined);
+
+// The canvas keeps this many pixels per drawing unit, so strokes stay crisp
+// on dense screens and in the uploaded picture
+const SCALE = Config.CANVAS_SCALE;
+const PIXEL_WIDTH = Config.CANVAS_WIDTH * SCALE;
+const PIXEL_HEIGHT = Config.CANVAS_HEIGHT * SCALE;
+// A second finger this early in a stroke means a gesture, not a drawing
+const GESTURE_GRACE_POINTS = 8;
+
+function loadPaths(key: string): Array<Path> {
+  try {
+    const json = localStorage.getItem(key);
+    if (!json) return [];
+    const serialized: Array<SerializedPath> = JSON.parse(json);
+    return serialized.map((path) => Path.deserialize(path));
+  } catch {
+    return [];
+  }
+}
+
+function savePaths(key: string, paths: Array<Path>) {
+  try {
+    if (paths.length === 0) {
+      localStorage.removeItem(key);
+    } else {
+      localStorage.setItem(
+        key,
+        JSON.stringify(paths.map((path) => path.serialize())),
+      );
+    }
+  } catch {
+    // Out of space or blocked: the drawing still works, it just won't survive a reload
+  }
+}
+
+function makeLayer() {
+  const layer = document.createElement('canvas');
+  layer.width = PIXEL_WIDTH;
+  layer.height = PIXEL_HEIGHT;
+  return layer;
+}
+
+/** Whether any pixel is left showing, for drawings where the eraser has been used */
+function layerHasInk(layer: HTMLCanvasElement) {
+  const ctx = layer.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return true;
+  const { data } = ctx.getImageData(0, 0, layer.width, layer.height);
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] !== 0) return true;
+  }
+  return false;
+}
 
 type DrawingProviderProps = {
   localStorageKey: string;
@@ -36,372 +105,196 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
   localStorageKey,
 }) => {
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [paths, setPaths] = useState<Array<Path>>(() =>
+    loadPaths(localStorageKey),
+  );
+  const [hasInk, setHasInk] = useState(false);
+  const [canvas, setCanvas] = useState<HTMLCanvasElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isDrawing, setIsDrawing] = useState<boolean>(false);
-  const [lastScale, setLastScale] = useState<number>(1);
-  const [isPinching, setIsPinching] = useState<boolean>(false);
-  const initialDistance = useRef<number>(0);
-  const initialScale = useRef<number>(1);
-  const [paths, setPaths] = useState<Array<Path>>(loadPaths());
-  const currentPathRef = useRef<Path | null>(null);
+  // Every finished stroke, flattened, so a stroke in progress only has to
+  // draw itself over one picture
+  const committedRef = useRef<HTMLCanvasElement | null>(null);
+  const currentRef = useRef<{ path: Path; pointerId: number } | null>(null);
+  const frameRef = useRef(0);
+  const selectedColorRef = useRef(selectedColor);
+  selectedColorRef.current = selectedColor;
 
-  const canUndo = paths.length > 0;
-  const isEraseMode = selectedColor === null;
-
-  const clearCanvas = useCallback(() => {
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); // Clear canvas
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transformation
-        paths.forEach((path) => path.draw(ctx)); // Redraw all paths
-      }
+  const paint = useCallback(() => {
+    frameRef.current = 0;
+    const ctx = canvasRef.current?.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, PIXEL_WIDTH, PIXEL_HEIGHT);
+    if (committedRef.current) ctx.drawImage(committedRef.current, 0, 0);
+    const current = currentRef.current;
+    if (current) {
+      ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+      current.path.draw(ctx);
     }
-    updatePaths([]);
-  }, [paths]);
-
-  const undo = useCallback(() => {
-    if (paths.length > 0) {
-      updatePaths(paths.slice(0, -1));
-      redraw();
-    }
-  }, [paths]);
-
-  const redraw = useCallback(() => {
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height); // Clear canvas
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transformation
-        paths.forEach((path) => path.draw(ctx)); // Redraw all paths
-      }
-    }
-  }, [paths, lastScale]);
-
-  const getDistance = (event: TouchEvent) => {
-    const touch1 = event.touches[0];
-    const touch2 = event.touches[1];
-    return Math.sqrt(
-      Math.pow(touch2.clientX - touch1.clientX, 2) +
-        Math.pow(touch2.clientY - touch1.clientY, 2),
-    );
-  };
-
-  const handleMouseDown = useCallback(
-    (event: MouseEvent | TouchEvent) => {
-      if (event instanceof TouchEvent) {
-        if (event.touches.length > 1) {
-          setIsDrawing(false);
-          setIsPinching(true);
-          initialDistance.current = getDistance(event);
-          initialScale.current = lastScale;
-          return;
-        }
-      }
-
-      if (event instanceof TouchEvent) {
-        if (event.touches.length !== 1) {
-          setIsDrawing(false);
-          return;
-        }
-      }
-
-      event.preventDefault();
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      setIsDrawing(true);
-      const startPoint = getEventPoint(event, canvas);
-
-      const path = new Path(
-        [startPoint],
-        isEraseMode ? 'rgba(0,0,0,1)' : selectedColor || Config.ERASER_COLOR,
-        Config.CURSOR_SIZE,
-        isEraseMode,
-      );
-      currentPathRef.current = path;
-
-      ctx.strokeStyle = path.color || 'rgba(0,0,0,1)';
-      ctx.lineWidth = path.lineWidth;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      ctx.beginPath();
-      ctx.moveTo(startPoint.x, startPoint.y);
-    },
-    [selectedColor],
-  );
-
-  const handleMouseMove = useCallback(
-    (event: MouseEvent | TouchEvent) => {
-      if (event instanceof TouchEvent && isPinching) {
-        event.preventDefault();
-
-        const canvas = canvasRef.current;
-        const ctx = canvas?.getContext('2d');
-
-        if (!canvas || !ctx) return;
-
-        const currentDistance = getDistance(event);
-
-        if (initialDistance.current === 0) return;
-
-        let scaleFactor = currentDistance / initialDistance.current;
-        scaleFactor = initialScale.current * scaleFactor;
-
-        // Limit the scale factor to prevent zooming in too much or too little
-        scaleFactor = Math.max(0.5, Math.min(scaleFactor, 2));
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.scale(scaleFactor, scaleFactor);
-
-        setLastScale(scaleFactor);
-        redraw();
-        return;
-      }
-
-      if (event instanceof TouchEvent) {
-        if (event.touches.length !== 1) {
-          setIsDrawing(false);
-          return;
-        }
-      }
-
-      if (!isDrawing) return;
-      event.preventDefault();
-
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      const currentPath = currentPathRef.current;
-
-      if (!canvas || !ctx || !currentPath) return;
-
-      const point = getEventPoint(event, canvas);
-
-      currentPath.points.push(point);
-
-      currentPath.draw(ctx);
-    },
-    [isDrawing, isPinching],
-  );
-
-  const handleMouseUp = useCallback(
-    (event: MouseEvent | TouchEvent) => {
-      if (event instanceof TouchEvent && isPinching) {
-        setIsPinching(false);
-        initialDistance.current = 0;
-        initialScale.current = 1;
-        return;
-      }
-
-      if (event instanceof TouchEvent) {
-        if (event.changedTouches.length !== 1) {
-          setIsDrawing(false);
-          return;
-        }
-      }
-
-      if (!isDrawing) return;
-
-      event.preventDefault();
-
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      const path = currentPathRef.current;
-
-      if (!canvas || !ctx || !path) return;
-
-      setIsDrawing(false);
-
-      // Finalize the current path drawing (e.g., close path, final stroke)
-      ctx.closePath();
-
-      if (path.points.length > 1) {
-        setPaths((prevPaths) => [...prevPaths, path]);
-      } else if (path.points.length === 1) {
-        setPaths((prevPaths) => [...prevPaths, path]);
-      }
-
-      currentPathRef.current = null;
-    },
-    [isDrawing, setPaths, isPinching],
-  );
-
-  const handleMouseLeave = useCallback(
-    (event: MouseEvent | TouchEvent) => {
-      if (isDrawing) {
-        handleMouseUp(event);
-      }
-    },
-    [isDrawing, handleMouseUp],
-  );
-
-  const selectEraser = useCallback(() => {
-    setSelectedColor(null);
   }, []);
 
-  const updatePaths = (newPaths: Array<Path>) => {
-    setPaths(newPaths);
-    savePaths(newPaths);
-  };
+  // At most one paint per frame, however fast the pointer reports
+  const schedulePaint = useCallback(() => {
+    if (!frameRef.current) frameRef.current = requestAnimationFrame(paint);
+  }, [paint]);
 
-  function savePaths(newPaths: Array<Path>) {
-    const serializedPaths = newPaths.map((path) => path.serialize());
-    const stateJson = JSON.stringify(serializedPaths);
-    localStorage.setItem(localStorageKey, stateJson);
-  }
+  useEffect(() => () => cancelAnimationFrame(frameRef.current), []);
 
-  function loadPaths() {
-    const jsonState = localStorage.getItem(localStorageKey);
-
-    if (jsonState) {
-      const serializedPaths: Array<SerializedPath> = JSON.parse(jsonState);
-      return serializedPaths.map((path) => Path.deserialize(path));
+  // Rebuild the finished strokes whenever they change (a stroke lands, undo,
+  // clear) or the canvas appears
+  useLayoutEffect(() => {
+    const layer = makeLayer();
+    const ctx = layer.getContext('2d');
+    if (ctx) {
+      ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+      paths.forEach((path) => path.draw(ctx));
     }
-
-    return [];
-  }
-
-  function getCanvasData() {
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-        const imageData = ctx.getImageData(
-          0,
-          0,
-          Config.CANVAS_WIDTH,
-          Config.CANVAS_HEIGHT,
-        );
-        const canvasData = JSON.stringify({
-          width: Config.CANVAS_WIDTH,
-          height: Config.CANVAS_HEIGHT,
-          data: Array.from(imageData.data),
-        });
-        return canvasData;
-      } else {
-        throw Error('Failed to get canvas context');
-      }
-    } else {
-      throw Error('Failed to get canvas reference');
-    }
-  }
-
-  async function getPng(backgroundColor?: string): Promise<Blob> {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!ctx || !canvas) throw new Error('Could not get canvas context');
-
-    // Get your existing image data
-    const canvasData = getCanvasData();
-    const jsonData = JSON.parse(canvasData);
-    const imageData = new ImageData(
-      new Uint8ClampedArray(jsonData.data),
-      jsonData.width,
-      jsonData.height,
+    committedRef.current = layer;
+    // Only the eraser can make strokes add up to nothing
+    setHasInk(
+      paths.some((path) => path.isEraser)
+        ? layerHasInk(layer)
+        : paths.length > 0,
     );
-
-    // Create an OffscreenCanvas to draw the background and your image data
-    // This prevents flickering or modifying the visible canvas
-    const offscreenCanvas = document.createElement('canvas');
-    const offscreenCtx = offscreenCanvas.getContext('2d');
-
-    if (!offscreenCtx)
-      throw new Error('Could not get offscreen canvas context');
-
-    offscreenCanvas.width = jsonData.width;
-    offscreenCanvas.height = jsonData.height;
-
-    // 1. Draw the background color on the offscreen canvas
-    if (backgroundColor) {
-      offscreenCtx.fillStyle = backgroundColor;
-      offscreenCtx.fillRect(
-        0,
-        0,
-        offscreenCanvas.width,
-        offscreenCanvas.height,
-      );
-    } else {
-      // If no background color, ensure the offscreen canvas is transparent
-      offscreenCtx.clearRect(
-        0,
-        0,
-        offscreenCanvas.width,
-        offscreenCanvas.height,
-      );
-    }
-
-    // 2. Convert ImageData to ImageBitmap and draw it onto the offscreen canvas
-    // This is the key change to handle transparency correctly
-    const imageBitmap = await createImageBitmap(imageData);
-    offscreenCtx.drawImage(imageBitmap, 0, 0);
-
-    // Now, convert the offscreen canvas to PNG
-    return new Promise<Blob>((resolve) => {
-      offscreenCanvas.toBlob((callback) => {
-        if (callback) resolve(callback);
-      }, 'image/png');
-    });
-  }
+    paint();
+  }, [paths, canvas, paint]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.width = Config.CANVAS_WIDTH;
-      canvas.height = Config.CANVAS_HEIGHT;
-      // mouse events
-      canvas.addEventListener('mousedown', handleMouseDown);
-      canvas.addEventListener('mousemove', handleMouseMove);
-      canvas.addEventListener('mouseup', handleMouseUp);
+    savePaths(localStorageKey, paths);
+  }, [localStorageKey, paths]);
 
-      // touch events
-      canvas.addEventListener('touchstart', handleMouseDown);
-      canvas.addEventListener('touchmove', handleMouseMove);
-      canvas.addEventListener('touchend', handleMouseUp);
-    }
+  const commitStroke = useCallback(() => {
+    const current = currentRef.current;
+    if (!current) return;
+    currentRef.current = null;
+    const { path } = current;
+    setPaths((prev) => [...prev, path]);
+  }, []);
 
-    return () => {
-      if (canvas) {
-        canvas.removeEventListener('mousedown', handleMouseDown);
-        canvas.removeEventListener('mousemove', handleMouseMove);
-        canvas.removeEventListener('mouseup', handleMouseUp);
+  const dropStroke = useCallback(() => {
+    currentRef.current = null;
+    schedulePaint();
+  }, [schedulePaint]);
 
-        canvas.removeEventListener('touchstart', handleMouseDown);
-        canvas.removeEventListener('touchmove', handleMouseMove);
-        canvas.removeEventListener('touchend', handleMouseUp);
+  const canvasBindings = useMemo<CanvasBindings>(
+    () => ({
+      ref: (element) => {
+        canvasRef.current = element;
+        setCanvas(element);
+      },
+      width: PIXEL_WIDTH,
+      height: PIXEL_HEIGHT,
+      onPointerDown: (event) => {
+        const current = currentRef.current;
+        if (!event.isPrimary) {
+          // A second finger: if the stroke has barely started it was the
+          // first half of a pinch or scroll, so it shouldn't leave a mark
+          if (
+            current &&
+            current.path.points.length < GESTURE_GRACE_POINTS &&
+            event.pointerType === 'touch'
+          ) {
+            dropStroke();
+          }
+          return;
+        }
+        // Already drawing (say, a palm landing while the pencil's down)
+        if (current) return;
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        event.preventDefault();
+        // Keep getting this pointer's moves and release even off the canvas
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId);
+        } catch {
+          // The pointer's already gone; its release will still end the stroke
+        }
+        const color = selectedColorRef.current;
+        currentRef.current = {
+          pointerId: event.pointerId,
+          path: new Path(
+            [getEventPoint(event, event.currentTarget)],
+            color ?? '#000',
+            Config.CURSOR_SIZE,
+            color === null,
+          ),
+        };
+        schedulePaint();
+      },
+      onPointerMove: (event) => {
+        const current = currentRef.current;
+        if (!current || current.pointerId !== event.pointerId) return;
+        // Fast strokes report several positions per event; keep them all
+        // (not every browser has getCoalescedEvents yet)
+        const native = event.nativeEvent as Omit<
+          PointerEvent,
+          'getCoalescedEvents'
+        > & { getCoalescedEvents?: () => Array<PointerEvent> };
+        const samples = native.getCoalescedEvents?.() ?? [];
+        const events = samples.length > 0 ? samples : [native];
+        for (const sample of events) {
+          current.path.points.push(getEventPoint(sample, event.currentTarget));
+        }
+        schedulePaint();
+      },
+      onPointerUp: (event) => {
+        if (currentRef.current?.pointerId === event.pointerId) commitStroke();
+      },
+      // The browser took the pointer (a system gesture, the pencil lifting
+      // out of range): keep what was drawn
+      onPointerCancel: (event) => {
+        if (currentRef.current?.pointerId === event.pointerId) commitStroke();
+      },
+      onLostPointerCapture: (event) => {
+        if (currentRef.current?.pointerId === event.pointerId) commitStroke();
+      },
+    }),
+    [commitStroke, dropStroke, schedulePaint],
+  );
+
+  const clearCanvas = useCallback(() => {
+    currentRef.current = null;
+    setPaths([]);
+  }, []);
+
+  const undo = useCallback(() => {
+    setPaths((prev) => prev.slice(0, -1));
+  }, []);
+
+  const selectEraser = useCallback(() => setSelectedColor(null), []);
+
+  const getPng = useCallback(
+    async (backgroundColor?: string): Promise<Blob> => {
+      const layer = makeLayer();
+      const ctx = layer.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
+      if (backgroundColor) {
+        ctx.fillStyle = backgroundColor;
+        ctx.fillRect(0, 0, PIXEL_WIDTH, PIXEL_HEIGHT);
       }
-    };
-  }, [
-    canvasRef.current,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleMouseLeave,
-    redraw,
-  ]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (!canvas || !ctx) return;
-    savePaths(paths);
-    paths.forEach((path) => path.draw(ctx));
-  }, [paths, savePaths]);
+      if (committedRef.current) ctx.drawImage(committedRef.current, 0, 0);
+      return new Promise<Blob>((resolve, reject) => {
+        layer.toBlob(
+          (blob) =>
+            blob ? resolve(blob) : reject(new Error('Could not export PNG')),
+          'image/png',
+        );
+      });
+    },
+    [],
+  );
 
   return (
     <DrawingContext.Provider
       value={{
         selectedColor,
         setSelectedColor,
-        canvasRef,
-        clearCanvas,
-        getCanvasData,
-        undo,
         selectEraser,
-        canUndo,
+        canvasRef,
+        canvasBindings,
+        clearCanvas,
+        undo,
+        canUndo: paths.length > 0,
+        hasInk,
         getPng,
       }}
     >

@@ -38,8 +38,14 @@ const ToolButton: FC<ToolButtonProps> = ({
 );
 
 export const Toolbar: FC<Props> = ({ colors }) => {
-  const { selectedColor, setSelectedColor, selectEraser, undo, canUndo } =
-    useDrawing();
+  const {
+    selectedColor,
+    setSelectedColor,
+    selectEraser,
+    undo,
+    canUndo,
+    hasInk,
+  } = useDrawing();
   // Bumped on each undo so the arrow spins again
   const [undoSpin, setUndoSpin] = useState(0);
   const firstColor = colors.at(0);
@@ -48,6 +54,13 @@ export const Toolbar: FC<Props> = ({ colors }) => {
   useEffect(() => {
     if (firstColor) setSelectedColor(firstColor);
   }, [firstColor, setSelectedColor]);
+
+  // Nothing left to erase: hand back a color, so the next stroke shows
+  useEffect(() => {
+    if (!hasInk && selectedColor === null && firstColor) {
+      setSelectedColor(firstColor);
+    }
+  }, [hasInk, selectedColor, firstColor, setSelectedColor]);
 
   return (
     <div className="flex items-center justify-between w-full">
@@ -80,7 +93,7 @@ export const Toolbar: FC<Props> = ({ colors }) => {
         <ToolButton
           label="Eraser"
           isActive={!selectedColor}
-          disabled={!canUndo}
+          disabled={!hasInk}
           onClick={selectEraser}
         >
           <EraserIcon />

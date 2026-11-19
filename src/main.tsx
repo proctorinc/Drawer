@@ -18,6 +18,7 @@ import App from './pages/feed/Feed.tsx';
 import CreateProfilePage from './pages/auth/CreateProfilePage.tsx';
 import { UserProfileProvider } from './pages/profile/context/UserProfileContext.tsx';
 import { DailyPromptProvider } from './daily/DailyPromptContext.tsx';
+import { TodayDrawingProvider } from './daily/TodayDrawingProvider.tsx';
 import { DrawingProvider } from './drawing/DrawingContext.tsx';
 import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
@@ -91,9 +92,9 @@ const indexRoute = createRoute({
   component: () => (
     <AuthRoute>
       <MyProfilePageProvider>
-        <DrawingProvider localStorageKey="DRAWING_SUBMISSION_0">
+        <TodayDrawingProvider>
           <App />
-        </DrawingProvider>
+        </TodayDrawingProvider>
       </MyProfilePageProvider>
     </AuthRoute>
   ),

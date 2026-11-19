@@ -1,23 +1,21 @@
 import { Config } from '@/config/Config';
 
-export const createCursorImage = (color: string | null) => {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
+const cursors = new Map<string, string>();
 
-  if (ctx) {
-    canvas.width = Config.CURSOR_SIZE;
-    canvas.height = Config.CURSOR_SIZE;
-    ctx.fillStyle = color ?? 'lightgray';
-    ctx.beginPath();
-    ctx.arc(
-      Config.CURSOR_SIZE / 2,
-      Config.CURSOR_SIZE / 2,
-      Config.CURSOR_SIZE / 2,
-      0,
-      Math.PI * 2,
-    ); // Draw a circle
-    ctx.fill();
-  }
+/**
+ * A brush-sized dot in the color in hand, with an ink ring so it shows up on
+ * any background. The eraser (null) is a hollow ring.
+ */
+export const createCursor = (color: string | null) => {
+  const key = color ?? 'eraser';
+  const cached = cursors.get(key);
+  if (cached) return cached;
 
-  return canvas.toDataURL();
+  const size = Config.CURSOR_SIZE + 4;
+  const center = size / 2;
+  const fill = color ?? '#ffffff';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}"><circle cx="${center}" cy="${center}" r="${Config.CURSOR_SIZE / 2}" fill="${fill}" stroke="#2b2a33" stroke-width="1.5"${color ? '' : ' stroke-dasharray="3 2"'}/></svg>`;
+  const cursor = `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${center} ${center}, crosshair`;
+  cursors.set(key, cursor);
+  return cursor;
 };

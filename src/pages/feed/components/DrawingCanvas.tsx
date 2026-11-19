@@ -15,9 +15,7 @@ type Props = {
   submitLabel?: ReactNode;
   downloadEnabled?: boolean;
   canvasProps?: HTMLAttributes<HTMLCanvasElement>;
-  hidden?: boolean;
   backgroundColor?: string;
-  isLoading?: boolean;
   /** Shrink the canvas to fit the height this component is given */
   fit?: boolean;
   /** Christmas event: candy-cane tape instead of colored tape */
@@ -36,14 +34,12 @@ const DrawingCanvas: FC<Props> = ({
   ),
   downloadEnabled = false,
   canvasProps,
-  hidden,
   backgroundColor,
-  isLoading = false,
   fit = false,
   festive = false,
   ...props
 }) => {
-  const { canvasRef, canUndo, getPng } = useDrawing();
+  const { hasInk, getPng } = useDrawing();
   const { className: divClassName, ...divProps } = props;
   const tapes = colors?.length ? colors : ['#ff6b57', '#3a7bd5'];
   const tapeStyle = (i: number) =>
@@ -86,15 +82,10 @@ const DrawingCanvas: FC<Props> = ({
     }, 100);
   }
 
-  if (hidden) {
-    return <></>;
-  }
-
   return (
     <div
       className={cn(
         'flex flex-col gap-5 items-center w-full max-w-md',
-        isLoading ? 'invisible' : 'visible',
         divClassName,
       )}
       {...divProps}
@@ -117,10 +108,10 @@ const DrawingCanvas: FC<Props> = ({
             )}
           >
             <Canvas
-              ref={canvasRef}
               style={{ backgroundColor: backgroundColor }}
               className={cn(
-                fit && 'max-w-[calc(100cqw-4px)] max-h-[calc(100cqh-4px)]',
+                fit &&
+                  'max-w-[min(calc(100cqw-4px),var(--canvas-w))] max-h-[min(calc(100cqh-4px),var(--canvas-h))]',
               )}
               {...canvasProps}
             />
@@ -146,7 +137,7 @@ const DrawingCanvas: FC<Props> = ({
         <Button
           className="flex-1"
           onClick={handleSubmitCanvas}
-          disabled={!canUndo}
+          disabled={!hasInk}
         >
           {submitLabel}
         </Button>
@@ -154,7 +145,7 @@ const DrawingCanvas: FC<Props> = ({
           <Button
             variant="base"
             onClick={handleDownloadCanvas}
-            disabled={!canUndo}
+            disabled={!hasInk}
             icon={faDownload}
             aria-label="Download"
           />
