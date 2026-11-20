@@ -365,6 +365,15 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 		return fmt.Errorf("failed to seed achievements: %w", err)
 	}
 
+	// The decorations those achievements unlock, from the same seed production gets
+	flair, err := os.ReadFile("./migrations/1795131100_seed_achievement_decorations.up.sql")
+	if err != nil {
+		return fmt.Errorf("failed to read the decoration seed: %w", err)
+	}
+	if _, err = db.Exec(string(flair)); err != nil {
+		return fmt.Errorf("failed to seed decorations: %w", err)
+	}
+
 	// The first announcements, from the same seed production gets
 	announcements, err := os.ReadFile("./migrations/1795130810_seed_announcements.up.sql")
 	if err != nil {

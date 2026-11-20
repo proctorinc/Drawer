@@ -20,13 +20,39 @@ var (
 	GOLDEN_SANTA_HAT RewardUnlockId = "GOLDEN_SANTA_HAT"
 )
 
+// decorations are the rewards worn on the avatar. Each is unlocked by one achievement
+// (see the reward_unlocks seeds) and drawn by src/decorations/decorations.tsx.
+var decorations = map[RewardUnlockId]bool{
+	FIRST_SNOW:       true,
+	CHRISTMAS_LIGHTS: true,
+	GOLDEN_SANTA_HAT: true,
+
+	// Achievement flair (migrations/1795131100_seed_achievement_decorations.up.sql)
+	"PENCIL_EAR":    true,
+	"BERET":         true,
+	"CRAYON_CROWN":  true,
+	"ORBIT":         true,
+	"SWEATBAND":     true,
+	"BLAZE":         true,
+	"PROPELLER_CAP": true,
+	"SPEECH_BUBBLE": true,
+	"FOAM_FINGER":   true,
+	"LIGHTBULB":     true,
+	"JESTER_HAT":    true,
+	"HEART_SWARM":   true,
+	"PLUNGER_HAT":   true,
+	"BAND_AIDS":     true,
+	"APPLE_HAT":     true,
+	"GILDED_FRAME":  true,
+	"HALO":          true,
+	"RAIN_CLOUD":    true,
+	"CROWN":         true,
+	"MYTHIC_WINGS":  true,
+}
+
 // IsDecoration reports whether a reward is a decoration, worn on the avatar one at a time
 func IsDecoration(id RewardUnlockId) bool {
-	switch id {
-	case FIRST_SNOW, CHRISTMAS_LIGHTS, GOLDEN_SANTA_HAT:
-		return true
-	}
-	return false
+	return decorations[id]
 }
 
 type AchievementService struct {

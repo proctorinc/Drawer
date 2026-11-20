@@ -1,5 +1,29 @@
 import FirstSnow from './FirstSnow';
 import ChristmasLights from './ChristmasLights';
+import {
+  AppleHat,
+  Beret,
+  CrayonCrown,
+  Crown,
+  Halo,
+  JesterHat,
+  PlungerHat,
+  PropellerCap,
+} from './Hats';
+import {
+  BandAids,
+  Blaze,
+  FoamFinger,
+  GildedFrame,
+  HeartSwarm,
+  Lightbulb,
+  MythicWings,
+  Orbit,
+  PencilEar,
+  RainCloud,
+  SpeechBubble,
+  Sweatband,
+} from './Extras';
 import type { FC } from 'react';
 import type { DecorationId } from '@/api/Api';
 import { SantaHat } from '@/events/christmas/Decorations';
@@ -30,6 +54,37 @@ export const DECORATIONS: Record<DecorationId, Decoration> = {
     group: 'doodlemas',
     Art: GoldenSantaHat,
   },
+
+  // Achievement flair: silly and common for the easy ones, showier the harder
+  // they are to earn. Hidden achievements' flair stays out of the picker until earned.
+  PENCIL_EAR: {
+    name: 'pencil behind the ear',
+    group: 'drawing',
+    Art: PencilEar,
+  },
+  BERET: { name: "artist's beret", group: 'drawing', Art: Beret },
+  CRAYON_CROWN: { name: 'crayon crown', group: 'drawing', Art: CrayonCrown },
+  ORBIT: { name: 'sun & moon orbit', group: 'drawing', Art: Orbit },
+
+  SWEATBAND: { name: 'sweatband', group: 'streaks', Art: Sweatband },
+  BLAZE: { name: 'ring of fire', group: 'streaks', Art: Blaze },
+
+  PROPELLER_CAP: { name: 'propeller cap', group: 'friends', Art: PropellerCap },
+  SPEECH_BUBBLE: { name: 'speech bubble', group: 'friends', Art: SpeechBubble },
+  FOAM_FINGER: { name: 'foam finger', group: 'friends', Art: FoamFinger },
+  LIGHTBULB: { name: 'bright idea', group: 'friends', Art: Lightbulb },
+  JESTER_HAT: { name: 'jester hat', group: 'friends', Art: JesterHat },
+  HEART_SWARM: { name: 'fan hearts', group: 'friends', Art: HeartSwarm },
+
+  PLUNGER_HAT: { name: 'plunger hat', group: 'judges', Art: PlungerHat },
+  BAND_AIDS: { name: 'band-aids', group: 'judges', Art: BandAids },
+  APPLE_HAT: { name: 'apple for the teacher', group: 'judges', Art: AppleHat },
+  GILDED_FRAME: { name: 'gilded frame', group: 'judges', Art: GildedFrame },
+  HALO: { name: 'halo', group: 'judges', Art: Halo },
+
+  RAIN_CLOUD: { name: 'silver lining', group: 'levels', Art: RainCloud },
+  CROWN: { name: 'crown', group: 'levels', Art: Crown },
+  MYTHIC_WINGS: { name: 'mythic wings', group: 'levels', Art: MythicWings },
 };
 
 /** Decorations by group, in the order DECORATIONS lists them */

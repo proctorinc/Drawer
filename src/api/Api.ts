@@ -46,7 +46,27 @@ export const MAX_AVATAR_SLOTS = 3;
 export type DecorationId =
   | 'FIRST_SNOW'
   | 'CHRISTMAS_LIGHTS'
-  | 'GOLDEN_SANTA_HAT';
+  | 'GOLDEN_SANTA_HAT'
+  | 'PENCIL_EAR'
+  | 'BERET'
+  | 'CRAYON_CROWN'
+  | 'ORBIT'
+  | 'SWEATBAND'
+  | 'BLAZE'
+  | 'PROPELLER_CAP'
+  | 'SPEECH_BUBBLE'
+  | 'FOAM_FINGER'
+  | 'LIGHTBULB'
+  | 'JESTER_HAT'
+  | 'HEART_SWARM'
+  | 'PLUNGER_HAT'
+  | 'BAND_AIDS'
+  | 'APPLE_HAT'
+  | 'GILDED_FRAME'
+  | 'HALO'
+  | 'RAIN_CLOUD'
+  | 'CROWN'
+  | 'MYTHIC_WINGS';
 
 export interface ReactionCount {
   reactionId: ReactionId;

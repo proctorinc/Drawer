@@ -356,6 +356,108 @@ body {
   }
 }
 
+/* Avatar decorations (src/decorations), used from inline styles */
+/* A propeller seen side-on: flips back and forth to fake a spin */
+@keyframes deco-propel {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(-1);
+  }
+}
+@keyframes deco-poke {
+  0%,
+  50%,
+  100% {
+    transform: translate(0, 0);
+  }
+  60% {
+    transform: translate(5px, 0);
+  }
+  68% {
+    transform: translate(1px, 0);
+  }
+  76% {
+    transform: translate(5px, 0);
+  }
+}
+@keyframes deco-typing {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-2.5px);
+  }
+}
+@keyframes deco-rain {
+  from {
+    transform: translateY(-2px);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  to {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+}
+@keyframes deco-sweat {
+  0%,
+  30% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    transform: translate(-4px, 12px);
+    opacity: 0;
+  }
+}
+@keyframes deco-flame {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  50% {
+    transform: scale(0.88, 1.18);
+  }
+}
+@keyframes deco-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes deco-flap {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(16deg);
+  }
+}
+/* A heart drifting up and away; set --drift to its sideways drift */
+@keyframes deco-heart {
+  from {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(0, -3px) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translate(var(--drift, 0px), -30px) scale(0.9);
+    opacity: 0;
+  }
+}
+
 /* Level badges on avatars (src/levels/LevelBadge.tsx) */
 @property --rank-angle {
   syntax: '<angle>';
