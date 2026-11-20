@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -483,6 +484,11 @@ func HandleAdminRerunAIReview(c *gin.Context) {
 	}
 	_ = c.ShouldBindJSON(&body)
 
+	settings, sub, image, ok := loadJudging(c, submissionID)
+	if !ok {
+		return
+	}
+
 	var (
 		p   models.AIPersonality
 		err error
@@ -490,7 +496,7 @@ func HandleAdminRerunAIReview(c *gin.Context) {
 	if body.PersonalityID != "" {
 		p, err = queries.GetAIPersonality(appCtx.DB, ctx, body.PersonalityID)
 	} else {
-		p, err = ai.PickPersonality(appCtx.DB, ctx, appCtx.Config)
+		p, err = ai.PickPersonalityForDay(appCtx.DB, ctx, appCtx.Config, sub.Day)
 	}
 	if errors.Is(err, sql.ErrNoRows) {
 		c.AbortWithStatusJSON(http.StatusNotFound, Error("No AI judge to do it"))
@@ -499,11 +505,6 @@ func HandleAdminRerunAIReview(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error picking AI judge: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to pick an AI judge"))
-		return
-	}
-
-	settings, sub, image, ok := loadJudging(c, submissionID)
-	if !ok {
 		return
 	}
 
@@ -569,6 +570,60 @@ func HandleGetTodaysJudge(c *gin.Context) {
 	})
 }
 
+// TodaysJudgeIntro is the judge asking you for today's doodle, a line at a time.
+type TodaysJudgeIntro struct {
+	Judge  models.AIJudge `json:"judge"`
+	Day    string         `json:"day"`
+	Prompt string         `json:"prompt"`
+	Lines  []string       `json:"lines"`
+}
+
+// HandleGetTodaysJudgeIntro has today's judge ask for today's prompt, in character. 204 when
+// judging is off, no judge is on, or there's no prompt today.
+func HandleGetTodaysJudgeIntro(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	ctx := c.Request.Context()
+
+	settings, err := ai.LoadSettings(appCtx.DB, ctx, appCtx.Config)
+	if err != nil {
+		log.Printf("Error loading AI settings: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load today's judge"))
+		return
+	}
+	if !settings.Ready() {
+		c.Status(http.StatusNoContent)
+		return
+	}
+	p, err := ai.PickPersonality(appCtx.DB, ctx, appCtx.Config)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.Status(http.StatusNoContent)
+		return
+	}
+	if err != nil {
+		log.Printf("Error picking today's AI judge: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load today's judge"))
+		return
+	}
+	today := utils.GetFormattedDate(time.Now())
+	prompt, err := queries.GetDailyPrompt(appCtx.DB, ctx, today)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.Status(http.StatusNoContent)
+		return
+	}
+	if err != nil {
+		log.Printf("Error loading today's prompt for the judge intro: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load today's judge"))
+		return
+	}
+
+	c.JSON(http.StatusOK, TodaysJudgeIntro{
+		Judge:  models.AIJudge{ID: p.ID, Name: p.Name, Bio: p.Bio, AvatarURL: p.AvatarURL, Decoration: p.Decoration},
+		Day:    today,
+		Prompt: prompt.Prompt,
+		Lines:  ai.TodaysIntro(ctx, ai.NewProvider(settings), p, today, prompt.Prompt),
+	})
+}
+
 // HandleMarkAIReviewHeard records that you've heard the judge's review of your doodle (its
 // dialogue played), so it reads as read everywhere and doesn't play on its own again.
 func HandleMarkAIReviewHeard(c *gin.Context) {
@@ -580,4 +635,45 @@ func HandleMarkAIReviewHeard(c *gin.Context) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+// HandleAdminSetPromptJudge hands a day's doodles to one AI judge, or back to the event's or
+// default judge when judgeId is empty.
+func HandleAdminSetPromptJudge(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	ctx := c.Request.Context()
+	day := c.Param("day")
+
+	var body struct {
+		JudgeID string `json:"judgeId"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, Error("Invalid request: "+err.Error()))
+		return
+	}
+
+	var judgeID *string
+	if body.JudgeID != "" {
+		if _, err := queries.GetAIPersonality(appCtx.DB, ctx, body.JudgeID); errors.Is(err, sql.ErrNoRows) {
+			c.AbortWithStatusJSON(http.StatusNotFound, Error("No such AI judge"))
+			return
+		} else if err != nil {
+			log.Printf("Error loading AI judge %s: %v", body.JudgeID, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to set the day's judge"))
+			return
+		}
+		judgeID = &body.JudgeID
+	}
+
+	err := queries.SetDailyPromptJudge(appCtx.DB, ctx, day, judgeID)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.AbortWithStatusJSON(http.StatusNotFound, Error(day+" has no prompt yet"))
+		return
+	}
+	if err != nil {
+		log.Printf("Error setting the judge for %s: %v", day, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to set the day's judge"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"day": day, "judgeId": judgeID})
 }

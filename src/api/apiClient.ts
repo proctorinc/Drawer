@@ -2,6 +2,7 @@ import type {
   AchievementsAndRewardsResponse,
   ActivityFeedResponse,
   Comment,
+  CustomAvatar,
   DailyActionStat,
   DailyPrompt,
   DecorationId,
@@ -254,12 +255,17 @@ export const apiClient = {
     return response.json();
   },
 
-  uploadCustomAvatar: async (
-    profileImage: Blob,
-  ): Promise<{ message: string }> => {
-    // Create form data
+  uploadCustomAvatar: async ({
+    image,
+    slot,
+  }: {
+    image: Blob;
+    /** Which face slot to draw into; whatever was there is replaced */
+    slot: number;
+  }): Promise<{ message: string }> => {
     const formData = new FormData();
-    formData.append('image', profileImage, 'profile-pic.png');
+    formData.append('image', image, 'profile-pic.png');
+    formData.append('slot', String(slot));
 
     const response = await fetchAPI('POST', '/user/profile-pic', {
       body: formData,
@@ -267,6 +273,23 @@ export const apiClient = {
 
     if (!response.ok) {
       throw new Error(`Error uploading new profile picture: ${response.text}`);
+    }
+    return response.json();
+  },
+
+  getMyAvatars: async (): Promise<{ avatars: Array<CustomAvatar> }> => {
+    const response = await fetchAPI('GET', '/user/avatars');
+    if (!response.ok) {
+      throw new Error('Failed to get your faces');
+    }
+    return response.json();
+  },
+
+  wearAvatar: async (slot: number): Promise<{ message: string }> => {
+    const response = await fetchAPI('PUT', `/user/avatars/${slot}/wear`);
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to switch faces');
     }
     return response.json();
   },
@@ -442,6 +465,15 @@ export const apiClient = {
     }
   },
 
+  getAchievementCatalog: async (): Promise<AchievementsAndRewardsResponse> => {
+    const response = await fetchAPI('GET', `/user/achievements/all`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch achievements');
+    }
+    const json = await response.json();
+    return { ...json, rewards: new Map(Object.entries(json.rewards)) };
+  },
+
   getUserAchievements: async (): Promise<AchievementsAndRewardsResponse> => {
     const response = await fetchAPI('GET', `/user/achievements`);
     if (!response.ok) {
@@ -536,6 +568,8 @@ export const apiClient = {
     prompt: string;
     colors: Array<string>;
     createdBy?: string;
+    /** The day's AI judge: "" for auto; leave it out to keep the current one */
+    judgeId?: string;
   }): Promise<{ message: string; day: string }> => {
     const response = await fetchAPI('POST', '/admin/prompt', {
       headers: { 'Content-Type': 'application/json' },

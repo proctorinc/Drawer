@@ -61,13 +61,15 @@ func GetAdminUsers(repo *sql.DB, ctx context.Context) ([]AdminUser, error) {
 type AdminPrompt struct {
 	models.DailyPrompt
 	Submissions int `json:"submissions"`
+	// The AI judge an admin picked for the day, or nil to leave it to the event's or default judge
+	JudgeID *string `json:"judgeId"`
 }
 
 func GetAllPrompts(repo *sql.DB, ctx context.Context) ([]AdminPrompt, error) {
 	rows, err := repo.QueryContext(ctx, `
 		SELECT dp.day, dp.colors, dp.prompt,
 			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
-			(SELECT COUNT(*) FROM user_submissions s WHERE s.day = dp.day)
+			(SELECT COUNT(*) FROM user_submissions s WHERE s.day = dp.day), dp.judge_id
 		FROM daily_prompts dp
 		LEFT JOIN users u ON u.id = dp.created_by
 		ORDER BY dp.day DESC`)
@@ -82,7 +84,7 @@ func GetAllPrompts(repo *sql.DB, ctx context.Context) ([]AdminPrompt, error) {
 		var colors string
 		var by nullableUser
 		dest := append([]any{&p.Day, &colors, &p.Prompt}, by.dest()...)
-		if err := rows.Scan(append(dest, &p.Submissions)...); err != nil {
+		if err := rows.Scan(append(dest, &p.Submissions, &p.JudgeID)...); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal([]byte(colors), &p.Colors); err != nil {
@@ -177,7 +179,7 @@ type AdminAchievement struct {
 func GetAllAchievements(repo *sql.DB, ctx context.Context) ([]AdminAchievement, error) {
 	rows, err := repo.QueryContext(ctx, `
 		SELECT a.id, a.name, a.description, a.image_url, a.achievement_field, a.achievement_value,
-			r.id, r.name, r.description, e.slug,
+			r.id, r.name, r.description, e.slug, a.category, a.hidden,
 			(SELECT COUNT(*) FROM user_achievements ua WHERE ua.achievement_id = a.id)
 		FROM achievements a
 		LEFT JOIN reward_unlocks r ON r.achievement_id = a.id
@@ -194,7 +196,7 @@ func GetAllAchievements(repo *sql.DB, ctx context.Context) ([]AdminAchievement, 
 		var a AdminAchievement
 		var rewardID, rewardName, rewardDescription, eventSlug sql.NullString
 		if err := rows.Scan(&a.ID, &a.Name, &a.Description, &a.ImageURL, &a.AchievementField, &a.AchievementValue,
-			&rewardID, &rewardName, &rewardDescription, &eventSlug, &a.EarnedBy); err != nil {
+			&rewardID, &rewardName, &rewardDescription, &eventSlug, &a.Category, &a.Hidden, &a.EarnedBy); err != nil {
 			return nil, err
 		}
 		if rewardID.Valid {
@@ -463,6 +465,21 @@ func DeletePromptSuggestion(repo *sql.DB, ctx context.Context, suggestionID stri
 	if deleted, err := result.RowsAffected(); err != nil {
 		return err
 	} else if deleted == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+// SetDailyPromptJudge hands day's doodles to judgeID, or back to the event's or default judge
+// when judgeID is nil. Returns sql.ErrNoRows if day has no prompt.
+func SetDailyPromptJudge(repo *sql.DB, ctx context.Context, day string, judgeID *string) error {
+	result, err := repo.ExecContext(ctx, `UPDATE daily_prompts SET judge_id = ? WHERE day = ?`, judgeID, day)
+	if err != nil {
+		return err
+	}
+	if n, err := result.RowsAffected(); err != nil {
+		return err
+	} else if n == 0 {
 		return sql.ErrNoRows
 	}
 	return nil

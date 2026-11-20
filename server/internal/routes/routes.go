@@ -67,11 +67,16 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			userGroup.GET("/me", handlers.HandleGetMe)
 			userGroup.GET("/profile", handlers.HandleGetUserProfile)
 			userGroup.GET("/achievements", handlers.HandlerGetMyAchievements)
+			userGroup.GET("/achievements/all", handlers.HandlerGetAchievementCatalog)
 			userGroup.GET("/invitations", handlers.HandleGetInvitations)
 			userGroup.PUT("/username", handlers.HandleUpdateUsername)
 			userGroup.POST("/profile-pic",
 				middleware.RewardUnlockRequired(repo, achievements.CUSTOM_PROFILE_PIC),
 				handlers.HandleUpdateAvatarUrl)
+			userGroup.GET("/avatars", handlers.HandleGetMyAvatars)
+			userGroup.PUT("/avatars/:slot/wear",
+				middleware.RewardUnlockRequired(repo, achievements.CUSTOM_PROFILE_PIC),
+				handlers.HandleWearAvatar)
 			userGroup.PUT("/profile-pic/toggle",
 				middleware.RewardUnlockRequired(repo, achievements.CUSTOM_PROFILE_PIC),
 				handlers.HandleToggleAvatarType)
@@ -108,11 +113,14 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 
 			authGroup.GET("/trophies", handlers.HandleGetTrophies)
 			authGroup.GET("/ai/judge/today", handlers.HandleGetTodaysJudge)
+			authGroup.GET("/ai/judge/today/intro", handlers.HandleGetTodaysJudgeIntro)
 			authGroup.POST("/ai/reviews/:submissionId/heard", handlers.HandleMarkAIReviewHeard)
 			authGroup.GET("/events/active", handlers.HandleGetActiveEvent)
 			authGroup.GET("/events/upcoming", handlers.HandleGetUpcomingEvent)
 			authGroup.GET("/events/:slug/leaderboard", handlers.HandleGetEventLeaderboard)
 			authGroup.GET("/events/:slug/recap", handlers.HandleGetEventRecap)
+			authGroup.GET("/announcements", handlers.HandleGetAnnouncements)
+			authGroup.POST("/announcements/seen", handlers.HandleMarkAnnouncementsSeen)
 
 			// Development-only debug endpoints for push notifications
 			log.Printf("🔔 Current environment: %s", cfg.Env)
@@ -209,6 +217,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				adminGroup.GET("/events/:id/stats", handlers.HandleAdminEventStats)
 				adminGroup.GET("/users", handlers.HandleAdminListUsers)
 				adminGroup.GET("/prompts", handlers.HandleAdminListPrompts)
+				adminGroup.PUT("/prompts/:day/judge", handlers.HandleAdminSetPromptJudge)
 				adminGroup.GET("/submissions", handlers.HandleAdminListSubmissions)
 				adminGroup.GET("/achievements", handlers.HandleAdminListAchievements)
 				adminGroup.GET("/rewards", handlers.HandleAdminListRewards)
@@ -225,6 +234,11 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				adminGroup.GET("/ai/runs", handlers.HandleAdminListAIRuns)
 				adminGroup.GET("/ai/reviews", handlers.HandleAdminListAIReviews)
 				adminGroup.POST("/ai/reviews/:submissionId/rerun", handlers.HandleAdminRerunAIReview)
+				adminGroup.GET("/announcements", handlers.HandleAdminListAnnouncements)
+				adminGroup.POST("/announcements", handlers.HandleAdminCreateAnnouncement)
+				adminGroup.PUT("/announcements/:id", handlers.HandleAdminUpdateAnnouncement)
+				adminGroup.DELETE("/announcements/:id", handlers.HandleAdminDeleteAnnouncement)
+				adminGroup.DELETE("/announcements/:id/views", handlers.HandleAdminResetAnnouncementViews)
 			}
 		}
 	}

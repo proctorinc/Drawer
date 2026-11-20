@@ -265,7 +265,7 @@ func TestPickAIPersonality(t *testing.T) {
 	repo := dbtest.NewEventsDB(t)
 	ctx := context.Background()
 
-	p, err := queries.PickAIPersonality(repo, ctx, "")
+	p, err := queries.PickAIPersonality(repo, ctx, "", "")
 	if err != nil || p.ID != "ai-sir-doodleton" {
 		t.Fatalf("everyday judge = %v, %v; want Sir Doodleton", p.ID, err)
 	}
@@ -293,18 +293,33 @@ func TestPickAIPersonality(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	p, err = queries.PickAIPersonality(repo, ctx, event.ID)
+	p, err = queries.PickAIPersonality(repo, ctx, event.ID, "")
 	if err != nil || p.ID != "ai-santa" || len(p.Criteria) != 3 {
 		t.Fatalf("event judge = %v (%d criteria), %v; want Santa with 3", p.ID, len(p.Criteria), err)
 	}
 
+	// A judge picked for the day beats the event's judge, on that day only
+	dbtest.Exec(t, repo, `INSERT INTO daily_prompts (day, colors, prompt) VALUES ('2026-12-05', '[]', 'a goose') ON CONFLICT (day) DO NOTHING`)
+	dbtest.Exec(t, repo, `UPDATE daily_prompts SET judge_id = 'ai-professor-pickles' WHERE day = '2026-12-05'`)
+	if p, _ = queries.PickAIPersonality(repo, ctx, event.ID, "2026-12-05"); p.ID != "ai-professor-pickles" {
+		t.Errorf("on a day handed to Professor Pickles, judge = %v", p.ID)
+	}
+	if p, _ = queries.PickAIPersonality(repo, ctx, event.ID, "2026-12-06"); p.ID != "ai-santa" {
+		t.Errorf("on the next day, judge = %v; want Santa", p.ID)
+	}
+	// A switched-off pick falls back as usual
+	dbtest.Exec(t, repo, `UPDATE ai_personalities SET enabled = 0 WHERE id = 'ai-professor-pickles'`)
+	if p, _ = queries.PickAIPersonality(repo, ctx, event.ID, "2026-12-05"); p.ID != "ai-santa" {
+		t.Errorf("with Professor Pickles off, judge = %v; want Santa", p.ID)
+	}
+
 	// Switched off, the event falls back to the default judge
 	dbtest.Exec(t, repo, `UPDATE ai_personalities SET enabled = 0 WHERE id = 'ai-santa'`)
-	if p, _ = queries.PickAIPersonality(repo, ctx, event.ID); p.ID != "ai-sir-doodleton" {
+	if p, _ = queries.PickAIPersonality(repo, ctx, event.ID, ""); p.ID != "ai-sir-doodleton" {
 		t.Errorf("with Santa off, judge = %v; want Sir Doodleton", p.ID)
 	}
 	dbtest.Exec(t, repo, `UPDATE ai_personalities SET enabled = 0`)
-	if _, err = queries.PickAIPersonality(repo, ctx, ""); !errors.Is(err, sql.ErrNoRows) {
+	if _, err = queries.PickAIPersonality(repo, ctx, "", ""); !errors.Is(err, sql.ErrNoRows) {
 		t.Errorf("with every judge off, err = %v; want no rows", err)
 	}
 }

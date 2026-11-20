@@ -220,6 +220,8 @@ type AcceptSuggestionRequest struct {
 	Day    string   `json:"day" binding:"required"`
 	Prompt string   `json:"prompt" binding:"required"`
 	Colors []string `json:"colors" binding:"required,min=1"`
+	// The AI judge for the day, or "" for the event's or default judge
+	JudgeID string `json:"judgeId"`
 }
 
 // HandleAcceptPromptSuggestion schedules a suggestion, as tweaked by the admin, on a free day
@@ -254,6 +256,13 @@ func HandleAcceptPromptSuggestion(c *gin.Context) {
 		log.Printf("Admin: error accepting suggestion %s: %v", id, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to accept suggestion"))
 	default:
+		if req.JudgeID != "" {
+			if err := queries.SetDailyPromptJudge(appCtx.DB, c.Request.Context(), req.Day, &req.JudgeID); err != nil {
+				log.Printf("Admin: error setting the judge for %s: %v", req.Day, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Scheduled it, but failed to set its judge"))
+				return
+			}
+		}
 		c.JSON(http.StatusOK, gin.H{"day": req.Day})
 	}
 }

@@ -109,14 +109,15 @@ func GetAIPersonality(repo *sql.DB, ctx context.Context, id string) (models.AIPe
 	return getAIPersonality(repo, ctx, `WHERE id = ?`, id)
 }
 
-// PickAIPersonality returns the judge for a doodle drawn now: the enabled judge of the
-// running event (eventID, "" for none) if it has one, else the enabled default judge.
-// Returns sql.ErrNoRows when neither exists.
-func PickAIPersonality(repo *sql.DB, ctx context.Context, eventID string) (models.AIPersonality, error) {
+// PickAIPersonality returns the judge for a doodle of day: the enabled judge an admin picked
+// for that day, else the enabled judge of the running event (eventID, "" for none), else the
+// enabled default judge. Returns sql.ErrNoRows when none of them exists.
+func PickAIPersonality(repo *sql.DB, ctx context.Context, eventID, day string) (models.AIPersonality, error) {
+	const dayJudge = `(SELECT judge_id FROM daily_prompts WHERE day = ?)`
 	return getAIPersonality(repo, ctx, `
-		WHERE enabled = 1 AND ((? <> '' AND event_id = ?) OR is_default = 1)
-		ORDER BY (event_id IS NOT NULL AND event_id = ?) DESC, created_at DESC
-		LIMIT 1`, eventID, eventID, eventID)
+		WHERE enabled = 1 AND (id = `+dayJudge+` OR (? <> '' AND event_id = ?) OR is_default = 1)
+		ORDER BY id IS `+dayJudge+` DESC, (event_id IS NOT NULL AND event_id = ?) DESC, created_at DESC
+		LIMIT 1`, day, eventID, eventID, day, eventID)
 }
 
 // ListAIPersonalities returns every personality with its criteria, the default first.
@@ -241,7 +242,11 @@ func DeleteAIPersonality(repo *sql.DB, ctx context.Context, id string) error {
 	if n, _ := res.RowsAffected(); n == 0 {
 		return sql.ErrNoRows
 	}
-	_, err = repo.ExecContext(ctx, `DELETE FROM ai_criteria WHERE personality_id = ?`, id)
+	if _, err = repo.ExecContext(ctx, `DELETE FROM ai_criteria WHERE personality_id = ?`, id); err != nil {
+		return err
+	}
+	// Days handed to this judge go back to the event's or default judge
+	_, err = repo.ExecContext(ctx, `UPDATE daily_prompts SET judge_id = NULL WHERE judge_id = ?`, id)
 	return err
 }
 

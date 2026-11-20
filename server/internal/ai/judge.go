@@ -182,15 +182,14 @@ func StartNewSubmissionReview(ctx context.Context, repo *sql.DB, cfg *config.Con
 		return nil, err
 	}
 
-	personality, err := PickPersonality(repo, ctx, cfg)
-	if errors.Is(err, sql.ErrNoRows) {
-		return nil, nil
-	}
+	sub, err := queries.GetSubmissionForAIReview(repo, ctx, submissionID)
 	if err != nil {
 		return nil, err
 	}
-
-	sub, err := queries.GetSubmissionForAIReview(repo, ctx, submissionID)
+	personality, err := PickPersonalityForDay(repo, ctx, cfg, sub.Day)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -225,9 +224,14 @@ func (r *NewSubmissionReview) Run(image []byte) {
 	}
 }
 
-// PickPersonality returns who judges a doodle drawn now: the running event's judge, else
-// the default judge. Returns sql.ErrNoRows when no judge is switched on.
+// PickPersonality returns who judges a doodle drawn now: the judge picked for today, else the
+// running event's judge, else the default judge. Returns sql.ErrNoRows when no judge is on.
 func PickPersonality(repo *sql.DB, ctx context.Context, cfg *config.Config) (models.AIPersonality, error) {
+	return PickPersonalityForDay(repo, ctx, cfg, utils.GetFormattedDate(time.Now()))
+}
+
+// PickPersonalityForDay is PickPersonality for a doodle of day, which may not be today.
+func PickPersonalityForDay(repo *sql.DB, ctx context.Context, cfg *config.Config, day string) (models.AIPersonality, error) {
 	eventID := ""
 	event, err := queries.GetActiveEvent(repo, ctx, events.Now(cfg))
 	if err == nil {
@@ -235,7 +239,7 @@ func PickPersonality(repo *sql.DB, ctx context.Context, cfg *config.Config) (mod
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return models.AIPersonality{}, err
 	}
-	return queries.PickAIPersonality(repo, ctx, eventID)
+	return queries.PickAIPersonality(repo, ctx, eventID, day)
 }
 
 // LoadSubmissionImage fetches a saved doodle's PNG, for re-judging or previewing one.

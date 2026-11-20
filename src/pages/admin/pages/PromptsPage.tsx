@@ -4,8 +4,21 @@ import { addDays, format } from 'date-fns';
 import { faBrush, faPen, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useAdminDashboard } from '../context/AdminDashboardContext';
-import { eventOnDay, useAdminEvents, useAdminPrompts } from '../api';
-import { PromptModal } from '../components/PromptModal';
+import {
+  eventOnDay,
+  useAIPersonalities,
+  useAdminEvents,
+  useAdminPrompts,
+  useSetPromptJudge,
+} from '../api';
+import {
+  AdminModal,
+  JudgeChip,
+  JudgePicker,
+  NewPrompt,
+  PromptDraft,
+  autoJudgeFor,
+} from '../components/PromptDraft';
 import {
   AdminPage,
   Loaded,
@@ -18,8 +31,10 @@ import {
   td,
   th,
 } from '../components/ui';
-import type { AdminEvent, AdminPrompt } from '../api';
+import type { AIPersonality, AdminEvent, AdminPrompt } from '../api';
+import type { Calendar } from '../components/PromptDraft';
 import type { User } from '@/api/Api';
+import { useCreatePrompt } from '@/api/Api';
 import Button from '@/components/Button';
 import EventIcon from '@/events/EventIcon';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
@@ -28,12 +43,7 @@ import { cn } from '@/utils';
 /** How far ahead the schedule shows empty days */
 const SCHEDULE_DAYS = 30;
 
-type Editing = {
-  day: string;
-  prompt?: string;
-  colors?: Array<string>;
-  createdBy?: User;
-};
+type Editing = { day: string; prompt?: AdminPrompt };
 
 const Author = ({ user }: { user: User | null }) =>
   user ? (
@@ -63,13 +73,20 @@ const PromptsPage = () => {
   const events = useAdminEvents();
   const { event: eventSlug } = useSearch({ from: '/draw/admin/prompts' });
   const { promptSuggestions } = useAdminDashboard();
+  const judges = useAIPersonalities().data ?? [];
   const [editing, setEditing] = useState<Editing | null>(null);
+  const [pickingJudge, setPickingJudge] = useState<AdminPrompt | null>(null);
   const today = format(new Date(), 'yyyy-MM-dd');
   const eventList = events.data ?? [];
   const event = eventList.find((e) => e.slug === eventSlug);
+  const calendar: Calendar = {
+    taken: new Set((prompts.data ?? []).map((p) => p.day)),
+    events: eventList,
+    firstDay: today,
+  };
 
   const schedule = (days: Array<string>, byDay: Map<string, AdminPrompt>) => (
-    <ul className="grid grid-cols-2 gap-3">
+    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {days.map((day) => (
         <ScheduleDay
           key={day}
@@ -77,8 +94,11 @@ const PromptsPage = () => {
           prompt={byDay.get(day)}
           // Filtered to one event, every day would carry the same tag
           event={event ? undefined : eventOnDay(eventList, day)}
+          autoJudge={autoJudgeFor(judges, eventOnDay(eventList, day))}
           isToday={day === today}
+          judges={judges}
           onEdit={setEditing}
+          onPickJudge={setPickingJudge}
         />
       ))}
     </ul>
@@ -149,11 +169,15 @@ const PromptsPage = () => {
           const past = list.filter((p) => p.day < today);
 
           return (
-            <div className="grid grid-cols-3 gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+              <Section title="write your own" className="lg:col-span-3">
+                <NewPrompt calendar={calendar} />
+              </Section>
+
               <Section
                 title="upcoming"
                 aside={`${upcoming.filter((d) => byDay.has(d)).length}/${upcoming.length} scheduled`}
-                className="col-span-2"
+                className="lg:col-span-2"
               >
                 {schedule(upcoming, byDay)}
               </Section>
@@ -183,7 +207,7 @@ const PromptsPage = () => {
               <Section
                 title="past prompts"
                 aside={`${past.length} days`}
-                className="col-span-3"
+                className="lg:col-span-3"
               >
                 <Table
                   head={
@@ -227,16 +251,91 @@ const PromptsPage = () => {
         }}
       </Loaded>
 
-      <PromptModal
-        isOpen={editing !== null}
-        onClose={() => setEditing(null)}
-        day={editing?.day}
-        existingPrompt={editing?.prompt}
-        existingColors={editing?.colors}
-        existingCreatedBy={editing?.createdBy}
-        event={editing ? eventOnDay(eventList, editing.day) : undefined}
-      />
+      {editing && (
+        <EditPrompt
+          editing={editing}
+          calendar={calendar}
+          onClose={() => setEditing(null)}
+        />
+      )}
+      {pickingJudge && (
+        <QuickJudgePicker
+          prompt={pickingJudge}
+          judges={judges}
+          event={eventOnDay(eventList, pickingJudge.day)}
+          onClose={() => setPickingJudge(null)}
+        />
+      )}
     </AdminPage>
+  );
+};
+
+/** Adds or edits one day's prompt with the prompt maker, keeping who it's credited to */
+const EditPrompt = ({
+  editing: { day, prompt },
+  calendar,
+  onClose,
+}: {
+  editing: Editing;
+  calendar: Calendar;
+  onClose: () => void;
+}) => {
+  const create = useCreatePrompt();
+  return (
+    <AdminModal
+      title={prompt ? 'edit prompt' : 'add prompt'}
+      onClose={onClose}
+      className="max-w-3xl"
+    >
+      <PromptDraft
+        calendar={calendar}
+        fixedDay={day}
+        initialPrompt={prompt?.prompt}
+        initialColors={prompt?.colors}
+        initialJudgeId={prompt?.judgeId ?? null}
+        suggester={prompt?.createdBy ?? undefined}
+        scheduleLabel={prompt ? 'save' : 'add'}
+        className="shadow-none"
+        onSchedule={async ({ judgeId, ...draft }) => {
+          await create.mutateAsync({
+            ...draft,
+            createdBy: prompt?.createdBy?.id,
+            judgeId: judgeId ?? '',
+          });
+          onClose();
+        }}
+      />
+    </AdminModal>
+  );
+};
+
+/** Swaps a scheduled day's AI judge in one click */
+const QuickJudgePicker = ({
+  prompt,
+  judges,
+  event,
+  onClose,
+}: {
+  prompt: AdminPrompt;
+  judges: Array<AIPersonality>;
+  event?: AdminEvent;
+  onClose: () => void;
+}) => {
+  const setJudge = useSetPromptJudge();
+  return (
+    <JudgePicker
+      day={prompt.day}
+      judges={judges}
+      value={prompt.judgeId}
+      auto={autoJudgeFor(judges, event)}
+      saving={setJudge.isPending}
+      error={setJudge.error?.message}
+      onPick={(judgeId) => {
+        if (judgeId === prompt.judgeId) return onClose();
+        setJudge.mutate({ day: prompt.day, judgeId }, { onSuccess: onClose });
+      }}
+      onClose={onClose}
+    />
   );
 };
 
@@ -268,13 +367,20 @@ const ScheduleDay = ({
   prompt,
   event,
   isToday,
+  judges,
+  autoJudge,
   onEdit,
+  onPickJudge,
 }: {
   day: string;
   prompt?: AdminPrompt;
   event?: AdminEvent;
   isToday: boolean;
+  judges: Array<AIPersonality>;
+  /** Who judges the day when no one was picked */
+  autoJudge?: AIPersonality;
   onEdit: (editing: Editing) => void;
+  onPickJudge: (picked: AdminPrompt) => void;
 }) => (
   <li
     className={cn(
@@ -308,6 +414,19 @@ const ScheduleDay = ({
             )}
             <TryIt day={day} />
           </span>
+          {judges.length > 0 && (
+            <span className="flex min-w-0">
+              <JudgeChip
+                judge={
+                  prompt.judgeId
+                    ? judges.find((j) => j.id === prompt.judgeId)
+                    : autoJudge
+                }
+                picked={!!prompt.judgeId}
+                onClick={() => onPickJudge(prompt)}
+              />
+            </span>
+          )}
         </>
       ) : (
         <span className="text-coral">no prompt yet</span>
@@ -318,14 +437,7 @@ const ScheduleDay = ({
       variant="base"
       disableLoad
       icon={prompt ? faPen : faPlus}
-      onClick={() =>
-        onEdit({
-          day,
-          prompt: prompt?.prompt,
-          colors: prompt?.colors,
-          createdBy: prompt?.createdBy ?? undefined,
-        })
-      }
+      onClick={() => onEdit({ day, prompt })}
     >
       {prompt ? 'edit' : 'add'}
     </Button>

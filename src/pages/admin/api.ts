@@ -7,8 +7,10 @@ import type {
   User,
 } from '@/api/Api';
 import type { Level, Quest } from '@/api/trophies';
+import type { Announcement } from '@/announcements/api';
 import { queryKeys } from '@/api/Api';
 import { fetchAPI } from '@/api/apiClient';
+import { announcementKeys } from '@/announcements/api';
 
 export interface AdminUser extends User {
   email: string;
@@ -23,6 +25,8 @@ export interface AdminUser extends User {
 
 export interface AdminPrompt extends Omit<DailyPrompt, 'isCompleted'> {
   submissions: number;
+  /** The AI judge picked for the day, or null for the event's or default judge */
+  judgeId: string | null;
 }
 
 export interface AdminSubmission {
@@ -71,7 +75,7 @@ export interface QuestStats extends Quest {
 
 /** The XP, level and quest rules, and where every player stands */
 export interface Progression {
-  xpRules: Array<{ action: string; xp: number }>;
+  xpRules: Array<{ action: string; xp: number; maxXp?: number }>;
   players: number;
   levels: Array<LevelStats>;
   quests: Array<QuestStats>;
@@ -218,6 +222,8 @@ export interface AcceptSuggestion {
   day: string;
   prompt: string;
   colors: Array<string>;
+  /** The AI judge for the day, or null for the event's or default judge */
+  judgeId?: string | null;
 }
 
 /** Schedules a suggestion on a day with no prompt, credited to its suggester */
@@ -230,6 +236,28 @@ export function useAcceptSuggestion() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         }),
+      ),
+    onSuccess,
+  });
+}
+
+/** Hands a day's doodles to one AI judge, or back to auto with null */
+export function useSetPromptJudge() {
+  const onSuccess = useRefreshAfter();
+  return useMutation({
+    mutationFn: async ({
+      day,
+      judgeId,
+    }: {
+      day: string;
+      judgeId: string | null;
+    }) =>
+      ensureOk(
+        await fetchAPI(
+          'PUT',
+          `/admin/prompts/${day}/judge`,
+          json({ judgeId: judgeId ?? '' }),
+        ),
       ),
     onSuccess,
   });
@@ -497,5 +525,63 @@ export function useRerunAIReview() {
       queryClient.invalidateQueries({ queryKey: queryKeys.daily });
       queryClient.invalidateQueries({ queryKey: queryKeys.activityFeed });
     },
+  });
+}
+
+/** An announcement as admins see it, with how many players have seen it */
+export interface AdminAnnouncement extends Announcement {
+  seenBy: number;
+}
+
+/** What the editor sends; no id creates one */
+export type AnnouncementDraft = Omit<Announcement, 'id'> & { id?: string };
+
+export const useAdminAnnouncements = () =>
+  useAdminList<Array<AdminAnnouncement>>('announcements', 'announcements');
+
+/** Refreshes the admin lists and your own live announcements after a change */
+function useRefreshAnnouncements() {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'announcements'] });
+    queryClient.invalidateQueries({ queryKey: announcementKeys.live });
+  };
+}
+
+/** Creates the announcement when it has no id yet, else updates it */
+export function useSaveAnnouncement() {
+  const onSuccess = useRefreshAnnouncements();
+  return useMutation({
+    mutationFn: async ({ id, ...announcement }: AnnouncementDraft) => {
+      const response = id
+        ? await fetchAPI(
+            'PUT',
+            `/admin/announcements/${id}`,
+            json(announcement),
+          )
+        : await fetchAPI('POST', '/admin/announcements', json(announcement));
+      await ensureOk(response);
+      return (await response.json()) as Announcement;
+    },
+    onSuccess,
+  });
+}
+
+export function useDeleteAnnouncement() {
+  const onSuccess = useRefreshAnnouncements();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      ensureOk(await fetchAPI('DELETE', `/admin/announcements/${id}`)),
+    onSuccess,
+  });
+}
+
+/** Forgets who has seen it, so it pops up for everyone again */
+export function useResetAnnouncementViews() {
+  const onSuccess = useRefreshAnnouncements();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      ensureOk(await fetchAPI('DELETE', `/admin/announcements/${id}/views`)),
+    onSuccess,
   });
 }
