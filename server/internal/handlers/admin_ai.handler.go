@@ -262,10 +262,10 @@ type AdminAIVerdict struct {
 	Criteria []models.AICriterionScore `json:"criteria"`
 	Comment  string                    `json:"comment"`
 	Model    string                    `json:"model"`
-	// What the judge thought it saw, and the hidden penalty for words (already in Score)
-	Seen        string  `json:"seen"`
-	Text        string  `json:"text"`
-	TextPenalty float64 `json:"textPenalty"`
+	// What the judge thought it saw, and the hidden penalty for little effort (already in Score)
+	Seen          string  `json:"seen"`
+	Effort        string  `json:"effort"`
+	EffortPenalty float64 `json:"effortPenalty"`
 }
 
 func newAdminAIVerdict(v ai.Verdict, model string) AdminAIVerdict {
@@ -275,7 +275,7 @@ func newAdminAIVerdict(v ai.Verdict, model string) AdminAIVerdict {
 	}
 	return AdminAIVerdict{
 		Score: v.Score, Criteria: criteria, Comment: v.Comment, Model: model,
-		Seen: v.Seen, Text: v.Text, TextPenalty: v.TextPenalty,
+		Seen: v.Seen, Effort: v.Effort, EffortPenalty: v.EffortPenalty,
 	}
 }
 

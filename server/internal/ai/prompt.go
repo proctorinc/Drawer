@@ -36,21 +36,21 @@ Your comment:
 
 Scoring rules:
 - First write in "seen" what you honestly think the drawing shows, before reading it as the prompt, and score how recognizable it is to match.
-- Judge the drawing, not any words written on it: score as if the words weren't there, so a label never makes a doodle more recognizable. Report written words in the "text" field, and never mention them in your comment.
+- In "effort", say how much effort went into the doodle. Answer "low" or "none" only when it's obvious the artist barely tried: a blank canvas, a single stray line, or a few careless scribbles. A simple, rough, clumsy, badly drawn or labelled doodle is still a real attempt, so answer "real". When in doubt, answer "real".
 - If the image is blank or has nothing to do with the prompt, say so in character and score it low.
 
 Stay fully in character. Reply only with the JSON you're asked for.`
 
-// Text is how much of a doodle is written words rather than drawing.
+// Effort is how hard the artist clearly tried.
 const (
-	TextNone   = "none"   // No words
-	TextSome   = "some"   // A label, a caption or a few words beside the drawing
-	TextMostly = "mostly" // The words are most of the doodle
+	EffortReal = "real" // A genuine attempt, however simple or rough
+	EffortLow  = "low"  // Obviously rushed: a few careless scribbles
+	EffortNone = "none" // Blank, a stray line, or nothing to do with drawing anything
 )
 
-// textPenalties take this share off a doodle's overall score for writing words instead of
-// drawing them. Players are never told: the criteria scores stay as the judge gave them.
-var textPenalties = map[string]float64{TextSome: 0.10, TextMostly: 0.25}
+// effortPenalties take this share off a doodle's overall score when it's clear little or no
+// effort went into it. Players are never told: the criteria scores stay as the judge gave them.
+var effortPenalties = map[string]float64{EffortLow: 0.25, EffortNone: 0.5}
 
 // Request is everything a judge needs to review one doodle.
 type Request struct {
@@ -67,10 +67,10 @@ type Verdict struct {
 	Comment  string
 	// What the judge thought the drawing showed, before reading it as the prompt
 	Seen string
-	// How much of the doodle is words (TextNone, TextSome or TextMostly)
-	Text string
-	// The share taken off the overall score for words, already applied to Score
-	TextPenalty float64
+	// How hard the artist clearly tried (EffortReal, EffortLow or EffortNone)
+	Effort string
+	// The share taken off the overall score for little or no effort, already applied to Score
+	EffortPenalty float64
 }
 
 // SystemPrompt is the shared rules, the personality's character and how to score.
@@ -104,7 +104,7 @@ func UserPrompt(prompt string) string {
 func ResponseSchema(p models.AIPersonality) map[string]any {
 	properties := orderedObject{
 		{"seen", map[string]any{"type": "string"}},
-		{"text", map[string]any{"type": "string", "enum": []string{TextNone, TextSome, TextMostly}}},
+		{"effort", map[string]any{"type": "string", "enum": []string{EffortReal, EffortLow, EffortNone}}},
 	}
 	if len(p.Criteria) > 0 {
 		ids := make([]string, 0, len(p.Criteria))
@@ -175,7 +175,7 @@ func (o orderedObject) MarshalJSON() ([]byte, error) {
 
 type rawVerdict struct {
 	Seen     string `json:"seen"`
-	Text     string `json:"text"`
+	Effort   string `json:"effort"`
 	Criteria []struct {
 		ID    string `json:"id"`
 		Score int    `json:"score"`
@@ -187,7 +187,7 @@ type rawVerdict struct {
 // ParseVerdict reads the model's JSON answer and fits it to the personality. Every score is
 // a whole number clamped to 1..10, and a criterion it skipped gets 5. With criteria, the
 // overall score is their average to one decimal place (so it can't disagree with them).
-// Doodles with words written on them then lose a share of the overall score.
+// Doodles that clearly took little or no effort then lose a share of the overall score.
 func ParseVerdict(raw string, p models.AIPersonality) (Verdict, error) {
 	var rv rawVerdict
 	if err := json.Unmarshal([]byte(raw), &rv); err != nil {
@@ -199,16 +199,16 @@ func ParseVerdict(raw string, p models.AIPersonality) (Verdict, error) {
 		return Verdict{}, fmt.Errorf("judge left an empty comment")
 	}
 
-	verdict := Verdict{Comment: comment, Score: float64(clamp(rv.Score, 1, models.AIScoreMax)), Seen: strings.TrimSpace(rv.Seen), Text: TextNone}
-	if _, ok := textPenalties[rv.Text]; ok {
-		verdict.Text = rv.Text
+	verdict := Verdict{Comment: comment, Score: float64(clamp(rv.Score, 1, models.AIScoreMax)), Seen: strings.TrimSpace(rv.Seen), Effort: EffortReal}
+	if _, ok := effortPenalties[rv.Effort]; ok {
+		verdict.Effort = rv.Effort
 	}
-	verdict.TextPenalty = textPenalties[verdict.Text]
+	verdict.EffortPenalty = effortPenalties[verdict.Effort]
 	if len(p.Criteria) > 0 {
 		verdict.Criteria, verdict.Score = scoreCriteria(rv, p)
 	}
-	if verdict.TextPenalty > 0 {
-		verdict.Score = max(1, math.Round(verdict.Score*(1-verdict.TextPenalty)*10)/10)
+	if verdict.EffortPenalty > 0 {
+		verdict.Score = max(1, math.Round(verdict.Score*(1-verdict.EffortPenalty)*10)/10)
 	}
 	return verdict, nil
 }

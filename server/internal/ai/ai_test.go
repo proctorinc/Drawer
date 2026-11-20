@@ -118,11 +118,11 @@ func TestSystemPromptListsCriteria(t *testing.T) {
 
 func TestResponseSchema(t *testing.T) {
 	schema := ResponseSchema(critic())
-	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,text,score,comment" {
+	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,effort,score,comment" {
 		t.Errorf("required = %v", got)
 	}
 	schema = ResponseSchema(santa())
-	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,text,criteria,score,comment" {
+	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,effort,criteria,score,comment" {
 		t.Errorf("required = %v", got)
 	}
 
@@ -131,7 +131,7 @@ func TestResponseSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	order := []string{`"seen"`, `"text"`, `"criteria"`, `"score"`, `"comment"`}
+	order := []string{`"seen"`, `"effort"`, `"criteria"`, `"score"`, `"comment"`}
 	at := -1
 	for _, key := range order {
 		i := strings.Index(string(raw), key)
@@ -161,24 +161,24 @@ func TestResponseSchema(t *testing.T) {
 	}
 }
 
-func TestParseVerdictTextPenalty(t *testing.T) {
+func TestParseVerdictEffortPenalty(t *testing.T) {
 	cases := []struct {
 		text        string
 		want        float64
 		wantPenalty float64
 	}{
-		{"none", 8, 0},
-		{"some", 7.2, 0.10}, // 10% off 8
-		{"mostly", 6, 0.25}, // 25% off 8
-		{"nonsense", 8, 0},  // Unknown answers count as no words
+		{"real", 8, 0},
+		{"low", 6, 0.25},   // 25% off 8
+		{"none", 4, 0.5},   // Half off 8
+		{"nonsense", 8, 0}, // Unknown answers count as a real attempt
 	}
 	for _, c := range cases {
-		v, err := ParseVerdict(`{"seen": " a cat ", "text": "`+c.text+`", "criteria": [{"id": "nice", "score": 7}, {"id": "spirit", "score": 9}], "score": 1, "comment": "Hm."}`, santa())
+		v, err := ParseVerdict(`{"seen": " a cat ", "effort": "`+c.text+`", "criteria": [{"id": "nice", "score": 7}, {"id": "spirit", "score": 9}], "score": 1, "comment": "Hm."}`, santa())
 		if err != nil {
 			t.Fatal(err)
 		}
-		if v.Score != c.want || v.TextPenalty != c.wantPenalty {
-			t.Errorf("text %q: score %v (penalty %v), want %v (%v)", c.text, v.Score, v.TextPenalty, c.want, c.wantPenalty)
+		if v.Score != c.want || v.EffortPenalty != c.wantPenalty {
+			t.Errorf("text %q: score %v (penalty %v), want %v (%v)", c.text, v.Score, v.EffortPenalty, c.want, c.wantPenalty)
 		}
 		// The criteria stay as the judge gave them: the penalty is hidden
 		if v.Criteria[0].Score != 7 || v.Criteria[1].Score != 9 {
@@ -190,7 +190,7 @@ func TestParseVerdictTextPenalty(t *testing.T) {
 	}
 
 	// Never below 1
-	v, _ := ParseVerdict(`{"text": "mostly", "score": 1, "comment": "Words."}`, critic())
+	v, _ := ParseVerdict(`{"effort": "none", "score": 1, "comment": "Blank."}`, critic())
 	if v.Score != 1 {
 		t.Errorf("score = %v, want floored at 1", v.Score)
 	}

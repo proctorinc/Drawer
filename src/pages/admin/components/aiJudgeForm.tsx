@@ -129,10 +129,10 @@ export const VerdictPreview: FC<{
     />
     <span className="text-xs text-pencil">
       {verdict.seen && <>saw: {verdict.seen} · </>}
-      {verdict.textPenalty > 0 && (
+      {verdict.effortPenalty > 0 && (
         <>
-          {verdict.text === 'mostly' ? 'mostly words' : 'some words'}: −
-          {Math.round(verdict.textPenalty * 100)}% ·{' '}
+          {verdict.effort === 'none' ? 'no effort' : 'low effort'}: −
+          {Math.round(verdict.effortPenalty * 100)}% ·{' '}
         </>
       )}
       {verdict.model}
