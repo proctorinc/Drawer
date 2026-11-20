@@ -1,0 +1,297 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useNavigate, useRouterState } from '@tanstack/react-router';
+import { AIJudgeAvatar } from './AIJudgeAvatar';
+import { useTypewriter, withoutArticle } from './AIDialogue';
+import type { FC, ReactNode } from 'react';
+import type { AIJudge } from '@/api/Api';
+import { fetchAPI } from '@/api/apiClient';
+import { useAnimationQueue } from '@/animations/AnimationQueue';
+import { useDailyPrompt } from '@/daily/DailyPromptContext';
+import useAuth from '@/auth/hooks/useAuth';
+import Button from '@/components/Button';
+import { cn } from '@/utils';
+
+/** Today's judge asking for today's doodle, a speech bubble per line */
+export interface JudgeIntro {
+  judge: AIJudge;
+  day: string;
+  prompt: string;
+  lines: Array<string>;
+}
+
+/** Fetches the judge's intro; null when judging is off or there's no prompt */
+const fetchJudgeIntro = async (): Promise<JudgeIntro | null> => {
+  const response = await fetchAPI('GET', '/ai/judge/today/intro');
+  if (response.status === 204) return null;
+  if (!response.ok) throw new Error("Failed to load the judge's intro");
+  return response.json();
+};
+
+// Each day's intro plays once on its own, per device
+const SEEN_KEY = 'judge-intro-seen';
+
+const wasIntroSeen = (day: string) => {
+  try {
+    return localStorage.getItem(SEEN_KEY) === day;
+  } catch {
+    return false;
+  }
+};
+
+export const markIntroSeen = (day: string) => {
+  try {
+    localStorage.setItem(SEEN_KEY, day);
+  } catch {
+    // Private mode or blocked storage: it may play again, which is fine
+  }
+};
+
+/**
+ * The line as typed so far, with today's prompt picked out in highlighter
+ * wherever it's been said, so the ask is impossible to miss.
+ */
+const withPromptHighlighted = (
+  line: string,
+  shownLength: number,
+  prompt: string,
+): ReactNode => {
+  const core = withoutArticle(prompt);
+  const start = core ? line.toLowerCase().indexOf(core) : -1;
+  const shown = line.slice(0, shownLength);
+  if (start === -1 || shownLength <= start) return shown;
+  const end = Math.min(start + core.length, shownLength);
+  return (
+    <>
+      {shown.slice(0, start)}
+      <b className="highlight font-bold">{shown.slice(start, end)}</b>
+      {shown.slice(end)}
+    </>
+  );
+};
+
+type DialogueProps = {
+  intro: JudgeIntro;
+  /** Off to draw it */
+  onAccept: () => void;
+  onClose: () => void;
+};
+
+/**
+ * Today's judge giving you your quest, RPG style: its face bobs while each
+ * line types out. Tap to skip ahead or turn the page; the last page asks you
+ * to go draw.
+ */
+export const JudgeIntroDialogue: FC<DialogueProps> = ({
+  intro,
+  onAccept,
+  onClose,
+}) => {
+  const { judge, lines, prompt } = intro;
+  const [page, setPage] = useState(0);
+  const line = lines[page] ?? '';
+  const isLast = page >= lines.length - 1;
+  const { shown, done, talking, finish } = useTypewriter(line);
+
+  const advance = () => {
+    if (!done) return finish();
+    if (!isLast) setPage((n) => n + 1);
+  };
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (done && isLast) onAccept();
+        else advance();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/70 cursor-pointer animate-in fade-in duration-200"
+      onClick={advance}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${judge.name} has a request`}
+        className="relative w-full max-w-md px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] animate-in slide-in-from-bottom-10 fade-in duration-300"
+      >
+        {/* The speaker: a face that moves while it talks, and a name plate */}
+        <div className="flex items-end gap-3 pl-2">
+          <span
+            className={cn(
+              'inline-flex origin-bottom',
+              talking && 'animate-talk',
+            )}
+          >
+            <AIJudgeAvatar judge={judge} size="xl" />
+          </span>
+          <div className="flex flex-col gap-0.5 mb-2 px-3 py-1.5 min-w-0 bg-white border-2 border-ink rounded-sketch-alt -rotate-1">
+            <b className="font-accent font-bold text-2xl leading-none">
+              {judge.name}
+            </b>
+            <span className="text-sm text-pencil truncate">today's judge</span>
+          </div>
+        </div>
+
+        {/* The speech bubble, with a tail up to the speaker */}
+        <div className="relative mt-3 bg-white border-2 border-ink rounded-sketch px-4 pt-4 pb-3">
+          <span
+            aria-hidden="true"
+            className="absolute -top-[9px] left-10 size-4 rotate-45 bg-white border-l-2 border-t-2 border-ink"
+          />
+          <p className="sr-only" aria-live="polite">
+            {done ? line : ''}
+          </p>
+          {/* The full line sits invisibly underneath, so the bubble doesn't grow as it types */}
+          <div aria-hidden="true" className="grid text-xl leading-snug">
+            <span className="invisible [grid-area:1/1]">
+              {withPromptHighlighted(line, line.length, prompt)}
+            </span>
+            <span className="[grid-area:1/1]">
+              {withPromptHighlighted(line, shown.length, prompt)}
+              {!done && (
+                <span className="inline-block w-2 ml-0.5 animate-pulse">▍</span>
+              )}
+            </span>
+          </div>
+
+          <div className="flex items-end justify-between gap-3 mt-3 min-h-10">
+            {/* Which page of the conversation you're on */}
+            <span className="flex gap-1" aria-hidden="true">
+              {lines.map((_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    'size-2 rounded-full border-[1.5px] border-ink',
+                    i <= page ? 'bg-ink' : 'bg-white',
+                  )}
+                />
+              ))}
+            </span>
+            {done && isLast ? (
+              <span className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-1 duration-300">
+                <Button
+                  size="sm"
+                  variant="base"
+                  disableLoad
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onClose();
+                  }}
+                >
+                  Later
+                </Button>
+                <Button
+                  size="sm"
+                  disableLoad
+                  autoFocus
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onAccept();
+                  }}
+                >
+                  Let's draw!
+                </Button>
+              </span>
+            ) : done ? (
+              <span
+                aria-hidden="true"
+                className="text-pencil text-sm leading-none animate-bounce"
+              >
+                ▼
+              </span>
+            ) : (
+              <span className="text-sm text-pencil">tap to skip</span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/** The stage wrapper: plays the intro, then sends you to your canvas if you accept */
+export const JudgeIntroPlayer: FC<{
+  intro: JudgeIntro;
+  onDone: () => void;
+}> = ({ intro, onDone }) => {
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  useEffect(() => markIntroSeen(intro.day), [intro.day]);
+
+  return (
+    <JudgeIntroDialogue
+      intro={intro}
+      onClose={onDone}
+      onAccept={() => {
+        onDone();
+        // The canvas is on the home page while today's doodle is still to draw
+        if (pathname !== '/draw') void navigate({ to: '/draw' });
+      }}
+    />
+  );
+};
+
+/** Queues the intro on the stage, behind anything already celebrating */
+export function useShowJudgeIntro() {
+  const { enqueue } = useAnimationQueue();
+  return useCallback(
+    (intro: JudgeIntro) => {
+      void enqueue({
+        id: `judge-intro:${intro.day}`,
+        kind: 'judgeIntro',
+        payload: { intro },
+      });
+    },
+    [enqueue],
+  );
+}
+
+const Watcher: FC = () => {
+  const { dailyPrompt } = useDailyPrompt();
+  const day = dailyPrompt?.day.slice(0, 10);
+  const wanted =
+    !!dailyPrompt && !dailyPrompt.isCompleted && !wasIntroSeen(day!);
+  const { data } = useQuery({
+    queryKey: ['ai', 'judge', 'today', 'intro', day],
+    queryFn: fetchJudgeIntro,
+    enabled: wanted,
+    staleTime: Infinity,
+    // Nice to have: never worth a retry storm
+    retry: false,
+  });
+  const show = useShowJudgeIntro();
+  const shown = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!data || !wanted || shown.current === data.day) return;
+    // Drawn on another device while it was being written
+    if (dailyPrompt.isCompleted || wasIntroSeen(data.day)) return;
+    shown.current = data.day;
+    show(data);
+  }, [data, wanted, dailyPrompt, show]);
+
+  return null;
+};
+
+/**
+ * When there's a new prompt you haven't drawn yet, today's judge pops up once
+ * to ask you for it. Mount once, inside the daily prompt and animation queue
+ * providers; renders nothing.
+ */
+const JudgeIntroWatcher: FC = () => {
+  const { user } = useAuth();
+  if (!user) return null;
+  // Keyed so switching accounts (or impersonating) checks again
+  return <Watcher key={user.id} />;
+};
+
+export default JudgeIntroWatcher;
