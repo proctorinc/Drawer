@@ -1,5 +1,12 @@
 import { useAdminAchievements, useAdminUsers } from '../api';
 import { AdminPage, Loaded, Panel, Section, Tag } from '../components/ui';
+import {
+  achievementCompletedDemo,
+  achievementProgressDemo,
+  earnedAllDemo,
+  rewardDemo,
+} from '../animationDemos';
+import { ShowAnimationButton } from '../components/AnimationPreview';
 import type { AdminAchievement } from '../api';
 import type { FC } from 'react';
 import AchievementCard, {
@@ -22,7 +29,7 @@ const AchievementDemo: FC<{
   };
 
   return (
-    <Panel className="grid grid-cols-[160px_110px_1fr_220px] items-center gap-6 p-4">
+    <Panel className="grid grid-cols-[160px_110px_minmax(220px,1fr)_220px_auto] items-center gap-6 p-4 min-w-[900px]">
       <ul className="flex justify-center">
         <AchievementSticker achievement={earned} index={index} />
       </ul>
@@ -40,6 +47,16 @@ const AchievementDemo: FC<{
         <dd>
           {achievement.achievementField} ≥ {goal}
         </dd>
+        <dt className="text-pencil">players see</dt>
+        <dd>
+          {achievement.hidden ? (
+            <Tag className="bg-blush">secret until earned</Tag>
+          ) : achievement.eventSlug ? (
+            'a mystery on the achievements page'
+          ) : (
+            'how to earn it'
+          )}
+        </dd>
         <dt className="text-pencil">earned by</dt>
         <dd>
           {achievement.earnedBy} of {players}
@@ -53,6 +70,26 @@ const AchievementDemo: FC<{
           )}
         </dd>
       </dl>
+      <div className="flex flex-col items-stretch gap-2">
+        <span className="text-xs uppercase tracking-wider text-pencil">
+          animations
+        </span>
+        <ShowAnimationButton
+          label="earned"
+          title={`${achievement.name} earned`}
+          demo={achievementCompletedDemo(achievement)}
+        />
+        <ShowAnimationButton
+          label="progress"
+          title={`${achievement.name} progress`}
+          demo={achievementProgressDemo(achievement)}
+        />
+        <ShowAnimationButton
+          label="reward"
+          title={`${achievement.reward?.name ?? ''} unlocked`}
+          demo={rewardDemo(achievement)}
+        />
+      </div>
     </Panel>
   );
 };
@@ -64,22 +101,32 @@ const AchievementsPage = () => {
   return (
     <AdminPage
       title="achievements"
-      subtitle="every sticker, shown earned, locked and in progress"
+      subtitle="every sticker, shown earned, locked and in progress, with the animations players see"
     >
       <Loaded query={achievements}>
         {(list) => {
           const groups = new Map<string, Array<AdminAchievement>>();
           for (const a of list) {
-            const group = a.eventSlug ?? 'everyday';
+            const group = a.eventSlug ?? a.category;
             groups.set(group, [...(groups.get(group) ?? []), a]);
           }
           return [...groups].map(([group, items]) => (
             <Section
               key={group}
               title={group}
-              aside={`${items.length} stickers`}
+              aside={
+                <span className="flex flex-wrap items-center justify-end gap-3">
+                  <ShowAnimationButton
+                    label="earn them all at once"
+                    title={`all ${items.length} stickers at once`}
+                    demo={earnedAllDemo(items)}
+                  />
+                  {items.length} stickers
+                </span>
+              }
             >
-              <div className="flex flex-col gap-3">
+              {/* Each row needs its width; narrow screens scroll sideways */}
+              <div className="flex flex-col gap-3 overflow-x-auto -mx-4 px-4 pb-2 sm:mx-0 sm:px-0">
                 {items.map((achievement, i) => (
                   <AchievementDemo
                     key={achievement.id}

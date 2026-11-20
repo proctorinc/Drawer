@@ -283,7 +283,7 @@ const BatchResults: FC<{ batch: Batch }> = ({ batch }) => (
         </div>
       </div>
     </div>
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {batch.results.map((r) => (
         <div
           key={r.judge.id || r.name}
@@ -402,7 +402,7 @@ const AITestingGroundPage = () => {
           page to run tests. Judging doesn't have to be switched on.
         </p>
       )}
-      <div className="grid grid-cols-[minmax(0,26rem)_1fr] gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,26rem)_1fr] gap-8 items-start">
         <Section title="the doodle">
           <div className="flex gap-2">
             {(

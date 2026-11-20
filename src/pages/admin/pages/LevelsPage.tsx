@@ -1,4 +1,6 @@
 import { useProgression } from '../api';
+import { rankUpDemo } from '../animationDemos';
+import { ShowAnimationButton } from '../components/AnimationPreview';
 import { AdminPage, Panel, Section, StatTile, Tag } from '../components/ui';
 import type { FC } from 'react';
 import type { RankTier } from '@/levels/ranks';
@@ -9,10 +11,10 @@ import ProgressBar from '@/pages/trophies/components/ProgressBar';
 import {
   LEVEL_XP_STEP,
   RANK_TIERS,
+  levelTitle,
   tierRange,
   xpToReach,
 } from '@/levels/ranks';
-import { levelTitle } from '@/pages/trophies/components/LevelCard';
 import { cn } from '@/utils';
 
 // Show a few levels past where Mythic begins
@@ -68,7 +70,8 @@ const LevelCell: FC<{
 
       <Panel
         className={cn(
-          'absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-1 w-60 p-3 flex flex-col gap-2 text-left',
+          // Hover-only, so phones (no hover, and no room) go without
+          'absolute z-30 bottom-full left-1/2 -translate-x-1/2 mb-1 w-60 p-3 max-sm:hidden flex flex-col gap-2 text-left',
           'pointer-events-none opacity-0 scale-95 origin-bottom transition-[opacity,scale] duration-200 ease-[var(--ease-spring)]',
           'group-hover:opacity-100 group-hover:scale-100 group-focus-visible:opacity-100 group-focus-visible:scale-100',
         )}
@@ -115,7 +118,7 @@ const LevelsPage = () => {
       title="level ranks"
       subtitle="every rank's badge, from graphite to mythic. hover a level for what it takes"
     >
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatTile
           label="highest player"
           value={highest ? `lv ${highest}` : '–'}
@@ -134,33 +137,45 @@ const LevelsPage = () => {
 
       <Section title="rank cards">
         <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-x-5 gap-y-8 pt-2">
-          {RANK_TIERS.map((tier) => (
-            <RankCard
-              key={tier.id}
-              level={tier.from}
-              pin
-              contentClassName="flex flex-col gap-2 p-4 pt-5"
-            >
-              <div className="flex items-center gap-3">
-                <LevelSeal level={tier.from} size={48} />
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm text-pencil">
-                    {tier.name.toLowerCase()} rank
-                  </span>
-                  <span className="font-accent font-bold text-2xl leading-none">
-                    <span className="highlight">
-                      {levelTitle(tier.from).toLowerCase()}
+          {RANK_TIERS.map((tier, index) => (
+            <div key={tier.id} className="flex flex-col items-center gap-3">
+              <RankCard
+                level={tier.from}
+                pin
+                className="w-full"
+                contentClassName="flex flex-col gap-2 p-4 pt-5"
+              >
+                <div className="flex items-center gap-3">
+                  <LevelSeal level={tier.from} size={48} />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm text-pencil">
+                      {tier.name.toLowerCase()} rank
                     </span>
-                  </span>
+                    <span className="font-accent font-bold text-2xl leading-none">
+                      <span className="highlight">
+                        {levelTitle(tier.from).toLowerCase()}
+                      </span>
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <ProgressBar
-                value={2}
-                max={3}
-                label={`${tier.name} sample progress`}
-                fillBackground={RANK_CARDS[tier.id].fill}
-              />
-            </RankCard>
+                <ProgressBar
+                  value={2}
+                  max={3}
+                  label={`${tier.name} sample progress`}
+                  fillBackground={RANK_CARDS[tier.id].fill}
+                />
+              </RankCard>
+              {index > 0 ? (
+                <ShowAnimationButton
+                  demo={rankUpDemo(index)}
+                  title={`${RANK_TIERS[index - 1].name} → ${tier.name}`}
+                />
+              ) : (
+                <span className="text-sm text-pencil">
+                  where everyone starts
+                </span>
+              )}
+            </div>
           ))}
         </div>
       </Section>
@@ -193,7 +208,8 @@ const LevelsPage = () => {
               </span>
             }
           >
-            <Panel className="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] p-2">
+            {/* Clipped sideways only, so edge tooltips can't widen the page but can still rise above */}
+            <Panel className="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] p-2 overflow-x-clip">
               {levels.map((level) => (
                 <LevelCell
                   key={level}

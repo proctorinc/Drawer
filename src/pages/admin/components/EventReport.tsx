@@ -61,30 +61,35 @@ const DayByDay: FC<{ event: AdminEvent }> = ({ event }) => {
         );
 
         return (
-          <div className="flex items-end gap-1 h-40">
-            {days.map((day, i) => {
-              const prompt = byDay.get(day);
-              const drawn = prompt?.submissions ?? 0;
-              return (
-                <Link
-                  key={day}
-                  to="/draw/admin/prompts"
-                  search={{ event: event.slug }}
-                  title={`day ${i + 1} · ${formatDay(day)} · ${prompt?.prompt ?? 'no prompt'} · ${drawn} drawn`}
-                  className="flex flex-col items-center justify-end flex-1 h-full gap-1 group"
-                >
-                  <span className="text-xs text-pencil">{drawn || ''}</span>
-                  <span
-                    className={cn(
-                      'w-full rounded-t-sm border-[1.5px] border-ink group-hover:bg-coral',
-                      prompt ? 'bg-xmas-green' : 'bg-blush border-dashed',
-                    )}
-                    style={{ height: `${Math.max(4, (drawn / most) * 100)}%` }}
-                  />
-                  <span className="text-[10px] text-pencil">{i + 1}</span>
-                </Link>
-              );
-            })}
+          // A bar per day keeps a readable width; narrow screens scroll it
+          <div className="overflow-x-auto pb-1">
+            <div className="flex items-end gap-1 h-40 min-w-[560px]">
+              {days.map((day, i) => {
+                const prompt = byDay.get(day);
+                const drawn = prompt?.submissions ?? 0;
+                return (
+                  <Link
+                    key={day}
+                    to="/draw/admin/prompts"
+                    search={{ event: event.slug }}
+                    title={`day ${i + 1} · ${formatDay(day)} · ${prompt?.prompt ?? 'no prompt'} · ${drawn} drawn`}
+                    className="flex flex-col items-center justify-end flex-1 h-full gap-1 group"
+                  >
+                    <span className="text-xs text-pencil">{drawn || ''}</span>
+                    <span
+                      className={cn(
+                        'w-full rounded-t-sm border-[1.5px] border-ink group-hover:bg-coral',
+                        prompt ? 'bg-xmas-green' : 'bg-blush border-dashed',
+                      )}
+                      style={{
+                        height: `${Math.max(4, (drawn / most) * 100)}%`,
+                      }}
+                    />
+                    <span className="text-[10px] text-pencil">{i + 1}</span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         );
       }}
@@ -120,7 +125,7 @@ const EventReport: FC<{ event: AdminEvent }> = ({ event }) => {
 
         return (
           <Panel className="flex flex-col gap-6 p-5">
-            <div className="grid grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
               <StatTile
                 label="players drew"
                 value={`${players}/${users.length}`}
@@ -158,7 +163,7 @@ const EventReport: FC<{ event: AdminEvent }> = ({ event }) => {
               <DayByDay event={event} />
             </Block>
 
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <Block title="stickers" aside="earned by everyone">
                 <ul className="flex flex-col gap-2">
                   {stickers.map((a) => (

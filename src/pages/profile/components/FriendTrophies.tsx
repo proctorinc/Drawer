@@ -6,7 +6,7 @@ import type { GetMeResponse, User } from '@/api/Api';
 import type { LeaderboardEntry } from '@/api/trophies';
 import { useGetTrophies } from '@/api/trophies';
 import { AchievementSticker } from '@/pages/trophies/components/AchievementCard';
-import { levelTitle } from '@/pages/trophies/components/LevelCard';
+import { levelTitle } from '@/levels/ranks';
 import ProgressBar from '@/pages/trophies/components/ProgressBar';
 import { rankCardFor } from '@/levels/rankCards';
 

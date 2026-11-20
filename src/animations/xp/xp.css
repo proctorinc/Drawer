@@ -1,0 +1,175 @@
+/* XP popdown and progress ticker. Flat: ink outlines, no glows or blur. */
+
+/* Drops in from above the screen with a little overshoot */
+@keyframes xp-drop-in {
+  from {
+    translate: 0 calc(-100% - 24px);
+  }
+  to {
+    translate: 0 0;
+  }
+}
+@keyframes xp-slide-out {
+  from {
+    translate: 0 0;
+    opacity: 1;
+  }
+  to {
+    translate: 0 calc(-100% - 24px);
+    opacity: 0;
+  }
+}
+.xp-in {
+  animation: xp-drop-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.xp-out {
+  animation: xp-slide-out 0.3s cubic-bezier(0.5, 0, 0.75, 0) both;
+}
+
+/* The badge bumping up a level */
+@keyframes xp-badge-pop {
+  0% {
+    scale: 1;
+  }
+  35% {
+    scale: 1.32;
+    rotate: -8deg;
+  }
+  100% {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+.xp-badge-pop {
+  animation: xp-badge-pop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* A bigger stamp when the badge changes tier */
+@keyframes xp-badge-punch {
+  0% {
+    scale: 0.4;
+    rotate: -25deg;
+  }
+  45% {
+    scale: 1.45;
+    rotate: 10deg;
+  }
+  70% {
+    scale: 0.92;
+    rotate: -4deg;
+  }
+  100% {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+.xp-badge-punch {
+  animation: xp-badge-punch 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Little ink ticks bursting from the badge on a tier change */
+@keyframes xp-burst {
+  0% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 0.4 1;
+  }
+  100% {
+    opacity: 0;
+    translate: var(--dx) var(--dy);
+    scale: 1 1;
+  }
+}
+.xp-burst {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 3px;
+  height: 9px;
+  margin: -4.5px 0 0 -1.5px;
+  border-radius: 2px;
+  background: var(--color-ink);
+  rotate: var(--r);
+  animation: xp-burst 0.5s ease-out both;
+}
+
+/* "level up!" tag stamping in */
+@keyframes xp-tag {
+  from {
+    opacity: 0;
+    scale: 0.6;
+    rotate: -12deg;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+    rotate: -4deg;
+  }
+}
+.xp-tag {
+  animation: xp-tag 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-in,
+  .xp-out,
+  .xp-badge-pop,
+  .xp-badge-punch,
+  .xp-tag {
+    animation: none;
+  }
+  .xp-burst {
+    display: none;
+  }
+}
+
+/* Ticker pill: drops in under the popdown (or the top edge) */
+.xp-ticker-slot {
+  transition: translate 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes xp-ticker-in {
+  from {
+    opacity: 0;
+    translate: 0 -16px;
+    scale: 0.9;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes xp-ticker-out {
+  to {
+    opacity: 0;
+    translate: 0 -12px;
+    scale: 0.92;
+  }
+}
+.xp-ticker-in {
+  animation: xp-ticker-in 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.xp-ticker-out {
+  animation: xp-ticker-out 0.25s ease-in both;
+}
+/* The count bumps when it ticks */
+@keyframes xp-count-bump {
+  40% {
+    scale: 1.3;
+  }
+}
+.xp-count-bump {
+  display: inline-block;
+  animation: xp-count-bump 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-ticker-slot {
+    transition: none;
+  }
+  .xp-ticker-in,
+  .xp-ticker-out,
+  .xp-count-bump {
+    animation: none;
+  }
+}

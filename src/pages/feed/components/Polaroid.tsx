@@ -1,18 +1,13 @@
-import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useQueryClient } from '@tanstack/react-query';
-import { PinButton, cornerButtonClass, pillClass } from './PinButton';
+import { pillClass } from './PinButton';
 import type { CSSProperties, FC } from 'react';
-import type { ReactionId, UserPromptSubmission } from '@/api/Api';
-import { queryKeys, useToggleSubmissionReaction } from '@/api/Api';
+import type { UserPromptSubmission } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { LockedDrawing } from '@/drawing/components/LockedDrawing';
 import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
-import { CommentIcon, HeartIcon } from '@/components/icons';
-import { ReactionDrawer } from '@/reactions/ReactionDrawer';
+import { CommentIcon } from '@/components/icons';
 import { ReactionPile } from '@/reactions/ReactionPile';
-import { ReactionSticker } from '@/reactions/ReactionSticker';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { polaroidFrameClass } from '@/components/polaroid';
@@ -32,18 +27,8 @@ type Props = {
 
 const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
   const user = useUser();
-  const queryClient = useQueryClient();
-  const toggleReaction = useToggleSubmissionReaction();
   const isLocked = useIsDrawingLocked()(submission);
-  // Bumped on each pick to replay the pop on the corner button
-  const [popKey, setPopKey] = useState(0);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
   const isMine = submission.user.id === user.id;
-  // Your own reaction, if you've left one, stands in for the heart
-  const myReaction = submission.reactions.find(
-    (reaction) => reaction.user.id === user.id,
-  )?.reactionId;
   const reactionCount = submission.counts.reduce(
     (sum, reaction) => sum + reaction.count,
     0,
@@ -56,29 +41,10 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
   // A perfect 10 is framed in gold, once you can see it
   const golden = !isLocked && isMasterpiece(submission);
 
-  function refresh() {
-    for (const queryKey of [
-      queryKeys.daily,
-      queryKeys.myProfile,
-      queryKeys.activityFeed,
-      queryKeys.promptSubmission(submission.id),
-    ]) {
-      queryClient.invalidateQueries({ queryKey });
-    }
-  }
-
-  function toggle(reactionId: ReactionId) {
-    setPopKey((key) => key + 1);
-    toggleReaction.mutate(
-      { submissionId: submission.id, reactionId },
-      { onSuccess: refresh },
-    );
-  }
-
   return (
     <figure
       className={cn(
-        'relative m-0 p-2 pb-0 animate-drop rotate-[var(--tilt)] transition-[rotate,translate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 hover:-translate-y-1 hover:scale-[1.03]',
+        'relative self-start m-0 p-2 pb-0 animate-drop rotate-[var(--tilt)] transition-[rotate,translate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 hover:-translate-y-1 hover:scale-[1.03]',
         golden ? goldFrameClass : polaroidFrameClass,
         index % 2 === 1 && 'mt-3',
         festive && 'origin-top',
@@ -128,40 +94,6 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
             score={submission.aiReview.score}
             className="absolute z-10 -top-5 -left-5 scale-75 origin-top-left pointer-events-none"
           />
-        )}
-        {/* Star your own, love a friend's: right on the photo's corner */}
-        {isMine ? (
-          <PinButton submission={submission} variant="corner" />
-        ) : (
-          <>
-            <button
-              onClick={() => setDrawerOpen(true)}
-              aria-haspopup="dialog"
-              aria-label={myReaction ? 'Change your reaction' : 'React'}
-              className={cn(
-                cornerButtonClass,
-                myReaction ? 'bg-blush' : 'bg-white',
-              )}
-            >
-              {myReaction ? (
-                <ReactionSticker
-                  key={popKey}
-                  reactionId={myReaction}
-                  size={22}
-                  className={cn(popKey > 0 && 'animate-pop')}
-                />
-              ) : (
-                <HeartIcon size={16} strokeWidth={2.2} />
-              )}
-            </button>
-            <ReactionDrawer
-              open={drawerOpen}
-              onClose={() => setDrawerOpen(false)}
-              reactions={submission.reactions}
-              counts={submission.counts}
-              onToggle={toggle}
-            />
-          </>
         )}
       </div>
       {/* One line: whose it is, its reactions, and the way into the comments */}

@@ -32,7 +32,7 @@ export const Section: FC<{
   children: ReactNode;
 }> = ({ title, aside, className, children }) => (
   <section className={cn('flex flex-col gap-3', className)}>
-    <div className="flex items-baseline justify-between gap-4 pb-1 border-b-2 border-dashed border-line">
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 pb-1 border-b-2 border-dashed border-line">
       <h2 className="font-accent font-bold text-2xl leading-none">{title}</h2>
       {aside && <span className="text-pencil">{aside}</span>}
     </div>
@@ -86,7 +86,7 @@ export const SearchInput: FC<{
   onChange: (value: string) => void;
   placeholder: string;
 }> = ({ value, onChange, placeholder }) => (
-  <label className="relative block w-72">
+  <label className="relative block w-full sm:w-72">
     <FontAwesomeIcon
       icon={faSearch}
       className="absolute left-3 top-1/2 -translate-y-1/2 text-pencil"
@@ -130,7 +130,8 @@ export const Table: FC<{ head: ReactNode; children: ReactNode }> = ({
   children,
 }) => (
   <Panel className="overflow-x-auto">
-    <table className="w-full border-collapse">
+    {/* Columns keep a readable width; narrow screens scroll the table */}
+    <table className="w-full min-w-[640px] border-collapse">
       <thead className="border-b-2 border-ink bg-paper">
         <tr>{head}</tr>
       </thead>

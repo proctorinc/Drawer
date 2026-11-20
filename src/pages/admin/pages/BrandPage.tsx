@@ -42,7 +42,10 @@ const BrandPage = () => (
     <Section title="logo">
       <Panel className="flex flex-col gap-6 p-6">
         {THEMES.map((theme) => (
-          <div key={theme ?? 'everyday'} className="flex items-center gap-10">
+          <div
+            key={theme ?? 'everyday'}
+            className="flex flex-wrap items-center gap-x-10 gap-y-4"
+          >
             <Logo size="lg" theme={theme} />
             {[24, 36, 52, 88].map((size) => (
               <Specimen key={size} label={`${size}px`}>
@@ -56,7 +59,7 @@ const BrandPage = () => (
     </Section>
 
     <Section title="palette">
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {PALETTE.map((name) => (
           <Panel key={name} className="overflow-hidden">
             <div
@@ -90,7 +93,7 @@ const BrandPage = () => (
       </Panel>
     </Section>
 
-    <div className="grid grid-cols-2 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <Section title="card">
         <Card>
           <CardContent>
@@ -116,7 +119,7 @@ const BrandPage = () => (
     </div>
 
     <Section title="icons">
-      <Panel className="grid grid-cols-9 gap-4 p-6">
+      <Panel className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-4 p-4 sm:p-6">
         {Object.entries(Icons).map(([name, Icon]) => (
           <Specimen key={name} label={name.replace(/Icon$/, '')}>
             <Icon size={28} />

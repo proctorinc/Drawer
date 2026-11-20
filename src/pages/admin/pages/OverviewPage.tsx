@@ -52,7 +52,7 @@ const OverviewPage = () => {
 
   return (
     <AdminPage title="overview" subtitle="how drawer is doing right now">
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatTile label="players" value={overall?.totalUsers ?? '–'} />
         <StatTile label="drawings" value={overall?.totalDrawings ?? '–'} />
         <StatTile label="reactions" value={overall?.totalReactions ?? '–'} />
@@ -82,7 +82,7 @@ const OverviewPage = () => {
 
       <ActionStatsChart />
 
-      <div className="grid grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Section
           title="latest happenings"
           aside={
@@ -90,7 +90,7 @@ const OverviewPage = () => {
               full log →
             </Link>
           }
-          className="col-span-2"
+          className="lg:col-span-2"
         >
           <Panel className="px-4">
             <Loaded query={log}>

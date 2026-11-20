@@ -1,5 +1,13 @@
 import { useProgression } from '../api';
 import {
+  earnedAllDemo,
+  levelUpDemo,
+  questCompletedDemo,
+  questProgressDemo,
+  xpDemo,
+} from '../animationDemos';
+import { ShowAnimationButton } from '../components/AnimationPreview';
+import {
   AdminPage,
   Loaded,
   Panel,
@@ -11,7 +19,7 @@ import {
   th,
 } from '../components/ui';
 import type { FC } from 'react';
-import { levelTitle } from '@/pages/trophies/components/LevelCard';
+import { levelTitle } from '@/levels/ranks';
 import ProgressBar from '@/pages/trophies/components/ProgressBar';
 
 const percent = (n: number, of: number) =>
@@ -58,7 +66,7 @@ const ProgressionPage = () => {
           );
 
           return (
-            <div className="grid grid-cols-[1fr_1.3fr] gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-8 items-start">
               <div className="flex flex-col gap-8">
                 <div className="grid grid-cols-2 gap-3">
                   <StatTile label="players" value={players} />
@@ -71,7 +79,16 @@ const ProgressionPage = () => {
 
                 <Section
                   title="weekly quests"
-                  aside={`${formatDay(week.start)} → ${formatDay(week.end)}`}
+                  aside={
+                    <span className="flex flex-wrap items-center justify-end gap-3">
+                      <ShowAnimationButton
+                        label="finish them all at once"
+                        title={`all ${quests.length} quests at once`}
+                        demo={earnedAllDemo([], quests)}
+                      />
+                      {formatDay(week.start)} → {formatDay(week.end)}
+                    </span>
+                  }
                 >
                   <div className="flex flex-col gap-3">
                     {quests.map((quest) => (
@@ -80,8 +97,18 @@ const ProgressionPage = () => {
                           <h3 className="font-accent font-bold text-xl leading-none">
                             {quest.title}
                           </h3>
-                          <span className="text-sm text-pencil">
+                          <span className="flex items-center gap-2 text-sm text-pencil">
                             goal: {quest.goal}
+                            <ShowAnimationButton
+                              label="progress"
+                              title={`${quest.title} progress`}
+                              demo={questProgressDemo(quest)}
+                            />
+                            <ShowAnimationButton
+                              label="done"
+                              title={`${quest.title} done`}
+                              demo={questCompletedDemo(quest)}
+                            />
                           </span>
                         </div>
                         <p className="text-sm text-pencil">
@@ -113,15 +140,48 @@ const ProgressionPage = () => {
                       <>
                         <th className={th}>action</th>
                         <th className={th}>xp</th>
+                        <th className={th}>animation</th>
                       </>
                     }
                   >
                     {xpRules.map((rule) => (
                       <tr key={rule.action}>
                         <td className={td}>{rule.action}</td>
-                        <td className={td}>+{rule.xp}</td>
+                        <td className={td}>
+                          +{rule.xp}
+                          {rule.maxXp ? `–${rule.maxXp}` : ''}
+                        </td>
+                        <td className={td}>
+                          <ShowAnimationButton
+                            label="+xp"
+                            title={`+${rule.xp} xp: ${rule.action.toLowerCase()}`}
+                            demo={xpDemo(4, rule.xp, 0.3)}
+                          />
+                        </td>
                       </tr>
                     ))}
+                    <tr>
+                      <td className={td}>level up</td>
+                      <td className={td}>–</td>
+                      <td className={td}>
+                        <ShowAnimationButton
+                          label="level up"
+                          title="level 4 → 5"
+                          demo={levelUpDemo(4)}
+                        />
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className={td}>level up into a new rank</td>
+                      <td className={td}>–</td>
+                      <td className={td}>
+                        <ShowAnimationButton
+                          label="new rank"
+                          title="level 6 → 7, silver → gold"
+                          demo={levelUpDemo(6)}
+                        />
+                      </td>
+                    </tr>
                   </Table>
                 </Section>
               </div>

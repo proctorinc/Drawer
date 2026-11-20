@@ -124,9 +124,9 @@ const ChristmasDemo: FC<{ event: AdminEvent }> = ({ event }) => {
         </span>
       </div>
 
-      <div className="grid grid-cols-[1fr_340px] gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-8">
         <div className="flex flex-col gap-6">
-          <div className="flex items-center gap-6">
+          <div className="flex flex-wrap items-center gap-6">
             <LogoIcon theme={event.theme} size={64} animateScribble />
             <LogoIcon theme={null} size={64} />
             <span className="text-pencil">themed logo vs everyday logo</span>
@@ -139,11 +139,11 @@ const ChristmasDemo: FC<{ event: AdminEvent }> = ({ event }) => {
               page chrome: lights and snowfall
             </p>
           </div>
-          <div className="flex items-start gap-8">
+          <div className="flex flex-wrap items-start gap-x-8 gap-y-4">
             {event.countdownDays !== null && (
               <EventBadge days={event.countdownDays} />
             )}
-            <OrnamentTally event={simulated} className="flex-1" />
+            <OrnamentTally event={simulated} className="flex-1 min-w-[240px]" />
           </div>
         </div>
         <ChristmasTree event={simulated} drawings={drawings} />

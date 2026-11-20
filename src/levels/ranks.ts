@@ -151,3 +151,19 @@ export function tierRange(tier: RankTier): { from: number; to?: number } {
   if (index === RANK_TIERS.length - 1) return { from: tier.from };
   return { from: tier.from, to: RANK_TIERS[index + 1].from - 1 };
 }
+
+/** What a player at each level is called; the last one sticks from then on */
+const LEVEL_TITLES = [
+  'Doodler',
+  'Scribbler',
+  'Sketcher',
+  'Inker',
+  'Shader',
+  'Illustrator',
+  'Art Goblin',
+  'Picasso-ish',
+  'Pencil Legend',
+];
+
+export const levelTitle = (level: number) =>
+  LEVEL_TITLES[Math.max(1, Math.min(level, LEVEL_TITLES.length)) - 1];

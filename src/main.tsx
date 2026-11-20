@@ -19,8 +19,12 @@ import CreateProfilePage from './pages/auth/CreateProfilePage.tsx';
 import { UserProfileProvider } from './pages/profile/context/UserProfileContext.tsx';
 import { DailyPromptProvider } from './daily/DailyPromptContext.tsx';
 import { AIDialogueProvider } from './ai/AIDialogue.tsx';
+import { AnimationQueueProvider } from './animations/AnimationQueue.tsx';
+import ProgressWatcher from './animations/ProgressWatcher.tsx';
+import AnnouncementWatcher from './announcements/AnnouncementWatcher.tsx';
+import JudgeIntroWatcher from './ai/JudgeIntro.tsx';
 import { TodayDrawingProvider } from './daily/TodayDrawingProvider.tsx';
-import { DrawingProvider } from './drawing/DrawingContext.tsx';
+import { MAX_AVATAR_SLOTS } from './api/Api.ts';
 import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/UserProfilePage.tsx';
@@ -28,6 +32,9 @@ import PromptSubmissionPage from './pages/feed/PromptSubmissionPage';
 import { BrandProvider } from './components/logo/BrandProvider.tsx';
 import EventPage from './pages/event/EventPage.tsx';
 import TrophiesPage from './pages/trophies/TrophiesPage.tsx';
+import AllAchievementsPage, {
+  isCategory,
+} from './pages/achievements/AchievementsPage.tsx';
 import { AuthProvider } from './auth/AuthContext.tsx';
 import MyProfilePage from './pages/profile/MyProfilePage.tsx';
 import { MyProfilePageProvider } from './pages/profile/context/MyProfileContext.tsx';
@@ -46,6 +53,7 @@ import LevelsPage from './pages/admin/pages/LevelsPage.tsx';
 import ReactionsPage from './pages/admin/pages/ReactionsPage.tsx';
 import ProgressionPage from './pages/admin/pages/ProgressionPage.tsx';
 import EventsPage from './pages/admin/pages/EventsPage.tsx';
+import AnnouncementsPage from './pages/admin/pages/AnnouncementsPage.tsx';
 import AIJudgesPage from './pages/admin/pages/AIJudgesPage.tsx';
 import AITestingGroundPage from './pages/admin/pages/AITestingGroundPage.tsx';
 import AILogPage from './pages/admin/pages/AILogPage.tsx';
@@ -54,6 +62,7 @@ import BrandPage from './pages/admin/pages/BrandPage.tsx';
 import DrawProfilePicPage from './pages/profile/DrawProfilePicPage.tsx';
 import { Config } from './config/Config.ts';
 import ImpersonationBanner from './components/ImpersonationBanner.tsx';
+import type { AchievementCategory } from './api/Api';
 import type { FC } from 'react';
 
 const queryClient = new QueryClient();
@@ -68,12 +77,19 @@ const rootRoute = createRootRoute({
         <AuthProvider>
           <BrandProvider>
             <NotificationProvider>
-              <AIDialogueProvider>
-                <DailyPromptProvider>
-                  <ImpersonationBanner />
-                  <Outlet />
-                </DailyPromptProvider>
-              </AIDialogueProvider>
+              {/* Inside the router and the query client, since the stage it
+                  renders uses Link and queries; AI reviews queue through it */}
+              <AnimationQueueProvider>
+                <AIDialogueProvider>
+                  <DailyPromptProvider>
+                    <ImpersonationBanner />
+                    <ProgressWatcher />
+                    <AnnouncementWatcher />
+                    <JudgeIntroWatcher />
+                    <Outlet />
+                  </DailyPromptProvider>
+                </AIDialogueProvider>
+              </AnimationQueueProvider>
             </NotificationProvider>
           </BrandProvider>
         </AuthProvider>
@@ -122,12 +138,20 @@ const userProfileRoute = createRoute({
 const drawProfilePicRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/draw/profile/pic',
+  // ?slot=0..2 draws into that face slot; without it, the next empty one
+  validateSearch: (search: Record<string, unknown>): { slot?: number } => {
+    const slot = Number(search.slot);
+    return {
+      slot:
+        Number.isInteger(slot) && slot >= 0 && slot < MAX_AVATAR_SLOTS
+          ? slot
+          : undefined,
+    };
+  },
   component: () => (
     <AuthRoute>
       <MyProfilePageProvider>
-        <DrawingProvider localStorageKey="PROFILE_PICTURE">
-          <DrawProfilePicPage />
-        </DrawingProvider>
+        <DrawProfilePicPage />
       </MyProfilePageProvider>
     </AuthRoute>
   ),
@@ -153,6 +177,21 @@ const trophiesRoute = createRoute({
       <MyProfilePageProvider>
         <TrophiesPage />
       </MyProfilePageProvider>
+    </AuthRoute>
+  ),
+});
+
+const achievementsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/achievements',
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: AchievementCategory } => ({
+    tab: isCategory(search.tab) ? search.tab : undefined,
+  }),
+  component: () => (
+    <AuthRoute>
+      <AllAchievementsPage />
     </AuthRoute>
   ),
 });
@@ -221,6 +260,7 @@ const adminPages = [
   adminPage('progression', ProgressionPage),
   adminPage('levels', LevelsPage),
   adminPage('events', EventsPage),
+  adminPage('announcements', AnnouncementsPage),
   adminPage('ai', AIJudgesPage),
   adminPage('ai/test', AITestingGroundPage),
   adminPage('ai/log', AILogPage),
@@ -255,6 +295,7 @@ const routeTree = rootRoute.addChildren([
   drawProfilePicRoute,
   friendProfileRoute,
   trophiesRoute,
+  achievementsRoute,
   eventRoute,
   legacyActivityRoute,
   createProfileRoute,

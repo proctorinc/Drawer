@@ -102,7 +102,7 @@ const ConnectionPanel: FC<{ settings: AISettings }> = ({ settings }) => {
         </p>
       )}
       <form
-        className="grid grid-cols-[1fr_16rem_auto] gap-4 items-end"
+        className="grid grid-cols-1 md:grid-cols-[1fr_16rem_auto] gap-4 items-end"
         onSubmit={(e) => {
           e.preventDefault();
           update.mutate(
@@ -261,7 +261,7 @@ const JudgeEditor: FC<{
           {initial.id ? `edit ${initial.name}` : 'new judge'}
         </h3>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="name" hint="signed on every comment">
           <input
             className={inputClass}
@@ -320,7 +320,7 @@ const JudgeEditor: FC<{
           onChange={(e) => set({ systemPrompt: e.target.value })}
         />
       </Field>
-      <div className="grid grid-cols-3 gap-4 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
         <Field label="event" hint="judges instead of the default while it runs">
           <select
             className={inputClass}
@@ -535,7 +535,7 @@ const AIJudgesPage = () => {
         ) : (
           <Loaded query={personalities}>
             {(list) => (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {list.map((p) => (
                   <JudgeCard
                     key={p.id}

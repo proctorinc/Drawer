@@ -5,6 +5,7 @@ import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { PinButton } from './PinButton';
 import type { FC } from 'react';
 import type { Comment, ReactionId, UserPromptSubmission } from '@/api/Api';
+import { refreshProgress } from '@/animations/useProgressWatcher';
 import { AIReviewComment, ScoreSticker } from '@/ai/AIReviewComment';
 import {
   queryKeys,
@@ -79,6 +80,7 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
           queryClient.invalidateQueries({
             queryKey: queryKeys.activityFeed,
           });
+          refreshProgress(queryClient);
         },
       },
     );
@@ -247,6 +249,7 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
                         queryClient.invalidateQueries({
                           queryKey: queryKeys.activityFeed,
                         });
+                        refreshProgress(queryClient);
                       },
                     },
                   );

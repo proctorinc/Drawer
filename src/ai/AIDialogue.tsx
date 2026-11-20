@@ -9,9 +9,10 @@ import type { AIReview, ActivityFeedResponse } from '@/api/Api';
 import { apiClient } from '@/api/apiClient';
 import { queryKeys, usePromptSubmission } from '@/api/Api';
 import { cn } from '@/utils';
+import { useAnimationQueue } from '@/animations/AnimationQueue';
 
 /** "A goalie" → "goalie", so it reads "your goalie" */
-const withoutArticle = (prompt: string) =>
+export const withoutArticle = (prompt: string) =>
   prompt.toLowerCase().replace(/^(a|an|the)\s+/, '');
 
 /** How long each letter takes to "say", and the breath after punctuation */
@@ -25,12 +26,16 @@ const prefersReducedMotion = () =>
 
 /**
  * Types `text` out a letter at a time, pausing at punctuation like someone
- * talking. `finish` jumps to the end.
+ * talking. `finish` jumps to the end. A new `text` starts typing afresh.
  */
-const useTypewriter = (text: string) => {
-  const [count, setCount] = useState(() =>
-    prefersReducedMotion() ? text.length : 0,
-  );
+export const useTypewriter = (text: string) => {
+  const startAt = (line: string) => (prefersReducedMotion() ? line.length : 0);
+  const [count, setCount] = useState(() => startAt(text));
+  const [typing, setTyping] = useState(text);
+  if (typing !== text) {
+    setTyping(text);
+    setCount(startAt(text));
+  }
 
   useEffect(() => {
     if (count >= text.length) return;
@@ -244,9 +249,13 @@ const markShown = (submissionId: string) => {
 };
 
 type DialogueContext = {
-  /** Wait for the judge to finish this just-drawn doodle, then have it speak */
+  /**
+   * Wait for the judge to finish this just-drawn doodle, then have it speak.
+   * Its turn on the stage is held from now, so whatever's queued after it
+   * (say, the XP it earned) waits until it's had its say.
+   */
   watchReview: (submissionId: string) => void;
-  /** Have a finished review speak now */
+  /** Have a finished review speak, as soon as the stage is free */
   showReview: (review: AIReview, doodle?: DialogueDoodle) => void;
 };
 
@@ -257,10 +266,23 @@ const AIDialogueContext = createContext<DialogueContext>({
 
 export const useAIDialogue = () => useContext(AIDialogueContext);
 
+/** Reviews handed to the stage, by submission id, for ReviewStage to say */
+export const stagedReviews = new Map<
+  string,
+  { review: AIReview; doodle?: DialogueDoodle }
+>();
+
+/** The stage item id for a doodle's review, so the same one never queues twice */
+export const reviewStageId = (submissionId: string) => `review:${submissionId}`;
+
 /** Polls a just-drawn doodle until its judge is done, then hands the review over */
 const ReviewWatcher: FC<{
   submissionId: string;
-  onDone: (review: AIReview | null, doodle?: DialogueDoodle) => void;
+  onDone: (
+    submissionId: string,
+    review: AIReview | null,
+    doodle?: DialogueDoodle,
+  ) => void;
 }> = ({ submissionId, onDone }) => {
   const { data } = usePromptSubmission(submissionId);
 
@@ -269,35 +291,43 @@ const ReviewWatcher: FC<{
     const review = data.aiReview;
     if (review?.status === 'pending') return; // Still squinting; it polls
     // Done, or never coming (judging off, or it failed and was hidden)
-    onDone(review?.status === 'done' ? review : null, {
+    onDone(submissionId, review?.status === 'done' ? review : null, {
       prompt: data.prompt,
       imageUrl: data.imageUrl,
     });
-  }, [data, onDone]);
+  }, [data, onDone, submissionId]);
 
   return null;
 };
 
+/** A watched review's held turn on the stage */
+type HeldTurn = {
+  resolve: () => void;
+  reject: () => void;
+  /** The stage gave up waiting, so when it does come it queues afresh */
+  gaveUp: boolean;
+};
+
 /**
  * Lets an AI judge pop up and say its review the moment it's written, and lets
- * the activity bell replay one.
+ * the activity bell replay one. Each goes through the animation queue's stage,
+ * so a judge never talks over another celebration.
  */
 export const AIDialogueProvider: FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const queryClient = useQueryClient();
-  const [watching, setWatching] = useState<string | null>(null);
-  const [dialogue, setDialogue] = useState<{
-    review: AIReview;
-    doodle?: DialogueDoodle;
-  } | null>(null);
+  const { enqueue } = useAnimationQueue();
+  const [watching, setWatching] = useState<Array<string>>([]);
 
-  const [context] = useState<DialogueContext>(() => ({
-    watchReview: (submissionId) => setWatching(submissionId),
-    showReview: (review, doodle) => {
+  const [{ context, onWatchedDone }] = useState(() => {
+    const held = new Map<string, HeldTurn>();
+
+    // Heard it: hand it to the stage, and its bell row reads as read here now,
+    // and on your other devices too
+    const stage = (review: AIReview, doodle?: DialogueDoodle) => {
       markShown(review.submissionId);
-      setDialogue({ review, doodle });
-      // Heard it: its bell row reads as read here now, and on your other devices too
+      stagedReviews.set(review.submissionId, { review, doodle });
       queryClient.setQueryData<ActivityFeedResponse>(
         queryKeys.activityFeed,
         (feed) =>
@@ -313,40 +343,75 @@ export const AIDialogueProvider: FC<{ children: ReactNode }> = ({
       apiClient.markAIReviewHeard(review.submissionId).catch(() => {
         // This device still remembers it; worst case another device plays it once
       });
-    },
-  }));
+    };
 
-  const [onWatchedDone] = useState(
-    () => (review: AIReview | null, doodle?: DialogueDoodle) => {
-      setWatching(null);
-      if (!review) return;
+    const dialogue: DialogueContext = {
+      watchReview: (submissionId) => {
+        if (held.has(submissionId)) return;
+        let resolve!: () => void;
+        let reject!: () => void;
+        const ready = new Promise<void>((res, rej) => {
+          resolve = res;
+          reject = rej;
+        });
+        const turn: HeldTurn = { resolve, reject, gaveUp: false };
+        held.set(submissionId, turn);
+        setWatching((ids) => [...ids, submissionId]);
+        enqueue({
+          id: reviewStageId(submissionId),
+          kind: 'review',
+          payload: { submissionId },
+          ready,
+        }).then((outcome) => {
+          // Skipped while still watching means the stage timed out on it
+          if (outcome !== 'played' && held.get(submissionId) === turn) {
+            turn.gaveUp = true;
+          }
+        });
+      },
+      showReview: (review, doodle) => {
+        stage(review, doodle);
+        enqueue({
+          id: reviewStageId(review.submissionId),
+          kind: 'review',
+          payload: { submissionId: review.submissionId },
+        });
+      },
+    };
+
+    const watchedDone = (
+      submissionId: string,
+      review: AIReview | null,
+      doodle?: DialogueDoodle,
+    ) => {
+      const turn = held.get(submissionId);
+      held.delete(submissionId);
+      setWatching((ids) => ids.filter((id) => id !== submissionId));
+      // Never coming (judging off, or it failed): its turn is skipped
+      if (!review) return turn?.reject();
       // The bell and the feed pick up the new comment straight away
       queryClient.invalidateQueries({ queryKey: queryKeys.activityFeed });
       queryClient.invalidateQueries({ queryKey: queryKeys.daily });
       queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
-      if (wasReviewShown(review.submissionId)) return;
-      context.showReview(review, doodle);
-    },
-  );
+      if (wasReviewShown(review.submissionId)) return turn?.reject();
+      if (!turn || turn.gaveUp) return dialogue.showReview(review, doodle);
+      stage(review, doodle);
+      turn.resolve();
+    };
+
+    return { context: dialogue, onWatchedDone: watchedDone };
+  });
 
   return (
     <AIDialogueContext.Provider value={context}>
       {children}
-      {watching && (
+      {watching.map((submissionId) => (
         <ReviewWatcher
-          key={watching}
-          submissionId={watching}
+          key={submissionId}
+          submissionId={submissionId}
           onDone={onWatchedDone}
         />
-      )}
-      {dialogue && (
-        <AIDialogue
-          key={dialogue.review.submissionId}
-          review={dialogue.review}
-          doodle={dialogue.doodle}
-          onClose={() => setDialogue(null)}
-        />
-      )}
+      ))}
     </AIDialogueContext.Provider>
   );
 };

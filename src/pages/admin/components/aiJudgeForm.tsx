@@ -35,7 +35,8 @@ export const CriteriaEditor: FC<{
     onChange(criteria.map((c, j) => (i === j ? { ...c, ...patch } : c)));
 
   return (
-    <div className="flex flex-col gap-3">
+    // Criteria rows keep their width; narrow screens scroll them sideways
+    <div className="flex flex-col gap-3 overflow-x-auto pb-1">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4">
         <span className="font-bold">criteria</span>
         <span className="text-sm text-pencil">
@@ -47,7 +48,7 @@ export const CriteriaEditor: FC<{
       {criteria.map((c, i) => (
         <div
           key={c.id || i}
-          className="grid grid-cols-[2.5rem_minmax(0,8rem)_minmax(0,1fr)_minmax(0,11rem)_auto] gap-2 items-center"
+          className="grid grid-cols-[2.5rem_minmax(0,8rem)_minmax(0,1fr)_minmax(0,11rem)_auto] gap-2 items-center min-w-[560px]"
         >
           <span className="grid place-items-center size-10 border-2 border-dashed border-line rounded-sketch-alt">
             {c.imageUrl ? (

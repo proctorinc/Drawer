@@ -32,7 +32,7 @@ const AvatarRow: FC<{ decoration: DecorationId | '' }> = ({ decoration }) => {
   const me = useUser();
   const noop = () => {};
   return (
-    <div className="flex items-end gap-8">
+    <div className="flex flex-wrap items-end gap-x-8 gap-y-4">
       {SIZES.map((size, i) => (
         <UserProfileIcon
           key={size}
@@ -74,7 +74,7 @@ const DecorationsPage = () => {
                     const reward = byId.get(id);
                     return (
                       <Panel key={id} className="flex flex-col gap-4 p-5">
-                        <div className="flex items-baseline gap-3">
+                        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2">
                           <h3 className="font-accent font-bold text-2xl leading-none">
                             {DECORATIONS[id].name}
                           </h3>

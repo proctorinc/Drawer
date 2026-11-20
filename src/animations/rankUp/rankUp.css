@@ -1,0 +1,391 @@
+/*
+ * The rank-up celebration (RankUpCelebration.tsx). Flat like the badges:
+ * solid fills, hard-edged bands and ink outlines, never blur or soft glows.
+ * Durations scale with --pace, so higher tiers play slower and grander.
+ */
+.ru-root {
+  --pace: 1;
+  touch-action: none;
+  overscroll-behavior: contain;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The tier color floods out from behind the badge, hard-edged */
+.ru-wash {
+  animation: ru-wash calc(620ms * var(--pace)) cubic-bezier(0.3, 0.7, 0.2, 1)
+    both;
+}
+.ru-takeover {
+  animation: ru-wash calc(900ms * var(--pace)) cubic-bezier(0.3, 0.7, 0.2, 1)
+    both;
+}
+@keyframes ru-wash {
+  from {
+    clip-path: circle(0% at 50% 40%);
+  }
+  to {
+    clip-path: circle(150% at 50% 40%);
+  }
+}
+/* A turning wash keeps turning once it's in */
+.ru-takeover.rank-spin,
+.ru-wash.rank-spin {
+  animation:
+    ru-wash calc(900ms * var(--pace)) cubic-bezier(0.3, 0.7, 0.2, 1) both,
+    rank-spin 6s linear infinite;
+}
+
+/* Paper dots over the wash, so it still reads as the doodle board */
+.ru-dots {
+  background-image: radial-gradient(
+    rgb(255 255 255 / 0.22) 1.4px,
+    transparent 1.4px
+  );
+  background-size: 22px 22px;
+}
+
+/* The old badge drops in */
+.ru-old-in {
+  animation: ru-drop calc(560ms * var(--pace))
+    var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+@keyframes ru-drop {
+  from {
+    opacity: 0;
+    scale: 0.3;
+    rotate: -20deg;
+  }
+}
+
+/* Flip: the old badge turns edge-on, the new one turns in from the far side */
+.ru-turn-stage {
+  perspective: 600px;
+}
+.ru-flip-out {
+  animation: ru-flip-out calc(400ms * var(--pace)) ease-in both;
+}
+@keyframes ru-flip-out {
+  0% {
+    transform: rotateY(0deg) scale(1);
+  }
+  25% {
+    transform: rotateY(-12deg) scale(1.08);
+  }
+  100% {
+    transform: rotateY(90deg) scale(0.9);
+  }
+}
+.ru-flip-in {
+  animation: ru-flip-in calc(620ms * var(--pace))
+    var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+@keyframes ru-flip-in {
+  0% {
+    transform: rotateY(-90deg) scale(0.9);
+  }
+  60% {
+    transform: rotateY(12deg) scale(1.18);
+  }
+  100% {
+    transform: rotateY(0deg) scale(1);
+  }
+}
+
+/* Crack: it shudders, an ink crack runs down it, and the halves fall away */
+.ru-shake {
+  animation: ru-shake calc(400ms * var(--pace)) linear both;
+}
+@keyframes ru-shake {
+  0%,
+  100% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  20% {
+    translate: -3px 1px;
+    rotate: -3deg;
+  }
+  40% {
+    translate: 3px -1px;
+    rotate: 3deg;
+  }
+  60% {
+    translate: -4px 0;
+    rotate: -4deg;
+  }
+  80% {
+    translate: 4px 1px;
+    rotate: 4deg;
+  }
+}
+.ru-crack-line {
+  stroke-dasharray: 140;
+  stroke-dashoffset: 140;
+  animation: ru-draw calc(300ms * var(--pace)) calc(80ms * var(--pace)) ease-out
+    forwards;
+}
+@keyframes ru-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.ru-half {
+  animation: ru-half calc(760ms * var(--pace)) cubic-bezier(0.4, 0, 0.9, 0.6)
+    both;
+}
+@keyframes ru-half {
+  0% {
+    translate: 0 0;
+    rotate: 0deg;
+    opacity: 1;
+  }
+  100% {
+    translate: calc(var(--dir) * 90px) 170px;
+    rotate: calc(var(--dir) * 38deg);
+    opacity: 0;
+  }
+}
+
+/* The new badge lands: up and over, then settles */
+.ru-pop-in {
+  animation: ru-pop-in calc(640ms * var(--pace))
+    var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+@keyframes ru-pop-in {
+  0% {
+    scale: 0;
+    rotate: -30deg;
+  }
+  60% {
+    scale: 1.22;
+    rotate: 6deg;
+  }
+  100% {
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+/* Short ink strokes flicking out from the badge's edge */
+.ru-pop-line {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 18px;
+  margin: -9px 0 0 -2px;
+  border-radius: 9999px;
+  background: var(--color-ink);
+  opacity: 0;
+  animation: ru-pop-line calc(520ms * var(--pace)) ease-out both;
+}
+@keyframes ru-pop-line {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--angle)) translateY(calc(var(--r) * -1)) scaleY(0.2);
+  }
+  50% {
+    opacity: 1;
+    transform: rotate(var(--angle)) translateY(calc(var(--r) * -1 - 18px))
+      scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--angle)) translateY(calc(var(--r) * -1 - 34px))
+      scaleY(0.2);
+  }
+}
+
+/* Hard-stop sunburst behind the badge, turning slowly */
+.ru-rays {
+  animation:
+    ru-grow calc(700ms * var(--pace))
+      var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both,
+    ru-turn 30s linear infinite;
+}
+@keyframes ru-grow {
+  from {
+    scale: 0;
+  }
+}
+@keyframes ru-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+
+/* A big striped rim around the badge, turning (rank-spin turns its bands) */
+.ru-rim {
+  animation: ru-grow calc(900ms * var(--pace))
+    var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+
+/* Flat rings rippling out from the badge */
+.ru-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border-style: solid;
+  opacity: 0;
+  animation: ru-ring calc(2200ms * var(--pace)) ease-out infinite;
+}
+@keyframes ru-ring {
+  0% {
+    opacity: 1;
+    scale: 1;
+  }
+  100% {
+    opacity: 0;
+    scale: 2.4;
+  }
+}
+
+/* Confetti and shards thrown from the badge, then dropping */
+.ru-fling {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  opacity: 0;
+  animation: ru-fling calc(1300ms * var(--pace)) cubic-bezier(0.2, 0.8, 0.4, 1)
+    both;
+}
+.ru-fling-slow {
+  animation-duration: calc(1900ms * var(--pace));
+}
+@keyframes ru-fling {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.3) rotate(0deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) scale(1)
+      rotate(calc(var(--spin) * 0.6));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y) + 90px))
+      scale(0.9) rotate(var(--spin));
+  }
+}
+
+/* Paper confetti raining down the whole screen */
+.ru-confetti {
+  position: absolute;
+  top: -24px;
+  border: 1.5px solid var(--color-ink);
+  animation: ru-fall var(--duration) linear var(--delay) both;
+}
+@keyframes ru-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg) rotateX(0deg);
+  }
+  100% {
+    transform: translate3d(var(--drift), 112cqh, 0) rotate(var(--spin))
+      rotateX(900deg);
+  }
+}
+
+/* One hard-edged band of light sweeping across the whole screen */
+.ru-sweep {
+  position: absolute;
+  top: -50%;
+  left: 0;
+  width: 70cqmax;
+  height: 200%;
+  rotate: 18deg;
+  background: linear-gradient(
+    90deg,
+    transparent 0 30%,
+    rgb(255 255 255 / 0.35) 30% 52%,
+    transparent 52% 60%,
+    rgb(255 255 255 / 0.35) 60% 66%,
+    transparent 66%
+  );
+  translate: -120% 0;
+  animation: ru-sweep calc(1100ms * var(--pace)) ease-in-out
+    calc(150ms * var(--pace)) both;
+}
+@keyframes ru-sweep {
+  to {
+    translate: 200cqw 0;
+  }
+}
+
+/* The tier name, stamped like a rubber stamp */
+.ru-stamp {
+  animation: ru-stamp calc(460ms * var(--pace)) cubic-bezier(0.5, 0, 0.75, 0)
+    calc(120ms * var(--pace)) both;
+}
+@keyframes ru-stamp {
+  0% {
+    opacity: 0;
+    scale: 2.6;
+    rotate: -14deg;
+  }
+  80% {
+    opacity: 1;
+    scale: 0.94;
+    rotate: -3deg;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+    rotate: -4deg;
+  }
+}
+/* A thump as the stamp lands */
+.ru-thump {
+  animation: ru-thump calc(260ms * var(--pace)) ease-out
+    calc(520ms * var(--pace)) both;
+}
+@keyframes ru-thump {
+  40% {
+    translate: 0 4px;
+  }
+}
+
+.ru-tag-in {
+  animation: ru-tag-in calc(520ms * var(--pace))
+    var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+@keyframes ru-tag-in {
+  from {
+    opacity: 0;
+    translate: 0 -40px;
+    rotate: 10deg;
+  }
+}
+
+.ru-card-in {
+  animation: ru-card-in calc(560ms * var(--pace))
+    var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+@keyframes ru-card-in {
+  from {
+    opacity: 0;
+    translate: 0 60px;
+    rotate: 4deg;
+  }
+}
+
+.ru-button-in {
+  animation: ru-button-in 420ms
+    var(--ease-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) both;
+}
+@keyframes ru-button-in {
+  from {
+    opacity: 0;
+    scale: 0.6;
+  }
+}
+
+/* The static version: everything at its final state, nothing moving */
+.ru-root[data-static] *,
+.ru-root[data-static] {
+  animation: none !important;
+}
+.ru-root[data-static] .ru-stamp {
+  rotate: -4deg;
+}

@@ -5,6 +5,7 @@ import type { ReactNode } from '@tanstack/react-router';
 import type { DailyPrompt } from '@/api/Api';
 import { queryKeys, useGetDailyPrompt, useSubmitDailyPrompt } from '@/api/Api';
 import { useAIDialogue } from '@/ai/AIDialogue';
+import { refreshProgress } from '@/animations/useProgressWatcher';
 
 type DailyPromptContextType = {
   dailyPrompt: DailyPrompt | undefined;
@@ -54,7 +55,8 @@ export const DailyPromptProvider: FC<Props> = ({ children }) => {
         queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
         // You're now on today's roll call, and new trophies may have unlocked
         queryClient.invalidateQueries({ queryKey: queryKeys.activityFeed });
-        queryClient.invalidateQueries({ queryKey: ['trophies'] });
+        // XP, stickers and quests, which the progress watcher celebrates
+        refreshProgress(queryClient);
       },
       onError: onError,
     });

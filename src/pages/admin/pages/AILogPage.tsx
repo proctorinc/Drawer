@@ -59,7 +59,7 @@ const judgeOf = (run: AIRun) => ({
 
 /** Everything about one run, under its row */
 const RunDetails: FC<{ run: AIRun }> = ({ run }) => (
-  <div className="grid grid-cols-[12rem_1fr] gap-6 p-4 bg-paper">
+  <div className="grid grid-cols-1 sm:grid-cols-[12rem_1fr] gap-4 sm:gap-6 p-4 bg-paper">
     {run.imageUrl ? (
       <img
         src={run.imageUrl}
@@ -157,7 +157,7 @@ const AILogPage = () => {
 
           return (
             <>
-              <div className="grid grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
                 <StatTile label="runs, ever" value={stats.total} />
                 <StatTile label="real doodles" value={stats.submissions} />
                 <StatTile label="tests" value={stats.tests} />

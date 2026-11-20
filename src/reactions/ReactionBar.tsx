@@ -9,6 +9,7 @@ import { queryKeys, useToggleSubmissionReaction } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import { PlusIcon } from '@/components/icons';
 import { cn } from '@/utils';
+import { refreshProgress } from '@/animations/useProgressWatcher';
 
 // Each pill gets its own wobble and lean, so a row looks drawn one at a time
 const PILL_SHAPES = [
@@ -63,6 +64,7 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
           ]) {
             queryClient.invalidateQueries({ queryKey });
           }
+          refreshProgress(queryClient);
         },
       },
     );

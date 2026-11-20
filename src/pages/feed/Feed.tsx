@@ -21,8 +21,8 @@ import ComingSoonCard from '@/events/ComingSoonCard';
 import OrnamentTally from '@/events/christmas/OrnamentTally';
 import Snowfall from '@/events/christmas/Snowfall';
 import { useChristmas } from '@/events/useChristmas';
-import { PIN_COLORS, PushPin } from '@/components/PushPin';
-import { PinCeremony } from '@/drawing/components/PinCeremony';
+import { PushPin } from '@/components/PushPin';
+import { useAnimationQueue } from '@/animations/AnimationQueue';
 import { TodaysJudgeChip, useTodaysJudge } from '@/ai/TodaysJudge';
 
 /** When tomorrow's prompt drops; fixed-width digits so it never jiggles */
@@ -82,9 +82,8 @@ type DrawingDeskProps = {
   dailyPrompt: DailyPrompt;
   error: string | null;
   onSubmit: (png: Blob, canvas: HTMLCanvasElement | null) => void;
-  /** Set while the drawing is being pinned: the tools fade and it animates */
+  /** Set while the drawing is being pinned: the tools fade while it animates */
   pinning: Pinning | null;
-  onPinned: () => void;
 };
 
 /** Nothing but the prompt and the canvas, sized to fit any screen */
@@ -93,10 +92,8 @@ const DrawingDesk = ({
   error,
   onSubmit,
   pinning,
-  onPinned,
 }: DrawingDeskProps) => {
   const christmas = useChristmas();
-  const user = useUser();
   const { data: judge } = useTodaysJudge();
 
   return (
@@ -134,16 +131,6 @@ const DrawingDesk = ({
         />
         {error && <p className="text-center text-coral">{error}</p>}
       </main>
-      {pinning && (
-        <PinCeremony
-          imageUrl={pinning.imageUrl}
-          from={pinning.from}
-          // Your polaroid leads the wall, which gives the first card this pin
-          pinColor={PIN_COLORS[0]}
-          user={user}
-          onDone={onPinned}
-        />
-      )}
       <ChristmasIntroOnce />
     </div>
   );
@@ -212,6 +199,7 @@ const SuggestPrompt = () => {
 const Feed = () => {
   const { dailyPrompt, submitPrompt, isLoading } = useDailyPrompt();
   const { clearCanvas } = useDrawing();
+  const { enqueue, dismiss } = useAnimationQueue();
   const [error, setError] = useState<string | null>(null);
   // The pinning animation and the upload run side by side; the wall shows
   // once both are done
@@ -223,15 +211,34 @@ const Feed = () => {
     setError(null);
     setIsUploaded(false);
     setIsPinned(false);
+    let pinId: string | null = null;
     if (canvas) {
-      setPinning({
-        imageUrl: URL.createObjectURL(png),
-        from: canvas.getBoundingClientRect(),
+      const imageUrl = URL.createObjectURL(png);
+      const from = canvas.getBoundingClientRect();
+      pinId = `pin:${imageUrl}`;
+      setPinning({ imageUrl, from });
+      // The ceremony plays on the animation stage, so nothing talks over it.
+      // Nothing else is usually queued at submit, so it starts straight away
+      enqueue({
+        id: pinId,
+        kind: 'pin',
+        payload: {
+          imageUrl,
+          from: {
+            x: from.left,
+            y: from.top,
+            width: from.width,
+            height: from.height,
+          },
+        },
+      }).then((outcome) => {
+        if (outcome !== 'dismissed') setIsPinned(true);
       });
     }
     submitPrompt(png, {
       onSuccess: () => setIsUploaded(true),
       onError: () => {
+        if (pinId) dismiss(pinId);
         setPinning(null);
         setError('Failed to submit drawing');
       },
@@ -259,7 +266,6 @@ const Feed = () => {
         error={error}
         onSubmit={handleSubmit}
         pinning={pinning}
-        onPinned={() => setIsPinned(true)}
       />
     );
   }

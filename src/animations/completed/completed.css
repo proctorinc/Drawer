@@ -1,0 +1,232 @@
+/* Keyframes for CompletedCard and RewardReveal. Flat on purpose: things move,
+   tilt and land, but nothing glows or casts a soft shadow. */
+
+/* The dimmed backdrop */
+@keyframes completed-dim-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes completed-dim-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* The card hops up from below with a little tilt */
+@keyframes completed-card-in {
+  from {
+    opacity: 0;
+    translate: 0 40px;
+    rotate: 3deg;
+    scale: 0.9;
+  }
+}
+@keyframes completed-card-out {
+  to {
+    opacity: 0;
+    translate: 0 24px;
+    scale: 0.94;
+  }
+}
+
+/* A rubber stamp: held high, slapped down past flat, settles at its tilt */
+@keyframes completed-stamp {
+  0% {
+    opacity: 0;
+    scale: 2.4;
+    rotate: calc(var(--tilt, -8deg) - 14deg);
+  }
+  55% {
+    opacity: 1;
+    scale: 0.88;
+    rotate: var(--tilt, -8deg);
+  }
+  72% {
+    scale: 1.06;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+    rotate: var(--tilt, -8deg);
+  }
+}
+
+/* The card takes the thunk */
+@keyframes completed-thunk {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  30% {
+    translate: 0 5px;
+  }
+  60% {
+    translate: 0 -2px;
+  }
+}
+
+/* Paper bits knocked loose by the stamp; set --dx, --dy and --spin */
+@keyframes completed-bit {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: var(--dx, 0px) var(--dy, 0px);
+    rotate: var(--spin, 180deg);
+  }
+}
+
+/* Text and buttons rise in after the art */
+@keyframes completed-rise {
+  from {
+    opacity: 0;
+    translate: 0 10px;
+  }
+}
+
+/* The auto-dismiss fuse along the card's bottom edge */
+@keyframes completed-fuse {
+  from {
+    scale: 1 1;
+  }
+  to {
+    scale: 0 1;
+  }
+}
+
+/* RewardReveal's present: the lid pops off and tumbles away */
+@keyframes reward-lid-off {
+  0% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  15% {
+    translate: 0 6px;
+    rotate: 0deg;
+  }
+  45% {
+    translate: 10px -90px;
+    rotate: 18deg;
+    opacity: 1;
+  }
+  100% {
+    translate: 90px -40px;
+    rotate: 70deg;
+    opacity: 0;
+  }
+}
+/* A shiver before it opens */
+@keyframes reward-box-shake {
+  0%,
+  100% {
+    rotate: 0deg;
+  }
+  20% {
+    rotate: -4deg;
+  }
+  40% {
+    rotate: 4deg;
+  }
+  60% {
+    rotate: -3deg;
+  }
+  80% {
+    rotate: 2deg;
+  }
+}
+/* Then the box drops away beneath the reward */
+@keyframes reward-box-drop {
+  to {
+    translate: 0 120px;
+    opacity: 0;
+  }
+}
+/* The reward springs up out of it */
+@keyframes reward-pop-out {
+  0% {
+    opacity: 0;
+    translate: 0 60px;
+    scale: 0.4;
+  }
+  60% {
+    opacity: 1;
+    translate: 0 -14px;
+    scale: 1.08;
+  }
+  100% {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+
+.completed-dim {
+  animation: completed-dim-in 0.25s ease-out both;
+}
+.completed-dim[data-leaving] {
+  animation: completed-dim-out 0.22s ease-in both;
+}
+.completed-card {
+  animation: completed-card-in 0.4s var(--ease-spring) both;
+}
+.completed-card[data-leaving] {
+  animation: completed-card-out 0.22s ease-in both;
+}
+.completed-card[data-thunk] .completed-card-body {
+  animation: completed-thunk 0.3s 0.62s ease-out;
+}
+.completed-stamp {
+  animation: completed-stamp 0.55s 0.35s cubic-bezier(0.5, 0, 0.75, 0) both;
+  rotate: var(--tilt, -8deg);
+}
+.completed-bit {
+  animation: completed-bit 0.8s 0.62s ease-out both;
+}
+.completed-rise {
+  animation: completed-rise 0.35s var(--ease-spring) both;
+}
+.completed-fuse {
+  transform-origin: left;
+  animation: completed-fuse linear both;
+}
+
+.reward-box {
+  animation:
+    reward-box-shake 0.5s 0.3s ease-in-out,
+    reward-box-drop 0.45s 1.25s ease-in both;
+}
+.reward-lid {
+  transform-origin: 30% 100%;
+  animation: reward-lid-off 0.8s 0.85s ease-out both;
+}
+.reward-prize {
+  animation: reward-pop-out 0.7s 1.15s var(--ease-spring) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .completed-card,
+  .completed-card[data-leaving],
+  .completed-card[data-thunk] .completed-card-body,
+  .completed-stamp,
+  .completed-rise,
+  .reward-prize {
+    animation: completed-dim-in 0.2s ease-out both;
+  }
+  .completed-bit,
+  .reward-box,
+  .reward-lid {
+    display: none;
+  }
+  /* No moving fuse; the card still goes on its own */
+  .completed-fuse {
+    animation: none;
+    opacity: 0;
+  }
+}
