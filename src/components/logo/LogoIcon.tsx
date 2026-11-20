@@ -5,7 +5,7 @@ import { Holly } from '@/events/christmas/Decorations';
 
 type LogoTheme = {
   Mark: FC<MarkProps>;
-  /** A small decoration after the wordmark */
+  /** A small decoration beside the "the daily" kicker */
   accent?: ReactNode;
 };
 
@@ -16,7 +16,7 @@ const EVENT_THEMES: Record<string, LogoTheme | undefined> = {
   christmas: {
     Mark: CandyCaneMark,
     accent: (
-      <Holly className="mb-1 animate-in zoom-in-0 duration-500 delay-300 fill-mode-both" />
+      <Holly className="-my-[0.4em] h-[1.6em] w-auto animate-in zoom-in-0 duration-500 delay-300 fill-mode-both" />
     ),
   },
 };

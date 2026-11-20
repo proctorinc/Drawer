@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <pattern id="s-rr250" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+      <rect width="14" height="14" fill="#ffe08a"/>
+      <rect width="14" height="5" fill="#ffd56b"/>
+    </pattern>
+    <clipPath id="c-rr250"><circle cx="120" cy="120" r="100"/></clipPath>
+  </defs>
+  <circle cx="120" cy="120" r="100" fill="url(#s-rr250)"/>
+  <g clip-path="url(#c-rr250)"></g>
+  <circle cx="120" cy="120" r="100" fill="none" stroke="#2b2a33" stroke-width="6"/>
+  <path d="M120 155 C78 128 84 92 105 95 C114 95 120 104 120 110 C120 104 126 95 135 95 C156 92 162 128 120 155 Z" fill="#ff6b57" stroke="#2b2a33" stroke-width="10.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="112" cy="118" r="3.2" fill="#2b2a33"/><circle cx="128" cy="118" r="3.2" fill="#2b2a33"/><path d="M114 124 q6 6 12 0" fill="none" stroke="#2b2a33" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M88 72 L94 42 L110 60 L120 34 L130 60 L146 42 L152 72 Z" fill="#ffc233" stroke="#2b2a33" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="120" cy="34" r="5" fill="#ff6b57" stroke="#2b2a33" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><rect x="152.5" y="158" width="59" height="40" rx="20" fill="#ffffff" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><text x="182" y="186.5" text-anchor="middle" font-family="'Nunito','Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="25" fill="#2b2a33">250</text>
+</svg>

@@ -11,9 +11,11 @@ import (
 	"drawer-service-backend/internal/storage"
 	"drawer-service-backend/internal/utils"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -313,10 +315,64 @@ func HandleDenyInvitation(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Invitation denied"})
 }
 
+// parseAvatarSlot reads a slot number, 0 up to (not including) queries.MaxAvatarSlots
+func parseAvatarSlot(raw string) (int, bool) {
+	slot, err := strconv.Atoi(raw)
+	if err != nil || slot < 0 || slot >= queries.MaxAvatarSlots {
+		return 0, false
+	}
+	return slot, true
+}
+
+// HandleGetMyAvatars lists the requester's drawn faces
+func HandleGetMyAvatars(c *gin.Context) {
+	requester := middleware.GetUser(c)
+	appCtx := requestContext.GetCtx(c)
+
+	avatars, err := queries.GetUserAvatars(appCtx.DB, c.Request.Context(), requester.ID)
+	if err != nil {
+		log.Printf("Error getting avatars for %s: %v", requester.ID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to get your faces"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"avatars": avatars})
+}
+
+// HandleWearAvatar switches the requester to a face they've already drawn
+func HandleWearAvatar(c *gin.Context) {
+	requester := middleware.GetUser(c)
+	appCtx := requestContext.GetCtx(c)
+
+	slot, ok := parseAvatarSlot(c.Param("slot"))
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "No such face slot"})
+		return
+	}
+
+	err := queries.WearUserAvatar(appCtx.DB, c.Request.Context(), requester.ID, slot)
+	if errors.Is(err, sql.ErrNoRows) {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Nothing drawn in that slot yet"})
+		return
+	}
+	if err != nil {
+		log.Printf("Error wearing avatar slot %d for %s: %v", slot, requester.ID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to switch faces"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Switched faces"})
+}
+
 func HandleUpdateAvatarUrl(c *gin.Context) {
 	requester := middleware.GetUser(c)
 	appCtx := requestContext.GetCtx(c)
 	storageService := storage.NewStorageService(appCtx.Config)
+
+	// Which of the slots to draw into; a redraw wipes what was there
+	slot, ok := parseAvatarSlot(c.DefaultPostForm("slot", "0"))
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusBadRequest, Error("No such face slot"))
+		return
+	}
 
 	file, err := c.FormFile("image")
 	if err != nil {
@@ -337,7 +393,7 @@ func HandleUpdateAvatarUrl(c *gin.Context) {
 	var avatarURL string
 
 	if appCtx.Config.Env != "development" {
-		avatarURL, err = storageService.UploadProfilePicture(requester.ID, buf)
+		avatarURL, err = storageService.UploadProfilePicture(requester.ID, slot, buf)
 		if err != nil {
 			log.Printf("Error uploading profile picture for %s: %v", requester.ID, err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload profile picture"})
@@ -348,7 +404,7 @@ func HandleUpdateAvatarUrl(c *gin.Context) {
 		avatarURL = "data:image/png;base64," + base64.StdEncoding.EncodeToString(buf)
 	}
 
-	err = queries.UpdateUserAvatarURL(appCtx.DB, c.Request.Context(), requester.ID, avatarURL)
+	err = queries.SaveUserAvatar(appCtx.DB, c.Request.Context(), requester.ID, slot, avatarURL)
 	if err != nil {
 		log.Printf("Error updating profile picture for %s: %v", requester.ID, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile picture"})

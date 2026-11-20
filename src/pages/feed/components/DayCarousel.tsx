@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { useNavigate, useRouter } from '@tanstack/react-router';
 import {
   faChevronLeft,
   faChevronRight,
@@ -35,6 +35,7 @@ type Props = {
 /** A doodle's page, side by side with everyone in your circle who drew that day */
 const DayCarousel: FC<Props> = ({ submission }) => {
   const navigate = useNavigate();
+  const router = useRouter();
   const { data: profile } = useGetMyProfile();
   // Keeps a stranger's doodle in the row after you've swiped past it
   const [opened] = useState(submission);
@@ -64,10 +65,17 @@ const DayCarousel: FC<Props> = ({ submission }) => {
     }
   }, [index, doodles.length]);
 
+  // A swipe still settling must never pull you back once you've left
+  useEffect(() => () => clearTimeout(settleTimer.current), []);
+
   // Once a swipe comes to rest, the URL follows (replacing, so back still leaves)
   function handleScroll() {
     clearTimeout(settleTimer.current);
     settleTimer.current = setTimeout(() => {
+      // Tapped away (say, the navbar) mid-swipe: following now would replace
+      // wherever you went with this doodle again
+      const here = `/draw/submission/${submission.id}`;
+      if (router.latestLocation.pathname !== here) return;
       const strip = stripRef.current;
       const landed = strip && doodles[shownIndex(strip)];
       if (landed && landed.id !== submission.id) {

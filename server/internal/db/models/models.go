@@ -219,8 +219,16 @@ type Achievement struct {
 	AchievementField string        `json:"achievementField"`
 	AchievementValue int           `json:"achievementValue"`
 	Progress         int           `json:"progress"`
+	Best             *int          `json:"best,omitempty"` // Streaks: the longest run, when it beats the current one
 	Reward           *RewardUnlock `json:"reward"`
 	EventSlug        *string       `json:"eventSlug"` // Set for event stickers, which count only that event's doodles
+	// Category is the achievements page tab it's on: drawing, streaks, friends, judges, levels or events
+	Category string `json:"category"`
+	// Hidden achievements keep how to earn them a secret until they're earned
+	Hidden bool `json:"hidden"`
+	// Secret is set when the details were withheld: a hidden achievement or event sticker
+	// not earned yet. Name, description, goal, progress and reward are then blank.
+	Secret bool `json:"secret"`
 }
 
 type RewardUnlock struct {

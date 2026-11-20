@@ -78,14 +78,17 @@ const Logo: FC<Props> = ({ size = 'md', theme, icon, className }) => {
             'animate-in fade-in slide-in-from-left-3 duration-500 delay-150 fill-mode-both',
         )}
       >
-        <span className={cn('uppercase text-pencil pl-[3px]', s.kicker)}>
+        <span
+          className={cn(
+            'flex items-center gap-1 uppercase text-pencil pl-[3px]',
+            s.kicker,
+          )}
+        >
           the daily
-        </span>
-        <span className="flex items-end gap-0.5">
-          <span className={cn('font-cursive font-bold leading-[0.85]', s.word)}>
-            Doodle
-          </span>
           {accent}
+        </span>
+        <span className={cn('font-cursive font-bold leading-[0.85]', s.word)}>
+          Doodle
         </span>
       </div>
     </div>

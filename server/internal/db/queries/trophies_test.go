@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -98,6 +99,51 @@ func TestGetActivityCounts(t *testing.T) {
 	}
 	if _, ok := lifetime["pal"]; ok {
 		t.Error("lifetime counts include a user that was not asked for")
+	}
+}
+
+func TestGetActivityCountsJudgeScores(t *testing.T) {
+	db := newTestDB(t)
+	_, err := db.Exec(`
+		INSERT INTO users (id, username, email) VALUES ('me', 'me', 'me@x');
+		INSERT INTO user_submissions (id, user_id, day) VALUES
+			('a', 'me', '2026-11-16'), ('b', 'me', '2026-11-17'), ('c', 'me', '2026-11-18'),
+			('d', 'me', '2026-11-19'), ('e', 'me', '2026-11-23');
+		INSERT INTO ai_personalities (id, slug, name, system_prompt) VALUES ('j', 'j', 'Judge', '');
+		INSERT INTO ai_reviews (submission_id, personality_id, status, score, updated_at) VALUES
+			('a', 'j', 'done', 8.7, '2026-11-16 12:00:00'),
+			('b', 'j', 'done', 4.9, '2026-11-17 12:00:00'),    -- under 5: no bonus
+			('c', 'j', 'failed', NULL, '2026-11-18 12:00:00'),
+			('d', 'j', 'done', 10, '2026-11-19 12:00:00'),
+			('e', 'j', 'done', 10, '2026-11-23 12:00:00');     -- next week
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	monday := time.Date(2026, 11, 16, 0, 0, 0, 0, time.UTC)
+	week, err := GetActivityCounts(db, context.Background(), []string{"me"}, monday, monday.AddDate(0, 0, 7))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want [JudgeScoreSteps]int
+	want[37], want[50] = 1, 1
+	if got := week["me"].JudgeScores; got != want {
+		t.Errorf("judge scores = %v, want an 8.7 and a 10", got)
+	}
+
+	events, err := GetXPEventsSince(db, context.Background(), "me", monday)
+	if err != nil {
+		t.Fatal(err)
+	}
+	judged := []string{}
+	for _, e := range events {
+		if _, ok := JudgeScoreIndex(e.Kind); ok {
+			judged = append(judged, e.Kind)
+		}
+	}
+	if strings.Join(judged, ",") != "judge87,judge100,judge100" {
+		t.Errorf("judged XP events = %v, want judge87, judge100, judge100", judged)
 	}
 }
 

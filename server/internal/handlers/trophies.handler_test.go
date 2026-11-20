@@ -64,3 +64,33 @@ func TestXPCountsAchievements(t *testing.T) {
 		t.Errorf("xpFor = %d, want %d", got, want)
 	}
 }
+
+func TestJudgeBonusXPClimbsSteeply(t *testing.T) {
+	// Index i is a score of 5 + i/10
+	want := map[int]int{0: 1, 20: 3, 30: 7, 40: 16, 50: 30}
+	for i, xp := range want {
+		if got := judgeBonusXP(i); got != xp {
+			t.Errorf("judgeBonusXP(score %.1f) = %d, want %d", 5+float64(i)/10, got, xp)
+		}
+	}
+	for i := 1; i < queries.JudgeScoreSteps; i++ {
+		if judgeBonusXP(i) < judgeBonusXP(i-1) {
+			t.Errorf("bonus drops from score %.1f to %.1f", 5+float64(i-1)/10, 5+float64(i)/10)
+		}
+	}
+}
+
+func TestXPCountsJudgeScores(t *testing.T) {
+	a := queries.ActivityCounts{Drawings: 2}
+	a.JudgeScores[0] = 1  // a 5
+	a.JudgeScores[50] = 1 // a 10
+	if got, want := xpFor(a), 2*xpPerDrawing+1+30; got != want {
+		t.Errorf("xpFor = %d, want %d", got, want)
+	}
+	if got := xpForKind("judge100"); got != 30 {
+		t.Errorf("xpForKind(judge100) = %d, want 30", got)
+	}
+	if got := xpForKind("drawings"); got != xpPerDrawing {
+		t.Errorf("xpForKind(drawings) = %d, want %d", got, xpPerDrawing)
+	}
+}

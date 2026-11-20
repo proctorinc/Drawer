@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <pattern id="s-j1" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="14" height="14" fill="#dcebff"/>
+      <rect width="14" height="5" fill="#cfe2ff"/>
+    </pattern>
+    <clipPath id="c-j1"><circle cx="120" cy="120" r="100"/></clipPath>
+  </defs>
+  <circle cx="120" cy="120" r="100" fill="url(#s-j1)"/>
+  <g clip-path="url(#c-j1)"></g>
+  <circle cx="120" cy="120" r="100" fill="none" stroke="#2b2a33" stroke-width="6"/>
+  <rect x="70" y="52" width="100" height="128" rx="10" fill="#b9773f" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+     <rect x="82" y="68" width="76" height="100" rx="4" fill="#ffffff" stroke="#2b2a33" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+     <rect x="98" y="42" width="44" height="22" rx="6" fill="#c3cad4" stroke="#2b2a33" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+     <path d="M94 94 l8 8 l14 -16 M94 130 l8 8 l14 -16" fill="none" stroke="#5cc48a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+     <path d="M126 96 h22 M126 132 h22" stroke="#2b2a33" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><rect x="162" y="158" width="40" height="40" rx="20" fill="#ffffff" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><text x="182" y="186.5" text-anchor="middle" font-family="'Nunito','Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="25" fill="#2b2a33">1</text>
+</svg>

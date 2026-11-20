@@ -154,6 +154,10 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 			if err := notifications.NotifyUserOfAIReview(appCtx.DB, artistID, submissionID, judge.Name, verdict.Score, appCtx.Config); err != nil {
 				log.Printf("AI judge: couldn't notify %s about %s's review: %v", artistID, judge.Name, err)
 			}
+			judged := achievements.NewAchievementService(appCtx.DB, context.Background(), artistID)
+			if err := judged.UpdateJudgeAchievements(artistID); err != nil {
+				log.Printf("AI judge: couldn't update %s's judge achievements: %v", artistID, err)
+			}
 		}
 		go review.Run(buf)
 	}

@@ -161,7 +161,7 @@ func getLevelUps(repo *sql.DB, ctx stdcontext.Context, user models.User) ([]mode
 	level := levelForXP(xp).Level
 	levelUps := []models.Activity{}
 	for _, event := range events {
-		xp += xpPerKind[event.Kind]
+		xp += xpForKind(event.Kind)
 		if reached := levelForXP(xp).Level; reached > level {
 			level = reached
 			levelUps = append(levelUps, models.Activity{

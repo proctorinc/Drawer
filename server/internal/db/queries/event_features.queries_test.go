@@ -67,10 +67,16 @@ func TestEventMigrationSeeds(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(achievements) != 3 {
-		t.Fatalf("got %d achievements, want the 3 christmas stickers", len(achievements))
-	}
+	var stickers []models.Achievement
 	for _, achievement := range achievements {
+		if achievement.Category == "events" {
+			stickers = append(stickers, achievement)
+		}
+	}
+	if len(stickers) != 3 {
+		t.Fatalf("got %d event achievements, want the 3 christmas stickers", len(stickers))
+	}
+	for _, achievement := range stickers {
 		if achievement.EventSlug == nil || *achievement.EventSlug != "christmas-2026" {
 			t.Errorf("%s: EventSlug = %v, want christmas-2026", achievement.ID, achievement.EventSlug)
 		}
@@ -313,5 +319,32 @@ func TestGetUserSubmissionsInDays(t *testing.T) {
 	}
 	if len(early.Comments) != 1 || early.Comments[0].Text != "nice" || early.Comments[0].Reactions == nil {
 		t.Errorf("comments = %+v", early.Comments)
+	}
+}
+
+func TestMoreAchievementsBackfill(t *testing.T) {
+	repo := dbtest.NewEventsDB(t)
+	addUser(t, repo, "me")
+	for _, day := range []string{"2026-03-01", "2026-03-02", "2026-03-03", "2026-03-05"} {
+		dbtest.Exec(t, repo, `INSERT INTO user_submissions (id, user_id, day) VALUES (?, 'me', ?)`, "me-"+day, day)
+	}
+	// The seed already ran when the database was built; run it again now there's history
+	dbtest.ApplyMigration(t, repo, "1795130710_seed_more_achievements.up.sql")
+
+	var at time.Time
+	if err := repo.QueryRow(`SELECT created_at FROM user_achievements WHERE user_id = 'me' AND achievement_id = 'streak-3'`).Scan(&at); err != nil {
+		t.Fatalf("streak-3 wasn't handed out: %v", err)
+	}
+	if want := time.Date(2026, 3, 3, 12, 0, 0, 0, time.UTC); !at.Equal(want) {
+		t.Errorf("streak-3 dated %s, want %s, the day the streak hit 3", at, want)
+	}
+
+	var category string
+	var hidden bool
+	if err := repo.QueryRow(`SELECT category, hidden FROM achievements WHERE id = 'judge-best-10'`).Scan(&category, &hidden); err != nil {
+		t.Fatal(err)
+	}
+	if category != "judges" || !hidden {
+		t.Errorf("judge-best-10: category %q hidden %v, want judges and hidden", category, hidden)
 	}
 }

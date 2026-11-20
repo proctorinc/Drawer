@@ -55,8 +55,8 @@ func (s *StorageService) UploadSubmission(userId string, submissionId string, im
 	return s.uploadImage(filename, imageData)
 }
 
-func (s *StorageService) UploadProfilePicture(userId string, imageData []byte) (string, error) {
-	url, err := s.uploadImage(getProfileImageFilename(userId), imageData)
+func (s *StorageService) UploadProfilePicture(userId string, slot int, imageData []byte) (string, error) {
+	url, err := s.uploadImage(getProfileImageFilename(userId, slot), imageData)
 	if err != nil {
 		return "", err
 	}
@@ -89,6 +89,10 @@ func getSubmissionImageFilename(userId string, submissionId string) string {
 	return fmt.Sprintf("%s/%s.png", userId, submissionId)
 }
 
-func getProfileImageFilename(userId string) string {
-	return fmt.Sprintf("%s/profile-pic.png", userId)
+func getProfileImageFilename(userId string, slot int) string {
+	// Slot 0 keeps the original name, so faces drawn before slots existed stay put
+	if slot == 0 {
+		return fmt.Sprintf("%s/profile-pic.png", userId)
+	}
+	return fmt.Sprintf("%s/profile-pic-%d.png", userId, slot)
 }

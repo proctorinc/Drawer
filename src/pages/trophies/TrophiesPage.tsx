@@ -1,4 +1,4 @@
-import { useLocation } from '@tanstack/react-router';
+import { Link, useLocation } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import AchievementCard, {
   AchievementSticker,
@@ -30,6 +30,8 @@ const SectionTitle: FC<{ children: ReactNode; aside?: ReactNode }> = ({
     {aside}
   </div>
 );
+
+const UP_NEXT_COUNT = 3;
 
 const completion = (a: Achievement) =>
   a.achievementValue > 0 ? a.progress / a.achievementValue : 0;
@@ -83,9 +85,11 @@ const TrophiesPage = () => {
   const { quests, questsEvent, leaderboard, week, xpRules } = trophies.data;
   const { achievements } = achievementsQuery.data;
   const earned = achievements.filter((a) => a.achievedAt).sort(byMostRecent);
+  // Just the few closest to done; the achievements page has the rest
   const inProgress = achievements
-    .filter((a) => !a.achievedAt)
-    .sort(byClosestToDone);
+    .filter((a) => !a.achievedAt && !a.secret)
+    .sort(byClosestToDone)
+    .slice(0, UP_NEXT_COUNT);
   const questsDone = quests.filter((q) => q.progress >= q.goal).length;
 
   return (
@@ -152,6 +156,13 @@ const TrophiesPage = () => {
           </ul>
         </>
       )}
+      <Link
+        to="/draw/achievements"
+        className="flex items-center justify-between gap-2 w-full -mt-2 px-4 py-3 bg-white border-2 border-ink rounded-sketch font-accent font-bold text-xl leading-none hover:bg-butter transition-colors"
+      >
+        see every achievement
+        <span aria-hidden="true">→</span>
+      </Link>
 
       <section className="relative flex flex-col gap-1 w-full px-4 pt-5 pb-4 bg-[#fff6c9] rotate-1 shadow-[1px_2px_6px_rgba(43,42,51,0.15)]">
         <PushPin
@@ -166,7 +177,10 @@ const TrophiesPage = () => {
           {xpRules.map((rule) => (
             <li key={rule.action} className="flex justify-between gap-2">
               <span>{rule.action}</span>
-              <span className="font-accent font-bold">+{rule.xp}</span>
+              <span className="font-accent font-bold whitespace-nowrap">
+                +{rule.xp}
+                {rule.maxXp ? `–${rule.maxXp}` : ''}
+              </span>
             </li>
           ))}
         </ul>

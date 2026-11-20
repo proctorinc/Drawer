@@ -44,7 +44,7 @@ const Sheet: FC<Props> = ({ title, open, onClose, children }) => {
       className="w-full max-w-md max-h-[88dvh] mx-auto mt-auto mb-0 p-0 bg-transparent text-left text-base leading-normal text-ink overflow-y-auto overscroll-contain backdrop:bg-ink/40 open:animate-in open:slide-in-from-bottom-1/2 open:fade-in open:duration-300"
     >
       {open && (
-        <div className="paper flex flex-col gap-5 min-h-[40dvh] px-6 pt-3 pb-[max(28px,env(safe-area-inset-bottom))] border-2 border-b-0 border-ink rounded-t-[28px_22px]">
+        <div className="bg-paper flex flex-col gap-5 min-h-[40dvh] px-6 pt-3 pb-[max(28px,env(safe-area-inset-bottom))] border-2 border-b-0 border-ink rounded-t-[28px_22px]">
           <span
             aria-hidden="true"
             className="self-center w-12 h-1.5 rounded-full bg-line"

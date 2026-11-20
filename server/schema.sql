@@ -1,5 +1,6 @@
 -- Drop tables in correct order (dependent tables first)
 DROP TABLE IF EXISTS verification_tokens;
+DROP TABLE IF EXISTS user_avatars;
 DROP TABLE IF EXISTS friendships;
 DROP TABLE IF EXISTS user_submissions;
 DROP TABLE IF EXISTS daily_prompts;
@@ -26,6 +27,8 @@ DROP TABLE IF EXISTS ai_reviews;
 DROP TABLE IF EXISTS ai_criteria;
 DROP TABLE IF EXISTS ai_personalities;
 DROP TABLE IF EXISTS ai_settings;
+DROP TABLE IF EXISTS announcement_views;
+DROP TABLE IF EXISTS announcements;
 
 -- CREATE TABLE users (
 --     id TEXT PRIMARY KEY,

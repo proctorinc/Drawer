@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <pattern id="s-d25" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="14" height="14" fill="#dcebff"/>
+      <rect width="14" height="5" fill="#cfe2ff"/>
+    </pattern>
+    <clipPath id="c-d25"><circle cx="120" cy="120" r="100"/></clipPath>
+  </defs>
+  <circle cx="120" cy="120" r="100" fill="url(#s-d25)"/>
+  <g clip-path="url(#c-d25)"></g>
+  <circle cx="120" cy="120" r="100" fill="none" stroke="#2b2a33" stroke-width="6"/>
+  <g transform="translate(112 112) rotate(30) scale(1)">
+    <rect x="-16" y="-62" width="32" height="88" rx="4" fill="#ffc233" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M-16 -44 h32" stroke="#2b2a33" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="-16" y="-74" width="32" height="18" rx="6" fill="#ffd9d2" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M-16 26 L0 60 L16 26 Z" fill="#fbf8f1" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M-6 47 L0 60 L6 47 Z" fill="#2b2a33"/>
+  </g><path d="M64 60 Q65.8 68.2 74 70 Q65.8 71.8 64 80 Q62.2 71.8 54 70 Q62.2 68.2 64 60 Z" fill="#2b2a33"/><path d="M160 49 Q161.26 54.74 167 56 Q161.26 57.26 160 63 Q158.74 57.26 153 56 Q158.74 54.74 160 49 Z" fill="#2b2a33"/><rect x="160" y="158" width="44" height="40" rx="20" fill="#ffffff" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><text x="182" y="186.5" text-anchor="middle" font-family="'Nunito','Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="25" fill="#2b2a33">25</text>
+</svg>

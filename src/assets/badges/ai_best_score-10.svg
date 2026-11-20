@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <pattern id="s-jb10" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+      <rect width="14" height="14" fill="#2f2a45"/>
+      <rect width="14" height="5" fill="#3a3456"/>
+    </pattern>
+    <clipPath id="c-jb10"><circle cx="120" cy="120" r="100"/></clipPath>
+  </defs>
+  <circle cx="120" cy="120" r="100" fill="url(#s-jb10)"/>
+  <g clip-path="url(#c-jb10)"></g>
+  <circle cx="120" cy="120" r="100" fill="none" stroke="#2b2a33" stroke-width="6"/>
+  <rect x="64" y="52" width="112" height="96" rx="10" fill="#ffffff" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+     <text x="120" y="122" text-anchor="middle" font-family="'Nunito','Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif" font-weight="900" font-size="56" fill="#ff6b57">10</text>
+     <path d="M92 148 v24 M148 148 v24" stroke="#2b2a33" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+     <path d="M52 54 Q53.8 62.2 62 64 Q53.8 65.8 52 74 Q50.2 65.8 42 64 Q50.2 62.2 52 54 Z" fill="#ffe08a"/><path d="M186 64 Q187.44 70.56 194 72 Q187.44 73.44 186 80 Q184.56 73.44 178 72 Q184.56 70.56 186 64 Z" fill="#ffffff"/><path d="M178 161 Q179.26 166.74 185 168 Q179.26 169.26 178 175 Q176.74 169.26 171 168 Q176.74 166.74 178 161 Z" fill="#ffe08a"/><path d="M60 160 Q61.08 164.92 66 166 Q61.08 167.08 60 172 Q58.92 167.08 54 166 Q58.92 164.92 60 160 Z" fill="#ffffff"/>
+</svg>

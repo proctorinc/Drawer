@@ -6,6 +6,7 @@ import (
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/events"
+	"drawer-service-backend/internal/xp"
 	"fmt"
 	"log"
 )
@@ -25,12 +26,53 @@ var (
 	EVENT_SUBMISSION_TOTAL StatsField = "EVENT_SUBMISSION_TOTAL"
 	// Event stickers: distinct days doodled during the event's countdown (e.g. Nov 27 - Dec 25)
 	EVENT_COUNTDOWN_TOTAL StatsField = "EVENT_COUNTDOWN_TOTAL"
+
+	// Doodles pinned to your book
+	FAVORITE_TOTAL StatsField = "FAVORITE_TOTAL"
+	// Reactions friends left on your doodles and comments (not your own)
+	REACTION_RECEIVED_TOTAL StatsField = "REACTION_RECEIVED_TOTAL"
+	// Cry-laugh reactions friends left on your doodles and comments
+	CRY_LAUGH_RECEIVED_TOTAL StatsField = "CRY_LAUGH_RECEIVED_TOTAL"
+	// Pokes sent to friends
+	POKE_TOTAL StatsField = "POKE_TOTAL"
+	// Prompt suggestions that became a daily prompt
+	PROMPT_PICKED_TOTAL StatsField = "PROMPT_PICKED_TOTAL"
+	// Your level, from your lifetime XP
+	LEVEL StatsField = "LEVEL"
+	// AI judges: doodles reviewed, best score (rounded down), doodles scored 8+, doodles
+	// scored under 2, and different judges met
+	AI_REVIEW_TOTAL StatsField = "AI_REVIEW_TOTAL"
+	AI_BEST_SCORE   StatsField = "AI_BEST_SCORE"
+	AI_GREAT_TOTAL  StatsField = "AI_GREAT_TOTAL"
+	AI_LOW_TOTAL    StatsField = "AI_LOW_TOTAL"
+	AI_JUDGES_MET   StatsField = "AI_JUDGES_MET"
 )
+
+// AI_FIELDS are the achievement fields a finished AI review can move
+var AI_FIELDS = []string{
+	string(AI_REVIEW_TOTAL), string(AI_BEST_SCORE), string(AI_GREAT_TOTAL), string(AI_LOW_TOTAL), string(AI_JUDGES_MET),
+}
+
+// countQueries are the fields that are a single count for the user
+var countQueries = map[StatsField]func(*sql.DB, context.Context, string) (int, error){
+	FAVORITE_TOTAL:      queries.CalculateFavoriteCount,
+	POKE_TOTAL:          queries.CalculatePokeCount,
+	PROMPT_PICKED_TOTAL: queries.CalculatePromptPickedCount,
+	AI_REVIEW_TOTAL:     queries.CalculateAIReviewCount,
+	AI_BEST_SCORE:       queries.CalculateAIBestScore,
+	AI_GREAT_TOTAL:      queries.CalculateAIGreatCount,
+	AI_LOW_TOTAL:        queries.CalculateAILowCount,
+	AI_JUDGES_MET:       queries.CalculateAIJudgesMet,
+}
 
 type StatsService struct {
 	DB    *sql.DB
 	Ctx   context.Context
 	Stats UserStats
+	// Counts for the newer fields, worked out once per service (one check of many
+	// achievements shares them)
+	counts   map[StatsField]int
+	lifetime *queries.ActivityCounts
 }
 
 type UserStats struct {
@@ -153,11 +195,55 @@ func (ss *StatsService) CheckStatCompletion(userId string, achievement models.Ac
 			return 0, false, err
 		}
 		count = val
+	case string(REACTION_RECEIVED_TOTAL), string(CRY_LAUGH_RECEIVED_TOTAL), string(LEVEL):
+		lifetime, err := ss.getLifetime(userId)
+		if err != nil {
+			return 0, false, err
+		}
+		switch StatsField(achievement.AchievementField) {
+		case REACTION_RECEIVED_TOTAL:
+			count = lifetime.ReactionsReceived
+		case CRY_LAUGH_RECEIVED_TOTAL:
+			count = lifetime.CryLaughsReceived
+		case LEVEL:
+			count = xp.LevelFor(xp.For(lifetime)).Level
+		}
 	default:
-		log.Printf("No applicable condition for achievement %v", achievement)
+		field := StatsField(achievement.AchievementField)
+		calculate, ok := countQueries[field]
+		if !ok {
+			log.Printf("No applicable condition for achievement %v", achievement)
+			break
+		}
+		if cached, ok := ss.counts[field]; ok {
+			count = cached
+			break
+		}
+		val, err := calculate(ss.DB, ss.Ctx, userId)
+		if err != nil {
+			return 0, false, err
+		}
+		if ss.counts == nil {
+			ss.counts = map[StatsField]int{}
+		}
+		ss.counts[field] = val
+		count = val
 	}
 
 	return count, count >= achievement.AchievementValue, nil
+}
+
+// getLifetime is the user's all-time activity, the same totals their XP comes from
+func (ss *StatsService) getLifetime(userId string) (queries.ActivityCounts, error) {
+	if ss.lifetime == nil {
+		all, err := queries.GetActivityCounts(ss.DB, ss.Ctx, []string{userId}, queries.BeginningOfTime, queries.EndOfTime)
+		if err != nil {
+			return queries.ActivityCounts{}, err
+		}
+		lifetime := all[userId]
+		ss.lifetime = &lifetime
+	}
+	return *ss.lifetime, nil
 }
 
 func (ss *StatsService) GetSubmissionActiveStreak(repo *sql.DB, ctx context.Context, userId string) (int, error) {

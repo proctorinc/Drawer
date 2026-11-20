@@ -92,6 +92,9 @@ const AchievementCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
         </div>
         <p className="text-sm text-pencil leading-tight">
           {achievement.description}
+          {achievement.best !== undefined && (
+            <span className="text-pencil/70"> · best {achievement.best}</span>
+          )}
         </p>
         <ProgressBar
           value={progress}

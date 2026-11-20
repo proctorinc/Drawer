@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"database/sql"
-	"drawer-service-backend/internal/achievements"
+	achievementsPkg "drawer-service-backend/internal/achievements"
 	"drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
@@ -23,7 +23,7 @@ type AchievementsAndRewardsResponse struct {
 func HandlerGetMyAchievements(c *gin.Context) {
 	requester := middleware.GetUser(c)
 	appCtx := context.GetCtx(c)
-	achievementService := achievements.NewAchievementService(appCtx.DB, c, requester.ID)
+	achievementService := achievementsPkg.NewAchievementService(appCtx.DB, c, requester.ID)
 
 	err := achievementService.UpdateAchievementsOnce(requester.ID)
 
@@ -37,10 +37,34 @@ func HandlerGetMyAchievements(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	achievements = visibleAchievements(c, achievements)
+	achievements = achievementsPkg.MaskAll(visibleAchievements(c, achievements), false)
 
 	c.JSON(http.StatusOK, AchievementsAndRewardsResponse{
 		Achievements: achievements,
+		Rewards:      rewards,
+	})
+}
+
+// HandlerGetAchievementCatalog is every achievement there is, for the achievements page.
+// Hidden ones and event stickers stay secret until they're earned, whether or not their
+// event has started.
+func HandlerGetAchievementCatalog(c *gin.Context) {
+	requester := middleware.GetUser(c)
+	appCtx := context.GetCtx(c)
+	service := achievementsPkg.NewAchievementService(appCtx.DB, c, requester.ID)
+
+	if err := service.UpdateAchievementsOnce(requester.ID); err != nil {
+		log.Printf("Error running one-time achievement check for user %s: %v", requester.ID, err)
+	}
+	all, rewards, err := service.GetAllAchievements(requester.ID)
+	if err != nil {
+		log.Printf("Error fetching the achievement catalog for user %s: %v", requester.ID, err)
+		c.JSON(http.StatusInternalServerError, Error("Failed to load achievements"))
+		return
+	}
+
+	c.JSON(http.StatusOK, AchievementsAndRewardsResponse{
+		Achievements: achievementsPkg.MaskAll(all, true),
 		Rewards:      rewards,
 	})
 }
@@ -56,7 +80,7 @@ func HandlerGetUserAchievements(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	achievements = visibleAchievements(c, achievements)
+	achievements = achievementsPkg.MaskAll(visibleAchievements(c, achievements), false)
 
 	c.JSON(http.StatusOK, AchievementsAndRewardsResponse{
 		Achievements: achievements,

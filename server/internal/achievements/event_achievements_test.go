@@ -21,7 +21,8 @@ func earnedStickers(t *testing.T, repo *sql.DB, userID string) map[string]bool {
 	}
 	earned := map[string]bool{}
 	for _, achievement := range achievements {
-		if achievement.AchievedAt != nil {
+		// Only event stickers: the everyday achievements are tested on their own
+		if achievement.AchievedAt != nil && achievement.EventSlug != nil {
 			earned[achievement.ID] = true
 		}
 	}
@@ -100,6 +101,9 @@ func TestEventStickerProgress(t *testing.T) {
 	}
 	want := map[string]int{"christmas-2026-first-snow": 10, "christmas-2026-twelve-days": 10, "christmas-2026-doodle-claus": 6}
 	for _, achievement := range achievements {
+		if achievement.EventSlug == nil {
+			continue
+		}
 		if achievement.Progress != want[achievement.ID] {
 			t.Errorf("%s: progress = %d, want %d", achievement.ID, achievement.Progress, want[achievement.ID])
 		}

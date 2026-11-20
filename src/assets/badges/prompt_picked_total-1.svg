@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <pattern id="s-idea" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="14" height="14" fill="#fff6c9"/>
+      <rect width="14" height="5" fill="#fff0a8"/>
+    </pattern>
+    <clipPath id="c-idea"><circle cx="120" cy="120" r="100"/></clipPath>
+  </defs>
+  <circle cx="120" cy="120" r="100" fill="url(#s-idea)"/>
+  <g clip-path="url(#c-idea)"></g>
+  <circle cx="120" cy="120" r="100" fill="none" stroke="#2b2a33" stroke-width="6"/>
+  <path d="M120 46 a46 46 0 0 1 28 82 q-6 6 -6 16 h-44 q0 -10 -6 -16 a46 46 0 0 1 28 -82 z" fill="#ffe08a" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+     <rect x="96" y="150" width="48" height="14" rx="4" fill="#c3cad4" stroke="#2b2a33" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+     <rect x="102" y="168" width="36" height="12" rx="5" fill="#c3cad4" stroke="#2b2a33" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+     <circle cx="112" cy="92" r="3.2" fill="#2b2a33"/><circle cx="128" cy="92" r="3.2" fill="#2b2a33"/><path d="M114 98 q6 6 12 0" fill="none" stroke="#2b2a33" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+     <path d="M54 66 l-14 -8 M50 104 h-16 M186 66 l14 -8 M190 104 h16 M120 22 v-8" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

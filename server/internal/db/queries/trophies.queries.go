@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/utils"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -19,6 +21,37 @@ type ActivityCounts struct {
 	ReactionsReceived int `json:"reactionsReceived"`
 	CryLaughsReceived int `json:"cryLaughsReceived"`
 	Achievements      int `json:"achievements"`
+	// JudgeScores counts the user's doodles the AI judge scored 5 or more, by score in
+	// tenths: index 0 is 5.0, index JudgeScoreSteps-1 is 10.0. An array, not a map, so
+	// ActivityCounts stays comparable. Drawings are matched on their day.
+	JudgeScores [JudgeScoreSteps]int `json:"-"`
+}
+
+// JudgeScoreSteps is how many one-decimal scores there are from 5.0 to 10.0
+const JudgeScoreSteps = 51
+
+// judgeKind is the kind prefix GetActivityCounts and GetXPEventsSince give a judged
+// doodle, followed by its score in tenths, e.g. "judge87" for 8.7
+const judgeKind = "judge"
+
+// judgedDoodles is each doodle the AI judge scored 5 or more, with that score in tenths
+const judgedDoodles = `
+	SELECT s.user_id, s.day, CAST(ROUND(r.score * 10) AS INTEGER) AS tenths, r.updated_at
+	FROM ai_reviews r JOIN user_submissions s ON s.id = r.submission_id
+	WHERE r.status = 'done' AND r.score >= 5
+`
+
+// JudgeScoreIndex parses a judged-doodle kind into its JudgeScores index
+func JudgeScoreIndex(kind string) (int, bool) {
+	rest, ok := strings.CutPrefix(kind, judgeKind)
+	if !ok {
+		return 0, false
+	}
+	tenths, err := strconv.Atoi(rest)
+	if i := tenths - 50; err == nil && i >= 0 && i < JudgeScoreSteps {
+		return i, true
+	}
+	return 0, false
 }
 
 // Bounds wide enough to cover all of time, for lifetime totals.
@@ -58,6 +91,10 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 		WHERE user_id IN ` + in + ` AND day >= ? AND day < ?
 		GROUP BY user_id
 		UNION ALL
+		SELECT user_id, '` + judgeKind + `' || tenths, COUNT(*) FROM (` + judgedDoodles + `)
+		WHERE user_id IN ` + in + ` AND day >= ? AND day < ?
+		GROUP BY user_id, tenths
+		UNION ALL
 		SELECT reactor, 'reactionsGiven', COUNT(*) FROM ro
 		WHERE reactor IN ` + in + ` AND owner != reactor AND created_at >= ? AND created_at < ?
 		GROUP BY reactor
@@ -86,13 +123,13 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 		GROUP BY user_id
 	`
 
-	const parts = 7
+	const parts = 8
 	args := make([]any, 0, parts*(len(userIDs)+2))
 	for i := range parts {
 		for _, id := range userIDs {
 			args = append(args, id)
 		}
-		if i == 0 {
+		if i <= 1 { // drawings and judged doodles go by day
 			args = append(args, utils.GetFormattedDate(from), utils.GetFormattedDate(to))
 		} else {
 			args = append(args, from.UTC().Format(sqliteTimestamp), to.UTC().Format(sqliteTimestamp))
@@ -127,6 +164,10 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 			c.CryLaughsReceived = n
 		case "achievements":
 			c.Achievements = n
+		default:
+			if i, ok := JudgeScoreIndex(kind); ok {
+				c.JudgeScores[i] = n
+			}
 		}
 		counts[userID] = c
 	}
@@ -165,7 +206,8 @@ func GetUsersByIDs(repo *sql.DB, ctx context.Context, userIDs []string) ([]model
 	return users, rows.Err()
 }
 
-// XPEvent is one thing that earned a user XP. Kind is one of ActivityCounts' JSON names.
+// XPEvent is one thing that earned a user XP. Kind is one of ActivityCounts' JSON names,
+// or a judged doodle's kind (see JudgeScoreIndex), which is at when it was judged.
 type XPEvent struct {
 	Kind string
 	At   time.Time
@@ -194,8 +236,10 @@ func GetXPEventsSince(repo *sql.DB, ctx context.Context, userID string, since ti
 		SELECT 'reactionsReceived', datetime(created_at) FROM ro WHERE owner = ? AND owner != reactor AND created_at >= ?
 		UNION ALL
 		SELECT 'achievements', datetime(created_at) FROM user_achievements WHERE user_id = ? AND created_at >= ?
+		UNION ALL
+		SELECT '`+judgeKind+`' || tenths, datetime(updated_at) FROM (`+judgedDoodles+`) WHERE user_id = ? AND day >= ?
 		ORDER BY at`,
-		[]any{userID, day, userID, at, userID, at, userID, at, userID, at},
+		[]any{userID, day, userID, at, userID, at, userID, at, userID, at, userID, day},
 		[]any{&kind, &when},
 		func() {
 			t, err := time.Parse(sqliteTimestamp, when)

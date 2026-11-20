@@ -1,7 +1,13 @@
 import { Fragment, useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { BellIcon, FriendsIcon, PencilIcon, TrophyIcon } from './icons';
+import {
+  BellIcon,
+  FriendsIcon,
+  MegaphoneIcon,
+  PencilIcon,
+  TrophyIcon,
+} from './icons';
 import type { FC, ReactNode } from 'react';
 import type { Activity, ActivityFeedResponse, User } from '@/api/Api';
 import { queryKeys, useActivityFeed, useMarkActivityRead } from '@/api/Api';
@@ -16,6 +22,8 @@ import { AIJudgeAvatar } from '@/ai/AIJudgeAvatar';
 import { useAIDialogue, wasReviewShown } from '@/ai/AIDialogue';
 import { formatScore } from '@/ai/score';
 import { isMasterpiece } from '@/ai/Masterpiece';
+import { useAnnouncements } from '@/announcements/api';
+import { useShowAnnouncements } from '@/announcements/AnnouncementWatcher';
 
 const useIsMe = () => {
   const { user } = useAuth();
@@ -276,6 +284,30 @@ const ActivityItem: FC<{ activity: Activity; onSelect: () => void }> = ({
   );
 };
 
+/** Pinned under the list: replays every announcement that's live right now */
+const AnnouncementsLine: FC<{ onOpen: () => void }> = ({ onOpen }) => {
+  const { data } = useAnnouncements();
+  const show = useShowAnnouncements();
+  if (!data?.length) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        onOpen();
+        show(data);
+      }}
+      className="flex flex-none items-center gap-2 px-3 py-2.5 border-t-2 border-dashed border-line text-left hover:bg-paper rounded-b-[inherit] cursor-pointer"
+    >
+      <MegaphoneIcon size={20} className="flex-none" />
+      <span className="flex-1 font-bold">announcements</span>
+      <span className="text-sm text-pencil">
+        {data.length} {data.length === 1 ? 'page' : 'pages'} →
+      </span>
+    </button>
+  );
+};
+
 /** Masthead bell: counts what's new for you (comments, reactions, AI judges' reviews, pokes, friend requests, achievements and level-ups), and opens a quick list of them */
 const ActivityBell = () => {
   const queryClient = useQueryClient();
@@ -351,31 +383,34 @@ const ActivityBell = () => {
           <div
             role="dialog"
             aria-label="Recent activity"
-            className="absolute right-0 top-full z-50 mt-3 w-[min(20rem,calc(100vw-2.5rem))] max-h-[70dvh] overflow-y-auto bg-white border-2 border-ink rounded-sketch shadow-pencil origin-top-right animate-in fade-in zoom-in-95 duration-200"
+            className="absolute right-0 top-full z-50 mt-3 flex flex-col w-[min(20rem,calc(100vw-2.5rem))] max-h-[70dvh] bg-white border-2 border-ink rounded-sketch shadow-pencil origin-top-right animate-in fade-in zoom-in-95 duration-200"
           >
-            <h2 className="px-3 pt-3 pb-1 font-accent font-bold text-2xl leading-none">
-              what's new
-            </h2>
-            {activities.length === 0 ? (
-              <p className="flex flex-col items-center gap-1 px-4 py-6 text-center text-pencil">
-                <PencilIcon
-                  size={32}
-                  strokeWidth={1.6}
-                  className="animate-nudge"
-                />
-                quiet in here. draw something and your friends will chime in!
-              </p>
-            ) : (
-              <ul className="flex flex-col pb-1.5">
-                {activities.map((activity) => (
-                  <ActivityItem
-                    key={activity.id}
-                    activity={activity}
-                    onSelect={close}
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <h2 className="px-3 pt-3 pb-1 font-accent font-bold text-2xl leading-none">
+                what's new
+              </h2>
+              {activities.length === 0 ? (
+                <p className="flex flex-col items-center gap-1 px-4 py-6 text-center text-pencil">
+                  <PencilIcon
+                    size={32}
+                    strokeWidth={1.6}
+                    className="animate-nudge"
                   />
-                ))}
-              </ul>
-            )}
+                  quiet in here. draw something and your friends will chime in!
+                </p>
+              ) : (
+                <ul className="flex flex-col pb-1.5">
+                  {activities.map((activity) => (
+                    <ActivityItem
+                      key={activity.id}
+                      activity={activity}
+                      onSelect={close}
+                    />
+                  ))}
+                </ul>
+              )}
+            </div>
+            <AnnouncementsLine onOpen={close} />
           </div>
         </>
       )}

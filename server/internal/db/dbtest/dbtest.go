@@ -26,6 +26,10 @@ var eventMigrations = []string{
 	"1795130300_doodleton_composition.up.sql",
 	"1795130400_ai_review_heard.up.sql",
 	"1795130500_judge_comment_styles.up.sql",
+	// Its column changes are already in the schema dump
+	"1795130710_seed_more_achievements.up.sql",
+	// Its tables are already in the schema dump
+	"1795130810_seed_announcements.up.sql",
 }
 
 // NewEventsDB returns an in-memory database with the schema from migrations/schema.sql, where

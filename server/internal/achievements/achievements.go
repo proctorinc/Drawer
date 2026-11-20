@@ -7,6 +7,7 @@ import (
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/stats"
 	"log"
+	"time"
 )
 
 type RewardUnlockId string
@@ -108,11 +109,34 @@ func (as *AchievementService) GetAllAchievements(userId string) ([]models.Achiev
 			achievement.Progress = 0
 		}
 
-		if achievement.AchievedAt == nil && pass == true {
-			log.Printf("Issue for achievement %s: has passed, but no achieved date", achievement.Name)
+		// Some goals move without the player doing anything here (reactions from friends,
+		// a level from XP, a judge's score, a brand new achievement), so catch up on them now
+		if achievement.AchievedAt == nil && pass && err == nil {
+			if err := queries.InsertUserAchievement(as.DB, as.Ctx, userId, achievement.ID); err != nil {
+				log.Printf("Error catching up on achievement %s for user %s: %v", achievement.ID, userId, err)
+			} else {
+				now := time.Now().UTC()
+				achievement.AchievedAt = &now
+				if achievement.Reward != nil {
+					rewards[achievement.Reward.ID] = *achievement.Reward
+				}
+			}
 		}
 
 		achievement.Progress = val
+
+		// Streak stickers are earned by the longest run, but an unearned one should
+		// show the streak that's going now, with the best run as a footnote.
+		if achievement.AchievedAt == nil && achievement.AchievementField == string(stats.SUBMISSION_STREAK) {
+			if current, err := queries.CalculateSubmissionActiveStreak(as.DB, as.Ctx, userId); err == nil {
+				if val > current {
+					best := val
+					achievement.Best = &best
+				}
+				achievement.Progress = current
+			}
+		}
+
 		updatedAchievements = append(updatedAchievements, achievement)
 	}
 
@@ -180,6 +204,11 @@ func (as *AchievementService) UpdateSubmissionAchievements(userId string) error 
 	})
 }
 
+/* Check the AI judge achievements, after one of the user's doodles was reviewed */
+func (as *AchievementService) UpdateJudgeAchievements(userId string) error {
+	return as.updateUserAchievementsByAchievementField(as.DB, as.Ctx, userId, stats.AI_FIELDS)
+}
+
 /* Check all comment achievements to see if a user has earned any */
 func (as *AchievementService) UpdateCommentAchievements(userId string) error {
 	return as.updateUserAchievementsByAchievementField(as.DB, as.Ctx, userId, []string{
@@ -202,15 +231,14 @@ func (as *AchievementService) UpdateFriendAchievements(userId string) error {
 }
 
 func (as *AchievementService) updateUserAchievementsByAchievementField(repo *sql.DB, ctx context.Context, userId string, achievementField []string) error {
-	log.Print("Getting all achievements")
+	// Everything earns XP, so any of it can level you up
+	achievementField = append(achievementField, string(stats.LEVEL))
 	achievements, err := queries.GetIncompleteAchievementsByAchievementField(repo, ctx, userId, achievementField)
 
 	if err != nil {
 		log.Printf("Error getting all achievements for user %s: %v", userId, err)
 		return err
 	}
-
-	log.Printf("Looping through %d achievements", len(achievements))
 
 	for _, achievement := range achievements {
 		_, pass, err := as.StatsService.CheckStatCompletion(userId, achievement)
@@ -228,4 +256,37 @@ func (as *AchievementService) updateUserAchievementsByAchievementField(repo *sql
 	}
 
 	return nil
+}
+
+// Mask withholds what a secret achievement is until it's earned: a hidden achievement,
+// or with events set, an event sticker. The id stays, so the app can tell when it's earned.
+func Mask(achievement models.Achievement, events bool) models.Achievement {
+	if achievement.AchievedAt != nil {
+		return achievement
+	}
+	isEvent := achievement.EventSlug != nil
+	if !achievement.Hidden && !(events && isEvent) {
+		return achievement
+	}
+	masked := models.Achievement{
+		ID:       achievement.ID,
+		Name:     "???",
+		Category: achievement.Category,
+		Hidden:   achievement.Hidden,
+		Secret:   true,
+	}
+	// A live event's stickers are on its page anyway, but which event stays a surprise
+	if isEvent {
+		masked.Category = "events"
+	}
+	return masked
+}
+
+// MaskAll masks each achievement (see Mask)
+func MaskAll(all []models.Achievement, events bool) []models.Achievement {
+	masked := make([]models.Achievement, len(all))
+	for i, a := range all {
+		masked[i] = Mask(a, events)
+	}
+	return masked
 }

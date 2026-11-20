@@ -16,7 +16,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -568,60 +567,6 @@ func HandleGetTodaysJudge(c *gin.Context) {
 	c.JSON(http.StatusOK, TodaysJudge{
 		Judge:    models.AIJudge{ID: p.ID, Name: p.Name, Bio: p.Bio, AvatarURL: p.AvatarURL, Decoration: p.Decoration},
 		Criteria: p.Criteria,
-	})
-}
-
-// TodaysJudgeIntro is the judge asking you for today's doodle, a line at a time.
-type TodaysJudgeIntro struct {
-	Judge  models.AIJudge `json:"judge"`
-	Day    string         `json:"day"`
-	Prompt string         `json:"prompt"`
-	Lines  []string       `json:"lines"`
-}
-
-// HandleGetTodaysJudgeIntro has today's judge ask for today's prompt, in character. 204 when
-// judging is off, no judge is on, or there's no prompt today.
-func HandleGetTodaysJudgeIntro(c *gin.Context) {
-	appCtx := requestContext.GetCtx(c)
-	ctx := c.Request.Context()
-
-	settings, err := ai.LoadSettings(appCtx.DB, ctx, appCtx.Config)
-	if err != nil {
-		log.Printf("Error loading AI settings: %v", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load today's judge"))
-		return
-	}
-	if !settings.Ready() {
-		c.Status(http.StatusNoContent)
-		return
-	}
-	p, err := ai.PickPersonality(appCtx.DB, ctx, appCtx.Config)
-	if errors.Is(err, sql.ErrNoRows) {
-		c.Status(http.StatusNoContent)
-		return
-	}
-	if err != nil {
-		log.Printf("Error picking today's AI judge: %v", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load today's judge"))
-		return
-	}
-	today := utils.GetFormattedDate(time.Now())
-	prompt, err := queries.GetDailyPrompt(appCtx.DB, ctx, today)
-	if errors.Is(err, sql.ErrNoRows) {
-		c.Status(http.StatusNoContent)
-		return
-	}
-	if err != nil {
-		log.Printf("Error loading today's prompt for the judge intro: %v", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load today's judge"))
-		return
-	}
-
-	c.JSON(http.StatusOK, TodaysJudgeIntro{
-		Judge:  models.AIJudge{ID: p.ID, Name: p.Name, Bio: p.Bio, AvatarURL: p.AvatarURL, Decoration: p.Decoration},
-		Day:    today,
-		Prompt: prompt.Prompt,
-		Lines:  ai.TodaysIntro(ctx, ai.NewProvider(settings), p, today, prompt.Prompt),
 	})
 }
 

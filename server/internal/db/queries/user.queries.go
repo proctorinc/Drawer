@@ -1122,18 +1122,70 @@ func GetAllUsers(repo *sql.DB, ctx context.Context, searchQuery string) ([]model
 	return users, nil
 }
 
-func UpdateUserAvatarURL(repo *sql.DB, ctx context.Context, userID string, avatarURL string) error {
-	updateSQL := `
-        UPDATE users
-        SET avatar_type = 'custom', avatar_url = ?
-        WHERE id = ?
-    `
-	_, err := repo.ExecContext(ctx, updateSQL, avatarURL, userID)
+// MaxAvatarSlots is how many drawn faces a user can keep at once
+const MaxAvatarSlots = 3
 
+// UserAvatar is one of a user's drawn faces
+type UserAvatar struct {
+	Slot int    `json:"slot"`
+	URL  string `json:"url"`
+}
+
+// GetUserAvatars lists a user's drawn faces, by slot
+func GetUserAvatars(repo *sql.DB, ctx context.Context, userID string) ([]UserAvatar, error) {
+	rows, err := repo.QueryContext(ctx, `SELECT slot, url FROM user_avatars WHERE user_id = ? ORDER BY slot`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	avatars := []UserAvatar{}
+	for rows.Next() {
+		var a UserAvatar
+		if err := rows.Scan(&a.Slot, &a.URL); err != nil {
+			return nil, err
+		}
+		avatars = append(avatars, a)
+	}
+	return avatars, rows.Err()
+}
+
+// SaveUserAvatar puts a drawing in a slot, replacing whatever was there, and wears it
+func SaveUserAvatar(repo *sql.DB, ctx context.Context, userID string, slot int, avatarURL string) error {
+	tx, err := repo.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
+	defer tx.Rollback()
 
+	_, err = tx.ExecContext(ctx, `
+		INSERT INTO user_avatars (user_id, slot, url) VALUES (?, ?, ?)
+		ON CONFLICT (user_id, slot) DO UPDATE SET url = excluded.url, created_at = CURRENT_TIMESTAMP`,
+		userID, slot, avatarURL)
+	if err != nil {
+		return err
+	}
+	_, err = tx.ExecContext(ctx, `UPDATE users SET avatar_type = 'custom', avatar_url = ? WHERE id = ?`, avatarURL, userID)
+	if err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// WearUserAvatar switches to a drawing the user already has in a slot.
+// Returns sql.ErrNoRows when that slot is empty
+func WearUserAvatar(repo *sql.DB, ctx context.Context, userID string, slot int) error {
+	res, err := repo.ExecContext(ctx, `
+		UPDATE users SET avatar_type = 'custom',
+			avatar_url = (SELECT url FROM user_avatars WHERE user_id = ? AND slot = ?)
+		WHERE id = ? AND EXISTS (SELECT 1 FROM user_avatars WHERE user_id = ? AND slot = ?)`,
+		userID, slot, userID, userID, slot)
+	if err != nil {
+		return err
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		return sql.ErrNoRows
+	}
 	return nil
 }
 

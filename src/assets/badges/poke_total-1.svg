@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <pattern id="s-poke" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(0)">
+      <rect width="14" height="14" fill="#e6dcff"/>
+      <rect width="14" height="5" fill="#d9ccfa"/>
+    </pattern>
+    <clipPath id="c-poke"><circle cx="120" cy="120" r="100"/></clipPath>
+  </defs>
+  <circle cx="120" cy="120" r="100" fill="url(#s-poke)"/>
+  <g clip-path="url(#c-poke)"></g>
+  <circle cx="120" cy="120" r="100" fill="none" stroke="#2b2a33" stroke-width="6"/>
+  <circle cx="160" cy="108" r="36" fill="#ffe08a" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+     <path d="M146 104 q6 4 12 0 M166 104 q6 4 12 0" fill="none" stroke="#2b2a33" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+     <circle cx="162" cy="124" r="5" fill="#2b2a33"/>
+     <text x="186" y="70" font-family="'Nunito','Arial Rounded MT Bold',Arial,sans-serif" font-weight="900" font-size="22" fill="#2b2a33">z</text>
+     <rect x="40" y="118" width="58" height="40" rx="14" fill="#ffd9d2" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+     <rect x="84" y="118" width="46" height="18" rx="9" fill="#ffd9d2" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+     <path d="M58 136 h26 M58 148 h24" stroke="#2b2a33" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+     <path d="M118 96 l6 -10 M126 110 l12 -4 M110 88 l0 -12" stroke="#2b2a33" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

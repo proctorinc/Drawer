@@ -9,11 +9,16 @@ import { CustomProfileIcon } from './profile-icons/CustomProfileIcon';
 import { UserProfileIcon } from './profile-icons/UserProfileIcon';
 import type { FC, FormEvent, ReactNode } from 'react';
 import type { DecorationId } from '@/api/Api';
-import { queryKeys, useUpdateDecoration, useUpdateUsername } from '@/api/Api';
+import {
+  MAX_AVATAR_SLOTS,
+  queryKeys,
+  useUpdateDecoration,
+  useUpdateUsername,
+} from '@/api/Api';
 import useAuth from '@/auth/hooks/useAuth';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
-import { PencilIcon } from '@/components/icons';
+import { PencilIcon, PlusIcon } from '@/components/icons';
 import { DECORATIONS, DECORATION_GROUPS } from '@/decorations/decorations';
 import { useChristmas } from '@/events/useChristmas';
 import { cn } from '@/utils';
@@ -26,6 +31,10 @@ type SwatchProps = {
   isSelected?: boolean;
   /** Not earned yet: still tappable, so it can say how to earn it */
   isLocked?: boolean;
+  /** An empty spot waiting to be filled */
+  isDashed?: boolean;
+  /** A little marker in the corner, like a pencil while picking one to redraw */
+  badge?: ReactNode;
   onClick: () => void;
   children: ReactNode;
 };
@@ -35,6 +44,8 @@ const Swatch: FC<SwatchProps> = ({
   label,
   isSelected,
   isLocked,
+  isDashed,
+  badge,
   onClick,
   children,
 }) => (
@@ -48,13 +59,14 @@ const Swatch: FC<SwatchProps> = ({
       isSelected
         ? 'bg-butter border-ink shadow-pencil-sm'
         : 'bg-white border-line',
-      isLocked && 'border-dashed',
+      (isLocked || isDashed) && 'border-dashed',
+      isDashed && 'border-ink bg-transparent',
     )}
   >
     <span className={cn('flex', isLocked && 'opacity-60')}>{children}</span>
-    {isLocked && (
+    {(isLocked || badge) && (
       <span className="absolute -bottom-1.5 -right-1.5 flex items-center justify-center size-5 rounded-full bg-ink text-white text-[10px]">
-        <FontAwesomeIcon icon={faLock} />
+        {isLocked ? <FontAwesomeIcon icon={faLock} /> : badge}
       </span>
     )}
   </button>
@@ -80,19 +92,42 @@ const Section: FC<SectionProps> = ({ id, title, note, children }) => (
 const FacePicker = () => {
   const navigate = useNavigate();
   const user = useUser();
-  const { customAvatarIsUnlocked, toggleAvatar } = useMyProfilePage();
+  const { customAvatarIsUnlocked, toggleAvatar, avatars, wearAvatar } =
+    useMyProfilePage();
   const [note, setNote] = useState<string>();
-  const hasDrawnAvatar = user.avatarUrl !== '';
-  const drawFace = () => navigate({ to: '/draw/profile/pic' });
+  // With every slot full, a new face has to replace one: this is that choice
+  const [pickingRedraw, setPickingRedraw] = useState(false);
+  const faces = avatars ?? [];
+  const isFull = faces.length >= MAX_AVATAR_SLOTS;
+  const isWearing = (url: string) =>
+    user.avatarType === 'custom' && user.avatarUrl === url;
 
-  function chooseDrawing() {
-    if (!customAvatarIsUnlocked) {
-      setNote('keep a 14 day streak to draw your own face');
-    } else if (!hasDrawnAvatar) {
-      drawFace();
-    } else if (user.avatarType === 'basic') {
-      toggleAvatar();
+  const drawFace = (slot: number) =>
+    navigate({ to: '/draw/profile/pic', search: { slot } });
+
+  function addFace() {
+    const taken = new Set(faces.map((f) => f.slot));
+    const slot = Array.from({ length: MAX_AVATAR_SLOTS }, (_, i) => i).find(
+      (i) => !taken.has(i),
+    );
+    if (slot !== undefined) drawFace(slot);
+  }
+
+  function chooseFace(slot: number, url: string) {
+    if (pickingRedraw) {
+      drawFace(slot);
+    } else if (!isWearing(url)) {
+      wearAvatar(slot);
     }
+  }
+
+  function togglePicking() {
+    setPickingRedraw(!pickingRedraw);
+    setNote(
+      pickingRedraw
+        ? undefined
+        : 'pick a face to redraw. it gets replaced when you save',
+    );
   }
 
   return (
@@ -100,32 +135,67 @@ const FacePicker = () => {
       <div className="flex flex-wrap gap-2">
         <Swatch
           label="initials"
-          isSelected={user.avatarType === 'basic'}
-          onClick={() => user.avatarType === 'custom' && toggleAvatar()}
+          isSelected={!pickingRedraw && user.avatarType === 'basic'}
+          onClick={() => {
+            if (pickingRedraw) return;
+            if (user.avatarType === 'custom') toggleAvatar();
+          }}
         >
           <BasicProfileIcon user={user} size="lg" onClick={ignoreClick} />
         </Swatch>
-        <Swatch
-          label={hasDrawnAvatar ? 'my drawing' : 'draw my face'}
-          isSelected={user.avatarType === 'custom'}
-          isLocked={!customAvatarIsUnlocked}
-          onClick={chooseDrawing}
-        >
-          {hasDrawnAvatar ? (
-            <CustomProfileIcon user={user} size="lg" onClick={ignoreClick} />
-          ) : (
+        {!customAvatarIsUnlocked ? (
+          <Swatch
+            label="draw my face"
+            isLocked
+            onClick={() => setNote('keep a 14 day streak to draw your own face')}
+          >
             <span className="flex items-center justify-center size-12 border-2 border-dashed border-ink rounded-full">
               <PencilIcon size={22} />
             </span>
-          )}
-        </Swatch>
-        {customAvatarIsUnlocked && hasDrawnAvatar && (
-          <Swatch label="redraw my face" onClick={drawFace}>
-            <span className="flex flex-col items-center text-sm leading-tight">
-              <PencilIcon size={20} />
-              redraw
-            </span>
           </Swatch>
+        ) : (
+          <>
+            {faces.map((face) => (
+              <Swatch
+                key={face.slot}
+                label={
+                  pickingRedraw
+                    ? `redraw face ${face.slot + 1}`
+                    : `wear face ${face.slot + 1}`
+                }
+                isSelected={!pickingRedraw && isWearing(face.url)}
+                badge={pickingRedraw && <PencilIcon size={12} />}
+                onClick={() => chooseFace(face.slot, face.url)}
+              >
+                <CustomProfileIcon
+                  user={{ ...user, avatarUrl: face.url }}
+                  size="lg"
+                  onClick={ignoreClick}
+                />
+              </Swatch>
+            ))}
+            {!isFull && (
+              <Swatch
+                label={faces.length ? 'draw another face' : 'draw my face'}
+                isDashed
+                onClick={addFace}
+              >
+                <PlusIcon size={24} />
+              </Swatch>
+            )}
+            {isFull && (
+              <Swatch
+                label={pickingRedraw ? 'cancel redraw' : 'redraw a face'}
+                isSelected={pickingRedraw}
+                onClick={togglePicking}
+              >
+                <span className="flex flex-col items-center text-sm leading-tight">
+                  <PencilIcon size={20} />
+                  {pickingRedraw ? 'cancel' : 'redraw'}
+                </span>
+              </Swatch>
+            )}
+          </>
         )}
       </div>
     </Section>

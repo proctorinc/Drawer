@@ -2,13 +2,19 @@ import { createContext, useContext } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import type { FC, ReactNode } from 'react';
-import type { AchievementsAndRewardsResponse, GetMeResponse } from '@/api/Api';
+import type {
+  AchievementsAndRewardsResponse,
+  CustomAvatar,
+  GetMeResponse,
+} from '@/api/Api';
 import {
   queryKeys,
   useGetAchievements,
+  useGetMyAvatars,
   useGetMyProfile,
   useToggleAvatarType,
   useUploadCustomAvatar,
+  useWearAvatar,
 } from '@/api/Api';
 import LoadingScreen from '@/components/LoadingScreen';
 
@@ -17,7 +23,12 @@ type MyProfilePageContextType = {
   achievementsData?: AchievementsAndRewardsResponse;
   isLoading: boolean;
   toggleAvatar: () => void;
-  uploadAvatar: (png: Blob) => void;
+  /** Saves a drawing into a face slot, replacing what was there, and wears it */
+  uploadAvatar: (png: Blob, slot: number) => void;
+  /** Switches to a face already drawn in a slot */
+  wearAvatar: (slot: number) => void;
+  /** Your drawn faces, by slot */
+  avatars?: Array<CustomAvatar>;
   customAvatarIsUnlocked?: boolean;
 };
 
@@ -37,8 +48,16 @@ export const MyProfilePageProvider: FC<Props> = ({ children }) => {
     useGetAchievements();
   const toggleAvatarMutation = useToggleAvatarType();
   const uploadAvatarMutation = useUploadCustomAvatar();
+  const wearAvatarMutation = useWearAvatar();
   const customAvatarIsUnlocked =
     !!achievementsData?.rewards.has('CUSTOM_PROFILE_PIC');
+  const { data: avatars } = useGetMyAvatars(customAvatarIsUnlocked);
+
+  const refreshFaces = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.me });
+    queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
+    queryClient.invalidateQueries({ queryKey: queryKeys.myAvatars });
+  };
 
   const toggleAvatar = () => {
     toggleAvatarMutation.mutate(undefined, {
@@ -49,14 +68,21 @@ export const MyProfilePageProvider: FC<Props> = ({ children }) => {
     });
   };
 
-  const uploadAvatar = (image: Blob) => {
-    uploadAvatarMutation.mutate(image, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.me });
-        queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
-        navigate({ to: '/draw/profile/me' });
+  const uploadAvatar = (image: Blob, slot: number) => {
+    uploadAvatarMutation.mutate(
+      { image, slot },
+      {
+        onSuccess: () => {
+          refreshFaces();
+          navigate({ to: '/draw/profile/me' });
+        },
       },
-    });
+    );
+  };
+
+  const wearAvatar = (slot: number) => {
+    if (wearAvatarMutation.isPending) return;
+    wearAvatarMutation.mutate(slot, { onSuccess: refreshFaces });
   };
 
   const contextData: MyProfilePageContextType = {
@@ -64,6 +90,8 @@ export const MyProfilePageProvider: FC<Props> = ({ children }) => {
     achievementsData,
     toggleAvatar,
     uploadAvatar,
+    wearAvatar,
+    avatars,
     isLoading: profileLoading || achievementsLoading,
     customAvatarIsUnlocked,
   };

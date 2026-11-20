@@ -52,7 +52,7 @@ export interface TrophiesResponse {
   questsEvent: { slug: string; name: string; theme: string } | null;
   /** You and your friends, by all-time XP */
   leaderboard: Array<LeaderboardEntry>;
-  xpRules: Array<{ action: string; xp: number }>;
+  xpRules: Array<{ action: string; xp: number; maxXp?: number }>;
 }
 
 async function getTrophies(): Promise<TrophiesResponse> {

@@ -114,7 +114,6 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			authGroup.GET("/trophies", handlers.HandleGetTrophies)
 			authGroup.GET("/ai/judge/today", handlers.HandleGetTodaysJudge)
 			authGroup.GET("/ai/judge/today/intro", handlers.HandleGetTodaysJudgeIntro)
-			authGroup.GET("/ai/judge/today/intro", handlers.HandleGetTodaysJudgeIntro)
 			authGroup.POST("/ai/reviews/:submissionId/heard", handlers.HandleMarkAIReviewHeard)
 			authGroup.GET("/events/active", handlers.HandleGetActiveEvent)
 			authGroup.GET("/events/upcoming", handlers.HandleGetUpcomingEvent)

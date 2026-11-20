@@ -89,6 +89,7 @@ func SystemPrompt(p models.AIPersonality) string {
 		}
 		fmt.Fprintf(&b, "Also give an overall score from 1 to %d; it is replaced by the average of the scores above.\n", models.AIScoreMax)
 	}
+	fmt.Fprintf(&b, "A %d is almost never given: only a doodle so good it would stop you in your tracks. Most good doodles land between 6 and 8.\n", models.AIScoreMax)
 	b.WriteString("Make your comment match your scores.")
 	return b.String()
 }

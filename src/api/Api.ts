@@ -33,6 +33,15 @@ export interface User {
   impersonatedBy?: string;
 }
 
+/** One of your drawn faces, kept in one of a few slots */
+export interface CustomAvatar {
+  slot: number;
+  url: string;
+}
+
+/** How many drawn faces you can keep at once */
+export const MAX_AVATAR_SLOTS = 3;
+
 /** Decorations are rewards worn on the avatar, one at a time */
 export type DecorationId =
   | 'FIRST_SNOW'
@@ -190,10 +199,29 @@ export type Achievement = {
   achievementField: string;
   achievementValue: number;
   progress: number;
+  /** Streaks: the longest run, sent only when it beats the current one */
+  best?: number;
   reward: AchievementReward | null;
   /** Set for stickers that belong to a limited-time event */
   eventSlug: string | null;
+  /** The achievements page tab it's on */
+  category: AchievementCategory;
+  /** A secret achievement: how to earn it stays hidden until it's earned */
+  hidden: boolean;
+  /**
+   * Its details were withheld (a hidden achievement or event sticker not earned
+   * yet): the name is "???" and the description, goal, progress and reward are blank
+   */
+  secret: boolean;
 };
+
+export type AchievementCategory =
+  | 'drawing'
+  | 'streaks'
+  | 'friends'
+  | 'judges'
+  | 'levels'
+  | 'events';
 
 export type AchievementReward = {
   id: string;
@@ -257,6 +285,7 @@ export const queryKeys = {
   me: ['me'] as const,
   daily: ['daily'] as const,
   myProfile: ['myProfile'] as const,
+  myAvatars: ['myAvatars'] as const,
   userProfile: (id: string) => ['userProfile', id] as const,
   user: (id: string) => ['user', id] as const,
   promptSubmission: (id: string) => ['promptSubmission', id] as const,
@@ -273,6 +302,15 @@ export function useGetDailyPrompt() {
     retry: () => {
       return false;
     },
+  });
+}
+
+export function useGetMyAvatars(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.myAvatars,
+    queryFn: apiClient.getMyAvatars,
+    select: (data) => data.avatars,
+    enabled,
   });
 }
 
@@ -353,6 +391,12 @@ export function useUpdateDecoration() {
   });
 }
 
+export function useWearAvatar() {
+  return useMutation({
+    mutationFn: apiClient.wearAvatar,
+  });
+}
+
 export function useToggleAvatarType() {
   return useMutation({
     mutationFn: apiClient.toggleAvatarType,
@@ -425,6 +469,14 @@ export function useGetAchievements() {
   return useQuery<AchievementsAndRewardsResponse>({
     queryKey: ['achievements'],
     queryFn: apiClient.getUserAchievements,
+  });
+}
+
+/** Every achievement there is, secrets and all events included (but masked) */
+export function useGetAchievementCatalog() {
+  return useQuery<AchievementsAndRewardsResponse>({
+    queryKey: ['achievements', 'all'],
+    queryFn: apiClient.getAchievementCatalog,
   });
 }
 

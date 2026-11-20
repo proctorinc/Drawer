@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <defs>
+    <pattern id="s-f1" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="14" height="14" fill="#c9f2dc"/>
+      <rect width="14" height="5" fill="#b5ead0"/>
+    </pattern>
+    <clipPath id="c-f1"><circle cx="120" cy="120" r="100"/></clipPath>
+  </defs>
+  <circle cx="120" cy="120" r="100" fill="url(#s-f1)"/>
+  <g clip-path="url(#c-f1)"></g>
+  <circle cx="120" cy="120" r="100" fill="none" stroke="#2b2a33" stroke-width="6"/>
+  <path d="M64 150 q0 -30 26 -30 q26 0 26 30 z" fill="#8ec3ff" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="90" cy="104" r="17" fill="#8ec3ff" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="84" cy="104" r="2.4000000000000004" fill="#2b2a33"/><circle cx="96" cy="104" r="2.4000000000000004" fill="#2b2a33"/><path d="M85.5 108.5 q4.5 4.5 9 0" fill="none" stroke="#2b2a33" stroke-width="2.625" stroke-linecap="round" stroke-linejoin="round"/><path d="M126 150 q0 -30 26 -30 q26 0 26 30 z" fill="#ffd9d2" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="152" cy="104" r="17" fill="#ffd9d2" stroke="#2b2a33" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="146" cy="104" r="2.4000000000000004" fill="#2b2a33"/><circle cx="158" cy="104" r="2.4000000000000004" fill="#2b2a33"/><path d="M147.5 108.5 q4.5 4.5 9 0" fill="none" stroke="#2b2a33" stroke-width="2.625" stroke-linecap="round" stroke-linejoin="round"/><circle cx="121" cy="66" r="15" fill="#ffe08a" stroke="#2b2a33" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M121 58 v16 M113 66 h16" stroke="#2b2a33" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -137,6 +137,13 @@ export const BellIcon: FC<IconProps> = (props) => (
   </StrokeIcon>
 );
 
+export const MegaphoneIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M4 10.5v3.2c0 .6.4 1 1 1h2.5L15 19V5L7.5 9.3H5c-.6 0-1 .5-1 1.2z" />
+    <path d="M8 14.8l1.2 4.4c.2.6.7.9 1.3.8l.9-.2M18 9.5c.8.7 1.2 1.6 1.2 2.5s-.4 1.8-1.2 2.5" />
+  </StrokeIcon>
+);
+
 export const CheckIcon: FC<IconProps> = (props) => (
   <StrokeIcon {...props}>
     <path d="M5 12.5l4.5 4.5L19 7" />

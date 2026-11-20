@@ -10,6 +10,7 @@ import (
 	"drawer-service-backend/internal/events"
 	"drawer-service-backend/internal/middleware"
 	"drawer-service-backend/internal/utils"
+	"drawer-service-backend/internal/xp"
 	"errors"
 	"log"
 	"net/http"
@@ -20,38 +21,34 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// XP is computed from existing activity rather than stored, so changing these
-// values re-scores everyone's history.
+// The XP rules live in the xp package, so achievements can check levels too
 const (
-	xpPerDrawing          = 10
-	xpPerCommentWritten   = 3
-	xpPerReactionGiven    = 2
-	xpPerReactionReceived = 1
-	xpPerAchievement      = 25
-	// Going from level n to n+1 costs n * xpPerLevelStep
-	xpPerLevelStep = 50
+	xpPerDrawing          = xp.PerDrawing
+	xpPerCommentWritten   = xp.PerCommentWritten
+	xpPerReactionGiven    = xp.PerReactionGiven
+	xpPerReactionReceived = xp.PerReactionReceived
+	xpPerAchievement      = xp.PerAchievement
 )
+
+func judgeBonusXP(i int) int { return xp.JudgeBonus(i) }
 
 type XPRule struct {
 	Action string `json:"action"`
 	XP     int    `json:"xp"`
+	// MaxXP is set when the XP varies, from XP up to MaxXP
+	MaxXP int `json:"maxXp,omitempty"`
 }
 
 var xpRules = []XPRule{
-	{"Draw the daily prompt", xpPerDrawing},
-	{"Comment on a friend's drawing", xpPerCommentWritten},
-	{"React to a friend", xpPerReactionGiven},
-	{"Get a reaction", xpPerReactionReceived},
-	{"Earn an achievement", xpPerAchievement},
+	{"Draw the daily prompt", xpPerDrawing, 0},
+	{"Comment on a friend's drawing", xpPerCommentWritten, 0},
+	{"React to a friend", xpPerReactionGiven, 0},
+	{"Get a reaction", xpPerReactionReceived, 0},
+	{"Earn an achievement", xpPerAchievement, 0},
+	{"Score 5+ with the AI judge", judgeBonusXP(0), judgeBonusXP(queries.JudgeScoreSteps - 1)},
 }
 
-type Level struct {
-	Level int `json:"level"`
-	XP    int `json:"xp"`
-	// XP at which the current level started and the next one begins
-	LevelStartXP int `json:"levelStartXp"`
-	NextLevelXP  int `json:"nextLevelXp"`
-}
+type Level = xp.Level
 
 type Week struct {
 	Start string `json:"start"` // Monday, YYYY-MM-DD
@@ -186,15 +183,17 @@ func publicTrophies(repo *sql.DB, ctx gocontext.Context, userID string) (PublicT
 	}, nil
 }
 
-func xpFor(a queries.ActivityCounts) int {
-	return a.Drawings*xpPerDrawing +
-		a.CommentsWritten*xpPerCommentWritten +
-		a.ReactionsGiven*xpPerReactionGiven +
-		a.ReactionsReceived*xpPerReactionReceived +
-		a.Achievements*xpPerAchievement
+func xpFor(a queries.ActivityCounts) int { return xp.For(a) }
+
+// xpForKind is what one of GetXPEventsSince's events is worth, matching xpFor
+func xpForKind(kind string) int {
+	if i, ok := queries.JudgeScoreIndex(kind); ok {
+		return judgeBonusXP(i)
+	}
+	return xpPerKind[kind]
 }
 
-// xpPerKind is what each of GetXPEventsSince's kinds is worth, matching xpFor
+// xpPerKind is what each of GetXPEventsSince's fixed kinds is worth, matching xpFor
 var xpPerKind = map[string]int{
 	"drawings":          xpPerDrawing,
 	"commentsWritten":   xpPerCommentWritten,
@@ -203,16 +202,7 @@ var xpPerKind = map[string]int{
 	"achievements":      xpPerAchievement,
 }
 
-func levelForXP(xp int) Level {
-	level, start := 1, 0
-	for {
-		next := start + level*xpPerLevelStep
-		if xp < next {
-			return Level{Level: level, XP: xp, LevelStartXP: start, NextLevelXP: next}
-		}
-		level, start = level+1, next
-	}
-}
+func levelForXP(amount int) Level { return xp.LevelFor(amount) }
 
 // weekBounds returns midnight on the Monday that starts now's week, and on the Monday
 // after, in now's time zone.

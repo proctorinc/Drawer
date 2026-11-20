@@ -356,6 +356,24 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 		return fmt.Errorf("failed to add the judges' comment styles: %w", err)
 	}
 
+	// The achievement tabs and the rest of the stickers, from the same seed production gets
+	moreAchievements, err := os.ReadFile("./migrations/1795130710_seed_more_achievements.up.sql")
+	if err != nil {
+		return fmt.Errorf("failed to read the achievement seed: %w", err)
+	}
+	if _, err = db.Exec(string(moreAchievements)); err != nil {
+		return fmt.Errorf("failed to seed achievements: %w", err)
+	}
+
+	// The first announcements, from the same seed production gets
+	announcements, err := os.ReadFile("./migrations/1795130810_seed_announcements.up.sql")
+	if err != nil {
+		return fmt.Errorf("failed to read the announcement seed: %w", err)
+	}
+	if _, err = db.Exec(string(announcements)); err != nil {
+		return fmt.Errorf("failed to seed announcements: %w", err)
+	}
+
 	// Sample reviews, so the AI comments show up without an OpenAI key
 	_, err = db.Exec(`
 		INSERT INTO ai_reviews (submission_id, personality_id, status, score, criteria_scores, comment, model, created_at, updated_at) VALUES
