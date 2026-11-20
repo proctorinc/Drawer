@@ -8,6 +8,7 @@ import {
   Swatches,
   formatDay,
 } from '../components/ui';
+import { RerunAIButton } from '../components/RerunAIButton';
 import type { AdminSubmission } from '../api';
 import type { FC } from 'react';
 import { CommentIcon, HeartIcon } from '@/components/icons';
@@ -38,6 +39,10 @@ const DrawingTile: FC<{ submission: AdminSubmission }> = ({ submission }) => (
     </div>
     <div className="flex items-center justify-between px-1 text-sm text-pencil">
       <span>{formatDay(submission.day)}</span>
+      <RerunAIButton
+        submissionId={submission.id}
+        artist={submission.user.username}
+      />
       <span className="flex items-center gap-2">
         <span className="flex items-center gap-0.5">
           <HeartIcon size={14} /> {submission.reactions}

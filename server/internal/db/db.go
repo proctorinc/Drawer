@@ -348,6 +348,13 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 	if _, err = db.Exec(string(composition)); err != nil {
 		return fmt.Errorf("failed to add Sir Doodleton's composition criterion: %w", err)
 	}
+	styles, err := os.ReadFile("./migrations/1795130500_judge_comment_styles.up.sql")
+	if err != nil {
+		return fmt.Errorf("failed to read the judges' comment styles: %w", err)
+	}
+	if _, err = db.Exec(string(styles)); err != nil {
+		return fmt.Errorf("failed to add the judges' comment styles: %w", err)
+	}
 
 	// Sample reviews, so the AI comments show up without an OpenAI key
 	_, err = db.Exec(`

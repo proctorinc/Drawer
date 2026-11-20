@@ -106,7 +106,7 @@ func TestTrimCommentCutsRambling(t *testing.T) {
 
 func TestSystemPromptListsCriteria(t *testing.T) {
 	prompt := SystemPrompt(santa())
-	for _, want := range []string{"You are Santa.", `nice: "nice list". Effort.`, `spirit: "christmas spirit". Festive.`, "from 1 (dreadful) to 10", "Stay fully in character"} {
+	for _, want := range []string{"You are Santa.", `nice: "nice list". Effort.`, `spirit: "christmas spirit". Festive.`, "from 1 (dreadful) to 10", "Stay fully in character", "never mention any of it in your comment", "Find one specific, concrete thing in this drawing", "Roast or tease the artist"} {
 		if !strings.Contains(prompt, want) {
 			t.Errorf("system prompt is missing %q:\n%s", want, prompt)
 		}
@@ -271,6 +271,15 @@ func TestPickAIPersonality(t *testing.T) {
 	}
 	if len(p.Criteria) != 3 || p.Criteria[0].Name != "skill" || p.Criteria[1].Name != "recognizability" || p.Criteria[2].Name != "composition" {
 		t.Errorf("Sir Doodleton's criteria = %+v; want skill, recognizability and composition", p.Criteria)
+	}
+	if !strings.HasSuffix(p.SystemPrompt, "like a critic who has suffered greatly for this.") {
+		t.Errorf("Sir Doodleton should roast in his comments:\n%s", p.SystemPrompt)
+	}
+	for _, slug := range []string{"professor-pickles", "santa"} {
+		other, _ := queries.GetAIPersonality(repo, ctx, "ai-"+slug)
+		if !strings.Contains(other.SystemPrompt, "Your comment is") {
+			t.Errorf("%s has no comment style:\n%s", slug, other.SystemPrompt)
+		}
 	}
 	if strings.Contains(p.SystemPrompt, "two things only") || !strings.Contains(p.SystemPrompt, "composition") {
 		t.Errorf("Sir Doodleton's prompt should judge on three things:\n%s", p.SystemPrompt)
@@ -508,5 +517,52 @@ func TestEveryRunIsLogged(t *testing.T) {
 	stats, err := queries.GetAIRunStats(repo, ctx)
 	if err != nil || stats.Total != 3 || stats.Submissions != 1 || stats.Tests != 2 || stats.Today != 3 {
 		t.Errorf("stats = %+v, %v", stats, err)
+	}
+}
+
+func TestRerunReplacesWhatThePlayerSeesButKeepsTheLog(t *testing.T) {
+	repo := dbtest.NewEventsDB(t)
+	ctx := context.Background()
+	dbtest.Exec(t, repo, `INSERT INTO users (id, username, email) VALUES ('u1', 'u1', 'u1@example.com'), ('admin', 'admin', 'a@example.com')`)
+	dbtest.Exec(t, repo, `INSERT INTO user_submissions (id, user_id, day) VALUES ('s1', 'u1', '2026-12-01')`)
+	p, err := queries.GetAIPersonality(repo, ctx, "ai-sir-doodleton")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := `{"criteria": [], "score": 3, "comment": "A tragedy in three blobs."}`
+	if _, err := Review(ctx, repo, fakeProvider{answer: first}, "s1", Request{Personality: p}, RunMeta{Kind: queries.AIRunSubmission, UserID: "u1"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := queries.MarkAIReviewHeard(repo, ctx, "s1", "u1"); err != nil {
+		t.Fatal(err)
+	}
+
+	second := `{"criteria": [], "score": 9, "comment": "On reflection, the blobs are genius."}`
+	if _, err := Review(ctx, repo, fakeProvider{answer: second}, "s1", Request{Personality: p}, RunMeta{Kind: queries.AIRunRerun, UserID: "admin"}); err != nil {
+		t.Fatal(err)
+	}
+
+	subs := []*models.UserPromptSubmission{{ID: "s1"}}
+	if err := queries.AttachAIReviews(repo, ctx, subs); err != nil {
+		t.Fatal(err)
+	}
+	if got := subs[0].AIReview; got == nil || got.Comment != "On reflection, the blobs are genius." {
+		t.Fatalf("player sees %+v; want the re-run's comment", got)
+	}
+	activity, _ := queries.GetAIReviewActivity(repo, ctx, "u1", &config.Config{})
+	if len(activity) != 1 || activity[0].AIReview.Heard {
+		t.Errorf("a re-run should be new to the player again: %+v", activity)
+	}
+
+	runs, err := queries.ListAIRuns(repo, ctx, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	comments := map[string]queries.AIRunKind{}
+	for _, r := range runs {
+		comments[r.Comment] = r.Kind
+	}
+	if comments["A tragedy in three blobs."] != queries.AIRunSubmission || comments["On reflection, the blobs are genius."] != queries.AIRunRerun {
+		t.Errorf("the log should keep both runs: %+v", comments)
 	}
 }

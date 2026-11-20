@@ -474,6 +474,7 @@ export function useAIRuns() {
 /** Re-judges a doodle and replaces the review players see */
 export function useRerunAIReview() {
   const onSuccess = useRefreshAfter();
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: {
       submissionId: string;
@@ -487,6 +488,14 @@ export function useRerunAIReview() {
       await ensureOk(response);
       return (await response.json()) as AIVerdict;
     },
-    onSuccess,
+    onSuccess: (_, { submissionId }) => {
+      onSuccess();
+      // The doodle's page, the wall and the bell, if this admin is looking
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.promptSubmission(submissionId),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.daily });
+      queryClient.invalidateQueries({ queryKey: queryKeys.activityFeed });
+    },
   });
 }

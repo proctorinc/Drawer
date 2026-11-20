@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faFloppyDisk,
   faPlus,
-  faRotate,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons';
 import {
@@ -13,7 +11,6 @@ import {
   useAISettings,
   useAdminEvents,
   useDeleteAIPersonality,
-  useRerunAIReview,
   useSaveAIPersonality,
   useUpdateAISettings,
 } from '../api';
@@ -35,6 +32,7 @@ import {
   Field,
   inputClass,
 } from '../components/aiJudgeForm';
+import { RerunAIButton } from '../components/RerunAIButton';
 import type { FC } from 'react';
 import type {
   AIPersonality,
@@ -421,7 +419,6 @@ const ReviewRow: FC<{ review: AdminAIReview; canRun: boolean }> = ({
   review: r,
   canRun,
 }) => {
-  const rerun = useRerunAIReview();
   return (
     <tr>
       <td className={td}>
@@ -454,9 +451,6 @@ const ReviewRow: FC<{ review: AdminAIReview; canRun: boolean }> = ({
         ) : (
           r.comment
         )}
-        {rerun.error && (
-          <div className="text-coral text-sm">{rerun.error.message}</div>
-        )}
       </td>
       <td className={td}>
         <Tag className={STATUS_CLASS[r.status]}>{r.status}</Tag>
@@ -466,27 +460,18 @@ const ReviewRow: FC<{ review: AdminAIReview; canRun: boolean }> = ({
         </div>
       </td>
       <td className={td}>
-        <button
-          type="button"
-          disabled={!canRun || rerun.isPending}
-          title="judge it again and replace this review"
-          className="text-pencil hover:text-ink disabled:opacity-40 cursor-pointer"
-          onClick={() => rerun.mutate({ submissionId: r.submissionId })}
-        >
-          <FontAwesomeIconSpin spinning={rerun.isPending} />
-        </button>
+        {canRun && (
+          <RerunAIButton
+            submissionId={r.submissionId}
+            personalityId={r.judge.id}
+            judgeName={r.judge.name}
+            artist={r.artist.username}
+          />
+        )}
       </td>
     </tr>
   );
 };
-
-const FontAwesomeIconSpin: FC<{ spinning: boolean }> = ({ spinning }) => (
-  <FontAwesomeIcon
-    icon={faRotate}
-    className={cn(spinning && 'animate-spin')}
-    aria-label="re-run"
-  />
-);
 
 // --- Page ---
 

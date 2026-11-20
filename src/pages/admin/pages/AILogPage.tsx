@@ -12,6 +12,7 @@ import {
   td,
   th,
 } from '../components/ui';
+import { RerunAIButton } from '../components/RerunAIButton';
 import type { AIRun, AIRunKind } from '../api';
 import type { FC } from 'react';
 import { AIJudgeAvatar } from '@/ai/AIJudgeAvatar';
@@ -242,6 +243,9 @@ const AILogPage = () => {
                       <th className={th}>score</th>
                       <th className={th}>comment</th>
                       <th className={th}>when</th>
+                      <th className={th}>
+                        <span className="sr-only">re-run</span>
+                      </th>
                     </>
                   }
                 >
@@ -299,10 +303,24 @@ const AILogPage = () => {
                           </div>
                           <div>{seconds(run.durationMs)}</div>
                         </td>
+                        <td className={td}>
+                          {run.submissionId && (
+                            <RerunAIButton
+                              submissionId={run.submissionId}
+                              personalityId={run.personalityId}
+                              judgeName={run.judgeName}
+                              artist={
+                                run.kind === 'submission'
+                                  ? run.user?.username
+                                  : undefined
+                              }
+                            />
+                          )}
+                        </td>
                       </tr>
                       {open === run.id && (
                         <tr>
-                          <td colSpan={7} className="p-0">
+                          <td colSpan={8} className="p-0">
                             <RunDetails run={run} />
                           </td>
                         </tr>
