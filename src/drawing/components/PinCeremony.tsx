@@ -18,12 +18,13 @@ const PIN_DROP = 620;
 const SWING = 1900;
 const SETTLE = 350;
 
-// The wall's polaroid, which this one copies at a larger scale: a ~140px
-// photo in an 8px white border (p-2), with the pin 32px and its needle ~6px in
-const WALL_PHOTO = 140;
-const WALL_BORDER = 8;
-const WALL_PIN = 32;
-const WALL_PIN_DEPTH = 6;
+// The big polaroid on a doodle's own page, which this one becomes: a 12px
+// white border (p-3), a 40px pin with its needle ~7.5px in, and the star,
+// avatar and comment pill at their usual sizes. Only the photo is scaled, so
+// the little things on it never balloon with the drawing
+const BORDER = 12;
+const PIN = 40;
+const PIN_DEPTH = 7.5;
 // Your polaroid leads the wall, where the first pin leans this way
 const PIN_LEAN = 20;
 // PushPin's needle tip, in its 40×40 viewBox
@@ -32,8 +33,8 @@ const PIN_TIP = { x: 20, y: 36 };
 // the screen's width it takes once it's set down on the board
 const SIDE_MARGIN = 24;
 const BOARD_SHARE = 0.74;
-// The wall's caption strip: pt-2, a row with a 36px avatar, pb-2
-const WALL_CAPTION = 52;
+// The caption strip: pt-3, a row with a 36px avatar, pb-3
+const CAPTION = 60;
 // Your polaroid leads the wall, which tilts its first card this much
 const WALL_TILT = -2;
 // Little ink strokes that flick out where the pin goes in, as angles
@@ -95,23 +96,21 @@ export const PinCeremony: FC<Props> = ({
   const y = from.top - (origin?.y ?? 0);
   const w = from.width;
   const h = from.height;
-  // Set down on the board, the polaroid shrinks to a share of the screen;
-  // everything else is the wall's polaroid scaled up to match it
+  // Set down on the board, the polaroid shrinks to a share of the screen
   const screenWidth = origin?.width ?? Infinity;
   const target = Math.min(
     screenWidth - 2 * SIDE_MARGIN,
     screenWidth * BOARD_SHARE,
   );
-  const fit = Math.min(1, target / (w * (1 + (2 * WALL_BORDER) / WALL_PHOTO)));
+  const fit = Math.min(1, (target - 2 * BORDER) / w);
   const photoW = isPolaroid ? w * fit : w;
   const photoH = isPolaroid ? h * fit : h;
-  const scale = (w * fit) / WALL_PHOTO;
-  const border = WALL_BORDER * scale;
-  const pinSize = WALL_PIN * scale;
+  const border = BORDER;
+  const pinSize = PIN;
   // Where the needle goes in, relative to the frame's top-left
   const pinX = border + photoW / 2;
-  const pinY = WALL_PIN_DEPTH * scale;
-  const polaroidHeight = photoH + border + WALL_CAPTION * scale;
+  const pinY = PIN_DEPTH;
+  const polaroidHeight = photoH + border + CAPTION;
   const burstSize = pinSize * 1.8;
 
   useEffect(() => {
@@ -184,13 +183,13 @@ export const PinCeremony: FC<Props> = ({
         [
           {
             offset: 0,
-            transform: `translateY(${-90 * scale}px) scale(1.35)`,
+            transform: `translateY(-110px) scale(1.35)`,
             opacity: 0,
             easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)',
           },
           {
             offset: 0.55,
-            transform: `translateY(${-10 * scale}px) scale(1.12)`,
+            transform: `translateY(-12px) scale(1.12)`,
             opacity: 1,
             easing: 'cubic-bezier(0.5, 0, 0.9, 0.5)',
           },
@@ -229,7 +228,7 @@ export const PinCeremony: FC<Props> = ({
         joltRef.current,
         [
           { transform: 'translateY(0px)' },
-          { transform: `translateY(${2 * scale}px)` },
+          { transform: `translateY(2.5px)` },
           { transform: 'translateY(0px)' },
         ],
         { duration: 220, easing: 'ease-out', fill: 'none' },
@@ -260,7 +259,7 @@ export const PinCeremony: FC<Props> = ({
       state.cancelled = true;
       running.forEach((animation) => animation.cancel());
     };
-  }, [origin, scale]);
+  }, [origin]);
 
   const spring = 'var(--ease-spring)';
   // A hard-edged polaroid keeps an ink outline around its frame
@@ -334,8 +333,7 @@ export const PinCeremony: FC<Props> = ({
                   transition: `${morph('width')}, ${morph('height')}`,
                 }}
               />
-              {/* The caption strip slides open. Inside is the wall's caption at
-                its real size, zoomed up to this polaroid's scale */}
+              {/* The caption strip slides open, as on the doodle's own page */}
               <div
                 className="grid"
                 style={{
@@ -344,10 +342,7 @@ export const PinCeremony: FC<Props> = ({
                 }}
               >
                 <div className="min-h-0 overflow-hidden">
-                  <div
-                    className="flex items-center gap-2 pt-2 pb-2"
-                    style={{ zoom: scale }}
-                  >
+                  <div className="flex items-center gap-2 pt-3 pb-3">
                     <UserProfileIcon
                       user={user}
                       size="sm"
@@ -365,7 +360,6 @@ export const PinCeremony: FC<Props> = ({
                 style={{
                   top: border,
                   right: border,
-                  zoom: scale,
                   opacity: isPolaroid ? 1 : 0,
                   transition: morph('opacity'),
                 }}

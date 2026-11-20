@@ -143,6 +143,12 @@ export const CheckIcon: FC<IconProps> = (props) => (
   </StrokeIcon>
 );
 
+export const ChevronDownIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M6 9.5l6 6 6-6" />
+  </StrokeIcon>
+);
+
 export const LockIcon: FC<IconProps> = ({ fill, ...props }) => (
   <StrokeIcon {...props}>
     <path

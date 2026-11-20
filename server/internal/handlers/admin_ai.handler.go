@@ -262,6 +262,10 @@ type AdminAIVerdict struct {
 	Criteria []models.AICriterionScore `json:"criteria"`
 	Comment  string                    `json:"comment"`
 	Model    string                    `json:"model"`
+	// What the judge thought it saw, and the hidden penalty for words (already in Score)
+	Seen        string  `json:"seen"`
+	Text        string  `json:"text"`
+	TextPenalty float64 `json:"textPenalty"`
 }
 
 func newAdminAIVerdict(v ai.Verdict, model string) AdminAIVerdict {
@@ -269,7 +273,10 @@ func newAdminAIVerdict(v ai.Verdict, model string) AdminAIVerdict {
 	if criteria == nil {
 		criteria = []models.AICriterionScore{}
 	}
-	return AdminAIVerdict{Score: v.Score, Criteria: criteria, Comment: v.Comment, Model: model}
+	return AdminAIVerdict{
+		Score: v.Score, Criteria: criteria, Comment: v.Comment, Model: model,
+		Seen: v.Seen, Text: v.Text, TextPenalty: v.TextPenalty,
+	}
 }
 
 // loadKeyedSettings loads the settings, responding and returning false when there's no key.
@@ -560,4 +567,17 @@ func HandleGetTodaysJudge(c *gin.Context) {
 		Judge:    models.AIJudge{ID: p.ID, Name: p.Name, Bio: p.Bio, AvatarURL: p.AvatarURL, Decoration: p.Decoration},
 		Criteria: p.Criteria,
 	})
+}
+
+// HandleMarkAIReviewHeard records that you've heard the judge's review of your doodle (its
+// dialogue played), so it reads as read everywhere and doesn't play on its own again.
+func HandleMarkAIReviewHeard(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	userID := middleware.GetUserID(c)
+	if err := queries.MarkAIReviewHeard(appCtx.DB, c.Request.Context(), c.Param("submissionId"), userID); err != nil {
+		log.Printf("Error marking AI review heard: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to mark the review heard"))
+		return
+	}
+	c.Status(http.StatusNoContent)
 }

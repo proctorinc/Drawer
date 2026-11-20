@@ -11,7 +11,7 @@ export const pillClass =
 
 /** A round button sitting on a polaroid's photo, in its top corner */
 export const cornerButtonClass =
-  'absolute z-[5] top-1.5 right-1.5 grid place-items-center size-8 border-[1.5px] border-ink rounded-full cursor-pointer transition-[scale,background-color] duration-300 ease-[var(--ease-spring)] hover:scale-110 active:scale-90';
+  'absolute z-[5] -top-2 -right-2 grid place-items-center size-8 border-[1.5px] border-ink rounded-full cursor-pointer transition-[scale,background-color] duration-300 ease-[var(--ease-spring)] hover:scale-110 active:scale-90';
 
 type Props = {
   /** One of your own doodles */

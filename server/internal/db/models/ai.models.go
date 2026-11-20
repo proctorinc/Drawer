@@ -66,6 +66,8 @@ type AIReview struct {
 	Criteria     []AICriterionScore `json:"criteria"`
 	Comment      string             `json:"comment"`
 	CreatedAt    time.Time          `json:"createdAt"`
+	// The artist has heard it (its dialogue played); set on activity rows only
+	Heard bool `json:"heard,omitempty"`
 	// Admin-only details
 	Model string `json:"-"`
 	Error string `json:"-"`

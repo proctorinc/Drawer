@@ -17,6 +17,8 @@ import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserPr
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { polaroidFrameClass } from '@/components/polaroid';
 import { cn } from '@/utils';
+import { GoldTrim, goldFrameClass, isMasterpiece } from '@/ai/Masterpiece';
+import { ScoreSticker } from '@/ai/AIReviewComment';
 
 // Repeating per-card variety, so the wall looks hand-pinned rather than gridded
 const TILTS = [-2, 1.8, 1, -1.4, 2, -0.8];
@@ -51,6 +53,8 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
     submission.comments.length +
     (submission.aiReview?.status === 'done' ? 1 : 0);
   const tilt = TILTS[index % TILTS.length];
+  // A perfect 10 is framed in gold, once you can see it
+  const golden = !isLocked && isMasterpiece(submission);
 
   function refresh() {
     for (const queryKey of [
@@ -75,7 +79,7 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
     <figure
       className={cn(
         'relative m-0 p-2 pb-0 animate-drop rotate-[var(--tilt)] transition-[rotate,translate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 hover:-translate-y-1 hover:scale-[1.03]',
-        polaroidFrameClass,
+        golden ? goldFrameClass : polaroidFrameClass,
         index % 2 === 1 && 'mt-3',
         festive && 'origin-top',
       )}
@@ -92,6 +96,7 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
         } as CSSProperties
       }
     >
+      {golden && <GoldTrim size="md" />}
       {festive ? (
         <span
           aria-hidden="true"
@@ -117,6 +122,13 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
             <DrawingImage imageUrl={submission.imageUrl} draggable={false} />
           )}
         </Link>
+        {/* The AI judge's score, slapped on the photo's other corner */}
+        {!isLocked && submission.aiReview?.score != null && (
+          <ScoreSticker
+            score={submission.aiReview.score}
+            className="absolute z-10 -top-5 -left-5 scale-75 origin-top-left pointer-events-none"
+          />
+        )}
         {/* Star your own, love a friend's: right on the photo's corner */}
         {isMine ? (
           <PinButton submission={submission} variant="corner" />

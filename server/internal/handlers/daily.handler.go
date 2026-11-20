@@ -150,6 +150,11 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 	if review, err := ai.StartNewSubmissionReview(ctx, appCtx.DB, appCtx.Config, submissionID); err != nil {
 		log.Printf("AI judge: couldn't start reviewing %s: %v", submissionID, err)
 	} else if review != nil {
+		review.OnDone = func(artistID, submissionID string, judge models.AIPersonality, verdict ai.Verdict) {
+			if err := notifications.NotifyUserOfAIReview(appCtx.DB, artistID, submissionID, judge.Name, verdict.Score, appCtx.Config); err != nil {
+				log.Printf("AI judge: couldn't notify %s about %s's review: %v", artistID, judge.Name, err)
+			}
+		}
 		go review.Run(buf)
 	}
 

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Polaroid from './Polaroid';
+import { FriendsToday } from './FriendsToday';
 import { ColorDabs, PromptTitle } from './PromptTitle';
 import type { FC, ReactNode } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
@@ -163,6 +164,7 @@ export const TodayWall = () => {
             )}
             <span className="ml-auto">{today.length} pinned</span>
           </div>
+          <FriendsToday />
         </div>
       }
       submissions={today}

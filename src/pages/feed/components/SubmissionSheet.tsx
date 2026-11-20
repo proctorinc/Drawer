@@ -5,7 +5,7 @@ import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { PinButton } from './PinButton';
 import type { FC } from 'react';
 import type { Comment, ReactionId, UserPromptSubmission } from '@/api/Api';
-import { AIReviewComment } from '@/ai/AIReviewComment';
+import { AIReviewComment, ScoreSticker } from '@/ai/AIReviewComment';
 import {
   queryKeys,
   useAddComment,
@@ -28,6 +28,7 @@ import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserPr
 import { ReactionBar } from '@/reactions/ReactionBar';
 import { bigPolaroidFrameClass } from '@/components/polaroid';
 import { cn, timeAgo } from '@/utils';
+import { GoldTrim, goldFrameClass, isMasterpiece } from '@/ai/Masterpiece';
 
 /** A pin color that varies page to page but stays put for a given doodle */
 function pinColor(id: string) {
@@ -49,6 +50,8 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
   const toggleReaction = useToggleCommentReaction();
   const isDrawingLocked = useIsDrawingLocked();
   const { data: submission = doodle } = usePromptSubmission(doodle.id, doodle);
+  // A perfect 10 is framed in gold, once you can see it
+  const golden = !isDrawingLocked(submission) && isMasterpiece(submission);
   const addComment = useAddComment();
   const [newComment, setNewComment] = useState('');
 
@@ -89,13 +92,27 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
           size={40}
           className="absolute z-10 -top-[30px] left-1/2 -ml-5"
         />
-        <div className={cn('p-3', bigPolaroidFrameClass)}>
+        <div
+          className={cn(
+            'relative p-3',
+            golden ? goldFrameClass : bigPolaroidFrameClass,
+          )}
+        >
+          {golden && <GoldTrim size="lg" label />}
           <div className="relative">
             <DrawingFeedImage
               submission={submission}
               showAvatar={false}
               className="border-0 rounded-none shadow-none"
             />
+            {/* The AI judge's score, slapped on the photo's top-left corner */}
+            {!isDrawingLocked(submission) &&
+              submission.aiReview?.score != null && (
+                <ScoreSticker
+                  score={submission.aiReview.score}
+                  className="absolute z-10 -top-6 -left-6 pointer-events-none"
+                />
+              )}
             {/* As on the wall, starring your own sits on the photo's corner */}
             {submission.user.id === currentUser.id && (
               <PinButton submission={submission} variant="corner" />
@@ -147,15 +164,9 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
       <div className="flex flex-col w-full gap-4">
         <Card>
           <CardContent className="gap-2">
-            {/* The AI judge's verdict always comes first */}
+            {/* The AI judge's verdict leads the comments */}
             {submission.aiReview && (
-              <AIReviewComment
-                review={submission.aiReview}
-                className={cn(
-                  submission.comments.length > 0 &&
-                    'pb-3 mb-1 border-b-2 border-dashed border-line',
-                )}
-              />
+              <AIReviewComment review={submission.aiReview} />
             )}
             {submission.comments.length === 0 && !submission.aiReview && (
               <span className="font-bold text-center text-secondary">

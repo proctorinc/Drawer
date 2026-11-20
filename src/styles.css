@@ -18,6 +18,10 @@
   --color-sky: #dcebff;
   --color-blush: #ffd9d2;
   --color-coral: #ff6b57;
+  /* A perfect 10: the masterpiece frame */
+  --color-gold: #ffc233;
+  --color-gold-deep: #d99100;
+  --color-gold-light: #ffe9a8;
 
   /* Legacy names, mapped onto the sketchbook palette */
   --color-base: var(--color-paper);
@@ -40,6 +44,8 @@
   --animate-highlight: highlight 0.7s 0.25s ease-out both;
   --animate-scribble: scribble 0.9s 0.2s ease-out both;
   --animate-float: float 3s ease-in-out infinite;
+  /* An AI judge's face while it's speaking: a quick, chatty bob */
+  --animate-talk: talk 0.32s ease-in-out infinite;
 
   /* Seasonal event chrome (only mounted while an event is live) */
   --color-xmas-red: #e5483b;
@@ -49,6 +55,25 @@
   --animate-blink: blink 1.8s ease-in-out infinite;
   --animate-twinkle: twinkle 1.4s ease-in-out infinite;
   --animate-sway: sway 4s ease-in-out infinite;
+
+  @keyframes talk {
+    0%,
+    100% {
+      translate: 0 0;
+      rotate: 0deg;
+      scale: 1 1;
+    }
+    30% {
+      translate: 0 -3px;
+      rotate: -3deg;
+      scale: 1.02 0.97;
+    }
+    65% {
+      translate: 0 -1px;
+      rotate: 2deg;
+      scale: 0.98 1.03;
+    }
+  }
 
   /* A gentle rock with a little hop in the middle */
   @keyframes sway {
@@ -478,6 +503,39 @@ body {
   .rank-sheen,
   .rank-pulse,
   .rank-spark {
+    display: none;
+  }
+}
+
+/* A perfect 10's frame catching the light: a hard-edged glint (no blur, no
+   glow, so it stays flat like the rest) sweeps across now and then */
+.gold-shine {
+  position: absolute;
+  inset: -50% auto -50% -60%;
+  width: 28%;
+  background: rgb(255 255 255 / 0.55);
+  rotate: 20deg;
+  animation: gold-shine 3.6s ease-in-out infinite;
+}
+.gold-shine::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 130%;
+  width: 30%;
+  background: rgb(255 255 255 / 0.45);
+}
+@keyframes gold-shine {
+  0% {
+    translate: 0 0;
+  }
+  45%,
+  100% {
+    translate: 620% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gold-shine {
+    animation: none;
     display: none;
   }
 }

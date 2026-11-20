@@ -17,17 +17,17 @@ const GoldenSantaHat: FC = () => <SantaHat golden />;
 export const DECORATIONS: Record<DecorationId, Decoration> = {
   FIRST_SNOW: {
     name: 'first snow',
-    group: 'doodle-vember',
+    group: 'doodlemas',
     Art: FirstSnow,
   },
   CHRISTMAS_LIGHTS: {
     name: 'christmas lights',
-    group: 'doodle-vember',
+    group: 'doodlemas',
     Art: ChristmasLights,
   },
   GOLDEN_SANTA_HAT: {
     name: 'golden santa hat',
-    group: 'doodle-vember',
+    group: 'doodlemas',
     Art: GoldenSantaHat,
   },
 };

@@ -78,12 +78,9 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
     return `${getReaction(reactionId).label}: ${names.join(', ')}`;
   }
 
+  // Nothing to show or do: keep the space, say nothing
   if (!canReact && submission.counts.length === 0) {
-    return (
-      <p className={cn('font-cursive text-xl text-pencil', className)}>
-        no reactions yet
-      </p>
-    );
+    return <div className={className} />;
   }
 
   return (

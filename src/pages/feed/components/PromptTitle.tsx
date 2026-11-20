@@ -16,7 +16,9 @@ export const PromptTitle: FC<{
     draw{' '}
     <span
       className="highlight"
-      style={{ '--hl': highlightColor(colors[2] ?? '#ffd45a') } as CSSProperties}
+      style={
+        { '--hl': highlightColor(colors[2] ?? '#ffd45a') } as CSSProperties
+      }
     >
       {prompt.toLowerCase()}
     </span>

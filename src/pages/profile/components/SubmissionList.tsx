@@ -3,6 +3,8 @@ import type { CSSProperties, FC } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
 import { parseDay } from '@/days';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
+import { GoldTrim, goldFrameClass, isMasterpiece } from '@/ai/Masterpiece';
+import { cn } from '@/utils';
 
 const TILTS = [-1.5, 1.2, 0.6, -0.8, 1.6, -1.1];
 
@@ -39,11 +41,17 @@ const SubmissionList: FC<Props> = ({ prompts }) => (
               key={submission.id}
               to="/draw/submission/$submissionId"
               params={{ submissionId: submission.id }}
-              className="flex flex-col gap-1 p-1.5 pb-1 bg-white shadow-[1px_2px_5px_rgba(43,42,51,0.18)] rotate-[var(--tilt)] transition-[rotate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 hover:scale-105 active:scale-95"
+              className={cn(
+                'relative flex flex-col gap-1 p-1.5 pb-1 rotate-[var(--tilt)] transition-[rotate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 hover:scale-105 active:scale-95',
+                isMasterpiece(submission)
+                  ? goldFrameClass
+                  : 'bg-white shadow-[1px_2px_5px_rgba(43,42,51,0.18)]',
+              )}
               style={
                 { '--tilt': `${TILTS[i % TILTS.length]}deg` } as CSSProperties
               }
             >
+              {isMasterpiece(submission) && <GoldTrim size="sm" label />}
               <div className="aspect-square bg-[#fff8ec] overflow-hidden">
                 <DrawingImage
                   imageUrl={submission.imageUrl}

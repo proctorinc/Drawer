@@ -125,6 +125,7 @@ Each new doodle can get a score and a short in-character comment from an AI judg
 
 - One judge is the **default**; a judge tied to an **event** takes over while that event runs.
 - Every score is **out of 10**. A judge can score up to **3 criteria** (the overall score is then their average, to one decimal), or just one overall score.
+- Every judge is told the game's limits (3 random colors a day, one thick brush, no text tool) and grades with them in mind. Words written on a doodle don't help it: the judge scores the drawing alone, and the overall score quietly loses 10% for a few words or 25% for mostly words (players aren't told; the testing ground shows it). A judge that can't tell what was drawn jokes about what it looks like instead.
 - The **AI judges on** switch stops judging new doodles. Doodles drawn while it's off have no AI record and show no AI UI; reviews already written stay up.
 - **Admin → Testing ground** runs one or more judges side by side on a past doodle or your own prompt and drawing, with unsaved prompt/criteria tweaks. Nothing there reaches players.
 - **Admin → AI log** lists every judge run (real doodles, admin re-runs, tests), failures included, with totals. `OPENAI_BASE_URL` can point the judges at an OpenAI-compatible proxy.

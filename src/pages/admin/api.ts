@@ -297,6 +297,12 @@ export interface AIVerdict {
   criteria: Array<AICriterionScore>;
   comment: string;
   model: string;
+  /** What the judge thought the drawing showed, before reading it as the prompt */
+  seen: string;
+  /** How much of the doodle is words */
+  text: 'none' | 'some' | 'mostly';
+  /** Share taken off the score for words (hidden from players), already applied */
+  textPenalty: number;
 }
 
 export interface AdminAIReview extends Omit<AIReview, 'status'> {

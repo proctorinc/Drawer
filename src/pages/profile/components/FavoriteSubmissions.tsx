@@ -9,6 +9,7 @@ import useUser from '@/auth/hooks/useUser';
 import Banner from '@/components/Banner';
 import { CommentIcon, PencilIcon, StarIcon } from '@/components/icons';
 import { polaroidFrameClass } from '@/components/polaroid';
+import { GoldTrim, goldFrameClass, isMasterpiece } from '@/ai/Masterpiece';
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { ReactionPile } from '@/reactions/ReactionPile';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
@@ -42,6 +43,7 @@ const FavoriteFrame: FC<FrameProps> = ({
 }) => {
   const { submission } = favorite;
   const isLocked = useIsDrawingLocked()(submission);
+  const golden = !isLocked && isMasterpiece(submission);
 
   return (
     <button
@@ -50,12 +52,13 @@ const FavoriteFrame: FC<FrameProps> = ({
       aria-pressed={isSelected}
       className={cn(
         'relative block w-full p-1.5 pb-0 text-left cursor-pointer transition-[rotate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 active:scale-95',
-        polaroidFrameClass,
+        golden ? goldFrameClass : polaroidFrameClass,
         isSelected &&
           'rotate-0 scale-105 outline-3 outline-dashed outline-coral',
         className,
       )}
     >
+      {golden && <GoldTrim size="md" />}
       <PushPin
         color={PIN_COLORS[index % PIN_COLORS.length]}
         lean={index % 2 === 0 ? 18 : -16}

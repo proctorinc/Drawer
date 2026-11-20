@@ -118,17 +118,81 @@ func TestSystemPromptListsCriteria(t *testing.T) {
 
 func TestResponseSchema(t *testing.T) {
 	schema := ResponseSchema(critic())
-	if got := schema["required"]; strings.Join(got.([]string), ",") != "score,comment" {
+	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,text,score,comment" {
 		t.Errorf("required = %v", got)
 	}
 	schema = ResponseSchema(santa())
-	if got := schema["required"]; strings.Join(got.([]string), ",") != "criteria,score,comment" {
+	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,text,criteria,score,comment" {
 		t.Errorf("required = %v", got)
 	}
-	items := schema["properties"].(map[string]any)["criteria"].(map[string]any)["items"].(map[string]any)
-	ids := items["properties"].(map[string]any)["id"].(map[string]any)["enum"].([]string)
-	if strings.Join(ids, ",") != "nice,spirit" {
+
+	// The properties go out in order, so the model looks before it scores
+	raw, err := json.Marshal(schema)
+	if err != nil {
+		t.Fatal(err)
+	}
+	order := []string{`"seen"`, `"text"`, `"criteria"`, `"score"`, `"comment"`}
+	at := -1
+	for _, key := range order {
+		i := strings.Index(string(raw), key)
+		if i < at {
+			t.Fatalf("schema properties out of order, want %v:\n%s", order, raw)
+		}
+		at = i
+	}
+	var decoded struct {
+		Properties struct {
+			Criteria struct {
+				Items struct {
+					Properties struct {
+						ID struct {
+							Enum []string `json:"enum"`
+						} `json:"id"`
+					} `json:"properties"`
+				} `json:"items"`
+			} `json:"criteria"`
+		} `json:"properties"`
+	}
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if ids := decoded.Properties.Criteria.Items.Properties.ID.Enum; strings.Join(ids, ",") != "nice,spirit" {
 		t.Errorf("criterion ids = %v", ids)
+	}
+}
+
+func TestParseVerdictTextPenalty(t *testing.T) {
+	cases := []struct {
+		text        string
+		want        float64
+		wantPenalty float64
+	}{
+		{"none", 8, 0},
+		{"some", 7.2, 0.10}, // 10% off 8
+		{"mostly", 6, 0.25}, // 25% off 8
+		{"nonsense", 8, 0},  // Unknown answers count as no words
+	}
+	for _, c := range cases {
+		v, err := ParseVerdict(`{"seen": " a cat ", "text": "`+c.text+`", "criteria": [{"id": "nice", "score": 7}, {"id": "spirit", "score": 9}], "score": 1, "comment": "Hm."}`, santa())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v.Score != c.want || v.TextPenalty != c.wantPenalty {
+			t.Errorf("text %q: score %v (penalty %v), want %v (%v)", c.text, v.Score, v.TextPenalty, c.want, c.wantPenalty)
+		}
+		// The criteria stay as the judge gave them: the penalty is hidden
+		if v.Criteria[0].Score != 7 || v.Criteria[1].Score != 9 {
+			t.Errorf("text %q changed the criteria: %+v", c.text, v.Criteria)
+		}
+		if v.Seen != "a cat" {
+			t.Errorf("seen = %q", v.Seen)
+		}
+	}
+
+	// Never below 1
+	v, _ := ParseVerdict(`{"text": "mostly", "score": 1, "comment": "Words."}`, critic())
+	if v.Score != 1 {
+		t.Errorf("score = %v, want floored at 1", v.Score)
 	}
 }
 
@@ -205,8 +269,11 @@ func TestPickAIPersonality(t *testing.T) {
 	if err != nil || p.ID != "ai-sir-doodleton" {
 		t.Fatalf("everyday judge = %v, %v; want Sir Doodleton", p.ID, err)
 	}
-	if len(p.Criteria) != 2 || p.Criteria[0].Name != "skill" || p.Criteria[1].Name != "recognizability" {
-		t.Errorf("Sir Doodleton's criteria = %+v; want skill and recognizability", p.Criteria)
+	if len(p.Criteria) != 3 || p.Criteria[0].Name != "skill" || p.Criteria[1].Name != "recognizability" || p.Criteria[2].Name != "composition" {
+		t.Errorf("Sir Doodleton's criteria = %+v; want skill, recognizability and composition", p.Criteria)
+	}
+	if strings.Contains(p.SystemPrompt, "two things only") || !strings.Contains(p.SystemPrompt, "composition") {
+		t.Errorf("Sir Doodleton's prompt should judge on three things:\n%s", p.SystemPrompt)
 	}
 	pickles, err := queries.GetAIPersonality(repo, ctx, "ai-professor-pickles")
 	if err != nil || !pickles.Enabled || pickles.IsDefault || len(pickles.Criteria) != 3 {
@@ -322,7 +389,7 @@ func TestNewSubmissionReviewOnlyWhenSwitchedOn(t *testing.T) {
 	var gotPrompt, gotJudge string
 	old := NewProvider
 	NewProvider = func(Settings) Provider {
-		return recordingProvider{answer: `{"criteria": [{"id": "ai-sir-doodleton-skill", "score": 2}, {"id": "ai-sir-doodleton-recognizability", "score": 4}], "score": 9, "comment": "A banana? I see a boomerang."}`, prompt: &gotPrompt, judge: &gotJudge}
+		return recordingProvider{answer: `{"criteria": [{"id": "ai-sir-doodleton-skill", "score": 2}, {"id": "ai-sir-doodleton-recognizability", "score": 4}, {"id": "ai-sir-doodleton-composition", "score": 3}], "score": 9, "comment": "A banana? I see a boomerang."}`, prompt: &gotPrompt, judge: &gotJudge}
 	}
 	t.Cleanup(func() { NewProvider = old })
 

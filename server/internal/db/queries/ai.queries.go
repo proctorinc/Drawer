@@ -3,7 +3,9 @@ package queries
 import (
 	"context"
 	"database/sql"
+	"drawer-service-backend/internal/config"
 	"drawer-service-backend/internal/db/models"
+	"drawer-service-backend/internal/utils"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -252,7 +254,8 @@ func StartAIReview(repo *sql.DB, ctx context.Context, submissionID string, p mod
 		VALUES (?, ?, 'pending')
 		ON CONFLICT (submission_id) DO UPDATE SET
 			personality_id = excluded.personality_id, status = 'pending', score = NULL,
-			criteria_scores = '[]', comment = '', error = '', created_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP`,
+			criteria_scores = '[]', comment = '', error = '', created_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP,
+			heard_at = NULL`,
 		submissionID, p.ID)
 	if err != nil {
 		return fmt.Errorf("error starting AI review of %s: %w", submissionID, err)
@@ -443,4 +446,76 @@ func GetSubmissionForAIReview(repo *sql.DB, ctx context.Context, submissionID st
 		WHERE s.id = ?`, submissionID).Scan(&sub.ID, &sub.UserID, &sub.Day, &prompt)
 	sub.Prompt = prompt.String
 	return sub, err
+}
+
+// GetAIReviewActivity returns the AI judges' finished reviews of your doodles from the last
+// week, dated when the judge finished, for the activity bell.
+func GetAIReviewActivity(repo *sql.DB, ctx context.Context, userID string, cfg *config.Config) ([]models.Activity, error) {
+	rows, err := repo.QueryContext(ctx, `
+		SELECT `+aiReviewColumns+`, r.updated_at, r.heard_at, COALESCE(dp.prompt, ''), `+activityUserColumns("u")+`
+		FROM ai_reviews r
+		JOIN ai_personalities p ON p.id = r.personality_id
+		JOIN user_submissions s ON s.id = r.submission_id
+		JOIN users u ON u.id = s.user_id
+		LEFT JOIN daily_prompts dp ON dp.day = s.day
+		WHERE s.user_id = ? AND r.status = 'done' AND r.updated_at >= `+activityWindow+`
+		ORDER BY r.updated_at DESC`, userID)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching AI review activity: %w", err)
+	}
+	defer rows.Close()
+
+	activities := []models.Activity{}
+	for rows.Next() {
+		var (
+			review   models.AIReview
+			score    sql.NullFloat64
+			criteria string
+			judgedAt time.Time
+			heardAt  sql.NullTime
+			prompt   string
+			artist   models.User
+		)
+		dest := append([]any{&review.SubmissionID, &review.Status, &score, &criteria, &review.Comment,
+			&review.Model, &review.Error, &review.CreatedAt,
+			&review.Judge.ID, &review.Judge.Name, &review.Judge.Bio, &review.Judge.AvatarURL, &review.Judge.Decoration,
+			&judgedAt, &heardAt, &prompt}, activityUserDest(&artist)...)
+		if err := rows.Scan(dest...); err != nil {
+			return nil, fmt.Errorf("error scanning AI review activity: %w", err)
+		}
+		if score.Valid {
+			review.Score = &score.Float64
+		}
+		review.Criteria = []models.AICriterionScore{}
+		_ = json.Unmarshal([]byte(criteria), &review.Criteria)
+		review.Heard = heardAt.Valid
+		activities = append(activities, models.Activity{
+			ID:       "ai-review-" + review.SubmissionID,
+			User:     artist,
+			Action:   models.ActivityActionAIReview,
+			Date:     judgedAt,
+			AIReview: &review,
+			Submission: &models.ActivitySubmission{
+				ID:       review.SubmissionID,
+				Prompt:   prompt,
+				ImageUrl: utils.GetImageUrl(cfg, utils.GetSubmissionFilename(artist.ID, review.SubmissionID)),
+				Artist:   artist,
+			},
+		})
+	}
+	return activities, rows.Err()
+}
+
+// MarkAIReviewHeard records that the artist has heard their judge's review (its dialogue
+// played), so it counts as read on every device. Someone else's doodle is left alone.
+func MarkAIReviewHeard(repo *sql.DB, ctx context.Context, submissionID, userID string) error {
+	_, err := repo.ExecContext(ctx, `
+		UPDATE ai_reviews SET heard_at = CURRENT_TIMESTAMP
+		WHERE submission_id = ? AND status = 'done' AND heard_at IS NULL
+			AND submission_id IN (SELECT id FROM user_submissions WHERE user_id = ?)`,
+		submissionID, userID)
+	if err != nil {
+		return fmt.Errorf("error marking AI review of %s heard: %w", submissionID, err)
+	}
+	return nil
 }

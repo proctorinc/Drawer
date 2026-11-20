@@ -372,6 +372,17 @@ export const apiClient = {
     return response.json();
   },
 
+  /** You've heard the judge's review of your doodle: it reads as read everywhere */
+  markAIReviewHeard: async (submissionId: string): Promise<void> => {
+    const response = await fetchAPI(
+      'POST',
+      `/ai/reviews/${encodeURIComponent(submissionId)}/heard`,
+    );
+    if (!response.ok) {
+      throw new Error('Failed to mark the review heard');
+    }
+  },
+
   // Favorite Submission
   toggleFavoriteSubmission: async (
     submissionId: string,

@@ -90,6 +90,6 @@ func TestTodaysJudge(t *testing.T) {
 		t.Errorf("players shouldn't see the personality prompt: %s", body)
 	}
 	if _, body = get("2026-12-05"); !strings.Contains(body, `"name":"Santa"`) {
-		t.Errorf("during Doodle-vember, judge = %s; want Santa", body)
+		t.Errorf("during Doodlemas, judge = %s; want Santa", body)
 	}
 }

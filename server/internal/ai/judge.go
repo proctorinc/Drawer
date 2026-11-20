@@ -168,6 +168,8 @@ type NewSubmissionReview struct {
 	submissionID string
 	artistID     string
 	req          Request
+	// OnDone, if set, runs after the verdict is saved, e.g. to tell the artist
+	OnDone func(artistID, submissionID string, judge models.AIPersonality, verdict Verdict)
 }
 
 // StartNewSubmissionReview marks a just-drawn doodle as being judged, if the judges are
@@ -212,11 +214,15 @@ func (r *NewSubmissionReview) Run(image []byte) {
 	req := r.req
 	req.Image = image
 	meta := RunMeta{Kind: queries.AIRunSubmission, UserID: r.artistID}
-	if _, err := finishReview(ctx, r.repo, r.provider, r.submissionID, req, meta); err != nil {
+	verdict, err := finishReview(ctx, r.repo, r.provider, r.submissionID, req, meta)
+	if err != nil {
 		log.Printf("AI judge: %s couldn't review %s: %v", req.Personality.Name, r.submissionID, err)
 		return
 	}
 	log.Printf("AI judge: %s reviewed %s", req.Personality.Name, r.submissionID)
+	if r.OnDone != nil {
+		r.OnDone(r.artistID, r.submissionID, req.Personality, verdict)
+	}
 }
 
 // PickPersonality returns who judges a doodle drawn now: the running event's judge, else

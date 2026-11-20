@@ -3,7 +3,6 @@ import { Link } from '@tanstack/react-router';
 import { CountDownTimer } from '../../daily/CountdownTimer';
 import { useDailyPrompt } from '../../daily/DailyPromptContext';
 import { PastPages, TodayWall } from './components/DayPages';
-import { FriendsToday } from './components/FriendsToday';
 import { SuggestionCards } from './components/SuggestionCards';
 import DrawingCanvas from './components/DrawingCanvas';
 import { PromptTitle } from './components/PromptTitle';
@@ -24,7 +23,7 @@ import Snowfall from '@/events/christmas/Snowfall';
 import { useChristmas } from '@/events/useChristmas';
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { PinCeremony } from '@/drawing/components/PinCeremony';
-import { TodaysJudgeChip } from '@/ai/TodaysJudge';
+import { TodaysJudgeChip, useTodaysJudge } from '@/ai/TodaysJudge';
 
 /** When tomorrow's prompt drops; fixed-width digits so it never jiggles */
 const NextPromptCountdown = () => (
@@ -53,7 +52,6 @@ const PromptHeading = ({ dailyPrompt }: { dailyPrompt: DailyPrompt }) => (
       {dailyPrompt.createdBy && (
         <span>prompt by {dailyPrompt.createdBy.username}</span>
       )}
-      <TodaysJudgeChip />
     </span>
     <PromptTitle prompt={dailyPrompt.prompt} colors={dailyPrompt.colors} />
   </section>
@@ -99,6 +97,7 @@ const DrawingDesk = ({
 }: DrawingDeskProps) => {
   const christmas = useChristmas();
   const user = useUser();
+  const { data: judge } = useTodaysJudge();
 
   return (
     <div className="paper flex justify-center h-dvh overflow-hidden">
@@ -122,6 +121,7 @@ const DrawingDesk = ({
             dailyPrompt.colors.length === 4 ? dailyPrompt.colors[3] : undefined
           }
           onSubmit={onSubmit}
+          belowCanvas={judge && <TodaysJudgeChip />}
           colors={dailyPrompt.colors.slice(0, 3)}
           submitLabel={
             christmas ? (
@@ -267,9 +267,8 @@ const Feed = () => {
   return (
     <Layout>
       <NextPromptCountdown />
-      {dailyPrompt && <FriendsToday />}
-      <TodayWall />
       <ComingSoonCard />
+      <TodayWall />
       <SuggestionCards />
       <SuggestPrompt />
       <PastPages />

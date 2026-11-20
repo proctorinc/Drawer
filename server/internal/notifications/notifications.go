@@ -13,6 +13,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/SherClockHolmes/webpush-go"
@@ -186,4 +187,18 @@ func NotifyUserOfComment(repo *sql.DB, commenterID, commenterUsername, submissio
 	}
 
 	return SendNotificationToUser(repo, submissionOwnerID, data, cfg)
+}
+
+// NotifyUserOfAIReview tells the artist an AI judge has scored and commented on their doodle
+func NotifyUserOfAIReview(repo *sql.DB, artistID, submissionID, judgeName string, score float64, cfg *config.Config) error {
+	data := models.NotificationData{
+		Type:  models.NotificationTypeAIReview,
+		Title: fmt.Sprintf("%s has judged your doodle", judgeName),
+		Body:  fmt.Sprintf("%s/%d. Come hear what %s has to say.", strconv.FormatFloat(score, 'f', -1, 64), models.AIScoreMax, judgeName),
+		// The app plays the judge's dialogue on open (a review you haven't heard pops up),
+		// and that links on to the doodle
+		URL:    "/draw",
+		Action: "judged",
+	}
+	return SendNotificationToUser(repo, artistID, data, cfg)
 }

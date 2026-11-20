@@ -61,7 +61,9 @@ export type ActivityAction =
   | 'achievement'
   | 'level_up'
   | 'friend_request'
-  | 'friend_accepted';
+  | 'friend_accepted'
+  /** An AI judge finished reviewing your doodle; `user` is you */
+  | 'ai_review';
 
 export interface Activity {
   id: string;
@@ -87,6 +89,8 @@ export interface Activity {
     imageUrl: string;
     artist: User;
   };
+  /** On an ai_review row: the judge's review */
+  aiReview?: AIReview;
 }
 
 export interface Comment {
@@ -150,6 +154,8 @@ export interface AIReview {
   criteria: Array<AICriterionScore>;
   comment: string;
   createdAt: string;
+  /** On activity rows: you've heard it (its dialogue played) */
+  heard?: boolean;
 }
 
 export interface FavoriteSubmission {

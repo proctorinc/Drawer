@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { BellIcon, FriendsIcon, PencilIcon, TrophyIcon } from './icons';
@@ -12,6 +12,10 @@ import Badge from '@/pages/trophies/components/Badge';
 import { getReaction } from '@/reactions/catalog';
 import { ReactionSticker } from '@/reactions/ReactionSticker';
 import { cn, timeAgo } from '@/utils';
+import { AIJudgeAvatar } from '@/ai/AIJudgeAvatar';
+import { useAIDialogue, wasReviewShown } from '@/ai/AIDialogue';
+import { formatScore } from '@/ai/score';
+import { isMasterpiece } from '@/ai/Masterpiece';
 
 const useIsMe = () => {
   const { user } = useAuth();
@@ -94,6 +98,15 @@ const ActivityText: FC<{ activity: Activity }> = ({ activity }) => {
           {names} {reactionVerb(activity)} {drawing}
         </>
       );
+    case 'ai_review':
+      return (
+        <>
+          <b className="font-bold">{activity.aiReview?.judge.name}</b> judged{' '}
+          {drawing}
+          {activity.aiReview?.score != null &&
+            `: ${formatScore(activity.aiReview.score)}/10`}
+        </>
+      );
     case 'comment_reaction':
       return (
         <>
@@ -108,7 +121,7 @@ const rowClass =
   'flex items-center gap-3 px-3 py-2.5 hover:bg-paper transition-colors';
 
 /**
- * Comments and reactions open the doodle they're on, your own milestones open Trophies,
+ * AI judges' reviews replay the judge's dialogue, comments and reactions open the doodle they're on, your own milestones open Trophies,
  * pokes open today's page, and everything else opens the other person's profile
  */
 const ActivityLink: FC<{
@@ -119,6 +132,16 @@ const ActivityLink: FC<{
 }> = ({ activity, ...props }) => {
   const isMe = useIsMe();
 
+  // An AI judge's review plays its dialogue right here; that links on to the doodle
+  if (activity.aiReview) {
+    return (
+      <button
+        type="button"
+        {...props}
+        className={cn(props.className, 'w-full text-left cursor-pointer')}
+      />
+    );
+  }
   if (activity.submission) {
     return (
       <Link
@@ -165,7 +188,11 @@ const ActivityThumbnail: FC<{ activity: Activity }> = ({ activity }) => {
       <span className="relative flex-none">
         <DrawingImage
           imageUrl={activity.submission.imageUrl}
-          className="!size-12 bg-[#fff8ec] border-[1.5px] border-ink -rotate-2"
+          className={cn(
+            '!size-12 bg-[#fff8ec] border-[1.5px] border-ink -rotate-2',
+            // A perfect 10 wears a gold mat here too
+            isMasterpiece(activity) && 'outline-[3px] outline-gold',
+          )}
         />
         {/* The newest reaction, stuck on the corner of the doodle it's on */}
         {reactionId && (
@@ -204,36 +231,52 @@ const ActivityThumbnail: FC<{ activity: Activity }> = ({ activity }) => {
 const ActivityItem: FC<{ activity: Activity; onSelect: () => void }> = ({
   activity,
   onSelect,
-}) => (
-  <li>
-    <ActivityLink
-      activity={activity}
-      onClick={onSelect}
-      className={cn(rowClass, !activity.isRead && 'bg-butter/40')}
-    >
-      {/* The whole row is the link, so the avatar shouldn't catch the tap */}
-      <UserProfileIcon
-        user={activity.user}
-        size="sm"
-        className="flex-none pointer-events-none"
-      />
-      <div className="flex flex-col flex-grow min-w-0 leading-tight">
-        <p className="line-clamp-2">
-          <ActivityText activity={activity} />
-        </p>
-        <span className="flex items-center gap-1.5 text-sm text-pencil">
-          {!activity.isRead && (
-            <span className="size-2 bg-coral rounded-full" />
-          )}
-          {timeAgo(activity.date)}
-        </span>
-      </div>
-      <ActivityThumbnail activity={activity} />
-    </ActivityLink>
-  </li>
-);
+}) => {
+  const { showReview } = useAIDialogue();
+  const review = activity.aiReview;
 
-/** Masthead bell: counts what's new for you (comments, reactions, pokes, friend requests, achievements and level-ups), and opens a quick list of them */
+  return (
+    <li>
+      <ActivityLink
+        activity={activity}
+        onClick={() => {
+          onSelect();
+          // The judge says its piece again, over your doodle blown up
+          if (review) showReview(review, activity.submission);
+        }}
+        className={cn(rowClass, !activity.isRead && 'bg-butter/40')}
+      >
+        {/* The whole row is the link, so the avatar shouldn't catch the tap */}
+        {review ? (
+          <AIJudgeAvatar
+            judge={review.judge}
+            className="flex-none pointer-events-none"
+          />
+        ) : (
+          <UserProfileIcon
+            user={activity.user}
+            size="sm"
+            className="flex-none pointer-events-none"
+          />
+        )}
+        <div className="flex flex-col flex-grow min-w-0 leading-tight">
+          <p className="line-clamp-2">
+            <ActivityText activity={activity} />
+          </p>
+          <span className="flex items-center gap-1.5 text-sm text-pencil">
+            {!activity.isRead && (
+              <span className="size-2 bg-coral rounded-full" />
+            )}
+            {timeAgo(activity.date)}
+          </span>
+        </div>
+        <ActivityThumbnail activity={activity} />
+      </ActivityLink>
+    </li>
+  );
+};
+
+/** Masthead bell: counts what's new for you (comments, reactions, AI judges' reviews, pokes, friend requests, achievements and level-ups), and opens a quick list of them */
 const ActivityBell = () => {
   const queryClient = useQueryClient();
   const { data } = useActivityFeed();
@@ -242,6 +285,21 @@ const ActivityBell = () => {
 
   const activities = data?.activities ?? [];
   const unseen = activities.filter((activity) => !activity.isRead).length;
+
+  // A judge that finished while you were away (say, the app was closed) says its
+  // piece when you come back, once
+  const { showReview } = useAIDialogue();
+  const unheard = activities.find(
+    (activity) =>
+      activity.aiReview &&
+      !activity.isRead &&
+      !wasReviewShown(activity.aiReview.submissionId),
+  );
+  useEffect(() => {
+    if (unheard?.aiReview) {
+      showReview(unheard.aiReview, unheard.submission);
+    }
+  }, [unheard, showReview]);
 
   function close() {
     setOpen(false);

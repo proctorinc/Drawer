@@ -18,6 +18,8 @@ type Props = {
   backgroundColor?: string;
   /** Shrink the canvas to fit the height this component is given */
   fit?: boolean;
+  /** A one-line note tucked right under the canvas, e.g. who's judging today */
+  belowCanvas?: ReactNode;
 } & Omit<HTMLAttributes<HTMLDivElement>, 'onSubmit'>;
 
 const DrawingCanvas: FC<Props> = ({
@@ -34,6 +36,7 @@ const DrawingCanvas: FC<Props> = ({
   canvasProps,
   backgroundColor,
   fit = false,
+  belowCanvas,
   ...props
 }) => {
   const { canvasRef, hasInk, getPng } = useDrawing();
@@ -86,7 +89,7 @@ const DrawingCanvas: FC<Props> = ({
         )}
       >
         {/* Not pinned yet: the button pins it. Square to the screen so strokes land where the finger is */}
-        <div className="relative animate-drop">
+        <div className="relative flex flex-col animate-drop">
           <div
             className={cn(
               'overflow-hidden bg-white border-2 border-ink shadow-pencil',
@@ -100,10 +103,19 @@ const DrawingCanvas: FC<Props> = ({
               className={cn(
                 fit &&
                   'max-w-[min(calc(100cqw-4px),var(--canvas-w))] max-h-[min(calc(100cqh-4px),var(--canvas-h))]',
+                // Leave room for the note's line (h-6 + mt-2.5) under the canvas
+                fit &&
+                  belowCanvas &&
+                  'max-h-[min(calc(100cqh-4px-2.125rem),var(--canvas-h))]',
               )}
               {...canvasProps}
             />
           </div>
+          {belowCanvas && (
+            <div className="flex items-center justify-center h-6 mt-2.5 text-sm text-pencil">
+              {belowCanvas}
+            </div>
+          )}
         </div>
       </div>
       {colors && <Toolbar colors={colors} />}

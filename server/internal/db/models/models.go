@@ -131,6 +131,8 @@ const (
 	ActivityActionLevelUp        ActivityAction = "level_up"
 	ActivityActionFriendRequest  ActivityAction = "friend_request"
 	ActivityActionFriendAccepted ActivityAction = "friend_accepted"
+	// An AI judge finished reviewing your doodle
+	ActivityActionAIReview ActivityAction = "ai_review"
 )
 
 type Activity struct {
@@ -151,6 +153,8 @@ type Activity struct {
 	Achievement *Achievement        `json:"achievement,omitempty"`
 	Level       int                 `json:"level,omitempty"`
 	Submission  *ActivitySubmission `json:"submission,omitempty"`
+	// The AI judge's review, on an ai_review row (User is then you, the artist)
+	AIReview *AIReview `json:"aiReview,omitempty"`
 }
 
 // ActivitySubmission is the drawing an activity happened on
@@ -174,6 +178,7 @@ const (
 	NotificationTypeReaction         NotificationType = "reaction"
 	NotificationTypeComment          NotificationType = "comment"
 	NotificationTypeEvent            NotificationType = "event"
+	NotificationTypeAIReview         NotificationType = "ai_review"
 )
 
 type NotificationData struct {

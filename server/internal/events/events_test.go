@@ -19,7 +19,7 @@ func christmasEvent() models.Event {
 	countdownDays := 29
 	return models.Event{
 		Slug:          "christmas-2026",
-		Name:          "Doodle-vember",
+		Name:          "Doodlemas",
 		Theme:         "christmas",
 		StartsAt:      utc("2026-11-27T00:00:00Z"),
 		EndsAt:        utc("2027-01-01T00:00:00Z"),

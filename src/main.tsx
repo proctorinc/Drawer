@@ -18,6 +18,7 @@ import App from './pages/feed/Feed.tsx';
 import CreateProfilePage from './pages/auth/CreateProfilePage.tsx';
 import { UserProfileProvider } from './pages/profile/context/UserProfileContext.tsx';
 import { DailyPromptProvider } from './daily/DailyPromptContext.tsx';
+import { AIDialogueProvider } from './ai/AIDialogue.tsx';
 import { TodayDrawingProvider } from './daily/TodayDrawingProvider.tsx';
 import { DrawingProvider } from './drawing/DrawingContext.tsx';
 import LoginPage from './pages/auth/LoginPage.tsx';
@@ -67,10 +68,12 @@ const rootRoute = createRootRoute({
         <AuthProvider>
           <BrandProvider>
             <NotificationProvider>
-              <DailyPromptProvider>
-                <ImpersonationBanner />
-                <Outlet />
-              </DailyPromptProvider>
+              <AIDialogueProvider>
+                <DailyPromptProvider>
+                  <ImpersonationBanner />
+                  <Outlet />
+                </DailyPromptProvider>
+              </AIDialogueProvider>
             </NotificationProvider>
           </BrandProvider>
         </AuthProvider>

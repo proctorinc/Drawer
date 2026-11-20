@@ -3,6 +3,7 @@ import type { UserPromptSubmission } from '@/api/Api';
 import type { CalendarEvent } from '@/events/useCalendarEvent';
 import { parseDay } from '@/days';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
+import { GoldTrim, isMasterpiece } from '@/ai/Masterpiece';
 import { LockedDrawing } from '@/drawing/components/LockedDrawing';
 import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 import { cn } from '@/utils';
@@ -91,8 +92,12 @@ const CalendarGrid = ({
             className={cn(
               'relative aspect-square cursor-pointer disabled:cursor-default transition-[scale,rotate] duration-300 ease-[var(--ease-spring)] animate-in zoom-in-50 fade-in fill-mode-both',
               drawing
-                ? 'bg-white p-[3px] border-[1.5px] border-ink rotate-[var(--tilt)] hover:rotate-0 hover:scale-110'
+                ? 'p-[3px] border-[1.5px] border-ink rotate-[var(--tilt)] hover:rotate-0 hover:scale-110'
                 : 'rounded-md',
+              drawing &&
+                (!isLocked(drawing) && isMasterpiece(drawing)
+                  ? 'bg-gold'
+                  : 'bg-white'),
               isToday &&
                 'outline-2 outline-dashed outline-coral outline-offset-2',
               // Event days stay bright ahead of time, so they read as something to look forward to
@@ -109,6 +114,9 @@ const CalendarGrid = ({
             }
             onClick={() => drawing && onDrawingClick(drawing)}
           >
+            {drawing && !isLocked(drawing) && isMasterpiece(drawing) && (
+              <GoldTrim size="sm" label />
+            )}
             {drawing && isLocked(drawing) ? (
               <LockedDrawing className="border-0" />
             ) : drawing ? (

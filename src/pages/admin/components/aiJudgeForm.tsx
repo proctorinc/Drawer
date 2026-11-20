@@ -127,6 +127,15 @@ export const VerdictPreview: FC<{
         createdAt: new Date().toISOString(),
       }}
     />
-    <span className="text-xs text-pencil">{verdict.model}</span>
+    <span className="text-xs text-pencil">
+      {verdict.seen && <>saw: {verdict.seen} · </>}
+      {verdict.textPenalty > 0 && (
+        <>
+          {verdict.text === 'mostly' ? 'mostly words' : 'some words'}: −
+          {Math.round(verdict.textPenalty * 100)}% ·{' '}
+        </>
+      )}
+      {verdict.model}
+    </span>
   </div>
 );

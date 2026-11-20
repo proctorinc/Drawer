@@ -35,6 +35,9 @@ func HandleGetActivity(c *gin.Context) {
 		}},
 		{"pokes", func() ([]models.Activity, error) { return queries.GetPokesReceived(appCtx.DB, ctx, userID) }},
 		{"achievements", func() ([]models.Activity, error) { return queries.GetAchievementActivity(appCtx.DB, ctx, userID) }},
+		{"AI reviews", func() ([]models.Activity, error) {
+			return queries.GetAIReviewActivity(appCtx.DB, ctx, userID, appCtx.Config)
+		}},
 		{"level-ups", func() ([]models.Activity, error) { return getLevelUps(appCtx.DB, ctx, requester) }},
 	} {
 		found, err := source.get()
@@ -57,6 +60,10 @@ func HandleGetActivity(c *gin.Context) {
 	}
 	for i := range activities {
 		activities[i].IsRead = !activities[i].Date.After(seenAt)
+		// Hearing a judge's review out loud reads it, wherever you heard it
+		if review := activities[i].AIReview; review != nil && review.Heard {
+			activities[i].IsRead = true
+		}
 	}
 
 	pokedToday, err := queries.GetPokeesOn(appCtx.DB, ctx, userID, utils.GetFormattedDate(time.Now()))

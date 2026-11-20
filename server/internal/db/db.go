@@ -135,7 +135,7 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 		-- Insert events (mirrors the seed in migrations/1795032990_add_events.up.sql)
 		INSERT OR IGNORE INTO events (id, slug, name, theme, starts_at, ends_at, countdown_days)
 		VALUES
-			('event1', 'christmas-2026', 'Doodle-vember', 'christmas', '2026-11-27T00:00:00Z', '2027-01-01T00:00:00Z', 29);
+			('event1', 'christmas-2026', 'Doodlemas', 'christmas', '2026-11-27T00:00:00Z', '2027-01-01T00:00:00Z', 29);
 
 		-- Event reactions, stickers and prompts (mirror migrations/1795035100_add_event_features.up.sql
 		-- and 1795035200_seed_christmas_prompts.up.sql)
@@ -145,8 +145,8 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 
 		INSERT OR IGNORE INTO achievements (id, name, description, image_url, achievement_field, achievement_value)
 		VALUES
-			('christmas-2026-first-snow', 'first snow', 'Draw your first doodle of Doodle-vember', '', 'EVENT_SUBMISSION_TOTAL', 1),
-			('christmas-2026-twelve-days', 'twelve days of doodles', 'Draw 12 doodles during Doodle-vember', '', 'EVENT_SUBMISSION_TOTAL', 12),
+			('christmas-2026-first-snow', 'first snow', 'Draw your first doodle of Doodlemas', '', 'EVENT_SUBMISSION_TOTAL', 1),
+			('christmas-2026-twelve-days', 'twelve days of doodles', 'Draw 12 doodles during Doodlemas', '', 'EVENT_SUBMISSION_TOTAL', 12),
 			('christmas-2026-doodle-claus', 'doodle claus', 'Doodle every day from Nov 27 to Dec 25', '', 'EVENT_COUNTDOWN_TOTAL', 29);
 
 		INSERT OR IGNORE INTO event_achievements (achievement_id, event_id) VALUES
@@ -340,6 +340,13 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 	}
 	if _, err = db.Exec(string(aiSeed)); err != nil {
 		return fmt.Errorf("failed to seed AI judges: %w", err)
+	}
+	composition, err := os.ReadFile("./migrations/1795130300_doodleton_composition.up.sql")
+	if err != nil {
+		return fmt.Errorf("failed to read Sir Doodleton's composition criterion: %w", err)
+	}
+	if _, err = db.Exec(string(composition)); err != nil {
+		return fmt.Errorf("failed to add Sir Doodleton's composition criterion: %w", err)
 	}
 
 	// Sample reviews, so the AI comments show up without an OpenAI key

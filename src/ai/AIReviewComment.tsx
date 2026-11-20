@@ -24,7 +24,9 @@ export const ScoreSticker: FC<{ score: number; className?: string }> = ({
 );
 
 /** One criterion's artwork, name and score */
-const CriterionChip: FC<{ criterion: AICriterionScore }> = ({ criterion }) => (
+export const CriterionChip: FC<{ criterion: AICriterionScore }> = ({
+  criterion,
+}) => (
   <span
     className="inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full border-[1.5px] border-ink bg-white text-sm leading-tight"
     title={criterion.description}
@@ -45,8 +47,8 @@ const CriterionChip: FC<{ criterion: AICriterionScore }> = ({ criterion }) => (
 type Props = { review: AIReview; className?: string };
 
 /**
- * The AI judge's comment, laid out like a friend's but signed with its name and
- * an "AI judge" tag, and carrying its score. Its face (or name) opens a drawer
+ * The AI judge's comment, laid out like a friend's but signed with its name
+ * (its avatar's "AI" tag says what it is), and carrying its score. Its face (or name) opens a drawer
  * about the judge.
  */
 export const AIReviewComment: FC<Props> = ({ review, className }) => {
@@ -104,9 +106,6 @@ export const AIReviewComment: FC<Props> = ({ review, className }) => {
               >
                 {judge.name}
               </button>
-              <span className="px-1.5 rounded-full border-[1.5px] border-ink bg-sky text-xs font-bold">
-                AI judge
-              </span>
             </span>
             <p>{review.comment}</p>
           </div>
