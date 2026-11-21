@@ -448,9 +448,8 @@ func GetUserDataFromDB(repo *sql.DB, ctx context.Context, userID string, cfg *co
 		}
 	}
 
-	totalDrawingsQuery := `SELECT COUNT(*) FROM user_submissions WHERE user_id = ?`
-	var totalDrawings int
-	err = repo.QueryRowContext(ctx, totalDrawingsQuery, userID).Scan(&totalDrawings)
+	// Counted from their stats start day, like everything else that measures progress
+	totalDrawings, err := CalculateSubmissionCount(repo, ctx, userID)
 	if err != nil {
 		log.Printf("Error fetching total drawings for user %s: %v", userID, err)
 		return models.GetMeResponse{}, err
@@ -952,59 +951,17 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 		}
 	}
 
-	totalDrawingsQuery := `SELECT COUNT(*) FROM user_submissions WHERE user_id = ?`
-	var totalDrawings int
-	err = repo.QueryRowContext(ctx, totalDrawingsQuery, userID).Scan(&totalDrawings)
+	// Counted from their stats start day, like everything else that measures progress
+	totalDrawings, err := CalculateSubmissionCount(repo, ctx, userID)
 	if err != nil {
 		log.Printf("Error fetching total drawings for user %s: %v", userID, err)
 		return models.GetMeResponse{}, err
 	}
 
-	// Calculate current streak - consecutive days of submissions (Go implementation)
-	var currentStreak int
-	rows, err = repo.QueryContext(ctx, `
-		SELECT day FROM user_submissions
-		WHERE user_id = ?
-		ORDER BY day DESC
-	`, userID)
+	currentStreak, err := CalculateSubmissionActiveStreak(repo, ctx, userID)
 	if err != nil {
-		log.Printf("Error fetching submission days for streak: %v", err)
+		log.Printf("Error calculating streak for user %s: %v", userID, err)
 		currentStreak = 0
-	} else {
-		defer rows.Close()
-		var days []string
-		for rows.Next() {
-			var day string
-			if err := rows.Scan(&day); err == nil {
-				days = append(days, day)
-			}
-		}
-		streak := 0
-		if len(days) > 0 {
-			today := time.Now().UTC().Truncate(24 * time.Hour)
-			firstDay, _ := time.Parse("2006-01-02", days[0])
-			var streakStart time.Time
-			if firstDay.Equal(today) {
-				streakStart = today
-			} else {
-				streakStart = today.AddDate(0, 0, -1)
-			}
-			for _, dayStr := range days {
-				d, err := time.Parse("2006-01-02", dayStr)
-				if err != nil {
-					log.Printf("Streak: skipping unparsable day string: %s", dayStr)
-					continue
-				}
-				d = d.Truncate(24 * time.Hour)
-				if d.Equal(streakStart) {
-					streak++
-					streakStart = streakStart.AddDate(0, 0, -1)
-				} else if d.Before(streakStart) {
-					break
-				}
-			}
-		}
-		currentStreak = streak
 	}
 
 	response.Stats = models.UserStats{

@@ -2,6 +2,8 @@ package queries
 
 import (
 	"context"
+	"drawer-service-backend/internal/config"
+	"drawer-service-backend/internal/db/models"
 	"os"
 	"testing"
 	"time"
@@ -75,6 +77,45 @@ func TestStatsStartDay(t *testing.T) {
 	}
 	if n, _ := CalculateSubmissionCount(db, ctx, "pal"); n != 1 {
 		t.Errorf("pal drawings = %d, want 1", n)
+	}
+
+	// Profiles, your own and as a friend sees it, show the same restarted drawing count
+	mine, err := GetUserDataFromDB(db, ctx, "me", &config.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	theirs, err := GetUserProfileFromDB(db, ctx, "me", "pal", &config.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, stats := range map[string]models.UserStats{"own profile": mine.Stats, "friend's view": theirs.Stats} {
+		if stats.TotalDrawings != 2 {
+			t.Errorf("%s total drawings = %d, want 2", name, stats.TotalDrawings)
+		}
+	}
+}
+
+// Friends made before the stats start day don't count toward friend achievements
+func TestStatsStartDayFriends(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+	_, err := db.Exec(`
+		INSERT INTO users (id, username, email, stats_start_day) VALUES
+			('me', 'me', 'me@x', '2026-11-19'), ('a', 'a', 'a@x', NULL), ('b', 'b', 'b@x', NULL),
+			('c', 'c', 'c@x', NULL);
+		INSERT INTO friendships (user1, user2, state, inviter_id, created_at, accepted_at) VALUES
+			('me', 'a', 'accepted', 'me', '2026-11-01 10:00:00', '2026-11-01 10:00:00'),
+			('b', 'me', 'accepted', 'b', '2026-11-01 10:00:00', NULL),
+			('me', 'c', 'accepted', 'me', '2026-11-10 10:00:00', '2026-11-20 10:00:00');
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n, err := CalculateFriendCount(db, ctx, "me"); err != nil || n != 1 {
+		t.Errorf("my friends = %d (%v), want 1, accepted after the start day", n, err)
+	}
+	if n, err := CalculateFriendCount(db, ctx, "a"); err != nil || n != 1 {
+		t.Errorf("a's friends = %d (%v), want 1, with no start day", n, err)
 	}
 }
 

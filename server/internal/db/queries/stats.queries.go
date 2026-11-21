@@ -168,15 +168,17 @@ func CalculateReactionSubmissionCount(repo *sql.DB, ctx context.Context, userId 
 }
 
 func CalculateFriendCount(repo *sql.DB, ctx context.Context, userId string) (int, error) {
+	// Friends made before the stats start day don't count, as with everything else
 	query := `
 		SELECT COUNT(*)
 		FROM friendships
 		WHERE (user1 = ? OR user2 = ?)
 		AND state = 'accepted'
+		AND ` + countedAt("?", "COALESCE(accepted_at, created_at)") + `
 	`
 
 	var count int
-	err := repo.QueryRowContext(ctx, query, userId, userId).Scan(&count)
+	err := repo.QueryRowContext(ctx, query, userId, userId, userId).Scan(&count)
 
 	if err != nil {
 		return 0, err

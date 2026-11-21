@@ -36,10 +36,11 @@ func GetUserSubmissionDays(repo *sql.DB, ctx context.Context, userID, firstDay, 
 }
 
 // reactionsReceivedSQL counts other users' reactions on u.id's submissions from days [?, ?].
-const reactionsReceivedSQL = `(
+var reactionsReceivedSQL = `(
 	SELECT COUNT(*) FROM reactions r
 	JOIN user_submissions rs ON r.content_type = 'submission' AND r.content_id = rs.id
 	WHERE rs.user_id = u.id AND r.user_id != u.id AND rs.day BETWEEN ? AND ?
+		AND ` + countedDay("rs.user_id", "rs.day") + `
 )`
 
 // CountReactionsReceived counts other users' reactions on the user's submissions from [firstDay, lastDay].
@@ -63,7 +64,8 @@ type EventLeaderboardEntry struct {
 func GetEventLeaderboard(repo *sql.DB, ctx context.Context, userID, firstDay, lastDay string) ([]EventLeaderboardEntry, error) {
 	query := `
 		SELECT u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
-			(SELECT COUNT(*) FROM user_submissions us WHERE us.user_id = u.id AND us.day BETWEEN ? AND ?) AS doodles,
+			(SELECT COUNT(*) FROM user_submissions us WHERE us.user_id = u.id AND us.day BETWEEN ? AND ?
+				AND ` + countedDay("us.user_id", "us.day") + `) AS doodles,
 			` + reactionsReceivedSQL + ` AS reactions_received
 		FROM users u
 		WHERE u.id = ? OR u.id IN (
