@@ -5,6 +5,8 @@
  * browser can't do is skipped quietly.
  */
 
+import { getFeedbackSettings } from './feedbackSettings';
+
 // ---------------------------------------------------------------- haptics
 
 const hasWindow = typeof window !== 'undefined';
@@ -13,9 +15,33 @@ const matches = (query: string) =>
   hasWindow &&
   (window as { matchMedia?: typeof window.matchMedia }).matchMedia?.(query)
     .matches === true;
-// Not every browser has vibrate (iOS Safari doesn't), whatever the types say
-const canVibrate = hasWindow && 'vibrate' in navigator;
 const isCoarse = matches('(pointer: coarse)');
+// Not every browser has vibrate (iOS Safari doesn't), whatever the types say.
+// Desktop Chrome has it with no motor behind it, so it only counts on a
+// device held in the hand.
+const canVibrate = hasWindow && 'vibrate' in navigator && isCoarse;
+// iPhones tick through a switch from iOS 18 on (see iosTick); iPads have no
+// motor at all, and say iPad or pass as a Mac in their user agent
+const iPhoneVersion = hasWindow
+  ? Number(/iPhone OS (\d+)_/.exec(navigator.userAgent)?.[1] ?? 0)
+  : 0;
+const canTick = !canVibrate && isCoarse && iPhoneVersion >= 18;
+/**
+ * Whether this device can buzz at all. Browsers can't say whether there's a
+ * motor, so this is the best guess: a phone with vibrate, or an iPhone.
+ */
+export const canBuzz = canVibrate || canTick;
+
+// By level, 0 (none) to 4. A buzz lasts longer the higher it goes; the
+// iPhone's tick can't get stronger, so ticks under a moving finger also come
+// closer together (and Android's too, so the levels feel alike)
+const BUZZ_LENGTH = [0, 0.5, 0.75, 1, 1.6];
+const BUZZ_SPACING = [0, 2.2, 1.5, 1, 0.75];
+// Times the master volume
+const SOUND_VOLUME = [0, 0.3, 0.6, 1, 1.5];
+
+const vibrateLevel = () => getFeedbackSettings().vibrate;
+const soundLevel = () => getFeedbackSettings().sound;
 
 let iosSwitch: HTMLLabelElement | null = null;
 
@@ -27,6 +53,7 @@ function iosTick() {
   if (!iosSwitch) {
     const label = document.createElement('label');
     label.setAttribute('aria-hidden', 'true');
+    label.dataset.sound = 'off';
     label.style.cssText =
       'position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
     const input = document.createElement('input');
@@ -36,22 +63,26 @@ function iosTick() {
     label.appendChild(input);
     // Its clicks are ours; keep them from reaching the app's own handlers
     label.addEventListener('click', (event) => event.stopPropagation());
-    document.body.appendChild(label);
     iosSwitch = label;
   }
+  // A modal dialog makes the rest of the page inert, so the switch has to
+  // live inside one while it's open (as when trying out the settings)
+  const parent = document.querySelector('dialog:modal') ?? document.body;
+  if (iosSwitch.parentElement !== parent) parent.appendChild(iosSwitch);
   iosSwitch.click();
 }
 
 /** A tap of feedback, for devices held in the hand */
 function buzz(ms: number) {
-  if (!hasWindow) return;
+  const level = vibrateLevel();
+  if (!hasWindow || level === 0) return;
   if (canVibrate) {
     try {
-      navigator.vibrate(ms);
+      navigator.vibrate(Math.max(1, Math.round(ms * BUZZ_LENGTH[level])));
     } catch {
       // Blocked (no user gesture yet, or turned off): fine
     }
-  } else if (isCoarse) {
+  } else if (canTick) {
     iosTick();
   }
 }
@@ -60,6 +91,8 @@ function buzz(ms: number) {
 
 let audio: AudioContext | null = null;
 let master: GainNode | null = null;
+/** Send to a soft echo, so musical notes hang in the air a moment */
+let space: GainNode | null = null;
 let grainBuffer: AudioBuffer | null = null;
 
 function getAudio(): AudioContext | null {
@@ -78,9 +111,21 @@ function getAudio(): AudioContext | null {
       return null;
     }
     master = audio.createGain();
-    master.gain.value = 0.6;
     master.connect(audio.destination);
+    space = audio.createGain();
+    space.gain.value = 0.14;
+    const delay = audio.createDelay(1);
+    delay.delayTime.value = 0.31;
+    const echo = audio.createGain();
+    echo.gain.value = 0.25;
+    // Each repeat a little duller than the last
+    const damp = audio.createBiquadFilter();
+    damp.type = 'lowpass';
+    damp.frequency.value = 1400;
+    space.connect(delay).connect(damp).connect(echo).connect(delay);
+    damp.connect(master);
   }
+  if (master) master.gain.value = 0.6 * SOUND_VOLUME[soundLevel()];
   if (audio.state === 'suspended') void audio.resume().catch(() => {});
   return audio;
 }
@@ -102,7 +147,7 @@ if (hasWindow) {
   }
 }
 
-/** Graphite on paper: soft hiss with a sprinkle of tiny catches in the grain */
+/** Soft noise with the odd faint catch, for the brush under the tip */
 function getGrain(ctx: AudioContext) {
   if (grainBuffer && grainBuffer.sampleRate === ctx.sampleRate)
     return grainBuffer;
@@ -112,24 +157,37 @@ function getGrain(ctx: AudioContext) {
   let catchLeft = 0;
   let catchLevel = 0;
   for (let i = 0; i < length; i++) {
-    if (catchLeft <= 0 && Math.random() < 0.0015) {
-      catchLeft = Math.floor(ctx.sampleRate * (0.002 + Math.random() * 0.006));
-      catchLevel = 0.5 + Math.random() * 0.6;
+    if (catchLeft <= 0 && Math.random() < 0.0006) {
+      catchLeft = Math.floor(ctx.sampleRate * (0.003 + Math.random() * 0.008));
+      catchLevel = 0.35 + Math.random() * 0.25;
     }
-    const level = catchLeft-- > 0 ? catchLevel : 0.28;
+    const level = catchLeft-- > 0 ? catchLevel : 0.25;
     data[i] = (Math.random() * 2 - 1) * level;
   }
   grainBuffer = buffer;
   return buffer;
 }
 
-type Scratch = {
+/**
+ * How worn-in the sound is, 0 to 1. It climbs while you keep drawing and
+ * eases back while you rest, so filling a big patch quiets down to a murmur
+ * instead of droning, and the first stroke after a pause sounds fresh.
+ */
+let tire = 0;
+let lastActive = 0;
+const TIRE_AFTER_MS = 10000;
+const REST_MS = 1800;
+
+/** A low, quiet brush that breathes with how fast the tip moves */
+type Brush = {
   source: AudioBufferSourceNode;
   filter: BiquadFilterNode;
   gain: GainNode;
+  eraser: boolean;
 };
 
-function startScratch(): Scratch | null {
+function startBrush(eraser: boolean): Brush | null {
+  if (soundLevel() === 0) return null;
   const ctx = getAudio();
   if (!ctx || !master || ctx.state !== 'running') return null;
   const source = ctx.createBufferSource();
@@ -139,34 +197,224 @@ function startScratch(): Scratch | null {
   const offset = Math.random() * source.buffer.duration;
   const highpass = ctx.createBiquadFilter();
   highpass.type = 'highpass';
-  highpass.frequency.value = 900;
+  highpass.frequency.value = 160;
   const filter = ctx.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.frequency.value = 2400;
-  filter.Q.value = 0.7;
+  filter.type = 'lowpass';
+  filter.frequency.value = eraser ? 300 : 550;
+  filter.Q.value = 0.4;
   const gain = ctx.createGain();
   gain.gain.value = 0;
   source.connect(highpass).connect(filter).connect(gain).connect(master);
   source.start(ctx.currentTime, offset);
-  return { source, filter, gain };
+  return { source, filter, gain, eraser };
 }
 
-function setScratch(scratch: Scratch, speed: number) {
-  const ctx = scratch.source.context;
-  // Speed is in CSS pixels per millisecond; a brisk stroke is around 1.5
-  const amount = Math.min(1, speed / 1.5);
+function setBrush(brush: Brush, speed: number) {
+  const ctx = brush.source.context;
+  // Speed is in CSS pixels per millisecond; a brisk stroke is around 1.5.
+  // The root keeps slow strokes audible without fast ones shouting.
+  const amount = Math.sqrt(Math.min(1, speed / 1.8));
+  const loud = amount * (1 - 0.65 * tire) * (brush.eraser ? 0.16 : 0.12);
   const now = ctx.currentTime;
-  scratch.gain.gain.setTargetAtTime(amount * 0.22, now, 0.03);
-  scratch.filter.frequency.setTargetAtTime(1800 + amount * 2600, now, 0.05);
+  brush.gain.gain.setTargetAtTime(loud, now, 0.12);
+  brush.filter.frequency.setTargetAtTime(
+    brush.eraser ? 300 + amount * 500 : 550 + amount * 900,
+    now,
+    0.15,
+  );
 }
 
-function stopScratch(scratch: Scratch) {
-  const ctx = scratch.source.context;
+function stopBrush(brush: Brush) {
+  const ctx = brush.source.context;
   const now = ctx.currentTime;
-  scratch.gain.gain.cancelScheduledValues(now);
-  scratch.gain.gain.setTargetAtTime(0, now, 0.025);
-  scratch.source.stop(now + 0.2);
+  brush.gain.gain.cancelScheduledValues(now);
+  brush.gain.gain.setTargetAtTime(0, now, 0.06);
+  brush.source.stop(now + 0.4);
 }
+
+/** Each pencil sounds a touch different: a nudge to its brightness */
+function toneFor(color: string) {
+  let hash = 0;
+  for (const char of color) hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  return ((Math.abs(hash) % 7) - 3) / 3;
+}
+
+/**
+ * A pencil's little emphasis as it digs in for a moment: a short swell of
+ * grain that sweeps down as the tip slows, with a catch or two in the paper.
+ * No two are quite alike.
+ */
+function scritch(
+  volume: number,
+  { pan = 0, tone = 0, length = 0.08 + Math.random() * 0.07 } = {},
+) {
+  if (soundLevel() === 0) return;
+  const ctx = getAudio();
+  if (!ctx || !master || ctx.state !== 'running') return;
+  const start = ctx.currentTime;
+  const end = start + length;
+
+  // Older Safari has no panner; it just sits in the middle there
+  const panner = 'createStereoPanner' in ctx ? ctx.createStereoPanner() : null;
+  if (panner) {
+    panner.pan.value = pan;
+    panner.connect(master);
+  }
+  const out = panner ?? master;
+
+  const source = ctx.createBufferSource();
+  source.buffer = getGrain(ctx);
+  const center = (1100 + Math.random() * 800) * (1 + tone * 0.12);
+  const band = ctx.createBiquadFilter();
+  band.type = 'bandpass';
+  band.Q.value = 0.9;
+  band.frequency.setValueAtTime(center, start);
+  band.frequency.exponentialRampToValueAtTime(center * 0.72, end);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume, start + length * 0.3);
+  gain.gain.exponentialRampToValueAtTime(0.0001, end);
+  source.connect(band).connect(gain).connect(out);
+  source.start(start, Math.random() * 1.5);
+  source.stop(end + 0.02);
+
+  // The odd tiny catch of graphite on the tooth of the paper
+  const catches = Math.floor(Math.random() * 3);
+  for (let i = 0; i < catches; i++) {
+    const at = start + length * (0.15 + Math.random() * 0.6);
+    const click = ctx.createBufferSource();
+    click.buffer = getGrain(ctx);
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'bandpass';
+    hp.frequency.value = 2600 + Math.random() * 1200;
+    hp.Q.value = 2;
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, at);
+    env.gain.exponentialRampToValueAtTime(volume * 0.55, at + 0.002);
+    env.gain.exponentialRampToValueAtTime(0.0001, at + 0.012);
+    click.connect(hp).connect(env).connect(out);
+    click.start(at, Math.random() * 1.5);
+    click.stop(at + 0.02);
+  }
+}
+
+/** A pencil tip landing: a dry tick with a little knock of the table under it */
+function tap(volume: number, pan = 0) {
+  if (soundLevel() === 0) return;
+  const ctx = getAudio();
+  if (!ctx || !master || ctx.state !== 'running') return;
+  const start = ctx.currentTime;
+  puff(2400, { volume: volume * 0.8, duration: 0.018, q: 1.6 });
+  const knock = ctx.createOscillator();
+  knock.type = 'sine';
+  knock.frequency.setValueAtTime(190, start);
+  knock.frequency.exponentialRampToValueAtTime(120, start + 0.05);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(volume * 0.6, start + 0.003);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.06);
+  const panner = 'createStereoPanner' in ctx ? ctx.createStereoPanner() : null;
+  if (panner) panner.pan.value = pan;
+  knock.connect(gain);
+  if (panner) gain.connect(panner).connect(master);
+  else gain.connect(master);
+  knock.start(start);
+  knock.stop(start + 0.08);
+}
+
+/**
+ * A soft, warm note: a triangle through a filter that closes as it fades,
+ * over a quiet sine an octave down. Felt on wood more than a bell.
+ */
+function note(
+  frequency: number,
+  { volume = 0.05, ring = 1.2, pan = 0, tone = 0 } = {},
+) {
+  if (soundLevel() === 0) return;
+  const ctx = getAudio();
+  if (!ctx || !master || !space || ctx.state !== 'running') return;
+  const start = ctx.currentTime;
+  const end = start + ring;
+  const out = ctx.createGain();
+  out.gain.setValueAtTime(0.0001, start);
+  out.gain.exponentialRampToValueAtTime(volume, start + 0.022);
+  out.gain.exponentialRampToValueAtTime(volume * 0.35, start + 0.25);
+  out.gain.exponentialRampToValueAtTime(0.0001, end);
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.Q.value = 0.5;
+  const bright = frequency * (2.6 + tone * 0.4);
+  filter.frequency.setValueAtTime(bright, start);
+  filter.frequency.exponentialRampToValueAtTime(frequency * 1.1, end);
+  // Older Safari has no panner; it just sits in the middle there
+  const panner = 'createStereoPanner' in ctx ? ctx.createStereoPanner() : null;
+  if (panner) panner.pan.value = pan;
+  filter.connect(out);
+  const tail = panner ? out.connect(panner) : out;
+  tail.connect(master);
+  tail.connect(space);
+  for (const [type, ratio, level] of [
+    ['triangle', 1, 1],
+    ['sine', 0.5, 0.35],
+  ] as const) {
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.value = frequency * ratio;
+    const partial = ctx.createGain();
+    partial.gain.value = level;
+    osc.connect(partial).connect(filter);
+    osc.start(start);
+    osc.stop(end + 0.05);
+  }
+}
+
+// An open pentatonic (no major third, so it reads calm rather than cute),
+// two octaves up from A3
+const SCALE = [0, 2, 5, 7, 9, 12, 14, 17, 19, 21];
+const BASE_HZ = 220;
+let lastStep = Math.floor(SCALE.length / 2);
+
+/**
+ * A note from where the tip is: higher up the page is higher in pitch. It
+ * steps toward that pitch rather than leaping, and never repeats itself, so
+ * a stroke draws out a slow line of melody.
+ */
+function strokeNote(
+  x: number,
+  y: number,
+  color: string,
+  volume: number,
+  ring = 1.2,
+) {
+  const up = 1 - Math.min(1, Math.max(0, y / (window.innerHeight || 1)));
+  const target = Math.round(up * (SCALE.length - 1));
+  let step = lastStep + Math.max(-2, Math.min(2, target - lastStep));
+  if (step === lastStep) {
+    step +=
+      step >= SCALE.length - 1 || (step > 0 && Math.random() < 0.5) ? -1 : 1;
+  }
+  lastStep = step;
+  note(BASE_HZ * 2 ** (SCALE[step] / 12), {
+    volume,
+    ring,
+    pan: panFor(x),
+    tone: toneFor(color),
+  });
+}
+
+// ------------------------------------------------------------ sound styles
+
+/** Which sound the pencils make; set for everyone by an admin */
+export type PencilSound = 'pencil' | 'musical';
+export const PENCIL_SOUNDS: ReadonlyArray<PencilSound> = ['pencil', 'musical'];
+let pencilSound: PencilSound = 'pencil';
+
+export function setPencilSound(sound: PencilSound) {
+  pencilSound = sound;
+}
+
+const panFor = (x: number) =>
+  (Math.min(1, Math.max(0, x / (window.innerWidth || 1))) - 0.5) * 0.5;
 
 /** A short pitched blip, falling a little, like a soft button */
 function blip(
@@ -179,6 +427,7 @@ function blip(
     type = 'triangle' as OscillatorType,
   } = {},
 ) {
+  if (soundLevel() === 0) return;
   const ctx = getAudio();
   if (!ctx || !master || ctx.state !== 'running') return;
   const start = ctx.currentTime + delay;
@@ -203,6 +452,7 @@ function puff(
   frequency: number,
   { volume = 0.25, duration = 0.06, q = 1.2 } = {},
 ) {
+  if (soundLevel() === 0) return;
   const ctx = getAudio();
   if (!ctx || !master || ctx.state !== 'running') return;
   const start = ctx.currentTime;
@@ -377,7 +627,11 @@ type StrokeState = {
   travel: number;
   lastBuzz: number;
   speed: number;
-  scratch: Scratch | null;
+  brush: Brush | null;
+  /** Distance since the last accent, and how far until the next */
+  accentTravel: number;
+  accentEvery: number;
+  lastAccent: number;
   /** Leftover from the last spawn, so specks come at an even rate */
   spawnDebt: number;
 };
@@ -398,6 +652,9 @@ export const strokeFeedback = {
     pointerType: string,
   ) {
     const handheld = pointerType !== 'mouse';
+    // Rested since the last stroke? The sound perks back up
+    tire *= Math.exp(-Math.max(0, t - lastActive) / REST_MS);
+    lastActive = t;
     stroke = {
       x,
       y,
@@ -407,7 +664,11 @@ export const strokeFeedback = {
       travel: 0,
       lastBuzz: t,
       speed: 0,
-      scratch: startScratch(),
+      brush: startBrush(color === null),
+      accentTravel: 0,
+      // The first one comes a little sooner, so a stroke answers quickly
+      accentEvery: 40 + Math.random() * 90,
+      lastAccent: -Infinity,
       spawnDebt: 0,
     };
     if (handheld) buzz(8);
@@ -426,12 +687,45 @@ export const strokeFeedback = {
     s.x = x;
     s.y = y;
     s.t = t;
+    tire = Math.min(1, tire + dt / TIRE_AFTER_MS);
+    lastActive = t;
 
-    if (!s.scratch) s.scratch = startScratch();
-    if (s.scratch) setScratch(s.scratch, s.speed);
+    if (!s.brush) s.brush = startBrush(s.color === null);
+    if (s.brush) setBrush(s.brush, s.speed);
+
+    // Every hundred-odd pixels the tip digs in a little, less often the longer
+    // you keep at it. The eraser stays quiet: it's just paper and rubber.
+    s.accentTravel += distance;
+    if (
+      s.color !== null &&
+      // A new stroke's first accent tires less, so every stroke still answers
+      s.accentTravel >=
+        s.accentEvery * (1 + (s.lastAccent < 0 ? 0.5 : 1.6) * tire) &&
+      t - s.lastAccent >= 150
+    ) {
+      s.accentTravel = 0;
+      s.lastAccent = t;
+      s.accentEvery = 100 + Math.random() * 120;
+      if (pencilSound === 'musical') {
+        strokeNote(x, y, s.color, 0.06 * (1 - 0.55 * tire));
+      } else {
+        // Faster strokes dig in a little harder
+        const push = 0.6 + 0.4 * Math.min(1, s.speed / 1.5);
+        scritch(0.6 * push * (1 - 0.55 * tire), {
+          pan: panFor(x),
+          tone: toneFor(s.color),
+        });
+      }
+    }
 
     s.travel += distance;
-    if (s.handheld && s.travel >= BUZZ_EVERY && t - s.lastBuzz >= BUZZ_GAP_MS) {
+    const spacing = BUZZ_SPACING[vibrateLevel()];
+    if (
+      s.handheld &&
+      spacing > 0 &&
+      s.travel >= BUZZ_EVERY * spacing &&
+      t - s.lastBuzz >= BUZZ_GAP_MS * spacing
+    ) {
       s.travel = 0;
       s.lastBuzz = t;
       buzz(5);
@@ -448,11 +742,14 @@ export const strokeFeedback = {
   end(kind: 'dot' | 'line' | 'cancel') {
     const s = stroke;
     stroke = null;
-    if (s?.scratch) stopScratch(s.scratch);
+    if (s?.brush) stopBrush(s.brush);
     if (kind === 'dot' && s) {
       if (s.handheld) buzz(12);
-      puff(3200, { volume: 0.3, duration: 0.045, q: 2 });
-      blip(1500, { volume: 0.05, duration: 0.05, drop: 0.7, type: 'sine' });
+      if (pencilSound === 'musical' && s.color !== null) {
+        strokeNote(s.x, s.y, s.color, 0.07 * (1 - 0.4 * tire), 0.7);
+      } else {
+        tap(0.3 * (1 - 0.4 * tire), panFor(s.x));
+      }
       spawn(s.x, s.y, s.color, 7, 0, 0, true);
     }
   },
@@ -477,3 +774,23 @@ export const toolFeedback = {
     blip(660, { volume: 0.12, duration: 0.08, drop: 0.7, delay: 0.055 });
   },
 };
+
+/** A taste of a level just picked in the settings, or of a pencil sound */
+export function previewFeedback(
+  kind: 'sound' | 'vibrate',
+  sound: PencilSound = pencilSound,
+) {
+  if (kind === 'vibrate') {
+    buzz(12);
+    return;
+  }
+  if (sound === 'musical') {
+    note(BASE_HZ * 2 ** (7 / 12), { volume: 0.07 });
+    note(BASE_HZ * 2 ** (12 / 12), { volume: 0.05 });
+    return;
+  }
+  tap(0.3);
+  scritch(0.6);
+}
+
+// ------------------------------------------------------------- UI buttons

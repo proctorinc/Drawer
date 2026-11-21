@@ -60,6 +60,7 @@ import AILogPage from './pages/admin/pages/AILogPage.tsx';
 import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
 import BetaZonePage from './pages/admin/pages/BetaZonePage.tsx';
+import AppSettingsPage from './pages/admin/pages/AppSettingsPage.tsx';
 import DuelsPage from './beta/duel/DuelsPage.tsx';
 import DuelPage from './beta/duel/DuelPage.tsx';
 import DrawProfilePicPage from './pages/profile/DrawProfilePicPage.tsx';
@@ -342,6 +343,7 @@ const adminPages = [
     component: DrawingDemoPage,
   }),
   adminPage('brand', BrandPage),
+  adminPage('settings', AppSettingsPage),
   adminPage('beta', BetaZonePage),
 ];
 

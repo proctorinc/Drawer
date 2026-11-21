@@ -13,6 +13,7 @@ import { getEventPoint } from './shapes/Point';
 import { strokeFeedback } from './feedback';
 import type { FC, PointerEvent as ReactPointerEvent } from 'react';
 import type { SerializedPath } from './shapes/Path';
+import { usePencilSoundSync } from '@/api/appSettings';
 import { Config } from '@/config/Config';
 
 /** What the <canvas> element needs to be drawn on */
@@ -107,6 +108,7 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
   children,
   localStorageKey,
 }) => {
+  usePencilSoundSync();
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [paths, setPaths] = useState<Array<Path>>(() =>
     loadPaths(localStorageKey),

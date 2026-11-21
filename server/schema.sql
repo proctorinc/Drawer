@@ -27,6 +27,7 @@ DROP TABLE IF EXISTS ai_reviews;
 DROP TABLE IF EXISTS ai_criteria;
 DROP TABLE IF EXISTS ai_personalities;
 DROP TABLE IF EXISTS ai_settings;
+DROP TABLE IF EXISTS app_settings;
 DROP TABLE IF EXISTS announcement_views;
 DROP TABLE IF EXISTS announcements;
 

@@ -181,3 +181,31 @@ export const InfoIcon: FC<IconProps> = (props) => (
     <path d="M12 7.6v.1" />
   </StrokeIcon>
 );
+
+export const GearIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M12 2.8l1.6 2.3 2.7-.7.6 2.7 2.7.8-.8 2.7 2.1 1.8-2.1 1.9.8 2.6-2.7.9-.6 2.6-2.7-.6L12 21.2l-1.6-2.4-2.7.6-.6-2.6-2.7-.9.8-2.6-2.1-1.9 2.1-1.8-.8-2.7 2.7-.8.6-2.7 2.7.7z" />
+    <path d="M12 9.2c1.6-.1 2.9 1.2 2.8 2.8 0 1.6-1.3 2.8-2.9 2.8-1.5-.1-2.7-1.3-2.7-2.9.1-1.5 1.3-2.7 2.8-2.7z" />
+  </StrokeIcon>
+);
+
+export const SpeakerOffIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M4 9.5v5c0 .3.2.5.5.5H8l5 4V5L8 9H4.5c-.3 0-.5.2-.5.5z" />
+    <path d="M16.5 9.5l4.5 5M21 9.5l-4.5 5" />
+  </StrokeIcon>
+);
+
+export const VibrateIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M8.2 4.2c2.5-.2 5-.2 7.5 0 .3 5.2.3 10.4 0 15.6-2.5.2-5 .2-7.5 0-.3-5.2-.3-10.4 0-15.6z" />
+    <path d="M11 16.8h2M4.5 8.5l-1.5 1.7 1.5 1.8-1.5 1.8 1.5 1.7M19.5 8.5l1.5 1.7-1.5 1.8 1.5 1.8-1.5 1.7" />
+  </StrokeIcon>
+);
+
+export const VibrateOffIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M8.2 4.2c2.5-.2 5-.2 7.5 0 .3 5.2.3 10.4 0 15.6-2.5.2-5 .2-7.5 0-.3-5.2-.3-10.4 0-15.6z" />
+    <path d="M11 16.8h2M4 4l16 16" />
+  </StrokeIcon>
+);

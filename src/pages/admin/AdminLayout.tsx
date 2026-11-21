@@ -20,6 +20,7 @@ import {
   faPalette,
   faRobot,
   faScroll,
+  faSliders,
   faStairs,
   faUsers,
   faXmark,
@@ -93,6 +94,10 @@ const NAV: Array<{ group: string; items: Array<NavItem> }> = [
   {
     group: 'beta zone',
     items: [{ to: '/draw/admin/beta', label: 'sketch duel', icon: faFlask }],
+  },
+  {
+    group: 'app',
+    items: [{ to: '/draw/admin/settings', label: 'settings', icon: faSliders }],
   },
   {
     group: 'demos',

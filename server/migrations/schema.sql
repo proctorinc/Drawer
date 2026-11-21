@@ -39,7 +39,6 @@ CREATE TABLE comments (
     FOREIGN KEY (submission_id) REFERENCES user_submissions(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
-CREATE TABLE sqlite_sequence(name,seq);
 CREATE TABLE activity_reads (
     user_id TEXT PRIMARY KEY,
     last_read_activity_id TEXT,
@@ -108,6 +107,7 @@ CREATE TABLE event_achievements (achievement_id TEXT PRIMARY KEY, event_id TEXT 
 CREATE INDEX idx_event_achievements_event_id ON event_achievements (event_id);
 CREATE TABLE event_notifications_sent (event_id TEXT NOT NULL, kind TEXT NOT NULL, sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (event_id, kind), FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE);
 CREATE TABLE ai_settings (KEY TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE app_settings (KEY TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE ai_personalities (id TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL, bio TEXT NOT NULL DEFAULT '', system_prompt TEXT NOT NULL, avatar_url TEXT NOT NULL DEFAULT '', decoration TEXT NOT NULL DEFAULT '', is_default INTEGER NOT NULL DEFAULT 0, event_id TEXT, enabled INTEGER NOT NULL DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE SET NULL);
 CREATE UNIQUE INDEX idx_ai_personalities_default ON ai_personalities (is_default) WHERE is_default = 1;
 CREATE INDEX idx_ai_personalities_event_id ON ai_personalities (event_id);

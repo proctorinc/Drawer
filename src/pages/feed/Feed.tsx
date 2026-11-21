@@ -12,6 +12,7 @@ import Layout from '@/components/Layout';
 import { cn } from '@/utils';
 import LoadingScreen from '@/components/LoadingScreen';
 import { useDrawing } from '@/drawing/DrawingContext';
+import { CanvasSettingsButton } from '@/drawing/CanvasSettings';
 import { ClockIcon, SendIcon, TrophyIcon } from '@/components/icons';
 import { useSubmitPromptSuggestion } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
@@ -71,6 +72,7 @@ const DeskLinks = () => {
 
   return (
     <nav aria-label="Main" className="flex flex-none items-center gap-2">
+      <CanvasSettingsButton />
       <Link
         to="/draw/trophies"
         aria-label="Trophies"

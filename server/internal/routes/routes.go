@@ -62,6 +62,9 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 		authGroup := clerkGroup.Group("/")
 		authGroup.Use(middleware.AuthRequired(repo))
 		{
+			// App-wide settings admins choose for everyone
+			authGroup.GET("/settings", handlers.HandleGetAppSettings)
+
 			userGroup := authGroup.Group("/user")
 
 			userGroup.GET("/me", handlers.HandleGetMe)
@@ -239,6 +242,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				adminGroup.GET("/reactions", handlers.HandleAdminReactionUsage)
 				adminGroup.GET("/progression", handlers.HandleAdminProgression)
 				adminGroup.GET("/activity", handlers.HandleAdminActivityLog)
+				adminGroup.PUT("/settings", handlers.HandleAdminUpdateAppSettings)
 				adminGroup.GET("/ai/settings", handlers.HandleAdminGetAISettings)
 				adminGroup.PUT("/ai/settings", handlers.HandleAdminUpdateAISettings)
 				adminGroup.GET("/ai/personalities", handlers.HandleAdminListAIPersonalities)
