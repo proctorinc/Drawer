@@ -6,8 +6,6 @@ import { ClockIcon, StarIcon } from '@/components/icons';
 import { cn } from '@/utils';
 import { TreeIcon } from '@/events/christmas/Decorations';
 import { PushPin } from '@/components/PushPin';
-import ComingSoonCard from '@/events/ComingSoonCard';
-import { useUpcomingEvent } from '@/api/events';
 
 type SeasonalEvent = {
   name: string;
@@ -99,10 +97,7 @@ const LiveEventLink: FC<{ event: LiveEvent }> = ({
 );
 
 const EventBanner: FC<{ liveEvent: LiveEvent | null }> = ({ liveEvent }) => {
-  const { data: upcoming } = useUpcomingEvent(!liveEvent);
   if (liveEvent) return <LiveEventLink event={liveEvent} />;
-  // A real event on its way outranks the seasonal flavor
-  if (upcoming) return <ComingSoonCard />;
 
   const now = new Date();
   const today = monthDay(now);

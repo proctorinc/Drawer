@@ -28,6 +28,7 @@ export function useGetUserTrophies(userId: string) {
 export function useGetUserAchievements(userId: string) {
   return useQuery({
     queryKey: ['userAchievements', userId],
+    enabled: !!userId,
     queryFn: () =>
       getJSON<{ achievements: Array<Achievement> }>(
         `/user/${userId}/achievements`,

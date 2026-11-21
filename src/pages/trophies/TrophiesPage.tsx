@@ -1,9 +1,4 @@
-import { Link, useLocation } from '@tanstack/react-router';
-import { useEffect } from 'react';
-import AchievementCard, {
-  AchievementSticker,
-  stickerAnchor,
-} from './components/AchievementCard';
+import AchievementCard from './components/AchievementCard';
 import EventBanner from './components/EventBanner';
 import Leaderboard from './components/Leaderboard';
 import LevelCard from './components/LevelCard';
@@ -18,6 +13,7 @@ import Chip from '@/components/Chip';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
 import { PushPin } from '@/components/PushPin';
+import ShowAllLink from '@/components/ShowAllLink';
 
 const SectionTitle: FC<{ children: ReactNode; aside?: ReactNode }> = ({
   children,
@@ -39,25 +35,10 @@ const completion = (a: Achievement) =>
 const byClosestToDone = (a: Achievement, b: Achievement) =>
   completion(b) - completion(a);
 
-const byMostRecent = (a: Achievement, b: Achievement) =>
-  new Date(b.achievedAt!).getTime() - new Date(a.achievedAt!).getTime();
-
 const TrophiesPage = () => {
   const me = useUser();
   const trophies = useGetTrophies();
   const achievementsQuery = useGetAchievements();
-  const linkedSticker = useLocation().hash.replace(/^#/, '');
-  const loaded = !!trophies.data && !!achievementsQuery.data;
-
-  // Links like /draw/trophies#sticker-12 land on that sticker. The router
-  // scrolls to the hash itself, but only if the sticker was already rendered.
-  useEffect(() => {
-    if (loaded && linkedSticker) {
-      document
-        .getElementById(linkedSticker)
-        ?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [loaded, linkedSticker]);
 
   if (trophies.isLoading || achievementsQuery.isLoading) {
     return <LoadingScreen />;
@@ -84,7 +65,6 @@ const TrophiesPage = () => {
 
   const { quests, questsEvent, leaderboard, week, xpRules } = trophies.data;
   const { achievements } = achievementsQuery.data;
-  const earned = achievements.filter((a) => a.achievedAt).sort(byMostRecent);
   // Just the few closest to done; the achievements page has the rest
   const inProgress = achievements
     .filter((a) => !a.achievedAt && !a.secret)
@@ -93,11 +73,7 @@ const TrophiesPage = () => {
   const questsDone = quests.filter((q) => q.progress >= q.goal).length;
 
   return (
-    <Layout
-      header={
-        <LevelCard trophies={trophies.data} stickerCount={earned.length} />
-      }
-    >
+    <Layout header={<LevelCard trophies={trophies.data} />}>
       <EventBanner liveEvent={questsEvent} />
 
       {/* While an event is live, its page has this week's quests */}
@@ -120,32 +96,6 @@ const TrophiesPage = () => {
       </SectionTitle>
       <Leaderboard entries={leaderboard} myId={me.id} />
 
-      <SectionTitle
-        aside={
-          <span className="text-pencil">
-            {earned.length}/{achievements.length} collected
-          </span>
-        }
-      >
-        sticker book
-      </SectionTitle>
-      {earned.length > 0 ? (
-        <ul className="grid grid-cols-3 gap-x-3 gap-y-5 w-full p-4 pt-5 bg-white border-2 border-ink rounded-sketch shadow-pencil">
-          {earned.map((achievement, i) => (
-            <AchievementSticker
-              key={achievement.id}
-              achievement={achievement}
-              index={i}
-              highlighted={stickerAnchor(achievement) === linkedSticker}
-            />
-          ))}
-        </ul>
-      ) : (
-        <p className="w-full p-4 text-center text-pencil bg-white border-2 border-dashed border-pencil rounded-sketch">
-          No stickers yet. Your first one is a single drawing away.
-        </p>
-      )}
-
       {inProgress.length > 0 && (
         <>
           <SectionTitle>up next</SectionTitle>
@@ -156,13 +106,13 @@ const TrophiesPage = () => {
           </ul>
         </>
       )}
-      <Link
+      <ShowAllLink
         to="/draw/achievements"
-        className="flex items-center justify-between gap-2 w-full -mt-2 px-4 py-3 bg-white border-2 border-ink rounded-sketch font-accent font-bold text-xl leading-none hover:bg-butter transition-colors"
+        search={{ tab: 'next' }}
+        className="-mt-2"
       >
         see every achievement
-        <span aria-hidden="true">→</span>
-      </Link>
+      </ShowAllLink>
 
       <section className="relative flex flex-col gap-1 w-full px-4 pt-5 pb-4 bg-[#fff6c9] rotate-1 shadow-[1px_2px_6px_rgba(43,42,51,0.15)]">
         <PushPin

@@ -1,6 +1,8 @@
 import type { FC, ReactNode } from 'react';
 import type { GetMeResponse } from '@/api/Api';
+import { FlameIcon } from '@/components/icons';
 import { RankCard } from '@/levels/RankCard';
+import { cn } from '@/utils';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 
 type Props = {
@@ -14,8 +16,12 @@ type Props = {
   /** Dress the cover for their rank; level is undefined while it loads */
   ranked?: boolean;
   level?: number;
+  /** Their rank title, right under their name */
+  title?: string;
   /** Full-width content inside the cover, under the avatar row */
   footer?: ReactNode;
+  /** Right under the cover, e.g. the friends/drawings/stickers row */
+  stats?: ReactNode;
   /** The row of buttons under the cover */
   children?: ReactNode;
 };
@@ -28,14 +34,12 @@ const UserHeader: FC<Props> = ({
   extra,
   ranked,
   level,
+  title,
   footer,
+  stats,
   children,
 }) => {
-  const stats = [
-    { value: userProfile.prompts.length, label: 'doodles' },
-    { value: userProfile.stats.currentStreak, label: 'streak' },
-    { value: userProfile.friends.length, label: 'pals' },
-  ];
+  const streak = userProfile.stats.currentStreak;
 
   const row = (
     <div className="relative flex items-center gap-4">
@@ -53,16 +57,24 @@ const UserHeader: FC<Props> = ({
         <h1 className="font-accent font-bold text-[30px] leading-none truncate">
           {userProfile.user.username}
         </h1>
-        <div className="flex gap-3 text-pencil">
-          {stats.map((stat) => (
-            <span key={stat.label}>
-              <b className="font-accent font-bold text-[22px] text-[color:var(--rank-text,var(--color-ink))]">
-                {stat.value}
-              </b>{' '}
-              {stat.label}
-            </span>
-          ))}
-        </div>
+        {title && (
+          <span className="-mt-0.5 font-accent font-bold text-xl leading-none text-[color:var(--rank-text,var(--color-ink))]">
+            <span className="highlight">{title}</span>
+          </span>
+        )}
+        <span className="flex items-center gap-1 text-pencil">
+          <FlameIcon
+            size={18}
+            className={cn(
+              'text-ink',
+              streak > 0 && 'animate-flicker origin-bottom',
+            )}
+          />
+          <b className="font-accent font-bold text-[22px] text-[color:var(--rank-text,var(--color-ink))]">
+            {streak}
+          </b>
+          day streak
+        </span>
         {extra}
       </div>
     </div>
@@ -81,6 +93,7 @@ const UserHeader: FC<Props> = ({
           {footer}
         </div>
       )}
+      {stats}
       {children && <div className="flex items-center gap-2">{children}</div>}
     </div>
   );

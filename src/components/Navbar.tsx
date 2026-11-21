@@ -17,7 +17,11 @@ function tabFor(pathname: string) {
     return 0;
   }
   if (pathname === '/draw') return 1;
-  if (pathname === '/draw/profile/me') return 2;
+  if (
+    pathname === '/draw/profile/me' ||
+    pathname.startsWith('/draw/profile/me/')
+  )
+    return 2;
   return -1;
 }
 

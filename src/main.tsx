@@ -33,7 +33,7 @@ import { BrandProvider } from './components/logo/BrandProvider.tsx';
 import EventPage from './pages/event/EventPage.tsx';
 import TrophiesPage from './pages/trophies/TrophiesPage.tsx';
 import AllAchievementsPage, {
-  isCategory,
+  isAchievementTab,
 } from './pages/achievements/AchievementsPage.tsx';
 import { AuthProvider } from './auth/AuthContext.tsx';
 import MyProfilePage from './pages/profile/MyProfilePage.tsx';
@@ -60,9 +60,11 @@ import AILogPage from './pages/admin/pages/AILogPage.tsx';
 import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
 import DrawProfilePicPage from './pages/profile/DrawProfilePicPage.tsx';
+import ProfileDrawingsPage from './pages/profile/DrawingsPage.tsx';
+import StickersPage from './pages/profile/StickersPage.tsx';
 import { Config } from './config/Config.ts';
 import ImpersonationBanner from './components/ImpersonationBanner.tsx';
-import type { AchievementCategory } from './api/Api';
+import type { AchievementTab } from './pages/achievements/AchievementsPage.tsx';
 import type { FC } from 'react';
 
 const queryClient = new QueryClient();
@@ -169,6 +171,48 @@ const friendProfileRoute = createRoute({
   ),
 });
 
+// Your own are under /me; the static segment there outranks $userId, so
+// /draw/profile/me/... needs routes of its own
+const myDrawingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/profile/me/drawings',
+  component: () => (
+    <AuthRoute>
+      <ProfileDrawingsPage />
+    </AuthRoute>
+  ),
+});
+
+const myStickersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/profile/me/stickers',
+  component: () => (
+    <AuthRoute>
+      <StickersPage />
+    </AuthRoute>
+  ),
+});
+
+const drawingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/profile/$userId/drawings',
+  component: () => (
+    <AuthRoute>
+      <ProfileDrawingsPage />
+    </AuthRoute>
+  ),
+});
+
+const stickersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/profile/$userId/stickers',
+  component: () => (
+    <AuthRoute>
+      <StickersPage />
+    </AuthRoute>
+  ),
+});
+
 const trophiesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/draw/trophies',
@@ -186,8 +230,8 @@ const achievementsRoute = createRoute({
   path: '/draw/achievements',
   validateSearch: (
     search: Record<string, unknown>,
-  ): { tab?: AchievementCategory } => ({
-    tab: isCategory(search.tab) ? search.tab : undefined,
+  ): { tab?: AchievementTab } => ({
+    tab: isAchievementTab(search.tab) ? search.tab : undefined,
   }),
   component: () => (
     <AuthRoute>
@@ -294,6 +338,10 @@ const routeTree = rootRoute.addChildren([
   userProfileRoute,
   drawProfilePicRoute,
   friendProfileRoute,
+  myDrawingsRoute,
+  myStickersRoute,
+  drawingsRoute,
+  stickersRoute,
   trophiesRoute,
   achievementsRoute,
   eventRoute,

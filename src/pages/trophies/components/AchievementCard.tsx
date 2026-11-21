@@ -7,7 +7,7 @@ import { cn } from '@/utils';
 
 const stickerTilts = ['-6deg', '4deg', '-2deg', '7deg', '-4deg'];
 
-/** Element id that `/draw/trophies#sticker-<id>` links scroll to */
+/** Element id that `/draw/profile/me/stickers#sticker-<id>` links scroll to */
 export const stickerAnchor = (achievement: Achievement) =>
   `sticker-${achievement.id}`;
 

@@ -201,7 +201,10 @@ export const RewardReveal: StageComponent<'reward'> = ({
     } else if (customPic) {
       void navigate({ to: '/draw/profile/pic' });
     } else {
-      void navigate({ to: '/draw/trophies', hash: stickerAnchor(from) });
+      void navigate({
+        to: '/draw/profile/me/stickers',
+        hash: stickerAnchor(from),
+      });
     }
     finish();
   };

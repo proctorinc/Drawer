@@ -1,19 +1,21 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from '@tanstack/react-router';
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { useMyProfilePage } from './context/MyProfileContext';
 import AccountFooter from './components/AccountFooter';
 import EditProfile from './components/EditProfile';
 import Sheet from './components/Sheet';
+import ProfileStats from './components/ProfileStats';
 import Sketchbook from './components/Sketchbook';
+import StickerBook from './components/StickerBook';
 import UserHeader from './components/UserHeader';
 import FriendsPanel from './components/friends/FriendsPanel';
 import IncomingInvites from './components/friends/IncomingInvites';
 import { useFriendInvites } from './components/friends/useFriendInvites';
-import { FriendsIcon, PencilIcon, TrophyIcon } from '@/components/icons';
+import { PencilIcon } from '@/components/icons';
 import LoadingScreen from '@/components/LoadingScreen';
+import { useGetTrophies } from '@/api/trophies';
+import { levelTitle } from '@/levels/ranks';
 import Layout from '@/components/Layout';
-import Chip from '@/components/Chip';
-import Button from '@/components/Button';
 
 type SheetId = 'friends' | 'edit';
 
@@ -28,28 +30,10 @@ const SHEET_FOR_HASH: Record<string, SheetId | undefined> = {
   decorations: 'edit',
 };
 
-/** A peek at the trophy shelf, which lives on its own tab */
-const TrophyTeaser = () => {
-  const { achievementsData } = useMyProfilePage();
-  const won =
-    achievementsData?.achievements.filter((a) => a.achievedAt).length ?? 0;
-
-  return (
-    <Link to="/draw/trophies" className="self-start active:scale-95">
-      <Chip className="bg-me">
-        <TrophyIcon size={16} />
-        {won > 0
-          ? `${won} ${won === 1 ? 'trophy' : 'trophies'}`
-          : 'win trophies'}{' '}
-        →
-      </Chip>
-    </Link>
-  );
-};
-
 const MyProfilePage = () => {
-  const { profile } = useMyProfilePage();
+  const { profile, achievementsData } = useMyProfilePage();
   const { incoming } = useFriendInvites();
+  const { data: trophies } = useGetTrophies();
   const [sheet, setSheet] = useState<SheetId | null>(null);
   const navigate = useNavigate();
   const hash = useLocation({ select: (location) => location.hash });
@@ -76,29 +60,17 @@ const MyProfilePage = () => {
     return <LoadingScreen />;
   }
 
-  const friendCount = profile.friends.length;
-  // Sits beside the hall of fame; a blank book has no hall, so it stays under the cover
-  const hasSketchbook = profile.prompts.length > 0;
-  const friendsButton = (
-    <Button size="sm" disableLoad onClick={() => setSheet('friends')}>
-      <FriendsIcon size={20} />
-      {friendCount} {friendCount === 1 ? 'friend' : 'friends'}
-      {incoming.length > 0 && (
-        <span
-          aria-label={`${incoming.length} new requests`}
-          className="flex items-center justify-center min-w-6 h-6 px-1.5 -my-1 bg-coral text-ink border-2 border-paper rounded-full text-base animate-nudge"
-        >
-          {incoming.length}
-        </span>
-      )}
-    </Button>
-  );
+  const achievements = achievementsData?.achievements;
+  const level = trophies?.level.level;
 
   return (
     <Layout
       header={
         <UserHeader
           userProfile={profile}
+          ranked
+          level={level}
+          title={level ? levelTitle(level).toLowerCase() : undefined}
           onAvatarClick={() => setSheet('edit')}
           avatarBadge={
             <button
@@ -109,14 +81,28 @@ const MyProfilePage = () => {
               <PencilIcon size={16} />
             </button>
           }
-          extra={<TrophyTeaser />}
-        >
-          {!hasSketchbook && friendsButton}
-        </UserHeader>
+          stats={
+            <ProfileStats
+              userId="me"
+              friends={profile.friends.length}
+              drawings={profile.prompts.length}
+              stickers={achievements?.filter((a) => a.achievedAt).length}
+              onFriendsClick={() => setSheet('friends')}
+              friendRequests={incoming.length}
+            />
+          }
+        />
       }
     >
       <IncomingInvites />
-      <Sketchbook profile={profile} aside={friendsButton} />
+      <Sketchbook profile={profile} />
+      {achievements && (
+        <StickerBook
+          userId="me"
+          achievements={achievements}
+          emptyText="No stickers yet. Your first one is a single drawing away."
+        />
+      )}
       <AccountFooter />
 
       <Sheet

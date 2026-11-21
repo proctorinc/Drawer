@@ -28,8 +28,22 @@ export const CATEGORIES: Array<{
   },
 ];
 
-export const isCategory = (tab: unknown): tab is AchievementCategory =>
-  CATEGORIES.some((c) => c.id === tab);
+/** The first tab, before the categories: what you're closest to earning */
+const NEXT_UP = {
+  id: 'next',
+  label: 'next up',
+  blurb: 'Closest to done first. Keep going!',
+} as const;
+
+export type AchievementTab = AchievementCategory | typeof NEXT_UP.id;
+
+const TABS: Array<{ id: AchievementTab; label: string; blurb: string }> = [
+  NEXT_UP,
+  ...CATEGORIES,
+];
+
+export const isAchievementTab = (tab: unknown): tab is AchievementTab =>
+  TABS.some((t) => t.id === tab);
 
 const earnedOn = (achievement: Achievement) =>
   new Date(achievement.achievedAt!).toLocaleDateString('en-US', {
@@ -38,13 +52,16 @@ const earnedOn = (achievement: Achievement) =>
     year: 'numeric',
   });
 
-/** Earned first, by when; then the ones to work on; secrets last */
-const rank = (a: Achievement) => (a.achievedAt ? 0 : a.secret ? 2 : 1);
-const byCollection = (a: Achievement, b: Achievement) =>
+const completion = (a: Achievement) =>
+  a.achievementValue > 0 ? a.progress / a.achievementValue : 0;
+
+/** Not done first, closest to done at the top; then secrets; then earned, newest first */
+const rank = (a: Achievement) => (a.achievedAt ? 2 : a.secret ? 1 : 0);
+const byNotDoneFirst = (a: Achievement, b: Achievement) =>
   rank(a) - rank(b) ||
   (a.achievedAt && b.achievedAt
-    ? new Date(a.achievedAt).getTime() - new Date(b.achievedAt).getTime()
-    : 0);
+    ? new Date(b.achievedAt).getTime() - new Date(a.achievedAt).getTime()
+    : completion(b) - completion(a));
 
 const SecretCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
   const event = achievement.category === 'events';
@@ -143,7 +160,7 @@ const AchievementsPage = () => {
   const catalog = useGetAchievementCatalog();
   const { tab } = useSearch({ from: '/draw/achievements' });
   const navigate = useNavigate({ from: '/draw/achievements' });
-  const tabRefs = useRef<Partial<Record<AchievementCategory, HTMLElement>>>({});
+  const tabRefs = useRef<Partial<Record<AchievementTab, HTMLElement>>>({});
 
   if (catalog.isLoading) return <LoadingScreen />;
 
@@ -161,17 +178,19 @@ const AchievementsPage = () => {
   }
 
   const { achievements } = catalog.data;
-  const inCategory = (id: AchievementCategory) =>
-    achievements.filter((a) => a.category === id);
-  const selected = tab ?? 'drawing';
-  const current = CATEGORIES.find((c) => c.id === selected)!;
-  const shown = inCategory(selected).sort(byCollection);
+  const inTab = (id: AchievementTab) =>
+    id === NEXT_UP.id
+      ? achievements.filter((a) => !a.achievedAt && !a.secret)
+      : achievements.filter((a) => a.category === id);
+  const selected = tab ?? NEXT_UP.id;
+  const current = TABS.find((t) => t.id === selected)!;
+  const shown = inTab(selected).sort(byNotDoneFirst);
   const earnedCount = achievements.filter((a) => a.achievedAt).length;
   const secretsLeft = achievements.filter(
     (a) => a.secret && a.category !== 'events',
   ).length;
 
-  const select = (id: AchievementCategory) =>
+  const select = (id: AchievementTab) =>
     navigate({ search: { tab: id }, replace: true, resetScroll: false });
 
   // Arrow keys move between tabs, like any tablist
@@ -179,9 +198,8 @@ const AchievementsPage = () => {
     const step = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
     if (!step) return;
     e.preventDefault();
-    const i = CATEGORIES.findIndex((c) => c.id === selected);
-    const next =
-      CATEGORIES[(i + step + CATEGORIES.length) % CATEGORIES.length].id;
+    const i = TABS.findIndex((t) => t.id === selected);
+    const next = TABS[(i + step + TABS.length) % TABS.length].id;
     select(next);
     tabRefs.current[next]?.focus();
   };
@@ -220,10 +238,12 @@ const AchievementsPage = () => {
         onKeyDown={onKeyDown}
         className="flex gap-2 w-[calc(100%+3rem)] -mx-6 px-6 pb-1 overflow-x-auto [scrollbar-width:none]"
       >
-        {CATEGORIES.map(({ id, label }) => {
-          const all = inCategory(id);
+        {TABS.map(({ id, label }) => {
+          const all = inTab(id);
           const earned = all.filter((a) => a.achievedAt).length;
           const active = id === selected;
+          const count =
+            id === NEXT_UP.id ? all.length : `${earned}/${all.length}`;
           return (
             <button
               key={id}
@@ -248,7 +268,7 @@ const AchievementsPage = () => {
                   active ? 'text-white/80' : 'text-pencil',
                 )}
               >
-                {earned}/{all.length}
+                {count}
               </span>
             </button>
           );
@@ -270,7 +290,9 @@ const AchievementsPage = () => {
           </ul>
         ) : (
           <p className="w-full p-4 text-center text-pencil border-2 border-dashed border-pencil rounded-sketch">
-            Nothing here yet. Check back soon.
+            {selected === NEXT_UP.id
+              ? 'You’ve earned everything there is to earn. Wow.'
+              : 'Nothing here yet. Check back soon.'}
           </p>
         )}
       </section>

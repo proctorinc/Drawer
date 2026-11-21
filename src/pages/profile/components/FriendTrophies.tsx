@@ -1,11 +1,10 @@
-import { useGetUserAchievements, useGetUserTrophies } from '../api';
+import { useGetUserTrophies } from '../api';
 import UserHeader from './UserHeader';
 import type { PublicTrophies } from '../api';
 import type { FC, ReactNode } from 'react';
 import type { GetMeResponse, User } from '@/api/Api';
 import type { LeaderboardEntry } from '@/api/trophies';
 import { useGetTrophies } from '@/api/trophies';
-import { AchievementSticker } from '@/pages/trophies/components/AchievementCard';
 import { levelTitle } from '@/levels/ranks';
 import ProgressBar from '@/pages/trophies/components/ProgressBar';
 import { rankCardFor } from '@/levels/rankCards';
@@ -61,8 +60,9 @@ const FriendLevel: FC<{ user: User; trophies: PublicTrophies }> = ({
 /** Their cover and level in one card, dressed for their rank */
 export const FriendHeader: FC<{
   userProfile: GetMeResponse;
+  stats?: ReactNode;
   children?: ReactNode;
-}> = ({ userProfile, children }) => {
+}> = ({ userProfile, stats, children }) => {
   const { user } = userProfile;
   const { data: trophies } = useGetUserTrophies(user.id);
 
@@ -72,50 +72,9 @@ export const FriendHeader: FC<{
       ranked
       level={trophies?.level.level}
       footer={trophies && <FriendLevel user={user} trophies={trophies} />}
+      stats={stats}
     >
       {children}
     </UserHeader>
-  );
-};
-
-/** The stickers they've earned, newest first */
-export const FriendStickers: FC<{ user: User }> = ({ user }) => {
-  const { data: achievements } = useGetUserAchievements(user.id);
-
-  if (!achievements) return null;
-
-  const earned = achievements
-    .filter((a) => a.achievedAt)
-    .sort(
-      (a, b) =>
-        new Date(b.achievedAt!).getTime() - new Date(a.achievedAt!).getTime(),
-    );
-
-  return (
-    <section className="flex flex-col gap-4 w-full">
-      <div className="flex items-end justify-between gap-2">
-        <h2 className="font-accent font-bold text-[28px] leading-none">
-          sticker book
-        </h2>
-        <span className="text-pencil">
-          {earned.length}/{achievements.length} collected
-        </span>
-      </div>
-      {earned.length > 0 ? (
-        <ul className="grid grid-cols-3 gap-x-3 gap-y-5 w-full p-4 pt-5 bg-white border-2 border-ink rounded-sketch shadow-pencil">
-          {earned.map((achievement, i) => (
-            <AchievementSticker
-              key={achievement.id}
-              achievement={achievement}
-              index={i}
-            />
-          ))}
-        </ul>
-      ) : (
-        <p className="w-full p-4 text-center text-pencil bg-white border-2 border-dashed border-pencil rounded-sketch">
-          no stickers yet. one doodle and they're on the board.
-        </p>
-      )}
-    </section>
   );
 };

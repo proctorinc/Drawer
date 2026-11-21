@@ -1,7 +1,12 @@
+import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useProfile } from './context/UserProfileContext';
-import { FriendHeader, FriendStickers } from './components/FriendTrophies';
+import { useGetUserAchievements } from './api';
+import { FriendHeader } from './components/FriendTrophies';
+import ProfileStats from './components/ProfileStats';
+import Sheet from './components/Sheet';
 import Sketchbook from './components/Sketchbook';
+import StickerBook from './components/StickerBook';
 import { FriendList } from './components/friends/FriendList';
 import FriendshipButton from './components/friends/FriendshipButton';
 import { ShareButton } from './components/friends/ShareButton';
@@ -35,6 +40,10 @@ const MissingBook = () => (
 /** Someone else's sketchbook, laid out just like your own */
 const UserProfilePage = () => {
   const { userProfile, isError } = useProfile();
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const { data: achievements } = useGetUserAchievements(
+    userProfile?.user.id ?? '',
+  );
 
   if (isError) {
     return <MissingBook />;
@@ -50,7 +59,18 @@ const UserProfilePage = () => {
     <Layout
       back
       header={
-        <FriendHeader userProfile={userProfile}>
+        <FriendHeader
+          userProfile={userProfile}
+          stats={
+            <ProfileStats
+              userId={user.id}
+              friends={userProfile.friends.length}
+              drawings={userProfile.prompts.length}
+              stickers={achievements?.filter((a) => a.achievedAt).length}
+              onFriendsClick={() => setFriendsOpen(true)}
+            />
+          }
+        >
           <FriendshipButton profile={userProfile} />
           <ShareButton
             urlPath={`/draw/profile/${user.id}`}
@@ -64,8 +84,21 @@ const UserProfilePage = () => {
     >
       <FriendEventLink user={user} />
       <Sketchbook profile={userProfile} />
-      <FriendStickers user={user} />
-      <FriendList user={user} friends={userProfile.friends} />
+      {achievements && (
+        <StickerBook
+          userId={user.id}
+          achievements={achievements}
+          emptyText="no stickers yet. one doodle and they're on the board."
+        />
+      )}
+
+      <Sheet
+        title={`${user.username}'s friends`}
+        open={friendsOpen}
+        onClose={() => setFriendsOpen(false)}
+      >
+        <FriendList user={user} friends={userProfile.friends} />
+      </Sheet>
     </Layout>
   );
 };

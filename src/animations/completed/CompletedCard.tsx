@@ -70,7 +70,11 @@ type Shown = {
   /** Where "see it" goes */
   to:
     | { to: '/draw/event/$slug'; params: { slug: string } }
-    | { to: '/draw/trophies'; hash?: string };
+    | { to: '/draw/trophies' }
+    | {
+        to: '/draw/profile/me/stickers';
+        hash: string;
+      };
   seeLabel: string;
 };
 
@@ -98,7 +102,10 @@ function describe(
     xp: XP_PER_ACHIEVEMENT,
     to: sticker
       ? { to: '/draw/event/$slug', params: { slug: achievement.eventSlug! } }
-      : { to: '/draw/trophies', hash: stickerAnchor(achievement) },
+      : {
+          to: '/draw/profile/me/stickers',
+          hash: stickerAnchor(achievement),
+        },
     seeLabel: sticker ? 'see stickers' : 'see it',
   };
 }

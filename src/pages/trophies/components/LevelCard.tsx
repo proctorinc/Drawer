@@ -1,8 +1,6 @@
 import ProgressBar from './ProgressBar';
-import type { FC, ReactNode } from 'react';
+import type { FC } from 'react';
 import type { TrophiesResponse } from '@/api/trophies';
-import { FlameIcon, PencilIcon, StarIcon } from '@/components/icons';
-import { cn } from '@/utils';
 import { LevelSeal, RankCard } from '@/levels/RankCard';
 import { rankCardFor } from '@/levels/rankCards';
 import { RANK_TIERS, levelTitle } from '@/levels/ranks';
@@ -11,32 +9,11 @@ import { useAnimationQueue } from '@/animations/AnimationQueue';
 // Kept here too, for the pages that already import it from the trophies card
 export { levelTitle };
 
-const StatSticker: FC<{
-  icon: ReactNode;
-  value: number;
-  label: string;
-  className: string;
-}> = ({ icon, value, label, className }) => (
-  <div
-    className={cn(
-      'flex flex-col items-center flex-1 py-2 border-2 border-ink rounded-sketch shadow-pencil-sm',
-      className,
-    )}
-  >
-    <span className="flex items-center gap-1 font-accent font-bold text-[28px] leading-none">
-      {icon}
-      {value}
-    </span>
-    <span className="text-sm text-pencil">{label}</span>
-  </div>
-);
-
 type Props = {
   trophies: TrophiesResponse;
-  stickerCount: number;
 };
 
-const LevelCard: FC<Props> = ({ trophies, stickerCount }) => {
+const LevelCard: FC<Props> = ({ trophies }) => {
   const { level, xp, levelStartXp, nextLevelXp } = trophies.level;
   const { tier, card } = rankCardFor(level);
   const { enqueue, isPlaying } = useAnimationQueue();
@@ -110,28 +87,6 @@ const LevelCard: FC<Props> = ({ trophies, stickerCount }) => {
         <span className="absolute -bottom-2.5 right-4 px-2 py-0.5 bg-white border-[1.5px] border-ink rounded-full text-xs text-pencil leading-tight rotate-2 group-hover:text-ink">
           tap to replay ✦
         </span>
-      </div>
-      <div className="flex gap-3 w-full">
-        <StatSticker
-          icon={
-            <FlameIcon size={22} className="animate-flicker origin-bottom" />
-          }
-          value={trophies.currentStreak}
-          label="day streak"
-          className="bg-blush -rotate-2"
-        />
-        <StatSticker
-          icon={<PencilIcon size={22} />}
-          value={trophies.lifetime.drawings}
-          label="drawings"
-          className="bg-sky rotate-1"
-        />
-        <StatSticker
-          icon={<StarIcon size={22} fill="white" />}
-          value={stickerCount}
-          label="stickers"
-          className="bg-butter -rotate-1"
-        />
       </div>
     </section>
   );
