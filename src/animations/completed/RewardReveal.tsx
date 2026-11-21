@@ -5,6 +5,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useStageHost } from '../StageHost';
 import { StepCount, hasNext } from '../StepCount';
 import PaperBits from './PaperBits';
+import { SkipAll } from './SkipAll';
 import { useStageExit } from './useStageExit';
 import type { CSSProperties, FC } from 'react';
 import type { StageComponent } from '../types';
@@ -183,6 +184,7 @@ export const RewardReveal: StageComponent<'reward'> = ({
   payload,
   onDone,
   step,
+  onSkipAll,
 }) => {
   const { host, preview } = useStageHost();
   const navigate = useNavigate();
@@ -245,6 +247,7 @@ export const RewardReveal: StageComponent<'reward'> = ({
         className="completed-card relative flex flex-col items-center gap-4 w-full max-w-[22rem] py-6 text-center"
         data-leaving={leaving || undefined}
       >
+        <SkipAll onSkip={onSkipAll} className="top-0 right-0" />
         <span
           className="completed-rise flex flex-col items-center gap-2"
           style={rise(0.1)}

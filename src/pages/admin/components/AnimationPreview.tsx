@@ -10,9 +10,12 @@ import {
 import { toStageItem } from '../animationDemos';
 import type { AnimationDemo, StageDemo } from '../animationDemos';
 import type { ComponentType, FC, ReactNode } from 'react';
-import type { StageProps } from '@/animations/types';
+import type { StageItem, StageProps, TickerItem } from '@/animations/types';
 import Button from '@/components/Button';
-import { useAnimationQueue } from '@/animations/AnimationQueue';
+import {
+  AnimationQueueProvider,
+  useAnimationQueue,
+} from '@/animations/AnimationQueue';
 import { StageHostProvider } from '@/animations/StageHost';
 import { TickerComponent, stageRegistry } from '@/animations/registry';
 import { cn } from '@/utils';
@@ -86,12 +89,33 @@ const SetPlayer: FC<{ items: Array<StageDemo>; onDone: () => void }> = ({
       key={at}
       payload={demo.payload}
       step={{ index: at + 1, total: items.length }}
+      onSkipAll={() => {
+        setAt(items.length);
+        onDone();
+      }}
       onDone={() => {
         if (at + 1 < items.length) setAt(at + 1);
         else onDone();
       }}
     />
   );
+};
+
+/** Queues a burst into whichever queue it sits under, then waits for it to drain */
+const BurstStarter: FC<{
+  stage: Array<StageItem>;
+  ticker: Array<TickerItem>;
+  onDone: () => void;
+}> = ({ stage, ticker, onDone }) => {
+  const { enqueue, enqueueTicker } = useAnimationQueue();
+  useEffect(() => {
+    // The order the progress watcher queues in: stage items, then pings
+    const done = stage.map((item) => enqueue(item));
+    ticker.forEach(enqueueTicker);
+    void Promise.all(done).then(onDone);
+    // Once per mount; a replay remounts with a fresh queue
+  }, []);
+  return null;
 };
 
 /** Plays one demo inside a phone-sized frame */
@@ -109,6 +133,17 @@ const PhonePlayer: FC<{
       player = <TickerComponent key={run} item={demo.item} onDone={onDone} />;
     } else if (demo.lane === 'set') {
       player = <SetPlayer key={run} items={demo.items} onDone={onDone} />;
+    } else if (demo.lane === 'burst') {
+      // A queue of its own, inside the phone, so it plays just like the app's
+      player = (
+        <AnimationQueueProvider key={run} devHandle={false}>
+          <BurstStarter
+            stage={demo.stage}
+            ticker={demo.ticker}
+            onDone={onDone}
+          />
+        </AnimationQueueProvider>
+      );
     } else {
       const Stage = stageRegistry[demo.kind] as ComponentType<
         StageProps<typeof demo.kind>
@@ -174,6 +209,20 @@ export const ShowAnimationButton: FC<{
     } else if (demo.lane === 'set') {
       const group = `admin-demo:${Date.now()}`;
       demo.items.forEach((item) => void enqueue(toStageItem(item, group)));
+    } else if (demo.lane === 'burst') {
+      // Fresh ids, so the app's queue doesn't take a replay for a repeat
+      const fresh = `:${Date.now()}`;
+      demo.stage.forEach(
+        (item) =>
+          void enqueue({
+            ...item,
+            id: item.id + fresh,
+            group: item.group && item.group + fresh,
+          }),
+      );
+      demo.ticker.forEach((item) =>
+        enqueueTicker({ ...item, id: item.id + fresh }),
+      );
     } else {
       void enqueue(toStageItem(demo));
     }

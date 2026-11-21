@@ -13,6 +13,7 @@ import type {
   TickerItem,
 } from '@/animations/types';
 import { RANK_TIERS, xpToReach } from '@/levels/ranks';
+import { diffProgress } from '@/animations/progressDiff';
 
 export type StageDemo = {
   lane: 'stage';
@@ -24,7 +25,9 @@ export type AnimationDemo =
   | StageDemo
   | { lane: 'ticker'; item: TickerItem }
   /** Several earned at once: they play as a group, "1 of n" */
-  | { lane: 'set'; items: Array<StageDemo> };
+  | { lane: 'set'; items: Array<StageDemo> }
+  /** What the progress watcher queues for a busy moment, through the real queue */
+  | { lane: 'burst'; stage: Array<StageItem>; ticker: Array<TickerItem> };
 
 const stage = <TKind extends StageKind>(
   kind: TKind,
@@ -152,4 +155,113 @@ export function toStageItem(demo: StageDemo, group?: string): StageItem {
     payload: demo.payload,
     group,
   } as StageItem;
+}
+
+const sample = (
+  id: string,
+  name: string,
+  field: string,
+  goal: number,
+  progress: number,
+  extra: Partial<Achievement> = {},
+): Achievement => ({
+  id,
+  name,
+  description: '',
+  imageUrl: '',
+  achievedAt: null,
+  achievementField: field,
+  achievementValue: goal,
+  progress,
+  reward: null,
+  eventSlug: null,
+  category: 'drawing',
+  hidden: false,
+  secret: false,
+  celebrated: false,
+  ...extra,
+});
+
+/**
+ * One busy moment, run through the real diff so it queues exactly what a
+ * player would get: you draw on day 4 of a streak and finish a quest, which
+ * earns two achievements (one with a reward) and enough XP to rank up, while
+ * a pile of progress moves underneath.
+ */
+export function burstDemo(quests: Array<Quest>): AnimationDemo {
+  const level = RANK_TIERS[1].from - 1;
+  const before = snapshotAt(xpToReach(level + 1) - 30);
+  const quest = quests.at(0);
+  const after = snapshotAt(before.xp + 25 + 25 + 10 + (quest ? 15 : 0));
+
+  // What this device last saw, then what the server says now
+  const was = (progress: number) => ({ progress, achieved: false });
+  const achievements = [
+    sample('demo-doodle-25', 'quarter century', 'SUBMISSION_TOTAL', 25, 25, {
+      achievedAt: new Date(),
+    }),
+    sample('demo-pinned-3', 'gallery wall', 'FAVORITE_TOTAL', 3, 3, {
+      achievedAt: new Date(),
+      reward: {
+        id: 'SWEATBAND',
+        name: 'Sweatband',
+        description: 'A sweatband for hard work',
+      },
+    }),
+    // A streak ladder: only the next rung up pings
+    sample('demo-streak-3', 'warming up', 'SUBMISSION_STREAK', 3, 4, {
+      achievedAt: new Date(),
+      celebrated: true,
+    }),
+    sample('demo-streak-14', 'two weeks strong', 'SUBMISSION_STREAK', 14, 4),
+    sample('demo-streak-30', 'monthly regular', 'SUBMISSION_STREAK', 30, 4),
+    sample('demo-streak-100', 'unstoppable', 'SUBMISSION_STREAK', 100, 4),
+    sample(
+      'demo-doodle-250',
+      'sketchbook hoarder',
+      'SUBMISSION_TOTAL',
+      250,
+      25,
+    ),
+    sample(
+      'demo-received-50',
+      'crowd pleaser',
+      'REACTION_RECEIVED_TOTAL',
+      50,
+      38,
+    ),
+    sample('demo-comment-25', 'chatterbox', 'COMMENT_TOTAL', 25, 24),
+    // 37 of 100 is nothing special, so it stays quiet
+    sample('demo-reaction-100', 'hype machine', 'REACTION_TOTAL', 100, 37),
+  ];
+  const previous = {
+    'demo-doodle-25': was(24),
+    'demo-pinned-3': was(2),
+    'demo-streak-3': { progress: 3, achieved: true },
+    'demo-streak-14': was(3),
+    'demo-streak-30': was(3),
+    'demo-streak-100': was(3),
+    'demo-doodle-250': was(24),
+    'demo-received-50': was(37),
+    'demo-comment-25': was(23),
+    'demo-reaction-100': was(36),
+  };
+  const week = '2026-11-16';
+  const queued = diffProgress(
+    {
+      level: before,
+      achievements: previous,
+      quests: quest
+        ? { weekStart: week, progress: { [quest.id]: quest.goal - 1 } }
+        : null,
+    },
+    {
+      level: after,
+      achievements,
+      quests: quest
+        ? { weekStart: week, quests: [{ ...quest, progress: quest.goal }] }
+        : undefined,
+    },
+  );
+  return { lane: 'burst', stage: queued.stage, ticker: queued.ticker };
 }

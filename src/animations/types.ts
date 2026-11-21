@@ -7,8 +7,9 @@
  * - The ticker: small, non-blocking pings at the top of the screen (sticker
  *   or quest progress). They never wait for, or hold up, the stage.
  *
- * XP popdowns play beside the stage, never in its line: with the item that
- * earned them (see StageItem.xp), or straight away when on their own.
+ * XP takes its turn in the stage's line, after whatever was earned ahead of
+ * it, and pops down at the top while it plays. Pings wait until no cards are
+ * on stage, so they land with the XP rather than over a celebration.
  */
 import type { FC } from 'react';
 import type { Achievement, AchievementReward } from '@/api/Api';
@@ -74,11 +75,6 @@ export type StageItem<TKind extends StageKind = StageKind> = {
    * quests and their rewards) and play as "2 of 5", one after another.
    */
   group?: string;
-  /**
-   * XP this item earned. Its popdown plays at the same moment the item comes
-   * on stage, so the gain reads as coming from it.
-   */
-  xp?: StagePayloads['xp'];
 };
 
 /** Where an item sits in its group; only set when the group has more than one */
@@ -91,6 +87,8 @@ export type StageProps<TKind extends StageKind> = {
   onDone: () => void;
   /** Set when this is one of several earned together */
   step?: StageStep;
+  /** Close this and drop everything still waiting to celebrate */
+  onSkipAll?: () => void;
 };
 
 export type StageComponent<TKind extends StageKind> = FC<StageProps<TKind>>;
@@ -103,6 +101,8 @@ export type TickerItem = {
   from: number;
   to: number;
   goal: number;
+  /** How many other pings were dropped to keep this refresh to a couple */
+  more?: number;
 };
 
 export type TickerProps = { item: TickerItem; onDone: () => void };

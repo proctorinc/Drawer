@@ -64,6 +64,7 @@ describe('StageQueue', () => {
       playing: null,
       busy: false,
       waiting: 0,
+      cards: 0,
     });
   });
 
@@ -123,13 +124,65 @@ describe('StageQueue', () => {
 describe('XP lane', () => {
   const xpId = (queue: StageQueue) => queue.xp.getSnapshot()?.id;
 
-  it('pops down at once, over whatever is on stage, without joining its line', () => {
+  it('pops down at once when nothing is on stage', () => {
+    const queue = new StageQueue();
+    queue.enqueue(xp('x', 0, 10));
+    expect(xpId(queue)).toBe('x');
+    expect(playingId(queue)).toBeUndefined();
+    expect(queue.getSnapshot()).toMatchObject({ busy: true, cards: 0 });
+  });
+
+  it('waits its turn behind what is on stage, and holds what comes after', async () => {
     const queue = new StageQueue();
     queue.enqueue(review('playing'));
     queue.enqueue(xp('x', 0, 10));
-    expect(playingId(queue)).toBe('playing');
-    expect(queue.getSnapshot().waiting).toBe(0);
+    queue.enqueue(review('after'));
+    expect(xpId(queue)).toBeUndefined();
+    queue.finish('playing');
     expect(xpId(queue)).toBe('x');
+    expect(playingId(queue)).toBeUndefined();
+    queue.xp.finish('x');
+    await flush();
+    expect(playingId(queue)).toBe('after');
+  });
+
+  it('lets earned cards cut ahead of waiting XP and rank-ups, and merges XP', async () => {
+    const queue = new StageQueue();
+    const card = (id: string): StageItem => ({
+      id,
+      kind: 'completed',
+      payload: {
+        kind: 'quest',
+        quest: { id, title: id, description: '', progress: 1, goal: 1 },
+      },
+    });
+    queue.enqueue(card('a1'));
+    queue.enqueue(xp('x1', 0, 30));
+    queue.enqueue({
+      id: 'rank',
+      kind: 'rankUp',
+      payload: { fromTierId: 'a', toTierId: 'b', level: 2 },
+    });
+    // A second refresh while the first card is still up
+    queue.enqueue(card('a2'));
+    queue.enqueue(xp('x2', 30, 55));
+
+    const order: Array<string> = [];
+    for (let i = 0; i < 4; i++) {
+      const xpNow = queue.xp.getSnapshot();
+      const id = xpNow?.id ?? playingId(queue);
+      order.push(id!);
+      if (xpNow) {
+        expect(xpNow.payload).toEqual({
+          from: level(0),
+          to: level(55),
+          gained: 55,
+        });
+        queue.xp.finish(xpNow.id);
+      } else queue.finish(id!);
+      await flush();
+    }
+    expect(order).toEqual(['a1', 'a2', 'x1', 'rank']);
   });
 
   it('merges xp waiting behind the one showing', async () => {
@@ -143,22 +196,6 @@ describe('XP lane', () => {
     expect(queue.xp.getSnapshot()).toEqual({
       id: 'x2',
       payload: { from: level(10), to: level(30), gained: 20 },
-    });
-  });
-
-  it('plays the XP an item earned the moment that item comes on stage', () => {
-    const queue = new StageQueue();
-    queue.enqueue(review('first'));
-    queue.enqueue({
-      ...review('earned'),
-      xp: xp('_', 0, 15).payload,
-    });
-    expect(xpId(queue)).toBeUndefined();
-    queue.finish('first');
-    expect(playingId(queue)).toBe('earned');
-    expect(queue.xp.getSnapshot()).toEqual({
-      id: 'xp:earned',
-      payload: xp('_', 0, 15).payload,
     });
   });
 
@@ -182,6 +219,37 @@ describe('XP lane', () => {
     queue.dismiss('x');
     await expect(done).resolves.toBe('dismissed');
     expect(xpId(queue)).toBeUndefined();
+  });
+});
+
+describe('skipRest', () => {
+  it('closes the card and drops the cards, XP and rank-up behind it', async () => {
+    const queue = new StageQueue();
+    const card = (id: string): StageItem => ({
+      id,
+      kind: 'completed',
+      payload: {
+        kind: 'quest',
+        quest: { id, title: id, description: '', progress: 1, goal: 1 },
+      },
+    });
+    const playing = queue.enqueue(card('a'));
+    const next = queue.enqueue(card('b'));
+    const fill = queue.enqueue(xp('x', 0, 30));
+    const rank = queue.enqueue({
+      id: 'rank',
+      kind: 'rankUp',
+      payload: { fromTierId: 'a', toTierId: 'b', level: 2 },
+    });
+    queue.enqueue(review('unrelated'));
+    queue.skipRest();
+    await expect(playing).resolves.toBe('dismissed');
+    await expect(next).resolves.toBe('dismissed');
+    await expect(fill).resolves.toBe('dismissed');
+    await expect(rank).resolves.toBe('dismissed');
+    expect(queue.xp.getSnapshot()).toBeNull();
+    // Anything that isn't part of the celebration still plays
+    expect(playingId(queue)).toBe('unrelated');
   });
 });
 

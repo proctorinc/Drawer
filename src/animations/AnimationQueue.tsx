@@ -4,13 +4,14 @@
  * - The stage plays one full-attention animation at a time, first in first
  *   out. An item with `ready` holds the line until that promise settles (or
  *   skips itself after READY_TIMEOUT_MS); anything queued behind it waits.
- * - The ticker plays small top pings one after another in its own lane, and
- *   never waits for the stage.
- * - XP has a lane of its own too, so the bar fills the moment you earn it:
- *   XP that came with a stage item (an achievement, a quest) pops down as that
- *   item comes on stage, and XP on its own pops down straight away, over
- *   whatever is playing. A rank-up waits for the XP lane to clear, since it's
- *   the bar that carries you there.
+ * - XP waits its turn in the stage's line, so it always fills after what was
+ *   earned ahead of it, then pops down at the top. Cards earned while XP is
+ *   still waiting cut in ahead of it, and more XP merges into the waiting
+ *   popdown, so a burst of activity plays as: every card, one XP fill, then
+ *   a rank-up (which also waits for the bar, since that's what carries you).
+ * - The ticker plays small top pings one after another in its own lane. They
+ *   hold while a card is on stage or waiting, so they show with the XP fill
+ *   instead of over a celebration.
  *
  * The stage and ticker render wherever the provider sits, so it must sit
  * inside the router (stage pieces use Link/useNavigate) and the query client.
@@ -60,7 +61,13 @@ export type StageSnapshot = {
   busy: boolean;
   /** How many are queued behind */
   waiting: number;
+  /** Cards (anything but XP) playing or waiting; pings hold while there are any */
+  cards: number;
 };
+
+/** Earned cards go ahead of XP and rank-ups that are still waiting */
+const CUTS_IN: ReadonlySet<StageKind> = new Set(['completed', 'reward']);
+const TAIL: ReadonlySet<StageKind> = new Set(['xp', 'rankUp']);
 
 const mergeReady = (a?: Promise<unknown>, b?: Promise<unknown>) =>
   a && b ? Promise.all([a, b]) : (a ?? b);
@@ -161,7 +168,12 @@ export class XpLane {
 export class StageQueue {
   private entries: Array<StageEntry> = [];
   private listeners = new Set<Listener>();
-  private snapshot: StageSnapshot = { playing: null, busy: false, waiting: 0 };
+  private snapshot: StageSnapshot = {
+    playing: null,
+    busy: false,
+    waiting: 0,
+    cards: 0,
+  };
   /** How many of each group have already been shown (played, skipped or dismissed) */
   private shownInGroup = new Map<string, number>();
 
@@ -185,30 +197,49 @@ export class StageQueue {
    * rejected or timed out) or been dismissed. Queueing an id that's already
    * waiting or playing returns that item's promise.
    *
-   * An `xp` item skips the line: it goes to the XP lane as soon as it's
-   * ready, and plays over whatever is on stage.
+   * XP joins the line like anything else. If XP is already waiting, the new
+   * gain merges into it (from the old start to the new end) so the bar fills
+   * once. Earned cards cut in ahead of waiting XP and rank-ups.
    */
   enqueue = (item: StageItem): Promise<StageOutcome> => {
     // Settled later, by us; this just stops an early rejection being reported
     item.ready?.catch(() => {});
 
-    if (item.kind === 'xp') {
-      const payload = item.payload as XpPayload;
-      if (!item.ready) return this.xp.enqueue(item.id, payload);
-      return this.withTimeout(item.ready).then(
-        () => this.xp.enqueue(item.id, payload),
-        () => 'skipped' as const,
-      );
-    }
-
     const existing = this.entries.find((entry) => entry.item.id === item.id);
     if (existing) return existing.done;
+
+    if (item.kind === 'xp') {
+      const waiting = this.entries.find(
+        (entry) => entry.status === 'waiting' && entry.item.kind === 'xp',
+      );
+      if (waiting) {
+        const was = waiting.item.payload as XpPayload;
+        const add = item.payload as XpPayload;
+        waiting.item = {
+          ...waiting.item,
+          payload: {
+            from: was.from,
+            to: add.to,
+            gained: was.gained + add.gained,
+          },
+          ready: mergeReady(waiting.item.ready, item.ready),
+        };
+        return waiting.done;
+      }
+    }
 
     let settle!: (outcome: StageOutcome) => void;
     const done = new Promise<StageOutcome>((resolve) => {
       settle = resolve;
     });
-    this.entries.push({ item, status: 'waiting', settle, done });
+    const entry: StageEntry = { item, status: 'waiting', settle, done };
+    const tail = CUTS_IN.has(item.kind)
+      ? this.entries.findIndex(
+          (other) => other.status === 'waiting' && TAIL.has(other.item.kind),
+        )
+      : -1;
+    if (tail === -1) this.entries.push(entry);
+    else this.entries.splice(tail, 0, entry);
     this.pump();
     return done;
   };
@@ -223,8 +254,28 @@ export class StageQueue {
     this.pump();
   };
 
+  /**
+   * The X on a celebration: close what's playing and drop every card,
+   * reward, XP fill and rank-up still waiting. Dropped ones count as
+   * dismissed, so they're marked celebrated and won't come back.
+   */
+  skipRest = () => {
+    const head = this.entries[0] as StageEntry | undefined;
+    const dropped = this.entries.filter(
+      (entry) =>
+        entry !== head &&
+        entry.status === 'waiting' &&
+        (CUTS_IN.has(entry.item.kind) || TAIL.has(entry.item.kind)),
+    );
+    this.entries = this.entries.filter((entry) => !dropped.includes(entry));
+    dropped.forEach((entry) => entry.settle('dismissed'));
+    if (head) this.dismiss(head.item.id);
+    else this.emit();
+  };
+
   /** Drop an item, whether it's waiting, preparing or playing */
   dismiss = (id: string) => {
+    // Playing XP settles through its popdown, which then frees the line
     if (this.xp.dismiss(id)) return;
     const index = this.entries.findIndex((entry) => entry.item.id === id);
     if (index === -1) return;
@@ -258,23 +309,30 @@ export class StageQueue {
         if (!stillHere()) return;
         this.entries.shift();
         this.countShown(head.item);
-        // The XP was still earned, so it still shows
-        this.handOffXp(head.item);
         head.settle('skipped');
         this.pump();
       },
     );
   }
 
-  /** Put it on stage, with its XP popping down at the same moment */
+  /**
+   * Put it on stage. XP plays in the XP lane's popdown instead, and holds the
+   * line until that finishes, so whatever is behind it waits for the bar.
+   */
   private play(entry: StageEntry) {
     entry.status = 'playing';
-    this.handOffXp(entry.item);
+    if (entry.item.kind === 'xp') {
+      const { id } = entry.item;
+      void this.xp
+        .enqueue(id, entry.item.payload as XpPayload)
+        .then((outcome) => {
+          if (this.entries[0] !== entry) return;
+          this.entries.shift();
+          entry.settle(outcome);
+          this.pump();
+        });
+    }
     this.emit();
-  }
-
-  private handOffXp(item: StageItem) {
-    if (item.xp) void this.xp.enqueue(`xp:${item.id}`, item.xp);
   }
 
   /** Rejects if `ready` hasn't settled within the ready timeout */
@@ -315,13 +373,22 @@ export class StageQueue {
 
   private emit() {
     const head = this.entries[0] as StageEntry | undefined;
-    const playing = head?.status === 'playing' ? head.item : null;
+    // XP renders in its own popdown, not on the stage
+    const playing =
+      head?.status === 'playing' && head.item.kind !== 'xp' ? head.item : null;
     this.snapshot = {
       playing,
       step: playing ? this.stepOf(playing) : undefined,
       busy: !!head && head.status !== 'waiting',
       waiting: this.entries.filter((entry) => entry.status === 'waiting')
         .length,
+      // A rank-up still waiting behind the XP doesn't hold pings; they show
+      // under the bar as it fills, and any left over wait out the rank-up
+      cards: this.entries.filter(
+        (entry) =>
+          entry.item.kind !== 'xp' &&
+          !(entry.item.kind === 'rankUp' && entry.status === 'waiting'),
+      ).length,
     };
     this.listeners.forEach((listener) => listener());
   }
@@ -357,6 +424,12 @@ export class TickerQueue {
     const index = this.items.findIndex((queued) => queued.id === id);
     if (index === -1) return;
     this.items.splice(index, 1);
+    this.emit();
+  };
+
+  /** Drop every ping, showing or waiting */
+  clear = () => {
+    this.items = [];
     this.emit();
   };
 
@@ -424,28 +497,47 @@ const StageSlot: FC<{
   item: StageItem;
   step?: StageStep;
   queue: StageQueue;
-}> = ({ item, step, queue }) => {
+  ticker: TickerQueue;
+}> = ({ item, step, queue, ticker }) => {
   // Stable for the item's whole run, so effects keyed on it don't restart
   const [onDone] = useState(() => () => queue.finish(item.id));
+  const [onSkipAll] = useState(() => () => {
+    ticker.clear();
+    queue.skipRest();
+  });
   const Animation = stageRegistry[item.kind] as StageComponent<StageKind>;
 
   return (
     <SkipOnError onError={onDone}>
       <Suspense fallback={null}>
-        <Animation payload={item.payload} onDone={onDone} step={step} />
+        <Animation
+          payload={item.payload}
+          onDone={onDone}
+          step={step}
+          onSkipAll={onSkipAll}
+        />
       </Suspense>
     </SkipOnError>
   );
 };
 
-const Stage: FC<{ queue: StageQueue }> = ({ queue }) => {
+const Stage: FC<{ queue: StageQueue; ticker: TickerQueue }> = ({
+  queue,
+  ticker,
+}) => {
   const { playing, step } = useSyncExternalStore(
     queue.subscribe,
     queue.getSnapshot,
   );
   if (!playing) return null;
   return (
-    <StageSlot key={playing.id} item={playing} step={step} queue={queue} />
+    <StageSlot
+      key={playing.id}
+      item={playing}
+      step={step}
+      queue={queue}
+      ticker={ticker}
+    />
   );
 };
 
@@ -492,9 +584,23 @@ const TickerSlot: FC<{ item: TickerItem; queue: TickerQueue }> = ({
   );
 };
 
-const Ticker: FC<{ queue: TickerQueue }> = ({ queue }) => {
+const Ticker: FC<{ queue: TickerQueue; stage: StageQueue }> = ({
+  queue,
+  stage,
+}) => {
   const current = useSyncExternalStore(queue.subscribe, queue.getSnapshot);
-  if (!current) return null;
+  const cards = useSyncExternalStore(
+    stage.subscribe,
+    () => stage.getSnapshot().cards,
+  );
+  // Hold pings until the cards are done, so they land with the XP fill. One
+  // already showing finishes rather than vanishing when a card turns up.
+  const [started, setStarted] = useState<string | null>(null);
+  const show = !!current && (cards === 0 || started === current.id);
+  useEffect(() => {
+    if (show) setStarted(current.id);
+  }, [show, current]);
+  if (!show) return null;
   // Keyed by id, so a merged update flows into the ping already showing
   return <TickerSlot key={current.id} item={current} queue={queue} />;
 };
@@ -519,9 +625,11 @@ declare global {
  * Holds both lanes and renders them after its children. Mount it once, inside
  * the router and the query client.
  */
-export const AnimationQueueProvider: FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+export const AnimationQueueProvider: FC<{
+  children: ReactNode;
+  /** Expose it as window.__animations in dev; off for nested preview queues */
+  devHandle?: boolean;
+}> = ({ children, devHandle = true }) => {
   const [queues] = useState<Queues>(() => ({
     stage: new StageQueue(),
     ticker: new TickerQueue(),
@@ -541,7 +649,7 @@ export const AnimationQueueProvider: FC<{ children: ReactNode }> = ({
   }, []);
 
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
+    if (!import.meta.env.DEV || !devHandle) return;
     const { stage, ticker } = queues;
     window.__animations = {
       enqueue: stage.enqueue,
@@ -556,14 +664,14 @@ export const AnimationQueueProvider: FC<{ children: ReactNode }> = ({
     return () => {
       delete window.__animations;
     };
-  }, [queues]);
+  }, [queues, devHandle]);
 
   return (
     <AnimationQueueContext.Provider value={queues}>
       {children}
-      <Stage queue={queues.stage} />
+      <Stage queue={queues.stage} ticker={queues.ticker} />
       <Xp lane={queues.stage.xp} />
-      <Ticker queue={queues.ticker} />
+      <Ticker queue={queues.ticker} stage={queues.stage} />
     </AnimationQueueContext.Provider>
   );
 };

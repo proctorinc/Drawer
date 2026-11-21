@@ -1,5 +1,6 @@
 import { useProgression } from '../api';
 import {
+  burstDemo,
   earnedAllDemo,
   levelUpDemo,
   questCompletedDemo,
@@ -85,6 +86,11 @@ const ProgressionPage = () => {
                         label="finish them all at once"
                         title={`all ${quests.length} quests at once`}
                         demo={earnedAllDemo([], quests)}
+                      />
+                      <ShowAnimationButton
+                        label="a busy moment"
+                        title="everything at once: cards, then XP, then rank"
+                        demo={burstDemo(quests)}
                       />
                       {formatDay(week.start)} → {formatDay(week.end)}
                     </span>

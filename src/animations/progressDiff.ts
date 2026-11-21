@@ -40,11 +40,17 @@ export type ProgressInput = {
   quests?: { weekStart: string; quests: Array<Quest> } | null;
 };
 
+/** XP gains smaller than this wait, adding up, until there's enough to show */
+export const MIN_XP_POPDOWN = 5;
+
+/** At most this many progress pings per refresh; the rest become "+n more" */
+export const MAX_PINGS = 2;
+
 export type ProgressDiff = {
   /**
-   * In play order: completed..., reward..., rankUp. XP rides on the first of
-   * them (its popdown plays alongside), or is its own item at the front when
-   * nothing else was earned.
+   * In play order: completed..., reward..., xp, rankUp. Everything earned
+   * plays first, then the bar fills with the XP for all of it, then a
+   * rank-up if that XP crossed into a new tier.
    */
   stage: Array<StageItem>;
   ticker: Array<TickerItem>;
@@ -76,7 +82,11 @@ export function diffProgress(
   if (current.level) {
     const from = prev.level;
     const to = pickLevel(current.level);
-    if (from && to.xp > from.xp) {
+    // A small gain that stays in the same level waits for more to join it:
+    // remembering the old level means the next diff counts from there
+    const tiny =
+      !!from && to.xp - from.xp < MIN_XP_POPDOWN && to.level === from.level;
+    if (from && to.xp > from.xp && !tiny) {
       xp = {
         id: `xp:${to.xp}`,
         kind: 'xp',
@@ -96,13 +106,16 @@ export function diffProgress(
         };
       }
     }
-    next.level = to;
+    next.level = tiny ? from : to;
   }
 
   // Achievements and event stickers
   if (current.achievements) {
     const seen = prev.achievements;
     const memory: Record<string, AchievementMemory> = {};
+    // Progress pings, at most one per ladder (see ladderKey)
+    const pings = new Map<string, TickerItem>();
+    const ladderEarned = new Set<string>();
     for (const achievement of current.achievements) {
       const now: AchievementMemory = {
         progress: achievement.progress,
@@ -121,7 +134,9 @@ export function diffProgress(
           !pending?.has(achievement.id)
         : !!was && now.achieved && !was.achieved;
 
+      const ladder = ladderKey(achievement);
       if (earned) {
+        ladderEarned.add(ladder);
         completed.push({
           id: `completed:${kind}:${achievement.id}`,
           kind: 'completed',
@@ -137,7 +152,7 @@ export function diffProgress(
       } else if (was && !now.achieved && now.progress > was.progress) {
         const tickerKind =
           kind === 'sticker' ? 'stickerProgress' : 'achievementProgress';
-        ticker.push({
+        const ping: TickerItem = {
           id: `${tickerKind}:${achievement.id}:${now.progress}`,
           kind: tickerKind,
           label: achievement.name,
@@ -145,8 +160,15 @@ export function diffProgress(
           from: was.progress,
           to: now.progress,
           goal: achievement.achievementValue,
-        });
+        };
+        // The lowest rung decides; a farther one never stands in for it
+        const other = pings.get(ladder);
+        if (!other || closer(ping, other)) pings.set(ladder, ping);
       }
+    }
+    // Earning a tier is the news; the next tier's progress can wait
+    for (const [ladder, ping] of pings) {
+      if (!ladderEarned.has(ladder) && worthPinging(ping)) ticker.push(ping);
     }
     next.achievements = memory;
   }
@@ -178,32 +200,70 @@ export function diffProgress(
           payload: { kind: 'quest', quest },
         });
       } else {
-        ticker.push({
+        const ping: TickerItem = {
           id: `questProgress:${weekStart}:${quest.id}:${now}`,
           kind: 'questProgress',
           label: quest.title,
           from: was,
           to: now,
           goal: quest.goal,
-        });
+        };
+        if (worthPinging(ping)) ticker.push(ping);
       }
     }
     next.quests = { weekStart, progress };
   }
 
-  // Everything earned in one go plays as a set ("2 of 5"). The XP pops down
-  // with the first of them, so it reads as coming from what you just earned
-  // instead of turning up later on its own. A rank-up is the payoff, so it
-  // comes last (the queue also holds it until the XP bar has filled).
+  // Everything earned in one go plays as a set ("2 of 5"), then the bar fills
+  // once with the XP for all of it, then a rank-up as the payoff. The queue
+  // keeps that order even when more is earned while it plays.
   const earned = [...completed, ...rewards];
   const group = earned.length > 1 ? `earned:${earned[0].id}` : undefined;
   const stage: Array<StageItem> = earned.map((item) => ({ ...item, group }));
-  if (xp) {
-    if (stage.length) stage[0] = { ...stage[0], xp: xp.payload };
-    else stage.push(xp);
-  }
+  if (xp) stage.push(xp);
   if (rankUp) stage.push(rankUp);
-  return { stage, ticker, next };
+  return { stage, ticker: capPings(ticker), next };
+}
+
+/**
+ * Achievements that count the same thing at rising goals (3, 14, 30 and 100
+ * days in a row; 25 and 100 comments) form a ladder. One action moves every
+ * rung at once, but only the next rung up is worth a ping.
+ */
+function ladderKey(achievement: Achievement): string {
+  if (!achievement.achievementField) return `id:${achievement.id}`;
+  return `${achievement.eventSlug ?? ''}:${achievement.achievementField}`;
+}
+
+/** Whether a is nearer its goal than b (the lower rung, on a ladder) */
+function closer(a: TickerItem, b: TickerItem): boolean {
+  const ra = a.goal > 0 ? a.to / a.goal : 1;
+  const rb = b.goal > 0 ? b.to / b.goal : 1;
+  return ra !== rb ? ra > rb : a.goal < b.goal;
+}
+
+/**
+ * Whether a step is worth a ping. Small goals always are. Big ones ping when
+ * they start, at each quarter, and on the home stretch, so 37 of 100 stays
+ * quiet but 50 of 100 and 95 of 100 don't.
+ */
+export function worthPinging({ from, to, goal }: TickerItem): boolean {
+  if (goal <= 10) return true;
+  if (from === 0) return true;
+  if (Math.floor((to * 4) / goal) > Math.floor((from * 4) / goal)) return true;
+  return goal - to <= Math.max(1, Math.ceil(goal * 0.1));
+}
+
+/** The nearest MAX_PINGS to done, the last one counting the rest */
+function capPings(pings: Array<TickerItem>): Array<TickerItem> {
+  if (pings.length <= MAX_PINGS) return pings;
+  const kept = [...pings].sort((a, b) =>
+    closer(a, b) ? -1 : closer(b, a) ? 1 : 0,
+  );
+  kept.length = MAX_PINGS;
+  const last = kept[MAX_PINGS - 1];
+  kept[MAX_PINGS - 1] = { ...last, more: pings.length - MAX_PINGS };
+  return kept;
 }
 
 function pickLevel(level: LevelSnapshot): LevelSnapshot {

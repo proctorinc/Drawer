@@ -32,7 +32,7 @@ const FALLBACK_ICON: Record<TickerItem['kind'], FC<{ size?: number }>> = {
  * it goes. Never blocks anything outside the pill; tap to dismiss.
  */
 export const ProgressTicker: FC<TickerProps> = ({ item, onDone }) => {
-  const { from, to, goal, label, imageUrl, kind } = item;
+  const { from, to, goal, label, imageUrl, kind, more } = item;
   const reduced = useReducedMotion();
   const popdownBottom = usePopdownBottom();
   const [count, setCount] = useState(reduced ? to : from);
@@ -101,13 +101,14 @@ export const ProgressTicker: FC<TickerProps> = ({ item, onDone }) => {
     >
       <p role="status" className="sr-only">
         {`${label}: ${to} of ${goal}`}
+        {more ? `, and ${more} more` : ''}
       </p>
       <button
         type="button"
         aria-label="Dismiss"
         onClick={() => setLeaving(true)}
         className={cn(
-          'pointer-events-auto flex items-center gap-2 max-w-[300px] h-10 pl-1.5 pr-3 bg-white border-2 border-ink rounded-full text-ink cursor-pointer',
+          'pointer-events-auto flex items-center gap-2 max-w-[340px] h-10 pl-1.5 pr-3 bg-white border-2 border-ink rounded-full text-ink cursor-pointer',
           !reduced && (leaving ? 'xp-ticker-out' : 'xp-ticker-in'),
         )}
       >
@@ -142,6 +143,14 @@ export const ProgressTicker: FC<TickerProps> = ({ item, onDone }) => {
           </span>
           /{goal}
         </span>
+        {more ? (
+          <span
+            aria-hidden="true"
+            className="flex-none -mr-1.5 px-1.5 rounded-full border-[1.5px] border-ink bg-butter text-xs font-bold leading-5"
+          >
+            +{more}
+          </span>
+        ) : null}
       </button>
     </div>
   );

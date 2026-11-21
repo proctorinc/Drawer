@@ -158,7 +158,7 @@ describe('diffProgress', () => {
     expect(next.achievements).toEqual({ s1: { progress: 5, achieved: true } });
   });
 
-  it('orders every completion, every reward, then the rank up, with XP on the first', () => {
+  it('orders every completion, every reward, then the XP, then the rank up', () => {
     const reward = { id: 'R', name: 'R', description: '' };
     const a = achievement({ id: 'a', achievedAt: new Date(), reward });
     const b = achievement({ id: 'b', achievedAt: new Date(), reward });
@@ -183,15 +183,79 @@ describe('diffProgress', () => {
       `completed:quest:${WEEK}:q1`,
       'reward:R:a',
       'reward:R:b',
+      'xp:160',
       'rankUp:bronze:3',
     ]);
-    // The XP pops down with the first thing earned, not on its own
-    expect(stage[0].xp).toEqual({
+    // One fill for everything earned
+    expect(stage[5].payload).toEqual({
       from: level(2, 60),
       to: level(3, 160),
       gained: 100,
     });
-    expect(stage.slice(1).some((item) => item.xp)).toBe(false);
+  });
+
+  it('holds tiny XP gains back until they add up', () => {
+    const first = diffProgress(snapshot({ level: level(2, 60) }), {
+      level: level(2, 63),
+    });
+    expect(first.stage).toEqual([]);
+    // Remembers where the bar was, so the next gain counts from there
+    expect(first.next.level).toEqual(level(2, 60));
+    const second = diffProgress(first.next, { level: level(2, 66) });
+    expect(second.stage).toEqual([
+      {
+        id: 'xp:66',
+        kind: 'xp',
+        payload: { from: level(2, 60), to: level(2, 66), gained: 6 },
+      },
+    ]);
+  });
+
+  it('shows a tiny gain that crosses a level', () => {
+    const before = level(2, 149);
+    const { stage } = diffProgress(snapshot({ level: before }), {
+      level: level(3, 151),
+    });
+    expect(stage[0]).toMatchObject({ kind: 'xp', payload: { gained: 2 } });
+  });
+
+  it('pings only steps worth noticing on a big goal', () => {
+    const big = (from: number, to: number) =>
+      diffProgress(
+        snapshot({ achievements: { a1: { progress: from, achieved: false } } }),
+        {
+          achievements: [achievement({ achievementValue: 100, progress: to })],
+        },
+      ).ticker.length;
+    expect(big(0, 1)).toBe(1); // started
+    expect(big(36, 37)).toBe(0); // nothing special
+    expect(big(49, 50)).toBe(1); // a quarter
+    expect(big(94, 95)).toBe(1); // home stretch
+  });
+
+  it('keeps the two pings nearest done and counts the rest', () => {
+    const ids = ['a', 'b', 'c', 'd'];
+    const { ticker } = diffProgress(
+      snapshot({
+        achievements: Object.fromEntries(
+          ids.map((id) => [id, { progress: 0, achieved: false }]),
+        ),
+      }),
+      {
+        achievements: ids.map((id, i) =>
+          achievement({
+            id,
+            achievementField: id,
+            achievementValue: 5,
+            progress: i + 1,
+          }),
+        ),
+      },
+    );
+    expect(ticker.map((t) => [t.id, t.more])).toEqual([
+      ['achievementProgress:d:4', undefined],
+      ['achievementProgress:c:3', 2],
+    ]);
   });
 
   it('pings the ticker for progress that does not complete', () => {
@@ -237,6 +301,76 @@ describe('diffProgress', () => {
         goal: 10,
       },
     ]);
+  });
+
+  it('pings only the nearest rung of a ladder', () => {
+    const streak = (id: string, goal: number, progress: number) =>
+      achievement({
+        id,
+        name: id,
+        achievementField: 'SUBMISSION_STREAK',
+        achievementValue: goal,
+        progress,
+      });
+    const { ticker } = diffProgress(
+      snapshot({
+        achievements: {
+          's-3': { progress: 3, achieved: true },
+          's-14': { progress: 3, achieved: false },
+          's-30': { progress: 3, achieved: false },
+          's-100': { progress: 3, achieved: false },
+          c1: { progress: 1, achieved: false },
+        },
+      }),
+      {
+        achievements: [
+          { ...streak('s-3', 3, 4), achievedAt: new Date(), celebrated: true },
+          streak('s-14', 14, 4),
+          streak('s-30', 30, 4),
+          streak('s-100', 100, 4),
+          achievement({
+            id: 'c1',
+            achievementField: 'COMMENT_TOTAL',
+            progress: 2,
+          }),
+        ],
+      },
+    );
+    expect(ticker.map((t) => t.id)).toEqual([
+      'achievementProgress:s-14:4',
+      'achievementProgress:c1:2',
+    ]);
+  });
+
+  it("skips a ladder's progress when one of its rungs was just earned", () => {
+    const { stage, ticker } = diffProgress(
+      snapshot({
+        achievements: {
+          's-3': { progress: 2, achieved: false },
+          's-14': { progress: 2, achieved: false },
+        },
+      }),
+      {
+        achievements: [
+          achievement({
+            id: 's-3',
+            achievementField: 'SUBMISSION_STREAK',
+            achievementValue: 3,
+            progress: 3,
+            achievedAt: new Date(),
+            celebrated: false,
+          }),
+          achievement({
+            id: 's-14',
+            achievementField: 'SUBMISSION_STREAK',
+            achievementValue: 14,
+            progress: 3,
+          }),
+        ],
+      },
+    );
+    expect(stage.map((item) => item.id)).toEqual(['completed:achievement:s-3']);
+    expect(ticker).toEqual([]);
   });
 
   it('remembers achievements it has never seen without celebrating them', () => {

@@ -5,6 +5,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useStageHost } from '../StageHost';
 import { StepCount, hasNext } from '../StepCount';
 import PaperBits from './PaperBits';
+import { SkipAll } from './SkipAll';
 import { useStageExit } from './useStageExit';
 import type { CSSProperties, FC } from 'react';
 import type { StageComponent } from '../types';
@@ -139,6 +140,7 @@ export const CompletedCard: StageComponent<'completed'> = ({
   payload,
   onDone,
   step,
+  onSkipAll,
 }) => {
   const { host, preview } = useStageHost();
   const navigate = useNavigate();
@@ -181,6 +183,7 @@ export const CompletedCard: StageComponent<'completed'> = ({
         data-thunk={payload.kind !== 'quest' || undefined}
       >
         <div className="completed-card-body relative flex flex-col items-center gap-3 px-5 pt-5 pb-6 bg-white border-2 border-ink rounded-sketch shadow-pencil text-center">
+          <SkipAll onSkip={onSkipAll} />
           <StepCount step={step} />
           <span className="text-xs uppercase tracking-widest text-pencil">
             {shown.heading}
@@ -226,12 +229,12 @@ export const CompletedCard: StageComponent<'completed'> = ({
               size="sm"
               disableLoad
               className="flex-1"
-              onClick={exit}
+              onClick={see}
             >
-              {hasNext(step) ? 'next →' : 'nice!'}
-            </Button>
-            <Button size="sm" disableLoad className="flex-1" onClick={see}>
               {shown.seeLabel}
+            </Button>
+            <Button size="sm" disableLoad className="flex-1" onClick={exit}>
+              {hasNext(step) ? 'next →' : 'nice!'}
             </Button>
           </div>
 
