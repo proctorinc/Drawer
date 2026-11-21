@@ -39,7 +39,7 @@ export const AIJudgeDrawer: FC<Props> = ({
         <AIJudgeAvatar judge={judge} size="xl" className="mt-2" />
         <div className="flex flex-col gap-1.5">
           <span className="self-start px-2 rounded-full border-[1.5px] border-ink bg-sky text-sm font-bold">
-            AI judge
+            judge
           </span>
           <p className="text-secondary leading-snug">
             Not a real person. An AI that scores doodles out of {AI_SCORE_MAX}{' '}

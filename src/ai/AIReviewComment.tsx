@@ -59,7 +59,7 @@ export const AIReviewComment: FC<Props> = ({ review, className }) => {
     <button
       type="button"
       aria-haspopup="dialog"
-      aria-label={`About ${judge.name}, the AI judge`}
+      aria-label={`About ${judge.name}, the judge`}
       onClick={() => setAboutOpen(true)}
       className="flex-none mt-0.5 cursor-pointer transition-[scale,rotate] duration-300 ease-[var(--ease-spring)] hover:scale-110 hover:-rotate-6"
     >

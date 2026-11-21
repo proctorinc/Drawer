@@ -45,7 +45,7 @@ var xpRules = []XPRule{
 	{"React to a friend", xpPerReactionGiven, 0},
 	{"Get a reaction", xpPerReactionReceived, 0},
 	{"Earn an achievement", xpPerAchievement, 0},
-	{"Score 5+ with the AI judge", judgeBonusXP(0), judgeBonusXP(queries.JudgeScoreSteps - 1)},
+	{"Score 5+ with the judge", judgeBonusXP(0), judgeBonusXP(queries.JudgeScoreSteps - 1)},
 }
 
 type Level = xp.Level

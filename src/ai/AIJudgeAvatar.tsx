@@ -5,10 +5,10 @@ import type { AIJudge } from '@/api/Api';
 import { cn } from '@/utils';
 
 const SIZES = {
-  xs: { box: 'size-5', border: 'border-[1.5px]', badge: '' },
-  sm: { box: 'size-9', border: 'border-2', badge: 'text-[9px] px-1' },
-  lg: { box: 'size-12', border: 'border-2', badge: 'text-[10px] px-1.5' },
-  xl: { box: 'size-20', border: 'border-[2.5px]', badge: 'text-xs px-2' },
+  xs: { box: 'size-5', border: 'border-[1.5px]' },
+  sm: { box: 'size-9', border: 'border-2' },
+  lg: { box: 'size-12', border: 'border-2' },
+  xl: { box: 'size-20', border: 'border-[2.5px]' },
 } as const;
 
 type Props = {
@@ -18,9 +18,8 @@ type Props = {
 };
 
 /**
- * An AI judge's face. Like a player's avatar, but it never links to a profile,
- * wears an AI-only decoration, and carries an "AI" tag where a player's level
- * badge would be, so nobody mistakes it for a friend.
+ * A judge's face. Like a player's avatar, but it never links to a profile and
+ * wears a judge-only decoration, so nobody mistakes it for a friend.
  */
 export const AIJudgeAvatar: FC<Props> = ({ judge, size = 'sm', className }) => {
   const [broken, setBroken] = useState(false);
@@ -29,7 +28,7 @@ export const AIJudgeAvatar: FC<Props> = ({ judge, size = 'sm', className }) => {
   return (
     <span
       className={cn('relative inline-flex flex-none', s.box, className)}
-      title={`${judge.name} (AI)`}
+      title={judge.name}
     >
       <span
         className={cn(
@@ -51,17 +50,6 @@ export const AIJudgeAvatar: FC<Props> = ({ judge, size = 'sm', className }) => {
       {judge.decoration && (
         <span className="absolute inset-0 z-20 pointer-events-none">
           <AIAvatarDecoration id={judge.decoration} />
-        </span>
-      )}
-      {/* Too small to read at xs; whatever sits next to it says it's an AI */}
-      {size !== 'xs' && (
-        <span
-          className={cn(
-            'absolute z-30 -right-1.5 -bottom-1 rounded-full border-[1.5px] border-ink bg-butter font-bold leading-tight tracking-wide',
-            s.badge,
-          )}
-        >
-          AI
         </span>
       )}
     </span>

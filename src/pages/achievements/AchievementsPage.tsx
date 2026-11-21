@@ -19,7 +19,7 @@ export const CATEGORIES: Array<{
   { id: 'drawing', label: 'drawing', blurb: 'For filling the sketchbook.' },
   { id: 'streaks', label: 'streaks', blurb: 'Doodle day after day.' },
   { id: 'friends', label: 'friends', blurb: 'Comments, reactions and pals.' },
-  { id: 'judges', label: 'judges', blurb: 'What the AI judges make of you.' },
+  { id: 'judges', label: 'judges', blurb: 'What the judges make of you.' },
   { id: 'levels', label: 'levels', blurb: 'Earn XP, climb the ranks.' },
   {
     id: 'events',
