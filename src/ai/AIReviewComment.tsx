@@ -47,8 +47,8 @@ export const CriterionChip: FC<{ criterion: AICriterionScore }> = ({
 type Props = { review: AIReview; className?: string };
 
 /**
- * The AI judge's comment, laid out like a friend's but signed with its name
- * (its avatar's "AI" tag says what it is), and carrying its score. Its face (or name) opens a drawer
+ * The judge's comment, laid out like a friend's but signed with its name,
+ * and carrying its score. Its face (or name) opens a drawer
  * about the judge.
  */
 export const AIReviewComment: FC<Props> = ({ review, className }) => {
