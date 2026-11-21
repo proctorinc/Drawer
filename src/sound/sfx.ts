@@ -612,43 +612,6 @@ export const pinSettled = () =>
     chime(c, C6, { at: 0.09, volume: 0.12, decay: 0.8 });
   });
 
-// ---------------------------------------------------------------- voices
-
-/** A judge's base note, picked from their name so each sounds their own */
-export function voiceFor(name: string) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) | 0;
-  }
-  const n = Math.abs(hash);
-  return {
-    root: 55 + (n % 12),
-    type: (['triangle', 'square', 'sine'] as const)[(n >> 4) % 3],
-  };
-}
-
-export type Voice = ReturnType<typeof voiceFor>;
-
-/**
- * One syllable of RPG-style babble: a short blip whose pitch hops around the
- * voice's note with each letter, higher at the end of a question
- */
-export function babble(voice: Voice, letter: string, rising = false) {
-  return play((c) => {
-    const code = letter.toLowerCase().charCodeAt(0);
-    const vowel = 'aeiouy'.includes(letter.toLowerCase());
-    const note = pentatonic(voice.root, (code % 5) + (rising ? 3 : 0));
-    c.tone(hz(note), {
-      type: voice.type,
-      glideTo: hz(note + (vowel ? 2 : -1)),
-      attack: 0.004,
-      decay: vowel ? 0.07 : 0.045,
-      volume: voice.type === 'square' ? 0.035 : 0.06,
-      filter: { from: 2400, to: 1100, time: 0.05 },
-    });
-  });
-}
-
 // ------------------------------------------------------------------ rank up
 
 export type RankUpSound = {
@@ -830,4 +793,3 @@ export function rankUpSound(shape: RankUpShape): RankUpSound {
     },
   };
 }
-

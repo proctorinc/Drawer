@@ -118,9 +118,7 @@ const DrawingCanvas: FC<Props> = ({
             />
           </div>
           {belowCanvas && (
-            <div
-              className="flex items-center justify-center h-(--below-canvas) mt-2.5 text-sm text-pencil"
-            >
+            <div className="flex items-center justify-center h-(--below-canvas) mt-2.5 text-sm text-pencil">
               {belowCanvas}
             </div>
           )}

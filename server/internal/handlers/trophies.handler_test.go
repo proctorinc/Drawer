@@ -59,8 +59,8 @@ func TestLeaderboardSortsByXPThenName(t *testing.T) {
 }
 
 func TestXPCountsAchievements(t *testing.T) {
-	got := xpFor(queries.ActivityCounts{Drawings: 1, Achievements: 2})
-	if want := xpPerDrawing + 2*xpPerAchievement; got != want {
+	got := xpFor(queries.ActivityCounts{Drawings: 1, Achievements: 2, AchievementXP: 70})
+	if want := xpPerDrawing + 70; got != want {
 		t.Errorf("xpFor = %d, want %d", got, want)
 	}
 }

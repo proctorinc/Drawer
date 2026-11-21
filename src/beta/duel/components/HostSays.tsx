@@ -18,7 +18,7 @@ type Props = {
  * while the line types out in a speech bubble. Tap the bubble to skip ahead.
  */
 export const HostSays: FC<Props> = ({ host, line, children, className }) => {
-  const { shown, done, talking, finish } = useTypewriter(line);
+  const { shown, done, talking, finish } = useTypewriter(line, host.name);
 
   return (
     <div className={cn('flex flex-col w-full', className)}>

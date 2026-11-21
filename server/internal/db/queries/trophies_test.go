@@ -56,9 +56,9 @@ func TestGetActivityCounts(t *testing.T) {
 			('pal', 'submission', 'me-mon', 'cry-laugh', '2026-11-22 23:59:59'),
 			('pal', 'submission', 'me-sun', 'heart', '2026-11-15 23:59:59'); -- last week
 
-		INSERT INTO achievements (id, image_url, name, description, achievement_field, achievement_value) VALUES
-			('a1', '', 'First', 'Draw once', 'SUBMISSION_TOTAL', 1),
-			('a2', '', 'Chatty', 'Comment once', 'COMMENT_TOTAL', 1);
+		INSERT INTO achievements (id, image_url, name, description, achievement_field, achievement_value, xp) VALUES
+			('a1', '', 'First', 'Draw once', 'SUBMISSION_TOTAL', 1, 25),
+			('a2', '', 'Chatty', 'Comment once', 'COMMENT_TOTAL', 1, 40);
 		INSERT INTO user_achievements (user_id, achievement_id, created_at) VALUES
 			('me', 'a1', '2026-11-15 12:00:00'), -- last week
 			('me', 'a2', '2026-11-17 10:00:00');
@@ -74,18 +74,35 @@ func TestGetActivityCounts(t *testing.T) {
 	}
 
 	wantMe := ActivityCounts{
-		Drawings:          2,
-		ReactionsGiven:    2,
-		DrawingsReacted:   1,
-		CommentsWritten:   1,
-		ReactionsReceived: 2,
-		CryLaughsReceived: 2,
-		Achievements:      1,
+		Drawings:             2,
+		ReactionsGiven:       2,
+		ReactionsGivenForXP:  2,
+		DrawingsReacted:      1,
+		CommentsWritten:      1,
+		CommentsWrittenForXP: 1,
+		ReactionsReceived:    2,
+		CryLaughsReceived:    2,
+		Achievements:         1,
+		AchievementXP:        40,
+		QuestsCompleted:      [len(WeeklyQuests)]int{3: 1}, // got cry-laughed
 	}
 	if week["me"] != wantMe {
 		t.Errorf("me this week = %+v, want %+v", week["me"], wantMe)
 	}
-	wantPal := ActivityCounts{Drawings: 1, ReactionsGiven: 2, DrawingsReacted: 1, CommentsWritten: 1, ReactionsReceived: 2}
+	events, err := GetXPEventsSince(db, context.Background(), "me", monday)
+	if err != nil {
+		t.Fatal(err)
+	}
+	achieved := []string{}
+	for _, e := range events {
+		if _, ok := AchievementXP(e.Kind); ok {
+			achieved = append(achieved, e.Kind)
+		}
+	}
+	if strings.Join(achieved, ",") != "achievement:40" {
+		t.Errorf("achievement XP events = %v, want achievement:40", achieved)
+	}
+	wantPal := ActivityCounts{Drawings: 1, ReactionsGiven: 2, ReactionsGivenForXP: 2, DrawingsReacted: 1, CommentsWritten: 1, CommentsWrittenForXP: 1, ReactionsReceived: 2}
 	if week["pal"] != wantPal {
 		t.Errorf("pal this week = %+v, want %+v", week["pal"], wantPal)
 	}
@@ -144,6 +161,161 @@ func TestGetActivityCountsJudgeScores(t *testing.T) {
 	}
 	if strings.Join(judged, ",") != "judge87,judge100,judge100" {
 		t.Errorf("judged XP events = %v, want judge87, judge100, judge100", judged)
+	}
+}
+
+// A quest finishes on the step that reaches its goal, and each week starts over
+func TestQuestCompletions(t *testing.T) {
+	db := newTestDB(t)
+	_, err := db.Exec(`
+		INSERT INTO users (id, username, email) VALUES ('me', 'me', 'me@x');
+		INSERT INTO user_submissions (id, user_id, day, created_at) VALUES
+			('sun', 'me', '2026-11-15', '2026-11-15 09:00:00'), -- last week
+			('mon', 'me', '2026-11-16', '2026-11-16 09:00:00'),
+			('tue', 'me', '2026-11-17', '2026-11-17 09:00:00'),
+			('wed', 'me', '2026-11-18', '2026-11-18 09:00:00'),
+			('thu', 'me', '2026-11-19', '2026-11-19 09:00:00'),
+			('fri', 'me', '2026-11-20', '2026-11-20 09:00:00'), -- fifth this week
+			('sat', 'me', '2026-11-21', '2026-11-21 09:00:00'),
+			('m2', 'me', '2026-11-23', '2026-11-23 09:00:00'),  -- next week, one of five
+			('t2', 'me', '2026-11-24', '2026-11-24 09:00:00');
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	counts, err := GetActivityCounts(db, context.Background(), []string{"me"}, BeginningOfTime, EndOfTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := counts["me"].QuestsCompleted; got != [len(WeeklyQuests)]int{1} {
+		t.Errorf("quests completed = %v, want draw-5 once", got)
+	}
+
+	// Split at the fifth drawing, the finish lands after it
+	split := time.Date(2026, 11, 20, 9, 0, 0, 0, time.UTC)
+	before, err := GetActivityCounts(db, context.Background(), []string{"me"}, BeginningOfTime, split)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := before["me"].QuestsCompleted; got != [len(WeeklyQuests)]int{} {
+		t.Errorf("quests completed before the fifth drawing = %v, want none", got)
+	}
+	events, err := GetXPEventsSince(db, context.Background(), "me", split)
+	if err != nil {
+		t.Fatal(err)
+	}
+	quests := []XPEvent{}
+	for _, e := range events {
+		if _, ok := QuestIndex(e.Kind); ok {
+			quests = append(quests, e)
+		}
+	}
+	if len(quests) != 1 || quests[0].Kind != "quest:draw-5" || !quests[0].At.Equal(split) {
+		t.Errorf("quest XP events = %v, want quest:draw-5 at %v", quests, split)
+	}
+	for i := 1; i < len(events); i++ {
+		if events[i].At.Before(events[i-1].At) {
+			t.Errorf("XP events out of order: %v", events)
+		}
+	}
+}
+
+// Only the first ReactionsGivenXPPerDay reactions of a day earn XP, however the day is
+// split between counts and XP events
+func TestReactionsGivenForXPCapsEachDay(t *testing.T) {
+	db := newTestDB(t)
+	_, err := db.Exec(`
+		INSERT INTO users (id, username, email) VALUES ('me', 'me', 'me@x'), ('pal', 'pal', 'pal@x');
+		INSERT INTO user_submissions (id, user_id, day) VALUES ('pal-d', 'pal', '2026-11-17');
+		INSERT INTO reactions (user_id, content_type, content_id, reaction_id, created_at) VALUES
+			('me', 'submission', 'pal-d', 'r1', '2026-11-17 10:00:00'),
+			('me', 'submission', 'pal-d', 'r2', '2026-11-17 10:00:01'),
+			('me', 'submission', 'pal-d', 'r3', '2026-11-17 10:00:02'),
+			('me', 'submission', 'pal-d', 'r4', '2026-11-17 10:00:03'),
+			('me', 'submission', 'pal-d', 'r5', '2026-11-17 10:00:04'),
+			('me', 'submission', 'pal-d', 'r6', '2026-11-17 10:00:05'),
+			('me', 'submission', 'pal-d', 'r7', '2026-11-17 10:00:06'),
+			('me', 'submission', 'pal-d', 'r8', '2026-11-18 10:00:00'); -- a new day
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lifetime, err := GetActivityCounts(db, context.Background(), []string{"me"}, BeginningOfTime, EndOfTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := lifetime["me"]; got.ReactionsGiven != 8 || got.ReactionsGivenForXP != ReactionsGivenXPPerDay+1 {
+		t.Errorf("me lifetime = %d reactions, %d for XP; want 8, %d", got.ReactionsGiven, got.ReactionsGivenForXP, ReactionsGivenXPPerDay+1)
+	}
+
+	// Split mid-day: the counts before plus the events after still add up to the cap
+	split := time.Date(2026, 11, 17, 10, 0, 2, 0, time.UTC)
+	before, err := GetActivityCounts(db, context.Background(), []string{"me"}, BeginningOfTime, split)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := GetXPEventsSince(db, context.Background(), "me", split)
+	if err != nil {
+		t.Fatal(err)
+	}
+	given := 0
+	for _, e := range events {
+		if e.Kind == "reactionsGiven" {
+			given++
+		}
+	}
+	if total := before["me"].ReactionsGivenForXP + given; total != ReactionsGivenXPPerDay+1 {
+		t.Errorf("before %d + events %d = %d reactions for XP, want %d", before["me"].ReactionsGivenForXP, given, total, ReactionsGivenXPPerDay+1)
+	}
+}
+
+func TestCommentsWrittenForXPCapsEachDay(t *testing.T) {
+	db := newTestDB(t)
+	_, err := db.Exec(`
+		INSERT INTO users (id, username, email) VALUES ('me', 'me', 'me@x'), ('pal', 'pal', 'pal@x');
+		INSERT INTO user_submissions (id, user_id, day) VALUES ('pal-d', 'pal', '2026-11-17'), ('me-d', 'me', '2026-11-17');
+		INSERT INTO comments (user_id, submission_id, text, created_at) VALUES
+			('me', 'pal-d', '1', '2026-11-17 10:00:00'),
+			('me', 'pal-d', '2', '2026-11-17 10:00:01'),
+			('me', 'me-d', 'own drawing', '2026-11-17 10:00:02'),
+			('me', 'pal-d', '3', '2026-11-17 10:00:03'),
+			('me', 'pal-d', '4', '2026-11-17 10:00:04'),
+			('me', 'pal-d', '5', '2026-11-17 10:00:05'),
+			('me', 'pal-d', '6', '2026-11-17 10:00:06'),
+			('me', 'pal-d', '7', '2026-11-18 10:00:00'); -- a new day
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lifetime, err := GetActivityCounts(db, context.Background(), []string{"me"}, BeginningOfTime, EndOfTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := lifetime["me"]; got.CommentsWritten != 7 || got.CommentsWrittenForXP != CommentsWrittenXPPerDay+1 {
+		t.Errorf("me lifetime = %d comments, %d for XP; want 7, %d", got.CommentsWritten, got.CommentsWrittenForXP, CommentsWrittenXPPerDay+1)
+	}
+
+	// Split mid-day: the counts before plus the events after still add up to the cap
+	split := time.Date(2026, 11, 17, 10, 0, 3, 0, time.UTC)
+	before, err := GetActivityCounts(db, context.Background(), []string{"me"}, BeginningOfTime, split)
+	if err != nil {
+		t.Fatal(err)
+	}
+	events, err := GetXPEventsSince(db, context.Background(), "me", split)
+	if err != nil {
+		t.Fatal(err)
+	}
+	written := 0
+	for _, e := range events {
+		if e.Kind == "commentsWritten" {
+			written++
+		}
+	}
+	if total := before["me"].CommentsWrittenForXP + written; total != CommentsWrittenXPPerDay+1 {
+		t.Errorf("before %d + events %d = %d comments for XP, want %d", before["me"].CommentsWrittenForXP, written, total, CommentsWrittenXPPerDay+1)
 	}
 }
 

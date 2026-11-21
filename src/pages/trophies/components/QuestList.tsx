@@ -1,5 +1,6 @@
 import type { FC } from 'react';
 import type { Quest } from '@/api/trophies';
+import XPSticker from '@/components/XPSticker';
 import { cn } from '@/utils';
 
 const Checkbox: FC<{ checked: boolean }> = ({ checked }) => (
@@ -62,14 +63,17 @@ const QuestItem: FC<{ quest: Quest }> = ({ quest }) => {
     >
       <Checkbox checked={done} />
       <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-        <h3
-          className={cn(
-            'font-accent font-bold text-xl leading-none',
-            done && 'line-through decoration-coral decoration-2',
-          )}
-        >
-          {quest.title}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3
+            className={cn(
+              'font-accent font-bold text-xl leading-none',
+              done && 'line-through decoration-coral decoration-2',
+            )}
+          >
+            {quest.title}
+          </h3>
+          {quest.xp > 0 && <XPSticker xp={quest.xp} />}
+        </div>
         <p className="text-sm text-pencil leading-tight">{quest.description}</p>
       </div>
       {done ? (

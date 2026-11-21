@@ -41,6 +41,7 @@ import type {
   AdminEvent,
 } from '../api';
 import { AIJudgeAvatar } from '@/ai/AIJudgeAvatar';
+import { useTypewriter } from '@/ai/AIDialogue';
 import { AI_DECORATIONS } from '@/ai/decorations';
 import { AI_SCORE_MAX, formatScore } from '@/ai/score';
 import Button from '@/components/Button';
@@ -177,6 +178,29 @@ const blankPersonality = (): AIPersonality => ({
   criteria: [],
 });
 
+/** A line with all three endings, so you hear how they say each */
+const VOICE_SAMPLE =
+  'Well now, let me have a proper look at this doodle. Bold choices! Did you mean to do that?';
+
+/** The judge saying a sample line in their talking voice */
+const VoicePreview: FC<{ name: string; onDone: () => void }> = ({
+  name,
+  onDone,
+}) => {
+  const { shown, done } = useTypewriter(VOICE_SAMPLE, name);
+  return (
+    <p
+      className="px-3 py-2 bg-white border-2 border-ink rounded-sketch cursor-pointer"
+      onClick={onDone}
+    >
+      {shown}
+      {!done && (
+        <span className="inline-block w-2 ml-0.5 animate-pulse">▍</span>
+      )}
+    </p>
+  );
+};
+
 const JudgeCard: FC<{
   personality: AIPersonality;
   events: Array<AdminEvent>;
@@ -184,6 +208,8 @@ const JudgeCard: FC<{
   onEdit: () => void;
 }> = ({ personality: p, events, judgingToday, onEdit }) => {
   const event = events.find((e) => e.id === p.eventId);
+  // A new key each press, so pressing again starts the line over
+  const [hearing, setHearing] = useState(0);
   return (
     <Panel
       className={cn(
@@ -226,15 +252,26 @@ const JudgeCard: FC<{
       ) : (
         <p className="text-pencil">one overall score, no criteria</p>
       )}
-      <Button
-        size="sm"
-        variant="base"
-        className="self-start"
-        disableLoad
-        onClick={onEdit}
-      >
-        edit
-      </Button>
+      {hearing > 0 && (
+        <VoicePreview
+          key={hearing}
+          name={p.name}
+          onDone={() => setHearing(0)}
+        />
+      )}
+      <div className="flex gap-2">
+        <Button size="sm" variant="base" disableLoad onClick={onEdit}>
+          edit
+        </Button>
+        <Button
+          size="sm"
+          variant="base"
+          disableLoad
+          onClick={() => setHearing((n) => n + 1)}
+        >
+          hear voice
+        </Button>
+      </div>
     </Panel>
   );
 };

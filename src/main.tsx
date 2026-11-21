@@ -67,6 +67,7 @@ import DuelPage from './beta/duel/DuelPage.tsx';
 import DrawProfilePicPage from './pages/profile/DrawProfilePicPage.tsx';
 import ProfileDrawingsPage from './pages/profile/DrawingsPage.tsx';
 import StickersPage from './pages/profile/StickersPage.tsx';
+import MyDecorationsPage from './pages/profile/DecorationsPage.tsx';
 import { Config } from './config/Config.ts';
 import ImpersonationBanner from './components/ImpersonationBanner.tsx';
 import type { AchievementTab } from './pages/achievements/AchievementsPage.tsx';
@@ -133,6 +134,10 @@ const indexRoute = createRoute({
 const userProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/draw/profile/me',
+  // ?try=<decoration> opens the edit sheet wearing it, from the flair page
+  validateSearch: (search: Record<string, unknown>): { try?: string } => ({
+    try: typeof search.try === 'string' ? search.try : undefined,
+  }),
   component: () => (
     <AuthRoute>
       <MyProfilePageProvider>
@@ -194,6 +199,18 @@ const myStickersRoute = createRoute({
   component: () => (
     <AuthRoute>
       <StickersPage />
+    </AuthRoute>
+  ),
+});
+
+const myDecorationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/profile/me/decorations',
+  component: () => (
+    <AuthRoute>
+      <MyProfilePageProvider>
+        <MyDecorationsPage />
+      </MyProfilePageProvider>
     </AuthRoute>
   ),
 });
@@ -368,6 +385,7 @@ const routeTree = rootRoute.addChildren([
   friendProfileRoute,
   myDrawingsRoute,
   myStickersRoute,
+  myDecorationsRoute,
   drawingsRoute,
   stickersRoute,
   trophiesRoute,

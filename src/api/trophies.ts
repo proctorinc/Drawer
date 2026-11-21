@@ -25,6 +25,8 @@ export interface Quest {
   description: string;
   progress: number;
   goal: number;
+  /** Bonus XP for finishing it this week */
+  xp: number;
 }
 
 /** Monday to Sunday, YYYY-MM-DD */

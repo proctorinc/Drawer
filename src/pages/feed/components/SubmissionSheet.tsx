@@ -113,6 +113,7 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
               submission.aiReview?.score != null && (
                 <ScoreSticker
                   score={submission.aiReview.score}
+                  mine={submission.user.id === currentUser.id}
                   className="absolute z-10 -top-6 -left-6 pointer-events-none"
                 />
               )}
@@ -172,7 +173,10 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
           <CardContent className="gap-2">
             {/* The AI judge's verdict leads the comments */}
             {submission.aiReview && (
-              <AIReviewComment review={submission.aiReview} />
+              <AIReviewComment
+                review={submission.aiReview}
+                mine={submission.user.id === currentUser.id}
+              />
             )}
             {submission.comments.length === 0 && !submission.aiReview && (
               <span className="font-bold text-center text-secondary">

@@ -103,7 +103,7 @@ func CalculateCommentCount(repo *sql.DB, ctx context.Context, userId string) (in
 	query := `
 		SELECT COUNT(*)
 		FROM comments
-		WHERE user_id = ?
+		WHERE user_id = ? AND ` + countedAt("user_id", "created_at") + `
 	`
 
 	var count int
@@ -120,7 +120,7 @@ func CalculateReactionCount(repo *sql.DB, ctx context.Context, userId string) (i
 	query := `
 		SELECT COUNT(*)
 		FROM reactions
-		WHERE user_id = ?
+		WHERE user_id = ? AND ` + countedAt("user_id", "created_at") + `
 	`
 
 	var count int
@@ -137,7 +137,7 @@ func CalculateReactionCommentCount(repo *sql.DB, ctx context.Context, userId str
 	query := `
 		SELECT COUNT(*)
 		FROM reactions
-		WHERE user_id = ? AND content_type = 'comment'
+		WHERE user_id = ? AND content_type = 'comment' AND ` + countedAt("user_id", "created_at") + `
 	`
 
 	var count int
@@ -154,7 +154,7 @@ func CalculateReactionSubmissionCount(repo *sql.DB, ctx context.Context, userId 
 	query := `
 		SELECT COUNT(*)
 		FROM reactions
-		WHERE user_id = ? AND content_type = 'submission'
+		WHERE user_id = ? AND content_type = 'submission' AND ` + countedAt("user_id", "created_at") + `
 	`
 
 	var count int
@@ -189,7 +189,7 @@ func CalculateSubmissionCount(repo *sql.DB, ctx context.Context, userId string) 
 	query := `
 		SELECT COUNT(*)
 		FROM user_submissions
-		WHERE user_id = ?
+		WHERE user_id = ? AND ` + countedDay("user_id", "day") + `
 	`
 
 	var count int
@@ -356,7 +356,7 @@ func InsertUserAchievement(repo *sql.DB, ctx context.Context, userID, achievemen
 func CalculateSubmissionActiveStreak(repo *sql.DB, ctx context.Context, userID string) (int, error) {
 	rows, err := repo.QueryContext(ctx, `
 		SELECT day FROM user_submissions
-		WHERE user_id = ?
+		WHERE user_id = ? AND `+countedDay("user_id", "day")+`
 		ORDER BY day DESC
 	`, userID)
 	if err != nil {
@@ -406,7 +406,7 @@ func CalculateSubmissionMaxStreak(repo *sql.DB, ctx context.Context, userID stri
 	// and 'user_id' for filtering.
 	rows, err := repo.QueryContext(ctx, `
 		SELECT day FROM user_submissions
-		WHERE user_id = ?
+		WHERE user_id = ? AND `+countedDay("user_id", "day")+`
 		ORDER BY day ASC
 	`, userID)
 	if err != nil {

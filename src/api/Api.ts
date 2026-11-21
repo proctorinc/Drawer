@@ -88,7 +88,7 @@ export type ActivityAction =
   /** Reactions to your comment, grouped per comment */
   | 'comment_reaction'
   | 'poke'
-  /** Yours or a friend's */
+  /** Each of yours is its own row; a friend's are one row per friend per day */
   | 'achievement'
   | 'level_up'
   | 'friend_request'
@@ -106,13 +106,16 @@ export interface Activity {
   isRead: boolean;
   /** Grouped rows only: everyone involved, newest first */
   users?: Array<User>;
-  /** Grouped rows only: how many comments or reactions were folded in */
+  /** Grouped rows only: how many comments, reactions or achievements were folded in */
   count?: number;
   /** The newest comment in a thread, or the comment that was reacted to */
   comment?: Comment;
   /** Each kind of reaction in a reaction row */
   reactionIds?: Array<ReactionId>;
+  /** The achievement earned; on a friend's day of achievements, their newest */
   achievement?: Achievement;
+  /** A friend's day of achievements only: the newest three at most, newest first */
+  achievements?: Array<Achievement>;
   level?: number;
   submission?: {
     id: string;
@@ -219,6 +222,8 @@ export type Achievement = {
   imageUrl: string;
   achievedAt: Date | null;
   achievementField: string;
+  /** What earning it is worth; 0 while it's a secret */
+  xp: number;
   achievementValue: number;
   progress: number;
   /** Streaks: the longest run, sent only when it beats the current one */

@@ -36,7 +36,7 @@ const EventXPCard: FC<Props> = ({ xp, className }) => {
           <li key={line.action} className="flex items-baseline gap-2">
             <span className="flex-1 leading-tight">{line.action}</span>
             <span className="text-sm text-pencil tabular-nums whitespace-nowrap">
-              {line.count} × {line.xpEach}
+              {line.xpEach > 0 ? `${line.count} × ${line.xpEach}` : line.count}
             </span>
             <span className="w-12 text-right font-accent font-bold text-lg tabular-nums">
               +{line.xp}

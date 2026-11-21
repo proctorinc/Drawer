@@ -9,7 +9,12 @@ import {
   TrophyIcon,
 } from './icons';
 import type { FC, ReactNode } from 'react';
-import type { Activity, ActivityFeedResponse, User } from '@/api/Api';
+import type {
+  Achievement,
+  Activity,
+  ActivityFeedResponse,
+  User,
+} from '@/api/Api';
 import { queryKeys, useActivityFeed, useMarkActivityRead } from '@/api/Api';
 import useAuth from '@/auth/hooks/useAuth';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
@@ -78,7 +83,12 @@ const ActivityText: FC<{ activity: Activity }> = ({ activity }) => {
     case 'poke':
       return <>{name} poked you to draw</>;
     case 'achievement':
-      return (
+      // A friend's day of achievements is one row, however many they earned
+      return count > 1 ? (
+        <>
+          {name} earned {count} achievements
+        </>
+      ) : (
         <>
           {isMe(activity.user) ? 'You' : name} earned{' '}
           <i>{activity.achievement?.name}</i>
@@ -181,7 +191,36 @@ const IconTile: FC<{ children: ReactNode }> = ({ children }) => (
   </span>
 );
 
+/** Up to three badges fanned out like stickers slapped on in a pile, newest on top */
+const BadgeFan: FC<{ achievements: Array<Achievement> }> = ({
+  achievements,
+}) => {
+  const fan = [
+    [
+      '-left-1 top-0 -rotate-12',
+      'left-2 top-1 rotate-6',
+      'left-5 top-0 rotate-12',
+    ],
+    ['left-0 top-0 -rotate-6', 'left-4 top-1 rotate-6'],
+  ][3 - achievements.length];
+  return (
+    <span className="relative flex-none w-16 h-12">
+      {/* Oldest first so the newest lands on top */}
+      {[...achievements].reverse().map((achievement, i) => (
+        <Badge
+          key={achievement.id}
+          achievement={achievement}
+          className={cn('absolute size-10', fan[i])}
+        />
+      ))}
+    </span>
+  );
+};
+
 const ActivityThumbnail: FC<{ activity: Activity }> = ({ activity }) => {
+  if (activity.achievements && activity.achievements.length > 1) {
+    return <BadgeFan achievements={activity.achievements} />;
+  }
   if (activity.achievement) {
     return (
       <Badge

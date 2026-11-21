@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { AIJudgeAvatar } from './AIJudgeAvatar';
@@ -16,7 +10,7 @@ import { apiClient } from '@/api/apiClient';
 import { queryKeys, usePromptSubmission } from '@/api/Api';
 import { cn } from '@/utils';
 import { useAnimationQueue } from '@/animations/AnimationQueue';
-import { babble, voiceFor } from '@/sound/sfx';
+import { speak, syllablesOf, voiceFor } from '@/sound/voices';
 
 /** "A goalie" → "goalie", so it reads "your goalie" */
 export const withoutArticle = (prompt: string) =>
@@ -31,19 +25,25 @@ const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/** Babble on every this-many letters, so fast typing doesn't buzz */
-const BABBLE_EVERY = 2;
+/** Where the sentence around letter `at` starts and ends, and how it ends */
+const sentenceAround = (text: string, at: number) => {
+  let start = at;
+  while (start > 0 && !/[.!?…]/.test(text[start - 1])) start--;
+  let end = at;
+  while (end < text.length - 1 && !/[.!?…]/.test(text[end])) end++;
+  const ending = text[end] === '?' ? '?' : text[end] === '!' ? '!' : '.';
+  return { progress: (at - start) / Math.max(1, end - start), ending } as const;
+};
 
 /**
  * Types `text` out a letter at a time, pausing at punctuation like someone
  * talking. `finish` jumps to the end. A new `text` starts typing afresh.
- * Given a `speaker` name, the letters babble in that speaker's own voice.
+ * Given a `speaker` name, the letters mumble along in that speaker's own
+ * voice, at that speaker's own pace.
  */
 export const useTypewriter = (text: string, speaker?: string) => {
-  const voice = useMemo(
-    () => (speaker ? voiceFor(speaker) : null),
-    [speaker],
-  );
+  const voice = useMemo(() => (speaker ? voiceFor(speaker) : null), [speaker]);
+  const pace = voice?.pace ?? 1;
   const startAt = (line: string) => (prefersReducedMotion() ? line.length : 0);
   const [count, setCount] = useState(() => startAt(text));
   const [typing, setTyping] = useState(text);
@@ -52,17 +52,19 @@ export const useTypewriter = (text: string, speaker?: string) => {
     setCount(startAt(text));
   }
 
-  // Each letter that appears says a little syllable
+  // Each syllable says itself as its first letter appears, held about as
+  // long as its letters take to type
+  const syllables = useMemo(() => syllablesOf(text), [text]);
   useEffect(() => {
     if (!voice || count === 0 || count > text.length) return;
-    const letter = text[count - 1];
-    if (!/\p{L}/u.test(letter)) return;
-    const letters = text.slice(0, count).replace(/[^\p{L}]/gu, '').length;
-    if (letters % BABBLE_EVERY !== 1) return;
-    // Questions lift toward their end
-    const asking = /^[^.!?]*\?/.test(text.slice(count));
-    babble(voice, letter, asking);
-  }, [count, text, voice]);
+    const syllable = syllables.get(count - 1);
+    if (!syllable) return;
+    speak(voice, {
+      ...syllable,
+      seconds: (syllable.letters * LETTER_MS * pace) / 1000,
+      ...sentenceAround(text, count - 1),
+    });
+  }, [count, text, voice, syllables, pace]);
 
   useEffect(() => {
     if (count >= text.length) return;
@@ -72,9 +74,9 @@ export const useTypewriter = (text: string, speaker?: string) => {
       : /[,;:]/.test(last)
         ? COMMA_MS
         : LETTER_MS;
-    const timer = setTimeout(() => setCount((n) => n + 1), delay);
+    const timer = setTimeout(() => setCount((n) => n + 1), delay * pace);
     return () => clearTimeout(timer);
-  }, [count, text]);
+  }, [count, text, pace]);
 
   const shown = text.slice(0, count);
   return {
@@ -219,7 +221,11 @@ export const AIDialogue: FC<DialogueProps> = ({ review, doodle, onClose }) => {
             )}
             <div className="flex flex-col items-end gap-2 flex-none">
               {done && review.score !== null && (
-                <ScoreSticker score={review.score} className="animate-pop" />
+                <ScoreSticker
+                  score={review.score}
+                  mine
+                  className="animate-pop"
+                />
               )}
               {done && (
                 <span

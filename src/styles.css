@@ -25,6 +25,8 @@
   /* The signed-in user's profile color, the app's accent: progress fills,
      highlights, active tabs. AuthProvider sets it on :root; butter until then */
   --color-me: var(--color-butter);
+  /* A deep shade of the same hue, for text sitting on --color-me */
+  --color-me-ink: var(--color-ink);
 
   /* Legacy names, mapped onto the sketchbook palette */
   --color-base: var(--color-paper);

@@ -13,6 +13,7 @@ import (
 	"drawer-service-backend/internal/xp"
 	"errors"
 	"log"
+	"maps"
 	"net/http"
 	"slices"
 	"strings"
@@ -39,13 +40,30 @@ type XPRule struct {
 	MaxXP int `json:"maxXp,omitempty"`
 }
 
-var xpRules = []XPRule{
-	{"Draw the daily prompt", xpPerDrawing, 0},
-	{"Comment on a friend's drawing", xpPerCommentWritten, 0},
-	{"React to a friend", xpPerReactionGiven, 0},
-	{"Get a reaction", xpPerReactionReceived, 0},
-	{"Earn an achievement", xpPerAchievement, 0},
-	{"Score 5+ with the judge", judgeBonusXP(0), judgeBonusXP(queries.JudgeScoreSteps - 1)},
+// xpRules lists how to earn XP. Achievements are each worth their own XP, so the
+// achievement rule spans the catalog's range.
+func xpRules(repo *sql.DB, ctx gocontext.Context) ([]XPRule, error) {
+	low, high, err := queries.GetAchievementXPRange(repo, ctx)
+	if err != nil {
+		return nil, err
+	}
+	return []XPRule{
+		{"Draw the daily prompt", xpPerDrawing, 0},
+		{"Comment on a friend's drawing", xpPerCommentWritten, 0},
+		{"React to a friend", xpPerReactionGiven, 0},
+		{"Get a reaction", xpPerReactionReceived, 0},
+		xpRange("Earn an achievement", low, high),
+		xpRange("Score 5+ with the judge", judgeBonusXP(0), judgeBonusXP(queries.JudgeScoreSteps-1)),
+		xpRange("Finish a weekly quest", slices.Min(slices.Collect(maps.Values(xp.QuestBonus))), slices.Max(slices.Collect(maps.Values(xp.QuestBonus)))),
+	}, nil
+}
+
+// xpRange is a rule worth from low to high, or exactly low when they match
+func xpRange(action string, low, high int) XPRule {
+	if high == low {
+		high = 0
+	}
+	return XPRule{action, low, high}
 }
 
 type Level = xp.Level
@@ -63,6 +81,8 @@ type Quest struct {
 	Description string `json:"description"`
 	Progress    int    `json:"progress"`
 	Goal        int    `json:"goal"`
+	// XP is the bonus for finishing it this week
+	XP int `json:"xp"`
 }
 
 type LeaderboardEntry struct {
@@ -134,6 +154,11 @@ func HandleGetTrophies(c *gin.Context) {
 		fail("active event", err)
 		return
 	}
+	rules, err := xpRules(repo, ctx)
+	if err != nil {
+		fail("XP rules", err)
+		return
+	}
 
 	c.JSON(http.StatusOK, TrophiesResponse{
 		Level:         mine.Level,
@@ -143,7 +168,7 @@ func HandleGetTrophies(c *gin.Context) {
 		Quests:        quests,
 		QuestsEvent:   questsEvent,
 		Leaderboard:   leaderboard(users, allTime),
-		XPRules:       xpRules,
+		XPRules:       rules,
 	})
 }
 
@@ -190,6 +215,12 @@ func xpForKind(kind string) int {
 	if i, ok := queries.JudgeScoreIndex(kind); ok {
 		return judgeBonusXP(i)
 	}
+	if amount, ok := queries.AchievementXP(kind); ok {
+		return amount
+	}
+	if i, ok := queries.QuestIndex(kind); ok {
+		return xp.QuestBonus[queries.WeeklyQuests[i].ID]
+	}
 	return xpPerKind[kind]
 }
 
@@ -199,7 +230,6 @@ var xpPerKind = map[string]int{
 	"commentsWritten":   xpPerCommentWritten,
 	"reactionsGiven":    xpPerReactionGiven,
 	"reactionsReceived": xpPerReactionReceived,
-	"achievements":      xpPerAchievement,
 }
 
 func levelForXP(amount int) Level { return xp.LevelFor(amount) }
@@ -220,12 +250,18 @@ func weekOf(monday, nextMonday time.Time) Week {
 	}
 }
 
+// newQuest is one of queries.WeeklyQuests, with its goal and bonus filled in
+func newQuest(id, title, description string, progress int) Quest {
+	i, _ := queries.QuestIndex(id)
+	return Quest{id, title, description, progress, queries.WeeklyQuests[i].Goal, xp.QuestBonus[id]}
+}
+
 func weeklyQuests(a queries.ActivityCounts) []Quest {
 	return []Quest{
-		{"draw-5", "Five-a-week", "Draw on 5 days this week", a.Drawings, 5},
-		{"react-3", "Hype squad", "React to 3 friends' drawings", a.DrawingsReacted, 3},
-		{"comment-3", "Chatterbox", "Leave 3 comments on friends' drawings", a.CommentsWritten, 3},
-		{"cry-laugh", "Class clown", "Make a friend cry-laugh", a.CryLaughsReceived, 1},
+		newQuest("draw-5", "Five-a-week", "Draw on 5 days this week", a.Drawings),
+		newQuest("react-3", "Hype squad", "React to 3 friends' drawings", a.DrawingsReacted),
+		newQuest("comment-3", "Chatterbox", "Leave 3 comments on friends' drawings", a.CommentsWritten),
+		newQuest("cry-laugh", "Class clown", "Make a friend cry-laugh", a.CryLaughsReceived),
 	}
 }
 

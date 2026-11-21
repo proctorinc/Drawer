@@ -1,5 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type * as Sfx from '../sfx';
+import type * as Voices from '../voices';
 
 /**
  * A stand-in AudioContext that records what's built, so every sound can run
@@ -40,6 +41,7 @@ class FakeNode {
   detune = new FakeParam();
   Q = new FakeParam();
   pan = new FakeParam();
+  playbackRate = new FakeParam();
   threshold = new FakeParam();
   knee = new FakeParam();
   ratio = new FakeParam();
@@ -88,20 +90,28 @@ class FakeContext {
     counts.sources++;
     return new FakeNode();
   }
+  decodeAudioData() {
+    return Promise.resolve({ duration: 0.3 });
+  }
   createBuffer(channels: number, length: number) {
     const data = Array.from(
       { length: channels },
       () => new Float32Array(length),
     );
-    return { sampleRate: this.sampleRate, getChannelData: (c: number) => data[c] };
+    return {
+      sampleRate: this.sampleRate,
+      getChannelData: (c: number) => data[c],
+    };
   }
 }
 
 let sfx: typeof Sfx;
+let voices: typeof Voices;
 
 beforeAll(async () => {
   (window as unknown as { AudioContext: unknown }).AudioContext = FakeContext;
   sfx = await import('../sfx');
+  voices = await import('../voices');
 });
 
 afterEach(() => {
@@ -135,7 +145,6 @@ describe('sfx', () => {
       sfx.pinTack,
       () => sfx.pinSwing(1.9),
       sfx.pinSettled,
-      () => sfx.babble(sfx.voiceFor('Judge'), 'a', true),
     ];
     for (const sound of oneShots) {
       const before = counts.oscillators + counts.sources;
@@ -175,13 +184,60 @@ describe('sfx', () => {
   });
 
   it('gives each judge a steady voice of their own', () => {
-    expect(sfx.voiceFor('Pablo')).toEqual(sfx.voiceFor('Pablo'));
-    const voices = new Set(
+    expect(voices.voiceFor('Pablo')).toEqual(voices.voiceFor('Pablo'));
+    const made = new Set(
       ['Pablo', 'Frida', 'Vincent', 'Georgia', 'Claude'].map((name) =>
-        JSON.stringify(sfx.voiceFor(name)),
+        JSON.stringify(voices.voiceFor(name)),
       ),
     );
-    expect(voices.size).toBeGreaterThan(1);
+    expect(made.size).toBe(5);
+  });
+
+  it('gives the judges we know their own silly instruments', () => {
+    const critic = voices.voiceFor('Sir Doodleton');
+    const pickle = voices.voiceFor('Professor Pickles');
+    const santa = voices.voiceFor('Santa');
+    expect(new Set([critic.sound, pickle.sound, santa.sound]).size).toBe(3);
+    // Santa's deepest, the pickle highest and most excitable
+    expect(santa.root).toBeLessThan(critic.root);
+    expect(pickle.root).toBeGreaterThan(critic.root);
+    expect(pickle.range).toBeGreaterThan(critic.range);
+  });
+
+  it('babbles every syllable of a line in every voice', () => {
+    const line = 'Hmm. Magnifique, darling? Ho ho, splendid pickles!';
+    for (const name of ['Sir Doodleton', 'Professor Pickles', 'Santa', 'Zed']) {
+      const voice = voices.voiceFor(name);
+      for (const syllable of voices.syllablesOf(line).values()) {
+        for (const ending of ['.', '?', '!'] as const) {
+          const before = counts.oscillators + counts.sources;
+          expect(
+            voices.speak(voice, {
+              ...syllable,
+              seconds: 0.1,
+              progress: 0.9,
+              ending,
+            }),
+          ).not.toBeNull();
+          expect(counts.oscillators + counts.sources).toBeGreaterThan(before);
+        }
+      }
+    }
+  });
+
+  it('finds one syllable per vowel sound, starting on its consonants', () => {
+    const plan = (text: string) =>
+      [...voices.syllablesOf(text)].map(([at, s]) =>
+        text.slice(at, at + s.letters),
+      );
+    expect(plan('doodle')).toEqual(['doo', 'dle']);
+    expect(plan('make')).toEqual(['make']);
+    expect(plan('hmm')).toEqual(['hmm']);
+    expect(plan('splendid')).toEqual(['splen', 'did']);
+    // The last syllable before a comma or stop rings out
+    const [first, last] = [...voices.syllablesOf('ho ho!').values()];
+    expect(first.trailing).toBe(false);
+    expect(last.trailing).toBe(true);
   });
 
   it('stays quiet when sound is turned off', async () => {

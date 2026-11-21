@@ -151,10 +151,13 @@ type Activity struct {
 	// The newest comment in a thread, or the comment that was reacted to
 	Comment *Comment `json:"comment,omitempty"`
 	// Each kind of reaction in a reaction row
-	ReactionIDs []string            `json:"reactionIds,omitempty"`
-	Achievement *Achievement        `json:"achievement,omitempty"`
-	Level       int                 `json:"level,omitempty"`
-	Submission  *ActivitySubmission `json:"submission,omitempty"`
+	ReactionIDs []string `json:"reactionIds,omitempty"`
+	// The achievement earned; on a friend's day of achievements, their newest
+	Achievement *Achievement `json:"achievement,omitempty"`
+	// A friend's day of achievements only: the newest few, newest first (Count has them all)
+	Achievements []Achievement       `json:"achievements,omitempty"`
+	Level        int                 `json:"level,omitempty"`
+	Submission   *ActivitySubmission `json:"submission,omitempty"`
 	// The AI judge's review, on an ai_review row (User is then you, the artist)
 	AIReview *AIReview `json:"aiReview,omitempty"`
 }
@@ -224,6 +227,8 @@ type Achievement struct {
 	Best             *int          `json:"best,omitempty"` // Streaks: the longest run, when it beats the current one
 	Reward           *RewardUnlock `json:"reward"`
 	EventSlug        *string       `json:"eventSlug"` // Set for event stickers, which count only that event's doodles
+	// XP is what earning it is worth
+	XP int `json:"xp"`
 	// Category is the achievements page tab it's on: drawing, streaks, friends, judges, levels or events
 	Category string `json:"category"`
 	// Hidden achievements keep how to earn them a secret until they're earned

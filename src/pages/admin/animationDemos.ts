@@ -179,6 +179,7 @@ const sample = (
   hidden: false,
   secret: false,
   celebrated: false,
+  xp: 25,
   ...extra,
 });
 
@@ -192,7 +193,7 @@ export function burstDemo(quests: Array<Quest>): AnimationDemo {
   const level = RANK_TIERS[1].from - 1;
   const before = snapshotAt(xpToReach(level + 1) - 30);
   const quest = quests.at(0);
-  const after = snapshotAt(before.xp + 25 + 25 + 10 + (quest ? 15 : 0));
+  const after = snapshotAt(before.xp + 25 + 25 + 10 + (quest?.xp ?? 0));
 
   // What this device last saw, then what the server says now
   const was = (progress: number) => ({ progress, achieved: false });

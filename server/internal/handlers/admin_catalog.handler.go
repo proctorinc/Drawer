@@ -104,7 +104,7 @@ func progressionStats(lifetime, weekly map[string]queries.ActivityCounts) ([]Lev
 
 	quests := []QuestStats{}
 	for _, quest := range weeklyQuests(queries.ActivityCounts{}) {
-		quests = append(quests, QuestStats{Quest: Quest{ID: quest.ID, Title: quest.Title, Description: quest.Description, Goal: quest.Goal}})
+		quests = append(quests, QuestStats{Quest: Quest{ID: quest.ID, Title: quest.Title, Description: quest.Description, Goal: quest.Goal, XP: quest.XP}})
 	}
 	for userID := range lifetime {
 		for i, quest := range weeklyQuests(weekly[userID]) {
@@ -150,9 +150,15 @@ func HandleAdminProgression(c *gin.Context) {
 		return
 	}
 
+	rules, err := xpRules(repo, ctx)
+	if err != nil {
+		respondList(c, "progression", nil, err)
+		return
+	}
+
 	levels, quests := progressionStats(lifetime, weekly)
 	c.JSON(http.StatusOK, Progression{
-		XPRules: xpRules,
+		XPRules: rules,
 		Players: len(users),
 		Levels:  levels,
 		Quests:  quests,

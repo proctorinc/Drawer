@@ -6,6 +6,7 @@ import (
 	"drawer-service-backend/internal/db/models"
 	"slices"
 	"testing"
+	"time"
 )
 
 func usernames(users []models.User) []string {
@@ -104,6 +105,12 @@ func TestGetActivityFeed(t *testing.T) {
 
 func TestGetAchievementActivity(t *testing.T) {
 	db := newTestDB(t)
+	// Days are the server's local days, so pin unlocks to local noons
+	y, m, d := time.Now().Date()
+	noon := time.Date(y, m, d, 12, 0, 0, 0, time.Local)
+	at := func(day int, minutes int) string {
+		return noon.AddDate(0, 0, day).Add(time.Duration(minutes) * time.Minute).UTC().Format("2006-01-02 15:04:05")
+	}
 	_, err := db.Exec(`
 		INSERT INTO users (id, username, email) VALUES
 			('ann', 'ann', 'a@x'), ('bob', 'bob', 'b@x'), ('cat', 'cat', 'c@x'), ('dan', 'dan', 'd@x');
@@ -111,10 +118,21 @@ func TestGetAchievementActivity(t *testing.T) {
 		INSERT INTO friendships (user1, user2, state, inviter_id) VALUES ('bob', 'ann', 'accepted', 'bob'), ('ann', 'cat', 'pending', 'ann');
 		INSERT INTO achievements (id, image_url, name, description, achievement_field, achievement_value) VALUES
 			('first', '', 'Baby''s first', 'Draw once', 'SUBMISSION_TOTAL', 1),
-			('streak', '', 'Dedicated', 'Draw 5 days running', 'SUBMISSION_STREAK', 5);
-		INSERT INTO user_achievements (achievement_id, user_id) VALUES
-			('first', 'bob'), ('first', 'cat'), ('first', 'dan'), ('first', 'ann');
-		INSERT INTO user_achievements VALUES ('streak', 'bob', datetime('now', '-17 days'));`)
+			('streak', '', 'Dedicated', 'Draw 5 days running', 'SUBMISSION_STREAK', 5),
+			('t5', '', 'Five', '', 'SUBMISSION_TOTAL', 5),
+			('t10', '', 'Ten', '', 'SUBMISSION_TOTAL', 10),
+			('t20', '', 'Twenty', '', 'SUBMISSION_TOTAL', 20),
+			('old', '', 'Old', '', 'SUBMISSION_TOTAL', 50);
+		INSERT INTO user_achievements (achievement_id, user_id, created_at) VALUES
+			('first', 'cat', datetime('now')), ('first', 'dan', datetime('now')),
+			-- Mine each get a row
+			('first', 'ann', ?), ('t5', 'ann', ?),
+			-- bob's five today fold into one card showing the newest three
+			('first', 'bob', ?), ('t5', 'bob', ?), ('t10', 'bob', ?), ('t20', 'bob', ?), ('streak', 'bob', ?),
+			-- and two days ago is a card of its own
+			('old', 'bob', ?),
+			('old', 'ann', datetime('now', '-17 days'));`,
+		at(0, -60), at(0, -30), at(0, -5), at(0, -4), at(0, -3), at(0, -2), at(0, -1), at(-2, 0))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,15 +142,36 @@ func TestGetAchievementActivity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	byID := map[string]models.Activity{}
 	ids := []string{}
 	for _, a := range got {
+		byID[a.ID] = a
 		ids = append(ids, a.ID)
-		if a.Achievement.Name != "Baby's first" || a.Achievement.AchievedAt == nil {
+		if a.Achievement == nil || a.Achievement.AchievedAt == nil {
 			t.Errorf("achievement = %+v", a.Achievement)
 		}
 	}
 	slices.Sort(ids)
-	if want := []string{"achievement-ann-first", "achievement-bob-first"}; !slices.Equal(ids, want) {
-		t.Errorf("achievement ids = %v, want %v", ids, want)
+	today := noon.Format("2006-01-02")
+	twoDaysAgo := noon.AddDate(0, 0, -2).Format("2006-01-02")
+	want := []string{"achievement-ann-first", "achievement-ann-t5", "achievements-bob-" + twoDaysAgo, "achievements-bob-" + today}
+	if !slices.Equal(ids, want) {
+		t.Fatalf("achievement ids = %v, want %v", ids, want)
+	}
+
+	if a := byID["achievement-ann-first"]; a.Achievement.Name != "Baby's first" || a.Count != 0 || a.Achievements != nil {
+		t.Errorf("my achievement = %+v", a)
+	}
+	bobToday := byID["achievements-bob-"+today]
+	names := []string{}
+	for _, a := range bobToday.Achievements {
+		names = append(names, a.Name)
+	}
+	if bobToday.Count != 5 || !slices.Equal(names, []string{"Dedicated", "Twenty", "Ten"}) ||
+		bobToday.Achievement.Name != "Dedicated" || !bobToday.Date.Equal(*bobToday.Achievement.AchievedAt) {
+		t.Errorf("bob's day = count %d, achievements %v, newest %+v", bobToday.Count, names, bobToday.Achievement)
+	}
+	if a := byID["achievements-bob-"+twoDaysAgo]; a.Count != 1 || len(a.Achievements) != 1 || a.Achievement.Name != "Old" {
+		t.Errorf("bob's earlier day = %+v", a)
 	}
 }

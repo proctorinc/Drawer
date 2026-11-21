@@ -17,7 +17,7 @@ import (
 func GetUserSubmissionDays(repo *sql.DB, ctx context.Context, userID, firstDay, lastDay string) ([]string, error) {
 	rows, err := repo.QueryContext(ctx, `
 		SELECT DISTINCT day FROM user_submissions
-		WHERE user_id = ? AND day BETWEEN ? AND ?
+		WHERE user_id = ? AND day BETWEEN ? AND ? AND `+countedDay("user_id", "day")+`
 		ORDER BY day ASC`, userID, firstDay, lastDay)
 	if err != nil {
 		return nil, err

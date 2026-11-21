@@ -92,6 +92,7 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
           {!isLocked && submission.aiReview?.score != null && (
             <ScoreSticker
               score={submission.aiReview.score}
+              mine={isMine}
               className="absolute z-10 -top-5 -left-5 scale-75 origin-top-left pointer-events-none"
             />
           )}

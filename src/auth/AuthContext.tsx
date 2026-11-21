@@ -50,8 +50,14 @@ export const AuthProvider: FC<Props> = ({ children }) => {
   const username = user?.username;
   useEffect(() => {
     const root = document.documentElement.style;
-    if (username) root.setProperty('--color-me', nameToColor(username).primary);
-    else root.removeProperty('--color-me');
+    if (username) {
+      const color = nameToColor(username);
+      root.setProperty('--color-me', color.primary);
+      root.setProperty('--color-me-ink', color.text);
+    } else {
+      root.removeProperty('--color-me');
+      root.removeProperty('--color-me-ink');
+    }
   }, [username]);
 
   const isAuthenticated = !!isSignedIn && !!user;

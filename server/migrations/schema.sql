@@ -8,7 +8,7 @@ CREATE TABLE users (
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-, role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')), avatar_type VARCHAR (255) NOT NULL DEFAULT 'default', avatar_url VARCHAR (255) NOT NULL DEFAULT '', clerk_id TEXT, decoration TEXT NOT NULL DEFAULT '');
+, role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')), avatar_type VARCHAR (255) NOT NULL DEFAULT 'default', avatar_url VARCHAR (255) NOT NULL DEFAULT '', clerk_id TEXT, decoration TEXT NOT NULL DEFAULT '', stats_start_day TEXT);
 CREATE TABLE user_submissions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -74,7 +74,7 @@ CREATE INDEX idx_friendships_user1 ON friendships (user1);
 CREATE INDEX idx_friendships_user2 ON friendships (user2);
 CREATE INDEX idx_friendships_state ON friendships (state);
 CREATE INDEX idx_friendships_inviter_id ON friendships (inviter_id);
-CREATE TABLE achievements (id TEXT PRIMARY KEY, image_url TEXT NOT NULL, name TEXT NOT NULL, description TEXT NOT NULL, achievement_field TEXT NOT NULL, achievement_value INTEGER NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, category TEXT NOT NULL DEFAULT 'drawing', hidden INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE achievements (id TEXT PRIMARY KEY, image_url TEXT NOT NULL, name TEXT NOT NULL, description TEXT NOT NULL, achievement_field TEXT NOT NULL, achievement_value INTEGER NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, category TEXT NOT NULL DEFAULT 'drawing', hidden INTEGER NOT NULL DEFAULT 0, xp INTEGER NOT NULL DEFAULT 25);
 CREATE TABLE reward_unlocks (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, achievement_id TEXT, FOREIGN KEY (achievement_id) REFERENCES achievements (id));
 CREATE TABLE user_achievements (achievement_id TEXT NOT NULL, user_id TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, celebrated_at TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id), FOREIGN KEY (achievement_id) REFERENCES achievements (id), UNIQUE (user_id, achievement_id));
 CREATE TABLE user_achievement_checks (user_id TEXT NOT NULL UNIQUE, checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id));
@@ -142,4 +142,11 @@ CREATE TABLE app_settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE user_achievements_archive (
+    achievement_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    created_at TIMESTAMP,
+    celebrated_at TIMESTAMP,
+    archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

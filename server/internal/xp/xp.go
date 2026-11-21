@@ -12,7 +12,8 @@ const (
 	PerCommentWritten   = 3
 	PerReactionGiven    = 2
 	PerReactionReceived = 1
-	PerAchievement      = 25
+	// PerAchievement is what an achievement is worth unless its xp column says otherwise
+	PerAchievement = 25
 	// Going from level n to n+1 costs n * PerLevelStep
 	PerLevelStep = 50
 	// A doodle the AI judge scores 5 or more earns its drawing XP again times a boost
@@ -21,6 +22,14 @@ const (
 	JudgeBoostMin = 0.1
 	JudgeBoostMax = 3.0
 )
+
+// QuestBonus is the XP for finishing each of queries.WeeklyQuests in a week, by ID
+var QuestBonus = map[string]int{
+	"draw-5":    30,
+	"react-3":   15,
+	"comment-3": 15,
+	"cry-laugh": 20,
+}
 
 // JudgeBonus is the extra XP for a doodle the judge scored at JudgeScores index i
 // (5.0 plus i tenths): 1 XP at 5, 3 at 7, 7 at 8, 16 at 9, 30 at 10.
@@ -33,11 +42,20 @@ func JudgeBonus(i int) int {
 // For is the XP someone's activity is worth
 func For(a queries.ActivityCounts) int {
 	return a.Drawings*PerDrawing +
-		a.CommentsWritten*PerCommentWritten +
-		a.ReactionsGiven*PerReactionGiven +
+		a.CommentsWrittenForXP*PerCommentWritten +
+		a.ReactionsGivenForXP*PerReactionGiven +
 		a.ReactionsReceived*PerReactionReceived +
-		a.Achievements*PerAchievement +
-		judgeXP(a.JudgeScores)
+		a.AchievementXP +
+		judgeXP(a.JudgeScores) +
+		questXP(a.QuestsCompleted)
+}
+
+func questXP(completed [len(queries.WeeklyQuests)]int) int {
+	total := 0
+	for i, n := range completed {
+		total += n * QuestBonus[queries.WeeklyQuests[i].ID]
+	}
+	return total
 }
 
 func judgeXP(scores [queries.JudgeScoreSteps]int) int {

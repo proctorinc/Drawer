@@ -70,7 +70,7 @@ const StreakDetails: FC<{ streak: number }> = ({ streak }) => {
                 className={cn(
                   'flex items-center justify-center size-7 border-2 rounded-full',
                   isDrawn
-                    ? 'bg-me border-ink text-ink'
+                    ? 'bg-butter border-ink text-ink'
                     : 'border-dashed border-line',
                 )}
               >
@@ -122,7 +122,7 @@ const StreakBadge = () => {
           'press flex items-center gap-1 h-10 pl-2.5 pr-3 border-2 rounded-[22px_18px_24px_16px/18px_24px_16px_22px] font-accent font-bold text-[22px] cursor-pointer animate-in zoom-in-75 fade-in duration-300',
           isCold
             ? 'bg-white border-line text-pencil'
-            : 'bg-me border-ink text-ink',
+            : 'bg-butter border-ink text-ink',
         )}
       >
         <FlameIcon

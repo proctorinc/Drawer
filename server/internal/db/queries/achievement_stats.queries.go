@@ -5,16 +5,19 @@ import (
 	"database/sql"
 )
 
-// Counts behind the newer achievements. Each takes the user's id once per ? in the query.
-const (
-	favoriteCountQuery = `SELECT COUNT(*) FROM user_favorite_submissions WHERE user_id = ?`
-	pokeCountQuery     = `SELECT COUNT(*) FROM pokes WHERE poker_id = ?`
+// Counts behind the newer achievements. Each takes the user's id once per ? in the query,
+// and counts only what falls on or after their stats start day.
+var (
+	favoriteCountQuery = `SELECT COUNT(*) FROM user_favorite_submissions
+		WHERE user_id = ? AND ` + countedAt("user_id", "created_at")
+	pokeCountQuery = `SELECT COUNT(*) FROM pokes WHERE poker_id = ? AND ` + countedAt("poker_id", "created_at")
 	// Only accepted suggestions record who wrote the prompt; it counts once its day comes
-	promptPickedCountQuery = `SELECT COUNT(*) FROM daily_prompts WHERE created_by = ? AND day <= date('now')`
+	promptPickedCountQuery = `SELECT COUNT(*) FROM daily_prompts
+		WHERE created_by = ? AND day <= date('now') AND ` + countedDay("created_by", "day")
 
 	judgedDoodlesOf = `
 		FROM ai_reviews r JOIN user_submissions s ON s.id = r.submission_id
-		WHERE s.user_id = ? AND r.status = 'done'`
+		WHERE s.user_id = ? AND r.status = 'done' AND ` + countedDay("s.user_id", "s.day")
 	aiReviewCountQuery = `SELECT COUNT(*)` + judgedDoodlesOf
 	// Floored, so a 9.9 doesn't count as a perfect 10
 	aiBestScoreQuery  = `SELECT COALESCE(CAST(MAX(r.score) AS INTEGER), 0)` + judgedDoodlesOf

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { faLock } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useMyProfilePage } from '../context/MyProfileContext';
+import { useFlair } from '../useFlair';
 import { BasicProfileIcon } from './profile-icons/BasicProfileIcon';
 import { CustomProfileIcon } from './profile-icons/CustomProfileIcon';
 import { UserProfileIcon } from './profile-icons/UserProfileIcon';
@@ -19,7 +20,7 @@ import useAuth from '@/auth/hooks/useAuth';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
 import { PencilIcon, PlusIcon } from '@/components/icons';
-import { DECORATIONS, DECORATION_GROUPS } from '@/decorations/decorations';
+import { DECORATIONS } from '@/decorations/decorations';
 import { useChristmas } from '@/events/useChristmas';
 import { cn } from '@/utils';
 
@@ -213,26 +214,15 @@ const FlairGroup: FC<FlairGroupProps> = ({ name, children }) => (
 );
 
 /** One decoration to wear on your face, grouped by what unlocks them */
-const FlairPicker = () => {
+const FlairPicker: FC<{ tryOn?: string }> = ({ tryOn }) => {
   const user = useUser();
   const { reloadUser } = useAuth();
   const queryClient = useQueryClient();
   const christmas = useChristmas();
-  const { achievementsData } = useMyProfilePage();
+  const { isUnlocked, stickerFor, groups, isLoading } = useFlair();
   const updateDecoration = useUpdateDecoration();
   const [peeking, setPeeking] = useState<DecorationId | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const isUnlocked = (id: DecorationId) => !!achievementsData?.rewards.has(id);
-  const stickerFor = (id: DecorationId) =>
-    achievementsData?.achievements.find((a) => a.reward?.id === id)?.name;
-  // Flair from an event that hasn't started (or that you missed) stays out of
-  // sight: its sticker isn't listed, so there's nothing to earn it with
-  const isAvailable = (id: DecorationId) => isUnlocked(id) || !!stickerFor(id);
-  const groups = DECORATION_GROUPS.map((group) => ({
-    ...group,
-    ids: group.ids.filter(isAvailable),
-  })).filter((group) => group.ids.length > 0);
 
   /** Wears a decoration, or nothing with '' */
   function wear(decoration: DecorationId | '') {
@@ -249,6 +239,15 @@ const FlairPicker = () => {
       })
       .catch((err) => setError(err.message));
   }
+
+  // Arriving from the flair page puts that one on, or says how to earn it
+  const triedOn = useRef(false);
+  useEffect(() => {
+    if (triedOn.current || isLoading || !tryOn || !(tryOn in DECORATIONS))
+      return;
+    triedOn.current = true;
+    wear(tryOn as DecorationId);
+  }, [isLoading, tryOn]);
 
   function note() {
     if (error) return error;
@@ -361,10 +360,10 @@ const NameForm = () => {
 };
 
 /** Your face, your flair and your name, the things friends see first */
-const EditProfile = () => (
+const EditProfile: FC<{ tryOn?: string }> = ({ tryOn }) => (
   <>
     <FacePicker />
-    <FlairPicker />
+    <FlairPicker tryOn={tryOn} />
     <NameForm />
   </>
 );

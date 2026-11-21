@@ -6,20 +6,25 @@ import type { FC } from 'react';
 import type { AICriterionScore, AIReview } from '@/api/Api';
 import { cn, timeAgo } from '@/utils';
 
-/** The overall score, as a little sticker slapped on the comment */
-export const ScoreSticker: FC<{ score: number; className?: string }> = ({
-  score,
-  className,
-}) => (
+/** The overall score, as a little sticker slapped on the comment. Your own
+ * doodle's score wears your profile color; everyone else's stays butter */
+export const ScoreSticker: FC<{
+  score: number;
+  mine?: boolean;
+  className?: string;
+}> = ({ score, mine = false, className }) => (
   <span
     className={cn(
-      'inline-flex items-baseline gap-0.5 px-2 py-0.5 -rotate-6 rounded-sketch-alt border-2 border-ink bg-me font-accent font-bold leading-none whitespace-nowrap',
+      'inline-flex items-baseline gap-0.5 px-2 py-0.5 -rotate-6 rounded-sketch-alt border-2 border-ink font-accent font-bold leading-none whitespace-nowrap',
+      mine ? 'bg-me text-me-ink' : 'bg-butter text-ink',
       className,
     )}
     aria-label={`scored ${formatScore(score)} out of ${AI_SCORE_MAX}`}
   >
     <span className="text-xl">{formatScore(score)}</span>
-    <span className="text-xs text-pencil">/{AI_SCORE_MAX}</span>
+    <span className={cn('text-xs', mine ? 'text-me-ink' : 'text-pencil')}>
+      /{AI_SCORE_MAX}
+    </span>
   </span>
 );
 
@@ -44,14 +49,18 @@ export const CriterionChip: FC<{ criterion: AICriterionScore }> = ({
   </span>
 );
 
-type Props = { review: AIReview; className?: string };
+type Props = { review: AIReview; mine?: boolean; className?: string };
 
 /**
  * The judge's comment, laid out like a friend's but signed with its name,
  * and carrying its score. Its face (or name) opens a drawer
  * about the judge.
  */
-export const AIReviewComment: FC<Props> = ({ review, className }) => {
+export const AIReviewComment: FC<Props> = ({
+  review,
+  mine = false,
+  className,
+}) => {
   const { judge } = review;
   const [aboutOpen, setAboutOpen] = useState(false);
 
@@ -113,7 +122,9 @@ export const AIReviewComment: FC<Props> = ({ review, className }) => {
           <span className="text-xs text-secondary whitespace-nowrap">
             {timeAgo(review.createdAt)}
           </span>
-          {review.score !== null && <ScoreSticker score={review.score} />}
+          {review.score !== null && (
+            <ScoreSticker score={review.score} mine={mine} />
+          )}
         </div>
       </div>
       {review.criteria.length > 0 && (

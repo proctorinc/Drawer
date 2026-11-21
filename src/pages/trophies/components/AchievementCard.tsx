@@ -3,6 +3,7 @@ import ProgressBar from './ProgressBar';
 import type { CSSProperties, FC } from 'react';
 import type { Achievement } from '@/api/Api';
 import Chip from '@/components/Chip';
+import XPSticker from '@/components/XPSticker';
 import { cn } from '@/utils';
 
 const stickerTilts = ['-6deg', '4deg', '-2deg', '7deg', '-4deg'];
@@ -52,6 +53,7 @@ export const AchievementSticker: FC<{
     <span className="font-accent font-bold text-lg leading-none mt-1">
       {achievement.name}
     </span>
+    {achievement.xp > 0 && <XPSticker xp={achievement.xp} />}
     <span className="text-xs text-pencil leading-tight">
       {achievement.description}
     </span>
@@ -82,10 +84,13 @@ const AchievementCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
     >
       <Badge achievement={achievement} locked className="size-14 shrink-0" />
       <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-        <div className="flex items-baseline justify-between gap-2">
-          <h3 className="font-accent font-bold text-xl leading-none truncate">
-            {achievement.name}
-          </h3>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="font-accent font-bold text-xl leading-none truncate">
+              {achievement.name}
+            </h3>
+            {achievement.xp > 0 && <XPSticker xp={achievement.xp} />}
+          </div>
           <span className="font-accent font-bold text-lg leading-none whitespace-nowrap">
             {Math.min(progress, goal)}/{goal}
           </span>

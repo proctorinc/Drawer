@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/utils"
+	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -14,17 +16,108 @@ import (
 // ActivityCounts is what a user did in a date range. Only social actions aimed at
 // someone else count, so reacting to your own drawing earns nothing.
 type ActivityCounts struct {
-	Drawings          int `json:"drawings"`
-	ReactionsGiven    int `json:"reactionsGiven"`
-	DrawingsReacted   int `json:"drawingsReacted"` // distinct friends' drawings reacted to
-	CommentsWritten   int `json:"commentsWritten"`
-	ReactionsReceived int `json:"reactionsReceived"`
-	CryLaughsReceived int `json:"cryLaughsReceived"`
-	Achievements      int `json:"achievements"`
+	Drawings       int `json:"drawings"`
+	ReactionsGiven int `json:"reactionsGiven"`
+	// ReactionsGivenForXP is ReactionsGiven without those past the first
+	// ReactionsGivenXPPerDay of a day, which earn nothing
+	ReactionsGivenForXP int `json:"-"`
+	DrawingsReacted     int `json:"drawingsReacted"` // distinct friends' drawings reacted to
+	CommentsWritten     int `json:"commentsWritten"`
+	// CommentsWrittenForXP is CommentsWritten without those past the first
+	// CommentsWrittenXPPerDay of a day, which earn nothing
+	CommentsWrittenForXP int `json:"-"`
+	ReactionsReceived    int `json:"reactionsReceived"`
+	CryLaughsReceived    int `json:"cryLaughsReceived"`
+	Achievements         int `json:"achievements"`
+	// AchievementXP is what the achievements earned are worth together
+	AchievementXP int `json:"-"`
 	// JudgeScores counts the user's doodles the AI judge scored 5 or more, by score in
 	// tenths: index 0 is 5.0, index JudgeScoreSteps-1 is 10.0. An array, not a map, so
 	// ActivityCounts stays comparable. Drawings are matched on their day.
 	JudgeScores [JudgeScoreSteps]int `json:"-"`
+	// QuestsCompleted counts the weeks each of WeeklyQuests was finished, in its order.
+	// Like JudgeScores, a finish counts at the moment of the step that reached the goal.
+	QuestsCompleted [len(WeeklyQuests)]int `json:"-"`
+}
+
+// ReactionsGivenXPPerDay is how many reactions a day, on the server's clock, earn XP.
+// Reacting more still counts toward quests and achievements, just not XP.
+const ReactionsGivenXPPerDay = 5
+
+// reactionsGivenForXP is every reaction someone gave someone else, with xp set when it
+// was among the first ReactionsGivenXPPerDay they gave that day. Numbering a day's
+// reactions from its start, not from the counted range's, keeps any split of time
+// adding up to the same total.
+func reactionsGivenForXP() string {
+	return `
+	SELECT reactor, created_at,
+		ROW_NUMBER() OVER (
+			PARTITION BY reactor, date(created_at, '` + weekModifier() + `') ORDER BY created_at
+		) <= ` + strconv.Itoa(ReactionsGivenXPPerDay) + ` AS xp
+	FROM ro WHERE owner != reactor AND for_reactor
+`
+}
+
+// CommentsWrittenXPPerDay is how many comments a day, on the server's clock, earn XP.
+// Commenting more still counts toward quests and achievements, just not XP.
+const CommentsWrittenXPPerDay = 5
+
+// commentsWrittenForXP is every comment someone left on someone else's drawing, with xp
+// set when it was among the first CommentsWrittenXPPerDay they left that day, numbered
+// from the day's start like reactionsGivenForXP.
+func commentsWrittenForXP() string {
+	return `
+	SELECT c.user_id, c.created_at,
+		ROW_NUMBER() OVER (
+			PARTITION BY c.user_id, date(c.created_at, '` + weekModifier() + `') ORDER BY c.created_at
+		) <= ` + strconv.Itoa(CommentsWrittenXPPerDay) + ` AS xp
+	FROM comments c JOIN user_submissions s ON s.id = c.submission_id
+	WHERE s.user_id != c.user_id AND ` + countedAt("c.user_id", "c.created_at") + `
+`
+}
+
+// WeeklyQuest is a goal that starts over every Monday, on the server's clock
+type WeeklyQuest struct {
+	ID   string
+	Goal int
+}
+
+// WeeklyQuests are the goals behind the trophy page's quests. questSteps counts each
+// one's steps.
+var WeeklyQuests = [...]WeeklyQuest{
+	{"draw-5", 5},
+	{"react-3", 3},
+	{"comment-3", 3},
+	{"cry-laugh", 1},
+}
+
+// achievementKind is the kind prefix GetXPEventsSince gives an earned achievement,
+// followed by its XP, e.g. "achievement:25"
+const achievementKind = "achievement:"
+
+// AchievementXP parses an earned achievement's kind into its XP
+func AchievementXP(kind string) (int, bool) {
+	rest, ok := strings.CutPrefix(kind, achievementKind)
+	if !ok {
+		return 0, false
+	}
+	xp, err := strconv.Atoi(rest)
+	return xp, err == nil
+}
+
+// questKind is the kind prefix GetXPEventsSince gives a finished quest, followed by its
+// ID, e.g. "quest:draw-5"
+const questKind = "quest:"
+
+// QuestIndex is the index in WeeklyQuests of a quest ID, or of a finished quest's kind
+func QuestIndex(idOrKind string) (int, bool) {
+	id := strings.TrimPrefix(idOrKind, questKind)
+	for i, q := range WeeklyQuests {
+		if q.ID == id {
+			return i, true
+		}
+	}
+	return 0, false
 }
 
 // JudgeScoreSteps is how many one-decimal scores there are from 5.0 to 10.0
@@ -35,10 +128,10 @@ const JudgeScoreSteps = 51
 const judgeKind = "judge"
 
 // judgedDoodles is each doodle the AI judge scored 5 or more, with that score in tenths
-const judgedDoodles = `
+var judgedDoodles = `
 	SELECT s.user_id, s.day, CAST(ROUND(r.score * 10) AS INTEGER) AS tenths, r.updated_at
 	FROM ai_reviews r JOIN user_submissions s ON s.id = r.submission_id
-	WHERE r.status = 'done' AND r.score >= 5
+	WHERE r.status = 'done' AND r.score >= 5 AND ` + countedDay("s.user_id", "s.day") + `
 `
 
 // JudgeScoreIndex parses a judged-doodle kind into its JudgeScores index
@@ -63,14 +156,23 @@ var (
 // sqliteTimestamp is how CURRENT_TIMESTAMP writes created_at, always in UTC.
 const sqliteTimestamp = "2006-01-02 15:04:05"
 
-// reactionOwners resolves who owns the drawing or comment each reaction is on.
-const reactionOwners = `
-	SELECT r.user_id AS reactor, COALESCE(s.user_id, cs.user_id) AS owner, r.reaction_id,
-		r.content_type, r.content_id, r.created_at
-	FROM reactions r
-	LEFT JOIN user_submissions s ON r.content_type = 'submission' AND s.id = r.content_id
-	LEFT JOIN comments cs ON r.content_type = 'comment' AND cs.id = r.content_id
+// reactionOwners resolves who owns the drawing or comment each reaction is on, and
+// whether it counts toward the reactor's stats (for_reactor) and the owner's
+// (for_owner), which their stats start days decide.
+func reactionOwners() string {
+	return `
+	SELECT reactor, owner, reaction_id, content_type, content_id, created_at,
+		` + countedAt("reactor", "created_at") + ` AS for_reactor,
+		` + countedAt("owner", "created_at") + ` AS for_owner
+	FROM (
+		SELECT r.user_id AS reactor, COALESCE(s.user_id, cs.user_id) AS owner, r.reaction_id,
+			r.content_type, r.content_id, r.created_at
+		FROM reactions r
+		LEFT JOIN user_submissions s ON r.content_type = 'submission' AND s.id = r.content_id
+		LEFT JOIN comments cs ON r.content_type = 'comment' AND cs.id = r.content_id
+	)
 `
+}
 
 // GetActivityCounts counts each user's activity in [from, to). It runs one query
 // however many users are asked for.
@@ -86,50 +188,67 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 
 	in := "(" + placeholders(len(userIDs)) + ")"
 	query := `
-		WITH ro AS (` + reactionOwners + `)
+		WITH ro AS (` + reactionOwners() + `), rg AS (` + reactionsGivenForXP() + `),
+			cw AS (` + commentsWrittenForXP() + `)
 		SELECT user_id, 'drawings', COUNT(*) FROM user_submissions
-		WHERE user_id IN ` + in + ` AND day >= ? AND day < ?
+		WHERE user_id IN ` + in + ` AND day >= ? AND day < ? AND ` + countedDay("user_id", "day") + `
 		GROUP BY user_id
+		UNION ALL
+		SELECT reactor, 'reactionsGivenForXP', COUNT(*) FROM rg
+		WHERE reactor IN ` + in + ` AND xp AND created_at >= ? AND created_at < ?
+		GROUP BY reactor
 		UNION ALL
 		SELECT user_id, '` + judgeKind + `' || tenths, COUNT(*) FROM (` + judgedDoodles + `)
 		WHERE user_id IN ` + in + ` AND day >= ? AND day < ?
 		GROUP BY user_id, tenths
 		UNION ALL
 		SELECT reactor, 'reactionsGiven', COUNT(*) FROM ro
-		WHERE reactor IN ` + in + ` AND owner != reactor AND created_at >= ? AND created_at < ?
+		WHERE reactor IN ` + in + ` AND owner != reactor AND for_reactor AND created_at >= ? AND created_at < ?
 		GROUP BY reactor
 		UNION ALL
 		SELECT reactor, 'drawingsReacted', COUNT(DISTINCT content_id) FROM ro
-		WHERE reactor IN ` + in + ` AND owner != reactor AND content_type = 'submission'
+		WHERE reactor IN ` + in + ` AND owner != reactor AND for_reactor AND content_type = 'submission'
 			AND created_at >= ? AND created_at < ?
 		GROUP BY reactor
 		UNION ALL
 		SELECT c.user_id, 'commentsWritten', COUNT(*) FROM comments c
 		JOIN user_submissions s ON s.id = c.submission_id
 		WHERE c.user_id IN ` + in + ` AND s.user_id != c.user_id AND c.created_at >= ? AND c.created_at < ?
+			AND ` + countedAt("c.user_id", "c.created_at") + `
 		GROUP BY c.user_id
 		UNION ALL
 		SELECT owner, 'reactionsReceived', COUNT(*) FROM ro
-		WHERE owner IN ` + in + ` AND owner != reactor AND created_at >= ? AND created_at < ?
+		WHERE owner IN ` + in + ` AND owner != reactor AND for_owner AND created_at >= ? AND created_at < ?
 		GROUP BY owner
 		UNION ALL
 		SELECT owner, 'cryLaughsReceived', COUNT(*) FROM ro
-		WHERE owner IN ` + in + ` AND owner != reactor AND reaction_id = 'cry-laugh'
+		WHERE owner IN ` + in + ` AND owner != reactor AND for_owner AND reaction_id = 'cry-laugh'
 			AND created_at >= ? AND created_at < ?
 		GROUP BY owner
 		UNION ALL
 		SELECT user_id, 'achievements', COUNT(*) FROM user_achievements
 		WHERE user_id IN ` + in + ` AND created_at >= ? AND created_at < ?
+			AND ` + countedAt("user_id", "created_at") + `
+		GROUP BY user_id
+		UNION ALL
+		SELECT ua.user_id, 'achievementXP', SUM(a.xp) FROM user_achievements ua
+		JOIN achievements a ON a.id = ua.achievement_id
+		WHERE ua.user_id IN ` + in + ` AND ua.created_at >= ? AND ua.created_at < ?
+			AND ` + countedAt("ua.user_id", "ua.created_at") + `
+		GROUP BY ua.user_id
+		UNION ALL
+		SELECT user_id, 'commentsWrittenForXP', COUNT(*) FROM cw
+		WHERE user_id IN ` + in + ` AND xp AND created_at >= ? AND created_at < ?
 		GROUP BY user_id
 	`
 
-	const parts = 8
+	const parts = 11
 	args := make([]any, 0, parts*(len(userIDs)+2))
 	for i := range parts {
 		for _, id := range userIDs {
 			args = append(args, id)
 		}
-		if i <= 1 { // drawings and judged doodles go by day
+		if i == 0 || i == 2 { // drawings and judged doodles go by day
 			args = append(args, utils.GetFormattedDate(from), utils.GetFormattedDate(to))
 		} else {
 			args = append(args, from.UTC().Format(sqliteTimestamp), to.UTC().Format(sqliteTimestamp))
@@ -154,16 +273,22 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 			c.Drawings = n
 		case "reactionsGiven":
 			c.ReactionsGiven = n
+		case "reactionsGivenForXP":
+			c.ReactionsGivenForXP = n
 		case "drawingsReacted":
 			c.DrawingsReacted = n
 		case "commentsWritten":
 			c.CommentsWritten = n
+		case "commentsWrittenForXP":
+			c.CommentsWrittenForXP = n
 		case "reactionsReceived":
 			c.ReactionsReceived = n
 		case "cryLaughsReceived":
 			c.CryLaughsReceived = n
 		case "achievements":
 			c.Achievements = n
+		case "achievementXP":
+			c.AchievementXP = n
 		default:
 			if i, ok := JudgeScoreIndex(kind); ok {
 				c.JudgeScores[i] = n
@@ -171,8 +296,97 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 		}
 		counts[userID] = c
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 
-	return counts, rows.Err()
+	err = eachQuestCompletion(repo, ctx, userIDs, from, to, func(userID string, quest int, _ time.Time) {
+		c := counts[userID]
+		c.QuestsCompleted[quest]++
+		counts[userID] = c
+	})
+	return counts, err
+}
+
+// weekModifier shifts a UTC created_at onto the server's clock, which weekBounds splits
+// weeks by. Drawings' days are on that clock already.
+func weekModifier() string {
+	_, offset := time.Now().Zone()
+	return fmt.Sprintf("%+d seconds", offset)
+}
+
+// eachQuestCompletion calls each for every weekly quest a user finished in [from, to):
+// the quest's WeeklyQuests index and when the step that reached its goal happened. A
+// step counts toward the week it happened in, so each week's progress starts over.
+func eachQuestCompletion(repo *sql.DB, ctx context.Context, userIDs []string, from, to time.Time, each func(userID string, quest int, at time.Time)) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+	in := "(" + placeholders(len(userIDs)) + ")"
+	week := func(col string) string { return "date(" + col + ", ?, '-6 days', 'weekday 1')" }
+	goals := make([]string, len(WeeklyQuests))
+	for i, q := range WeeklyQuests {
+		goals[i] = fmt.Sprintf("SELECT %d AS quest, %d AS goal", i, q.Goal)
+	}
+
+	// The steps follow GetActivityCounts' rules for the counts the quests show
+	query := `
+		WITH ro AS (` + reactionOwners() + `),
+		steps AS (
+			SELECT user_id, 0 AS quest, date(day, '-6 days', 'weekday 1') AS week, created_at AS at
+			FROM user_submissions WHERE user_id IN ` + in + ` AND ` + countedDay("user_id", "day") + `
+			UNION ALL
+			SELECT reactor, 1, week, MIN(created_at) FROM (
+				SELECT reactor, content_id, created_at, ` + week("created_at") + ` AS week FROM ro
+				WHERE reactor IN ` + in + ` AND owner != reactor AND for_reactor AND content_type = 'submission'
+			) GROUP BY reactor, content_id, week
+			UNION ALL
+			SELECT c.user_id, 2, ` + week("c.created_at") + `, c.created_at FROM comments c
+			JOIN user_submissions s ON s.id = c.submission_id
+			WHERE c.user_id IN ` + in + ` AND s.user_id != c.user_id
+				AND ` + countedAt("c.user_id", "c.created_at") + `
+			UNION ALL
+			SELECT owner, 3, ` + week("created_at") + `, created_at FROM ro
+			WHERE owner IN ` + in + ` AND owner != reactor AND for_owner AND reaction_id = 'cry-laugh'
+		),
+		numbered AS (
+			SELECT user_id, quest, datetime(at) AS done_at,
+				ROW_NUMBER() OVER (PARTITION BY user_id, quest, week ORDER BY datetime(at)) AS step
+			FROM steps
+		)
+		SELECT n.user_id, n.quest, n.done_at FROM numbered n
+		JOIN (` + strings.Join(goals, " UNION ALL ") + `) g ON g.quest = n.quest AND g.goal = n.step
+		WHERE n.done_at >= ? AND n.done_at < ?`
+
+	mod := weekModifier()
+	args := []any{}
+	for i := range 4 {
+		if i > 0 {
+			args = append(args, mod)
+		}
+		for _, id := range userIDs {
+			args = append(args, id)
+		}
+	}
+	args = append(args, from.UTC().Format(sqliteTimestamp), to.UTC().Format(sqliteTimestamp))
+
+	var userID, when string
+	var quest int
+	var parseErr error
+	err := queryEach(repo, ctx, query, args, []any{&userID, &quest, &when}, func() {
+		t, err := time.Parse(sqliteTimestamp, when)
+		parseErr = cmp.Or(parseErr, err)
+		if quest >= 0 && quest < len(WeeklyQuests) {
+			each(userID, quest, t)
+		}
+	})
+	return cmp.Or(err, parseErr)
+}
+
+// GetAchievementXPRange is the least and most an achievement is worth
+func GetAchievementXPRange(repo *sql.DB, ctx context.Context) (low, high int, err error) {
+	err = repo.QueryRowContext(ctx, `SELECT COALESCE(MIN(xp), 0), COALESCE(MAX(xp), 0) FROM achievements`).Scan(&low, &high)
+	return low, high, err
 }
 
 func GetUsersByIDs(repo *sql.DB, ctx context.Context, userIDs []string) ([]models.User, error) {
@@ -207,7 +421,8 @@ func GetUsersByIDs(repo *sql.DB, ctx context.Context, userIDs []string) ([]model
 }
 
 // XPEvent is one thing that earned a user XP. Kind is one of ActivityCounts' JSON names,
-// or a judged doodle's kind (see JudgeScoreIndex), which is at when it was judged.
+// a judged doodle's kind (see JudgeScoreIndex), which is at when it was judged, or a
+// finished quest's (see QuestIndex).
 type XPEvent struct {
 	Kind string
 	At   time.Time
@@ -224,18 +439,20 @@ func GetXPEventsSince(repo *sql.DB, ctx context.Context, userID string, since ti
 	// datetime() normalizes every timestamp to sqliteTimestamp, since a UNION loses the
 	// column types the driver would otherwise parse by
 	err := queryEach(repo, ctx, `
-		WITH ro AS (`+reactionOwners+`)
-		SELECT 'drawings', datetime(created_at) AS at FROM user_submissions WHERE user_id = ? AND day >= ?
+		WITH ro AS (`+reactionOwners()+`), rg AS (`+reactionsGivenForXP()+`),
+			cw AS (`+commentsWrittenForXP()+`)
+		SELECT 'drawings', datetime(created_at) AS at FROM user_submissions
+		WHERE user_id = ? AND day >= ? AND `+countedDay("user_id", "day")+`
 		UNION ALL
-		SELECT 'commentsWritten', datetime(c.created_at) FROM comments c
-		JOIN user_submissions s ON s.id = c.submission_id
-		WHERE c.user_id = ? AND s.user_id != c.user_id AND c.created_at >= ?
+		SELECT 'commentsWritten', datetime(created_at) FROM cw WHERE user_id = ? AND xp AND created_at >= ?
 		UNION ALL
-		SELECT 'reactionsGiven', datetime(created_at) FROM ro WHERE reactor = ? AND owner != reactor AND created_at >= ?
+		SELECT 'reactionsGiven', datetime(created_at) FROM rg WHERE reactor = ? AND xp AND created_at >= ?
 		UNION ALL
-		SELECT 'reactionsReceived', datetime(created_at) FROM ro WHERE owner = ? AND owner != reactor AND created_at >= ?
+		SELECT 'reactionsReceived', datetime(created_at) FROM ro WHERE owner = ? AND owner != reactor AND for_owner AND created_at >= ?
 		UNION ALL
-		SELECT 'achievements', datetime(created_at) FROM user_achievements WHERE user_id = ? AND created_at >= ?
+		SELECT '`+achievementKind+`' || a.xp, datetime(ua.created_at) FROM user_achievements ua
+		JOIN achievements a ON a.id = ua.achievement_id
+		WHERE ua.user_id = ? AND ua.created_at >= ? AND `+countedAt("ua.user_id", "ua.created_at")+`
 		UNION ALL
 		SELECT '`+judgeKind+`' || tenths, datetime(updated_at) FROM (`+judgedDoodles+`) WHERE user_id = ? AND day >= ?
 		ORDER BY at`,
@@ -246,7 +463,15 @@ func GetXPEventsSince(repo *sql.DB, ctx context.Context, userID string, since ti
 			parseErr = cmp.Or(parseErr, err)
 			events = append(events, XPEvent{Kind: kind, At: t})
 		})
-	return events, cmp.Or(err, parseErr)
+	if err := cmp.Or(err, parseErr); err != nil {
+		return nil, err
+	}
+
+	err = eachQuestCompletion(repo, ctx, []string{userID}, since, EndOfTime, func(_ string, quest int, t time.Time) {
+		events = append(events, XPEvent{Kind: questKind + WeeklyQuests[quest].ID, At: t})
+	})
+	slices.SortStableFunc(events, func(a, b XPEvent) int { return a.At.Compare(b.At) })
+	return events, err
 }
 
 // EventActivityCounts is what a user did in [from, to) that only an event makes possible:
@@ -257,6 +482,7 @@ type EventActivityCounts struct {
 	DrawingsReacted   int // distinct friends' drawings given an event reaction
 	ReactionsReceived int
 	Stickers          int
+	StickerXP         int // what the stickers earned are worth together
 	// StickersOffered is how many stickers the event has, earned or not
 	StickersOffered int
 }
@@ -265,21 +491,26 @@ func GetEventActivityCounts(repo *sql.DB, ctx context.Context, userID, eventID s
 	fromAt, toAt := from.UTC().Format(sqliteTimestamp), to.UTC().Format(sqliteTimestamp)
 	var c EventActivityCounts
 	err := repo.QueryRowContext(ctx, `
-		WITH ro AS (`+reactionOwners+`),
+		WITH ro AS (`+reactionOwners()+`),
 		er AS (
 			SELECT * FROM ro
 			WHERE owner != reactor AND created_at >= ? AND created_at < ?
 				AND reaction_id IN (SELECT reaction_id FROM event_reactions WHERE event_id = ?)
 		)
 		SELECT
-			(SELECT COUNT(*) FROM er WHERE reactor = ?),
-			(SELECT COUNT(DISTINCT content_id) FROM er WHERE reactor = ? AND content_type = 'submission'),
-			(SELECT COUNT(*) FROM er WHERE owner = ?),
+			(SELECT COUNT(*) FROM er WHERE reactor = ? AND for_reactor),
+			(SELECT COUNT(DISTINCT content_id) FROM er WHERE reactor = ? AND for_reactor AND content_type = 'submission'),
+			(SELECT COUNT(*) FROM er WHERE owner = ? AND for_owner),
 			(SELECT COUNT(*) FROM user_achievements ua
 				JOIN event_achievements ea ON ea.achievement_id = ua.achievement_id
 				WHERE ua.user_id = ? AND ea.event_id = ? AND ua.created_at >= ? AND ua.created_at < ?),
+			(SELECT COALESCE(SUM(a.xp), 0) FROM user_achievements ua
+				JOIN event_achievements ea ON ea.achievement_id = ua.achievement_id
+				JOIN achievements a ON a.id = ua.achievement_id
+				WHERE ua.user_id = ? AND ea.event_id = ? AND ua.created_at >= ? AND ua.created_at < ?),
 			(SELECT COUNT(*) FROM event_achievements WHERE event_id = ?)`,
-		fromAt, toAt, eventID, userID, userID, userID, userID, eventID, fromAt, toAt, eventID,
-	).Scan(&c.ReactionsGiven, &c.DrawingsReacted, &c.ReactionsReceived, &c.Stickers, &c.StickersOffered)
+		fromAt, toAt, eventID, userID, userID, userID, userID, eventID, fromAt, toAt,
+		userID, eventID, fromAt, toAt, eventID,
+	).Scan(&c.ReactionsGiven, &c.DrawingsReacted, &c.ReactionsReceived, &c.Stickers, &c.StickerXP, &c.StickersOffered)
 	return c, err
 }

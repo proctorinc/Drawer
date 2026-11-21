@@ -104,7 +104,12 @@ func eventXP(event models.Event, a queries.ActivityCounts, e queries.EventActivi
 			line(words.reactionReceived, e.ReactionsReceived, xpPerReactionReceived))
 	}
 	if e.StickersOffered > 0 {
-		lines = append(lines, line(words.sticker, e.Stickers, xpPerAchievement))
+		// Stickers are each worth their own XP, so only an even split gets an "each"
+		stickers := EventXPLine{Action: words.sticker, Count: e.Stickers, XP: e.StickerXP}
+		if e.Stickers > 0 && e.StickerXP%e.Stickers == 0 {
+			stickers.XPEach = e.StickerXP / e.Stickers
+		}
+		lines = append(lines, stickers)
 	}
 	return EventXP{Total: xpFor(a), Lines: lines}
 }
@@ -113,14 +118,18 @@ func eventXP(event models.Event, a queries.ActivityCounts, e queries.EventActivi
 // the event's own reactions when it has some.
 func eventQuests(event models.Event, a queries.ActivityCounts, e queries.EventActivityCounts) []Quest {
 	words := copyForTheme(event.Theme)
-	react := Quest{"event-react-3", words.reactQuest.title, words.reactQuest.description, e.DrawingsReacted, 3}
+	react := newQuest("react-3", words.reactQuest.title, words.reactQuest.description, e.DrawingsReacted)
 	if len(event.Reactions) == 0 {
-		react = Quest{"event-react-3", words.reactQuest.title, "React to 3 friends' drawings", a.DrawingsReacted, 3}
+		react = newQuest("react-3", words.reactQuest.title, "React to 3 friends' drawings", a.DrawingsReacted)
 	}
-	return []Quest{
-		{"event-draw-5", words.drawQuest.title, words.drawQuest.description, a.Drawings, 5},
+	quests := []Quest{
+		newQuest("draw-5", words.drawQuest.title, words.drawQuest.description, a.Drawings),
 		react,
-		{"event-comment-3", words.commentQuest.title, words.commentQuest.description, a.CommentsWritten, 3},
-		{"event-cry-laugh", words.laughQuest.title, words.laughQuest.description, a.CryLaughsReceived, 1},
+		newQuest("comment-3", words.commentQuest.title, words.commentQuest.description, a.CommentsWritten),
+		newQuest("cry-laugh", words.laughQuest.title, words.laughQuest.description, a.CryLaughsReceived),
 	}
+	for i := range quests {
+		quests[i].ID = "event-" + quests[i].ID
+	}
+	return quests
 }
