@@ -3,6 +3,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import { PinButton } from './PinButton';
+import { XPNote } from './XPNote';
 import type { FC } from 'react';
 import type { Comment, ReactionId, UserPromptSubmission } from '@/api/Api';
 import { refreshProgress } from '@/animations/useProgressWatcher';
@@ -134,6 +135,9 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
             />
           </div>
         </div>
+        {submission.user.id === currentUser.id && (
+          <XPNote submission={submission} className="mt-4" />
+        )}
       </div>
       <div className="flex justify-between gap-2 w-full items-center">
         <div className="w-full font-bold">

@@ -14,8 +14,6 @@ import { polaroidFrameClass } from '@/components/polaroid';
 import { cn } from '@/utils';
 import { GoldTrim, goldFrameClass, isMasterpiece } from '@/ai/Masterpiece';
 import { ScoreSticker } from '@/ai/AIReviewComment';
-import { formatScore } from '@/ai/score';
-import { doodleXP } from '@/ai/xp';
 
 // Repeating per-card variety, so the wall looks hand-pinned rather than gridded
 const TILTS = [-2, 1.8, 1, -1.4, 2, -0.8];
@@ -126,41 +124,7 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
           </Link>
         </figcaption>
       </figure>
-      {isMine && <XPNote submission={submission} delay={index * 90} />}
     </div>
-  );
-};
-
-/** What your own doodle earned, with the judge's bonus spelled out */
-const XPNote: FC<{ submission: UserPromptSubmission; delay: number }> = ({
-  submission,
-  delay,
-}) => {
-  const review = submission.aiReview;
-  const earned = doodleXP(review?.status === 'done' ? review.score : null);
-  const { judge } = earned;
-
-  let detail: string;
-  if (review?.status === 'pending') detail = 'judge still scoring';
-  else if (judge)
-    detail = `+${judge.xp} for ${review!.judge.name}'s ${formatScore(judge.score)} (×${formatScore(judge.boost)} bonus)`;
-  else if (review?.score != null) detail = 'no bonus under a 5';
-  else detail = '';
-
-  return (
-    <p
-      className="m-0 mt-2.5 px-1 text-center text-xs leading-tight text-pencil animate-drop"
-      style={
-        {
-          animationDelay: `${delay + 150}ms`,
-          '--tilt-from': '0deg',
-        } as CSSProperties
-      }
-    >
-      <span className="font-bold text-ink">+{earned.total} XP</span>
-      <span className="block">+{earned.drawing} for drawing</span>
-      {detail && <span className="block">{detail}</span>}
-    </p>
   );
 };
 
