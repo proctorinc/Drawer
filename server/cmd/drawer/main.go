@@ -3,6 +3,7 @@ package main
 import (
 	"drawer-service-backend/internal/config"
 	"drawer-service-backend/internal/db"
+	"drawer-service-backend/internal/duel"
 	"drawer-service-backend/internal/notifications"
 	"drawer-service-backend/internal/routes"
 	"errors"
@@ -38,6 +39,7 @@ func main() {
 	}
 
 	notifications.StartEventNotifier(cfg, repo)
+	duel.StartReminders(cfg, repo)
 
 	// --- Gin Router Setup ---
 	router := routes.InitRouter(cfg, repo)

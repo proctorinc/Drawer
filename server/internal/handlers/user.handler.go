@@ -33,6 +33,11 @@ func HandleGetMe(c *gin.Context) {
 	}
 
 	account := response.Account()
+	if hasBeta, err := queries.HasBetaAccess(appCtx.DB, c.Request.Context(), *response); err != nil {
+		log.Printf("Error checking beta access for %s: %v", user.ID, err)
+	} else {
+		account.HasBeta = hasBeta
+	}
 	if admin := middleware.GetImpersonator(c); admin != nil {
 		account.ImpersonatedBy = admin.Username
 	}

@@ -37,6 +37,8 @@ type Account struct {
 	User
 	Email   string `json:"email"`
 	IsAdmin bool   `json:"isAdmin"`
+	// HasBeta lets them into the beta zone (admins always have it)
+	HasBeta bool `json:"hasBeta"`
 	// ImpersonatedBy is the username of the admin viewing as this user, if any
 	ImpersonatedBy string `json:"impersonatedBy,omitempty"`
 }

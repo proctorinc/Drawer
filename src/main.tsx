@@ -59,6 +59,9 @@ import AITestingGroundPage from './pages/admin/pages/AITestingGroundPage.tsx';
 import AILogPage from './pages/admin/pages/AILogPage.tsx';
 import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
+import BetaZonePage from './pages/admin/pages/BetaZonePage.tsx';
+import DuelsPage from './beta/duel/DuelsPage.tsx';
+import DuelPage from './beta/duel/DuelPage.tsx';
 import DrawProfilePicPage from './pages/profile/DrawProfilePicPage.tsx';
 import ProfileDrawingsPage from './pages/profile/DrawingsPage.tsx';
 import StickersPage from './pages/profile/StickersPage.tsx';
@@ -270,6 +273,27 @@ const promptSubmissionRoute = createRoute({
   ),
 });
 
+// The beta lab: admins and testers they've let in (each page checks)
+const betaDuelsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/beta',
+  component: () => (
+    <AuthRoute>
+      <DuelsPage />
+    </AuthRoute>
+  ),
+});
+
+const betaDuelRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/draw/beta/duel/$duelId',
+  component: () => (
+    <AuthRoute>
+      <DuelPage />
+    </AuthRoute>
+  ),
+});
+
 const adminRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/draw/admin',
@@ -318,6 +342,7 @@ const adminPages = [
     component: DrawingDemoPage,
   }),
   adminPage('brand', BrandPage),
+  adminPage('beta', BetaZonePage),
 ];
 
 const createProfileRoute = createRoute({
@@ -349,6 +374,8 @@ const routeTree = rootRoute.addChildren([
   createProfileRoute,
   loginRoute,
   promptSubmissionRoute,
+  betaDuelsRoute,
+  betaDuelRoute,
   adminRoute.addChildren(adminPages),
 ]);
 

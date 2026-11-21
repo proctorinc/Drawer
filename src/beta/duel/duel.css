@@ -1,0 +1,172 @@
+/* Sketch duels: the faces colliding, the clock, the tiles flipping in. Flat ink, no glows. */
+
+/* Each face flies in from its side, smacks into the other, and bounces back a touch */
+@keyframes duel-in-left {
+  0% {
+    transform: translateX(-120vw) rotate(-30deg);
+  }
+  55% {
+    transform: translateX(14px) rotate(8deg);
+  }
+  65% {
+    transform: translateX(-26px) rotate(-6deg);
+  }
+  80% {
+    transform: translateX(-8px) rotate(2deg);
+  }
+  100% {
+    transform: translateX(-14px) rotate(-4deg);
+  }
+}
+@keyframes duel-in-right {
+  0% {
+    transform: translateX(120vw) rotate(30deg);
+  }
+  55% {
+    transform: translateX(-14px) rotate(-8deg);
+  }
+  65% {
+    transform: translateX(26px) rotate(6deg);
+  }
+  80% {
+    transform: translateX(8px) rotate(-2deg);
+  }
+  100% {
+    transform: translateX(14px) rotate(4deg);
+  }
+}
+.duel-face-left {
+  animation: duel-in-left 0.9s cubic-bezier(0.5, 0, 0.3, 1) both;
+}
+.duel-face-right {
+  animation: duel-in-right 0.9s cubic-bezier(0.5, 0, 0.3, 1) both;
+}
+
+/* The smack: ink lines burst out where they meet */
+@keyframes duel-burst {
+  0%,
+  48% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  58% {
+    transform: scale(1.25) rotate(8deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(14deg);
+    opacity: 1;
+  }
+}
+.duel-burst {
+  animation: duel-burst 1s ease-out both;
+}
+
+/* The whole stage jolts on impact */
+@keyframes duel-shake {
+  0%,
+  50%,
+  100% {
+    transform: translate(0, 0);
+  }
+  53% {
+    transform: translate(-6px, 3px);
+  }
+  56% {
+    transform: translate(5px, -4px);
+  }
+  59% {
+    transform: translate(-3px, 2px);
+  }
+  62% {
+    transform: translate(2px, 0);
+  }
+}
+.duel-shake {
+  animation: duel-shake 1s linear both;
+}
+
+/* Words stamp in after the hit */
+@keyframes duel-stamp {
+  0%,
+  60% {
+    transform: scale(2.4) rotate(-8deg);
+    opacity: 0;
+  }
+  75% {
+    transform: scale(0.92) rotate(-3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(-3deg);
+    opacity: 1;
+  }
+}
+.duel-stamp {
+  animation: duel-stamp 1.4s var(--ease-spring) both;
+}
+.duel-later {
+  animation: rise 0.45s 1.3s var(--ease-spring) both;
+}
+
+/* A guess's tiles flip over one at a time, Wordle style */
+@keyframes duel-flip {
+  0% {
+    transform: rotateX(90deg);
+  }
+  100% {
+    transform: rotateX(0deg);
+  }
+}
+.duel-tile {
+  animation: duel-flip 0.35s ease-out both;
+  backface-visibility: hidden;
+}
+
+/* The last ten seconds of the clock */
+@keyframes duel-hurry {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+.duel-hurry {
+  animation: duel-hurry 0.5s ease-in-out infinite;
+}
+
+/* "here now" dot */
+@keyframes duel-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+.duel-ping::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: inherit;
+  animation: duel-ping 1.4s ease-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .duel-face-left,
+  .duel-face-right,
+  .duel-burst,
+  .duel-shake,
+  .duel-stamp,
+  .duel-later,
+  .duel-tile,
+  .duel-hurry,
+  .duel-ping::after {
+    animation: none;
+  }
+}

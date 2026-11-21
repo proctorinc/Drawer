@@ -29,6 +29,8 @@ export interface User {
   decoration: DecorationId | '';
   /** Only sent for your own account */
   isAdmin?: boolean;
+  /** Let into the beta zone (admins always are); only sent for your own account */
+  hasBeta?: boolean;
   /** Username of the admin viewing as you; only set while impersonating */
   impersonatedBy?: string;
 }

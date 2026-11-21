@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS duel_guesses;
+DROP TABLE IF EXISTS duel_rounds;
+DROP TABLE IF EXISTS duels;
+DROP TABLE IF EXISTS beta_testers;

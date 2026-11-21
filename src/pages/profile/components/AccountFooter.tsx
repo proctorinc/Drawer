@@ -1,5 +1,9 @@
 import { useNavigate } from '@tanstack/react-router';
-import { faCrown, faDoorOpen } from '@fortawesome/free-solid-svg-icons';
+import {
+  faCrown,
+  faDoorOpen,
+  faFlask,
+} from '@fortawesome/free-solid-svg-icons';
 import NotificationSettings from './NotificationSettings';
 import useAuth from '@/auth/hooks/useAuth';
 import useUser from '@/auth/hooks/useUser';
@@ -28,6 +32,17 @@ const AccountFooter = () => {
             onClick={() => navigate({ to: '/draw/admin' })}
           >
             admin dashboard
+          </Button>
+        )}
+        {(user.hasBeta || user.isAdmin) && (
+          <Button
+            size="sm"
+            variant="base"
+            icon={faFlask}
+            disableLoad
+            onClick={() => navigate({ to: '/draw/beta' })}
+          >
+            beta lab
           </Button>
         )}
         <Button size="sm" variant="base" icon={faDoorOpen} onClick={logout}>

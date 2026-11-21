@@ -122,6 +122,20 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			authGroup.GET("/announcements", handlers.HandleGetAnnouncements)
 			authGroup.POST("/announcements/seen", handlers.HandleMarkAnnouncementsSeen)
 
+			// The beta zone: features tried out with a few people first
+			betaGroup := authGroup.Group("/beta")
+			betaGroup.Use(middleware.BetaRequired(repo))
+			{
+				betaGroup.GET("/duels", handlers.HandleListDuels)
+				betaGroup.POST("/duels", handlers.HandleCreateDuel)
+				betaGroup.GET("/duels/:id", handlers.HandleGetDuel)
+				betaGroup.POST("/duels/:id/start", handlers.HandleStartDuelDrawing)
+				betaGroup.POST("/duels/:id/drawing", handlers.HandleSubmitDuelDrawing)
+				betaGroup.POST("/duels/:id/guess", handlers.HandleDuelGuess)
+				betaGroup.POST("/duels/:id/nudge", handlers.HandleNudgeDuel)
+				betaGroup.POST("/duels/:id/cancel", handlers.HandleCancelDuel)
+			}
+
 			// Development-only debug endpoints for push notifications
 			log.Printf("🔔 Current environment: %s", cfg.Env)
 			if cfg.Env == "development" || true { // Temporarily force debug endpoints
@@ -239,6 +253,9 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				adminGroup.PUT("/announcements/:id", handlers.HandleAdminUpdateAnnouncement)
 				adminGroup.DELETE("/announcements/:id", handlers.HandleAdminDeleteAnnouncement)
 				adminGroup.DELETE("/announcements/:id/views", handlers.HandleAdminResetAnnouncementViews)
+				adminGroup.GET("/beta", handlers.HandleAdminBeta)
+				adminGroup.POST("/beta/testers", handlers.HandleAdminAddBetaTester)
+				adminGroup.DELETE("/beta/testers/:id", handlers.HandleAdminRemoveBetaTester)
 			}
 		}
 	}

@@ -91,6 +91,10 @@ const NAV: Array<{ group: string; items: Array<NavItem> }> = [
     ],
   },
   {
+    group: 'beta zone',
+    items: [{ to: '/draw/admin/beta', label: 'sketch duel', icon: faFlask }],
+  },
+  {
     group: 'demos',
     items: [
       { to: '/draw/admin/drawing', label: 'drawing canvas', icon: faBrush },
