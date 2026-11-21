@@ -143,10 +143,4 @@ CREATE TABLE app_settings (
     value TEXT NOT NULL,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-CREATE TABLE user_achievements_archive (
-    achievement_id TEXT NOT NULL,
-    user_id TEXT NOT NULL,
-    created_at TIMESTAMP,
-    celebrated_at TIMESTAMP,
-    archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE user_achievements_archive (achievement_id TEXT NOT NULL, user_id TEXT NOT NULL, created_at TIMESTAMP, celebrated_at TIMESTAMP, archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
