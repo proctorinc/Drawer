@@ -9,7 +9,6 @@ import (
 
 func TestJudgeIntros(t *testing.T) {
 	repo := dbtest.NewEventsDB(t)
-	dbtest.ApplyMigration(t, repo, "1795131400_add_judge_intros.up.sql")
 	ctx := context.Background()
 
 	if _, found, err := GetJudgeIntro(repo, ctx, "2099-01-01", "j", "h1"); err != nil || found {

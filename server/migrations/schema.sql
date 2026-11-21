@@ -131,3 +131,11 @@ CREATE INDEX idx_duels_opponent ON duels (opponent_id);
 CREATE INDEX idx_duels_status ON duels (status);
 CREATE TABLE duel_rounds (duel_id TEXT NOT NULL, round INTEGER NOT NULL, drawer_id TEXT NOT NULL, guesser_id TEXT NOT NULL, prompt TEXT NOT NULL, keywords TEXT NOT NULL, draw_started_at TIMESTAMP, image TEXT, drawn_at TIMESTAMP, score INTEGER, finished_at TIMESTAMP, PRIMARY KEY (duel_id, round), FOREIGN KEY (duel_id) REFERENCES duels (id) ON DELETE CASCADE);
 CREATE TABLE duel_guesses (duel_id TEXT NOT NULL, round INTEGER NOT NULL, attempt INTEGER NOT NULL, guess TEXT NOT NULL, score INTEGER NOT NULL, exact INTEGER NOT NULL DEFAULT 0, feedback TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (duel_id, round, attempt), FOREIGN KEY (duel_id, round) REFERENCES duel_rounds (duel_id, round) ON DELETE CASCADE);
+CREATE TABLE judge_intros (
+    day TEXT NOT NULL,
+    personality_id TEXT NOT NULL,
+    source_hash TEXT NOT NULL,
+    lines TEXT NOT NULL, -- JSON array of strings
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (day, personality_id, source_hash)
+);
