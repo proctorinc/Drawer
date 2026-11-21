@@ -142,6 +142,8 @@ const reminderInterval = 15 * time.Minute
 
 // StartReminders checks every so often for duels stuck on someone: it reminds them once
 // after RemindAfter, and gives up on the duel after ExpireAfter, telling both players.
+// Cloud Run starves this loop between requests, so the cron tick endpoint also runs
+// RemindOrExpire; claims keep the two from reminding twice.
 func StartReminders(cfg *config.Config, repo *sql.DB) {
 	go func() {
 		ticker := time.NewTicker(reminderInterval)

@@ -29,6 +29,8 @@ type Config struct {
 	OpenAIAPIKey string
 	// Optional: another OpenAI-compatible endpoint (a proxy or gateway), e.g. https://example.com/v1
 	OpenAIBaseURL string
+	// Shared secret Cloud Scheduler sends to the cron tick endpoint; unset turns the endpoint off
+	CronSecret string
 }
 
 func LoadConfig() *Config {
@@ -81,6 +83,7 @@ func LoadConfig() *Config {
 		VAPIDSubject:  strings.TrimPrefix(getEnv("VAPID_SUBJECT", allowedOrigin), "mailto:"),
 		OpenAIAPIKey:  getEnv("OPENAI_API_KEY", ""),
 		OpenAIBaseURL: getEnv("OPENAI_BASE_URL", ""),
+		CronSecret:    getEnv("CRON_SECRET", ""),
 	}
 }
 

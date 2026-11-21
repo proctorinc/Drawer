@@ -15,6 +15,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/SherClockHolmes/webpush-go"
 )
@@ -33,15 +35,23 @@ func madeWithOtherKey(status int, body []byte) bool {
 		strings.Contains(strings.ToLower(string(body)), "credentials used to create the subscription")
 }
 
+// pushClient bounds each push service call. Pushes are sent before the request
+// that caused them returns (Cloud Run starves work left running after the
+// response), so a stuck push service mustn't hold that request up for long.
+var pushClient = &http.Client{Timeout: 5 * time.Second}
+
 func sendWebPush(sub models.PushSubscription, message []byte, cfg *config.Config) error {
 	resp, err := webpush.SendNotification(message, &webpush.Subscription{
 		Endpoint: sub.Endpoint,
 		Keys:     webpush.Keys{P256dh: sub.P256dh, Auth: sub.Auth},
 	}, &webpush.Options{
+		HTTPClient:      pushClient,
 		Subscriber:      cfg.VAPIDSubject,
 		VAPIDPublicKey:  cfg.VAPIDPublicKey,
 		VAPIDPrivateKey: cfg.VAPIDPrivateKey,
 		TTL:             30,
+		// Without this, phones treat the push as deferrable and may batch it to save battery
+		Urgency: webpush.UrgencyHigh,
 	})
 	if err != nil {
 		return err
@@ -87,22 +97,34 @@ func DeliverToUser(repo *sql.DB, userID string, data models.NotificationData, cf
 		return 0, err
 	}
 
-	delivered := 0
-	var failures []error
+	// Every device at once, so the request waits for the slowest push, not their sum
+	var (
+		mu        sync.Mutex
+		wg        sync.WaitGroup
+		delivered int
+		failures  []error
+	)
 	for _, sub := range subscriptions {
-		err := sendWebPush(models.PushSubscription(sub), message, cfg)
-		if errors.Is(err, errSubscriptionGone) {
-			if err := queries.DeletePushSubscription(repo, ctx, sub.Endpoint); err != nil {
-				log.Printf("Failed to delete expired push subscription for user %s: %v", userID, err)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := sendWebPush(models.PushSubscription(sub), message, cfg)
+			if errors.Is(err, errSubscriptionGone) {
+				if err := queries.DeletePushSubscription(repo, ctx, sub.Endpoint); err != nil {
+					log.Printf("Failed to delete expired push subscription for user %s: %v", userID, err)
+				}
+				return
 			}
-			continue
-		}
-		if err != nil {
-			failures = append(failures, fmt.Errorf("%s: %w", endpointHost(sub.Endpoint), err))
-			continue
-		}
-		delivered++
+			mu.Lock()
+			defer mu.Unlock()
+			if err != nil {
+				failures = append(failures, fmt.Errorf("%s: %w", endpointHost(sub.Endpoint), err))
+				return
+			}
+			delivered++
+		}()
 	}
+	wg.Wait()
 	return delivered, errors.Join(failures...)
 }
 
@@ -131,12 +153,18 @@ func NotifyFriendsOfSubmission(repo *sql.DB, userID, username, submissionID stri
 		Action:   "submitted",
 	}
 
+	// All friends at once, so posting doesn't wait on each friend in turn
+	var wg sync.WaitGroup
 	for _, friendID := range friends {
-		if err := SendNotificationToUser(repo, friendID, data, cfg); err != nil {
-			// Log error but continue with other friends
-			fmt.Printf("Failed to notify friend %s: %v\n", friendID, err)
-		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := SendNotificationToUser(repo, friendID, data, cfg); err != nil {
+				log.Printf("Failed to notify friend %s: %v", friendID, err)
+			}
+		}()
 	}
+	wg.Wait()
 	return nil
 }
 

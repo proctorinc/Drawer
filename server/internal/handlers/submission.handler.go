@@ -274,13 +274,12 @@ func HandleSubmissionToggleReaction(c *gin.Context) {
 		Counts:    counts,
 	}
 
-	// Send notification to submission owner (in background)
+	// Sent before responding: Cloud Run throttles CPU once the response is out, so a
+	// push left in a goroutine waits for the next request to this instance.
 	if submissionOwnerID != "" && submissionOwnerID != requester.ID {
-		go func() {
-			if err := notifications.NotifyUserOfReaction(appCtx.DB, requester.ID, requester.Username, submissionOwnerID, submissionID, body.ReactionID, "submission", appCtx.Config); err != nil {
-				log.Printf("Failed to send reaction notification: %v", err)
-			}
-		}()
+		if err := notifications.NotifyUserOfReaction(appCtx.DB, requester.ID, requester.Username, submissionOwnerID, submissionID, body.ReactionID, "submission", appCtx.Config); err != nil {
+			log.Printf("Failed to send reaction notification: %v", err)
+		}
 	}
 
 	go func() {

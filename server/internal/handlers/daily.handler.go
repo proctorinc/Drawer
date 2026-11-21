@@ -138,11 +138,11 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 
 	log.Printf("User %s successfully submitted drawing for %s", utils.MaskEmail(requester.Email), today)
 
-	go func() {
-		if err := notifications.NotifyFriendsOfSubmission(appCtx.DB, requester.ID, requester.Username, submissionID, appCtx.Config); err != nil {
-			log.Printf("Failed to send friend notifications for user %s: %v", utils.MaskEmail(requester.Email), err)
-		}
-	}()
+	// Sent before responding: Cloud Run throttles CPU once the response is out, so a
+	// push left in a goroutine waits for the next request to this instance.
+	if err := notifications.NotifyFriendsOfSubmission(appCtx.DB, requester.ID, requester.Username, submissionID, appCtx.Config); err != nil {
+		log.Printf("Failed to send friend notifications for user %s: %v", utils.MaskEmail(requester.Email), err)
+	}
 
 	// The AI judge scores it and leaves a comment, if the judges are switched on. It's marked
 	// pending before we answer, so the app knows to wait for it; with judging off there's

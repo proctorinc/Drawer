@@ -13,15 +13,37 @@ import (
 
 const eventNotifierInterval = time.Hour
 
+// eventsEnabled is false outside production unless EVENT_NOTIFICATIONS_ENABLED is set, so
+// dev and staging servers don't push to real subscribers.
+func eventsEnabled(cfg *config.Config) bool {
+	return cfg.Env == "production" || cfg.EventsNotify
+}
+
 // StartEventNotifier checks hourly (and once at startup) for event broadcasts that are due and
-// sends each one at most once. Outside production it only runs when EVENT_NOTIFICATIONS_ENABLED
-// is set, so dev and staging servers don't push to real subscribers.
+// sends each one at most once. Cloud Run starves this loop between requests, so the cron tick
+// endpoint also runs RunEventNotifier; claims keep the two from sending twice.
 func StartEventNotifier(cfg *config.Config, repo *sql.DB) {
-	if cfg.Env != "production" && !cfg.EventsNotify {
+	if !eventsEnabled(cfg) {
 		log.Println("Event notifications disabled outside production (set EVENT_NOTIFICATIONS_ENABLED=true to enable)")
 		return
 	}
+	go func() {
+		ticker := time.NewTicker(eventNotifierInterval)
+		defer ticker.Stop()
+		for {
+			if err := RunEventNotifier(context.Background(), cfg, repo); err != nil {
+				log.Printf("Error sending event notifications: %v", err)
+			}
+			<-ticker.C
+		}
+	}()
+}
 
+// RunEventNotifier does one pass: it sends every event broadcast that's due and not yet sent.
+func RunEventNotifier(ctx context.Context, cfg *config.Config, repo *sql.DB) error {
+	if !eventsEnabled(cfg) {
+		return nil
+	}
 	broadcast := func(ctx context.Context, data models.NotificationData) error {
 		userIDs, err := queries.GetPushSubscribedUserIDs(repo, ctx)
 		if err != nil {
@@ -34,17 +56,7 @@ func StartEventNotifier(cfg *config.Config, repo *sql.DB) {
 		}
 		return nil
 	}
-
-	go func() {
-		ticker := time.NewTicker(eventNotifierInterval)
-		defer ticker.Stop()
-		for {
-			if err := SendDueEventNotifications(context.Background(), repo, events.Now(cfg), broadcast); err != nil {
-				log.Printf("Error sending event notifications: %v", err)
-			}
-			<-ticker.C
-		}
-	}()
+	return SendDueEventNotifications(ctx, repo, events.Now(cfg), broadcast)
 }
 
 // SendDueEventNotifications broadcasts every event notification due at `now` that hasn't been

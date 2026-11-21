@@ -50,6 +50,9 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 	// API routes
 	apiGroup := router.Group("/api/v1")
 	{
+		// Cloud Scheduler calls this so timed pushes go out on time (see handlers/cron.handler.go)
+		apiGroup.POST("/cron/tick", handlers.HandleCronTick)
+
 		clerkGroup := apiGroup.Group("/")
 		clerkGroup.Use(middleware.ClerkSessionRequired())
 

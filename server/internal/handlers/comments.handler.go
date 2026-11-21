@@ -69,13 +69,12 @@ func HandleAddCommentToSubmission(c *gin.Context) {
 		Counts:    []models.ReactionCount{},
 	}
 
-	// Send notification to submission owner (in background)
+	// Sent before responding: Cloud Run throttles CPU once the response is out, so a
+	// push left in a goroutine waits for the next request to this instance.
 	if submissionOwnerID != "" && submissionOwnerID != requester.ID {
-		go func() {
-			if err := notifications.NotifyUserOfComment(appCtx.DB, requester.ID, requester.Username, submissionOwnerID, submissionID, appCtx.Config); err != nil {
-				log.Printf("Failed to send comment notification: %v", err)
-			}
-		}()
+		if err := notifications.NotifyUserOfComment(appCtx.DB, requester.ID, requester.Username, submissionOwnerID, submissionID, appCtx.Config); err != nil {
+			log.Printf("Failed to send comment notification: %v", err)
+		}
 	}
 
 	go func() {

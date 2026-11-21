@@ -267,7 +267,8 @@ func notifyUnlessHere(appCtx *requestContext.AppContext, d models.Duel, userID, 
 	if seen := d.SeenAt(userID); seen != nil && time.Since(*seen) < 15*time.Second {
 		return
 	}
-	go duel.Notify(appCtx.DB, appCtx.Config, userID, d.ID, title, body, from)
+	// Before responding: Cloud Run throttles CPU once the response is out
+	duel.Notify(appCtx.DB, appCtx.Config, userID, d.ID, title, body, from)
 }
 
 // HandleDuelGuess scores a guess. The round ends at 100% or the last guess; the duel ends
@@ -383,7 +384,7 @@ func HandleNudgeDuel(c *gin.Context) {
 		abortMove(c, errors.New("you nudged them recently; give them a bit"))
 		return
 	}
-	go duel.Notify(appCtx.DB, appCtx.Config, turnID, d.ID, user.Username+" is waiting on you",
+	duel.Notify(appCtx.DB, appCtx.Config, turnID, d.ID, user.Username+" is waiting on you",
 		duel.TurnMessage(d, turnID, user.Username), user)
 	respondDuel(c, d.ID, user.ID, http.StatusOK)
 }
@@ -408,7 +409,7 @@ func HandleCancelDuel(c *gin.Context) {
 	}
 	if ended {
 		other := d.Other(user.ID)
-		go duel.Notify(appCtx.DB, appCtx.Config, other.ID, d.ID, "duel called off",
+		duel.Notify(appCtx.DB, appCtx.Config, other.ID, d.ID, "duel called off",
 			user.Username+" called off your sketch duel.", user)
 		go duel.WriteSummary(appCtx.DB, appCtx.Config, d.ID)
 	}
