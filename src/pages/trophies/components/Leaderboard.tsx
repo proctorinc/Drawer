@@ -40,7 +40,7 @@ const Leaderboard: FC<Props> = ({ entries, myId }) => {
             className={cn(
               'flex items-center gap-3 px-3 py-2.5 border-ink/20',
               i > 0 && 'border-t-2 border-dashed',
-              isMe && 'bg-sky/50',
+              isMe && 'bg-me/40',
             )}
           >
             <span

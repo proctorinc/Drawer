@@ -31,7 +31,7 @@ const EventLeaderboard: FC<Props> = ({ slug, className }) => {
             key={entry.user.id}
             className={cn(
               'flex items-center gap-3 px-3 py-2 border-[1.5px] border-ink rounded-sketch-alt',
-              entry.user.id === me.id ? 'bg-butter' : 'bg-white',
+              entry.user.id === me.id ? 'bg-me' : 'bg-white',
             )}
           >
             <span

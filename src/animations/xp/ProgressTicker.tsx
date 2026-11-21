@@ -117,7 +117,7 @@ export const ProgressTicker: FC<TickerProps> = ({ item, onDone }) => {
         </span>
         <LevelBar
           frac={frac}
-          fill={complete ? 'var(--color-gold)' : 'var(--color-butter)'}
+          fill={complete ? 'var(--color-gold)' : 'var(--color-me)'}
           className="flex-none w-14 h-3 border-[1.5px]"
         />
         <span

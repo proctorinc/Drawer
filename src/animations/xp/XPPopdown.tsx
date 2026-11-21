@@ -158,7 +158,7 @@ export const XPPopdown: StageComponent<'xp'> = ({ payload, onDone }) => {
             {leveledUp && (
               <span
                 key={tierChanged ? tier.id : 'level-up'}
-                className="xp-tag inline-block px-1.5 font-accent font-bold text-lg leading-tight whitespace-nowrap bg-butter border-[1.5px] border-ink rounded-sketch-alt"
+                className="xp-tag inline-block px-1.5 font-accent font-bold text-lg leading-tight whitespace-nowrap bg-me border-[1.5px] border-ink rounded-sketch-alt"
               >
                 {tierChanged ? `${tier.name.toLowerCase()}!` : 'level up!'}
               </span>

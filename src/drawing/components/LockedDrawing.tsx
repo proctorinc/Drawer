@@ -14,7 +14,7 @@ export const LockedDrawing: FC<{ className?: string }> = ({ className }) => (
   >
     <LockIcon
       size={40}
-      fill="var(--color-butter)"
+      fill="var(--color-me)"
       className="w-[40%] max-w-12 h-auto -rotate-6 text-ink"
     />
     {/* Too cramped for words in the tiny calendar cells */}

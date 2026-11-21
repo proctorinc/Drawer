@@ -31,7 +31,7 @@ const ToolButton: FC<ToolButtonProps> = ({
     onClick={onClick}
     className={cn(
       'press flex items-center justify-center size-[46px] border-2 border-ink rounded-sketch-alt shadow-pencil-sm cursor-pointer disabled:cursor-default disabled:opacity-35 disabled:shadow-none',
-      isActive ? 'bg-butter -rotate-6' : 'bg-white',
+      isActive ? 'bg-me -rotate-6' : 'bg-white',
     )}
   >
     {children}

@@ -176,7 +176,7 @@ const ActivityLink: FC<{
 
 /** A square sticker standing in for a doodle on rows that aren't about one */
 const IconTile: FC<{ children: ReactNode }> = ({ children }) => (
-  <span className="flex flex-none items-center justify-center size-12 bg-butter border-[1.5px] border-ink rotate-2">
+  <span className="flex flex-none items-center justify-center size-12 bg-me border-[1.5px] border-ink rotate-2">
     {children}
   </span>
 );
@@ -252,7 +252,7 @@ const ActivityItem: FC<{ activity: Activity; onSelect: () => void }> = ({
           // The judge says its piece again, over your doodle blown up
           if (review) showReview(review, activity.submission);
         }}
-        className={cn(rowClass, !activity.isRead && 'bg-butter/40')}
+        className={cn(rowClass, !activity.isRead && 'bg-me/40')}
       >
         {/* The whole row is the link, so the avatar shouldn't catch the tap */}
         {review ? (

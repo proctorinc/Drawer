@@ -57,7 +57,7 @@ const Swatch: FC<SwatchProps> = ({
     className={cn(
       'press relative flex items-center justify-center size-[68px] border-2 rounded-sketch-alt cursor-pointer',
       isSelected
-        ? 'bg-butter border-ink shadow-pencil-sm'
+        ? 'bg-me border-ink shadow-pencil-sm'
         : 'bg-white border-line',
       (isLocked || isDashed) && 'border-dashed',
       isDashed && 'border-ink bg-transparent',

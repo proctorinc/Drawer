@@ -22,6 +22,9 @@
   --color-gold: #ffc233;
   --color-gold-deep: #d99100;
   --color-gold-light: #ffe9a8;
+  /* The signed-in user's profile color, the app's accent: progress fills,
+     highlights, active tabs. AuthProvider sets it on :root; butter until then */
+  --color-me: var(--color-butter);
 
   /* Legacy names, mapped onto the sketchbook palette */
   --color-base: var(--color-paper);
@@ -264,8 +267,8 @@
 @utility highlight {
   background-image: linear-gradient(
     transparent 55%,
-    var(--hl, var(--color-butter)) 55%,
-    var(--hl, var(--color-butter)) 90%,
+    var(--hl, var(--color-me)) 55%,
+    var(--hl, var(--color-me)) 90%,
     transparent 90%
   );
   background-repeat: no-repeat;

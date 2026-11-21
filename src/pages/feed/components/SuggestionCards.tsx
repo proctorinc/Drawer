@@ -16,7 +16,7 @@ import { cn } from '@/utils';
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
 
 const IconArt: FC<{ children: ReactNode }> = ({ children }) => (
-  <span className="flex items-center justify-center size-12 bg-butter border-2 border-ink rounded-sketch-alt rotate-3">
+  <span className="flex items-center justify-center size-12 bg-me border-2 border-ink rounded-sketch-alt rotate-3">
     {children}
   </span>
 );

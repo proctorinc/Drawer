@@ -1,4 +1,4 @@
-import { createContext } from 'react';
+import { createContext, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useAuth as useClerkAuth } from '@clerk/react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -6,6 +6,7 @@ import type { FC, ReactNode } from 'react';
 import type { User } from '@/api/Api';
 import { useCreateUser, useGetMe, useLogoutUser } from '@/api/Api';
 import { ProfileRequiredError, setAuthTokenGetter } from '@/api/apiClient';
+import { nameToColor } from '@/utils';
 
 type AuthContextType = {
   user?: User;
@@ -43,6 +44,15 @@ export const AuthProvider: FC<Props> = ({ children }) => {
   } = useGetMe(!!isSignedIn);
   const logoutMutation = useLogoutUser();
   const createUserMutation = useCreateUser();
+
+  // The app's accent (progress fills, highlights, active tabs) is your own
+  // profile color, the same one behind your avatar
+  const username = user?.username;
+  useEffect(() => {
+    const root = document.documentElement.style;
+    if (username) root.setProperty('--color-me', nameToColor(username).primary);
+    else root.removeProperty('--color-me');
+  }, [username]);
 
   const isAuthenticated = !!isSignedIn && !!user;
   const needsProfile = !!isSignedIn && error instanceof ProfileRequiredError;

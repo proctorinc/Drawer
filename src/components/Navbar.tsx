@@ -87,7 +87,7 @@ const Navbar = () => {
         <span
           aria-hidden="true"
           className={cn(
-            'absolute top-[10px] w-14 h-[46px] bg-butter rounded-[45%_55%_40%_60%/55%_45%_60%_40%] transition-[left,scale,opacity] duration-500 ease-[var(--ease-spring)]',
+            'absolute top-[10px] w-14 h-[46px] bg-me rounded-[45%_55%_40%_60%/55%_45%_60%_40%] transition-[left,scale,opacity] duration-500 ease-[var(--ease-spring)]',
             !showBlob && 'scale-50 opacity-0',
           )}
           style={{ left: blobLeft(blobTab === -1 ? 1 : blobTab) }}
@@ -137,7 +137,7 @@ const Navbar = () => {
             className={cn(
               'flex flex-none items-center justify-center box-border border-[2.5px] rounded-[52%_48%_55%_45%/47%_55%_45%_53%] transition-[width,height,margin,background-color,border-color,box-shadow,rotate,scale] duration-500 ease-[var(--ease-spring)] active:scale-90',
               drawExpanded
-                ? 'size-[68px] -mt-[30px] bg-butter border-ink shadow-[0_0_0_5px_var(--color-paper)] -rotate-4 hover:rotate-3'
+                ? 'size-[68px] -mt-[30px] bg-me border-ink shadow-[0_0_0_5px_var(--color-paper)] -rotate-4 hover:rotate-3'
                 : 'size-[46px] mt-0 bg-transparent border-transparent shadow-[0_0_0_0_var(--color-paper)] hover:bg-paper/10',
               // During Christmas the raised button is a red bauble
               christmas &&

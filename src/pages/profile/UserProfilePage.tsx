@@ -24,7 +24,7 @@ const MissingBook = () => (
       </p>
       <Link
         to="/draw/profile/me"
-        className="press px-4 py-2 bg-butter border-2 border-ink rounded-sketch-alt shadow-pencil-sm"
+        className="press px-4 py-2 bg-me border-2 border-ink rounded-sketch-alt shadow-pencil-sm"
       >
         back to my book
       </Link>

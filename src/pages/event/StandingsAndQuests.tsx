@@ -51,7 +51,7 @@ const StandingsAndQuests: FC<Props> = ({ standings, quests }) => {
               className={cn(
                 'px-3 py-1 font-accent font-bold text-xl leading-none rounded-sketch transition-colors cursor-pointer',
                 selected === i
-                  ? 'bg-butter text-ink'
+                  ? 'bg-me text-ink'
                   : 'text-pencil hover:text-ink',
               )}
             >

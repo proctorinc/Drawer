@@ -71,7 +71,7 @@ const Badge: FC<Props> = ({ achievement, locked, className }) => {
       <div
         className={cn(
           'grid place-items-center border-2 border-ink rounded-blob shadow-pencil-sm',
-          locked ? 'border-dashed border-pencil text-pencil' : 'bg-butter',
+          locked ? 'border-dashed border-pencil text-pencil' : 'bg-me',
           className,
         )}
       >

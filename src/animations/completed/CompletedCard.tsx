@@ -201,7 +201,7 @@ export const CompletedCard: StageComponent<'completed'> = ({
 
           {shown.xp !== null && (
             <span className="completed-rise" style={rise(0.95)}>
-              <Chip className="h-7 px-3 font-accent font-bold text-lg bg-butter -rotate-2">
+              <Chip className="h-7 px-3 font-accent font-bold text-lg bg-me -rotate-2">
                 +{shown.xp} XP
               </Chip>
             </span>
@@ -229,7 +229,7 @@ export const CompletedCard: StageComponent<'completed'> = ({
           {autoDismiss && (
             <span
               aria-hidden="true"
-              className="completed-fuse absolute left-4 right-4 bottom-2 h-1 rounded-full bg-butter"
+              className="completed-fuse absolute left-4 right-4 bottom-2 h-1 rounded-full bg-me"
               style={{ animationDuration: `${AUTO_DISMISS_MS}ms` }}
             />
           )}

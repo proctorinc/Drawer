@@ -51,7 +51,7 @@ export const PinButton: FC<Props> = ({ submission, variant = 'pill' }) => {
       aria-label={isPinned ? 'Unpin from your book' : 'Pin to your book'}
       className={cn(
         variant === 'corner' ? cornerButtonClass : pillClass,
-        isPinned ? 'bg-butter' : 'bg-white',
+        isPinned ? 'bg-me' : 'bg-white',
       )}
     >
       <StarIcon

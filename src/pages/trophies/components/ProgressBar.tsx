@@ -20,7 +20,7 @@ const ProgressBar: FC<Props> = ({
   value,
   max,
   label,
-  fill = 'bg-butter',
+  fill = 'bg-me',
   fillBackground,
   className,
 }) => {

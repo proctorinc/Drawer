@@ -13,7 +13,7 @@ export const ScoreSticker: FC<{ score: number; className?: string }> = ({
 }) => (
   <span
     className={cn(
-      'inline-flex items-baseline gap-0.5 px-2 py-0.5 -rotate-6 rounded-sketch-alt border-2 border-ink bg-butter font-accent font-bold leading-none whitespace-nowrap',
+      'inline-flex items-baseline gap-0.5 px-2 py-0.5 -rotate-6 rounded-sketch-alt border-2 border-ink bg-me font-accent font-bold leading-none whitespace-nowrap',
       className,
     )}
     aria-label={`scored ${formatScore(score)} out of ${AI_SCORE_MAX}`}

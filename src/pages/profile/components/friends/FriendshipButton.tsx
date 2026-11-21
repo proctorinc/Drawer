@@ -28,7 +28,7 @@ const FriendshipButton: FC<Props> = ({ profile }) => {
 
   if (invitation?.status === 'accepted') {
     return (
-      <Chip className="h-10 px-3 bg-butter text-base">
+      <Chip className="h-10 px-3 bg-me text-base">
         <CheckIcon size={18} />
         pals
       </Chip>

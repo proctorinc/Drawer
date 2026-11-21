@@ -81,7 +81,7 @@ const EarnedCard: FC<{ achievement: Achievement }> = ({ achievement }) => (
         {achievement.description}
       </p>
       <div className="flex flex-wrap gap-1.5">
-        <Chip className="h-6 text-sm bg-butter">collected</Chip>
+        <Chip className="h-6 text-sm bg-me">collected</Chip>
         {achievement.hidden && (
           <Chip className="h-6 text-sm bg-blush">secret found</Chip>
         )}
@@ -123,7 +123,7 @@ const LockedCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
         />
         {achievement.reward && (
           <div className="flex">
-            <Chip className="h-6 text-sm bg-butter">
+            <Chip className="h-6 text-sm bg-me">
               unlocks {achievement.reward.name.toLowerCase()}
             </Chip>
           </div>
@@ -238,7 +238,7 @@ const AchievementsPage = () => {
               onClick={() => select(id)}
               className={cn(
                 'flex items-center gap-1.5 shrink-0 h-9 px-3 border-2 border-ink rounded-[14px_10px_14px_12px] font-accent font-bold text-lg leading-none transition-colors',
-                active ? 'bg-ink text-white' : 'bg-white hover:bg-butter',
+                active ? 'bg-ink text-white' : 'bg-white hover:bg-me',
               )}
             >
               {label}

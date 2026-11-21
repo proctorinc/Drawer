@@ -27,7 +27,7 @@ export const AchievementSticker: FC<{
       'flex flex-col items-center gap-1 text-center animate-drop rotate-[var(--tilt)]',
       anchorMargin,
       highlighted &&
-        'bg-butter rounded-sketch shadow-[0_0_0_6px_var(--color-butter)]',
+        'bg-me rounded-sketch shadow-[0_0_0_6px_var(--color-me)]',
     )}
     style={
       {
@@ -100,7 +100,7 @@ const AchievementCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
           value={progress}
           max={goal}
           label={`${achievement.name} progress`}
-          fill={almostThere ? 'bg-coral' : 'bg-butter'}
+          fill={almostThere ? 'bg-coral' : 'bg-me'}
           className="h-3"
         />
         {(almostThere || achievement.reward) && (
@@ -109,7 +109,7 @@ const AchievementCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
               <Chip className="h-6 text-sm bg-blush">almost there!</Chip>
             )}
             {achievement.reward && (
-              <Chip className="h-6 text-sm bg-butter">
+              <Chip className="h-6 text-sm bg-me">
                 unlocks {achievement.reward.name.toLowerCase()}
               </Chip>
             )}

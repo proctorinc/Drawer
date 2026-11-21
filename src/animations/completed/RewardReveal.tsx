@@ -102,7 +102,7 @@ const ProfilePicArt: FC = () => (
 
 /** Anything this build doesn't have art for */
 const GenericArt: FC = () => (
-  <span className="grid place-items-center size-36 bg-butter border-[3px] border-ink rounded-blob">
+  <span className="grid place-items-center size-36 bg-me border-[3px] border-ink rounded-blob">
     <StarIcon size={72} fill="white" />
   </span>
 );

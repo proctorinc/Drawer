@@ -36,7 +36,7 @@ const TrophyTeaser = () => {
 
   return (
     <Link to="/draw/trophies" className="self-start active:scale-95">
-      <Chip className="bg-butter">
+      <Chip className="bg-me">
         <TrophyIcon size={16} />
         {won > 0
           ? `${won} ${won === 1 ? 'trophy' : 'trophies'}`
@@ -104,7 +104,7 @@ const MyProfilePage = () => {
             <button
               aria-label="Edit my cover"
               onClick={() => setSheet('edit')}
-              className="press grid place-items-center size-8 bg-butter border-2 border-ink rounded-full shadow-pencil-sm cursor-pointer"
+              className="press grid place-items-center size-8 bg-me border-2 border-ink rounded-full shadow-pencil-sm cursor-pointer"
             >
               <PencilIcon size={16} />
             </button>
