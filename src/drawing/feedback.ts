@@ -794,3 +794,43 @@ export function previewFeedback(
 }
 
 // ------------------------------------------------------------- UI buttons
+
+/**
+ * A soft, dry click for pressing a button anywhere in the app: a tiny tick of
+ * filtered noise on top of a low, short knock, like a good switch under the
+ * thumb. Quieter than the canvas sounds, and a touch different each time so
+ * a run of taps doesn't sound canned.
+ */
+export function uiClick() {
+  if (soundLevel() === 0) return;
+  const ctx = getAudio();
+  if (!ctx || !master || ctx.state !== 'running') return;
+  const start = ctx.currentTime;
+  const wobble = 1 + (Math.random() - 0.5) * 0.08;
+
+  const tick = ctx.createBufferSource();
+  tick.buffer = getGrain(ctx);
+  const band = ctx.createBiquadFilter();
+  band.type = 'bandpass';
+  band.frequency.value = 3000 * wobble;
+  band.Q.value = 1.4;
+  const tickGain = ctx.createGain();
+  tickGain.gain.setValueAtTime(0.0001, start);
+  tickGain.gain.exponentialRampToValueAtTime(0.12, start + 0.001);
+  tickGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.014);
+  tick.connect(band).connect(tickGain).connect(master);
+  tick.start(start, Math.random() * 1.5);
+  tick.stop(start + 0.03);
+
+  const knock = ctx.createOscillator();
+  knock.type = 'sine';
+  knock.frequency.setValueAtTime(320 * wobble, start);
+  knock.frequency.exponentialRampToValueAtTime(170 * wobble, start + 0.03);
+  const knockGain = ctx.createGain();
+  knockGain.gain.setValueAtTime(0.0001, start);
+  knockGain.gain.exponentialRampToValueAtTime(0.09, start + 0.002);
+  knockGain.gain.exponentialRampToValueAtTime(0.0001, start + 0.04);
+  knock.connect(knockGain).connect(master);
+  knock.start(start);
+  knock.stop(start + 0.05);
+}

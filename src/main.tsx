@@ -13,6 +13,7 @@ import { ClerkProvider } from '@clerk/react';
 
 import './styles.css';
 import reportWebVitals from './reportWebVitals.ts';
+import { installButtonClicks } from './lib/buttonClicks.ts';
 
 import App from './pages/feed/Feed.tsx';
 import CreateProfilePage from './pages/auth/CreateProfilePage.tsx';
@@ -412,3 +413,4 @@ if (rootElement && !rootElement.innerHTML) {
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
 reportWebVitals();
+installButtonClicks();

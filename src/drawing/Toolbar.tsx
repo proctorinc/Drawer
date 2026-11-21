@@ -25,6 +25,7 @@ const ToolButton: FC<ToolButtonProps> = ({
   children,
 }) => (
   <button
+    data-sound="off"
     aria-label={label}
     aria-pressed={isActive}
     disabled={disabled}
@@ -71,6 +72,7 @@ export const Toolbar: FC<Props> = ({ colors }) => {
           return (
             <button
               key={`toolbar-color-${index}`}
+              data-sound="off"
               aria-label={`Color ${index + 1}`}
               aria-pressed={isSelected}
               className={cn(
