@@ -15,6 +15,8 @@ import { StarIcon } from '@/components/icons';
 import { DECORATIONS } from '@/decorations/decorations';
 import { stickerAnchor } from '@/pages/trophies/components/AchievementCard';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
+import { rewardReveal } from '@/sound/sfx';
+import { useCueWhileShown } from '@/sound/useCue';
 
 // The preview avatar is a picture of you, not a link to your profile
 const ignoreClick = () => {};
@@ -189,6 +191,7 @@ export const RewardReveal: StageComponent<'reward'> = ({
   const { reward, from } = payload;
   const decoration = decorationOf(reward);
   const customPic = reward.id === 'CUSTOM_PROFILE_PIC';
+  useCueWhileShown(rewardReveal);
 
   const go = () => {
     // The admin preview stays put; the button just closes it

@@ -10,6 +10,13 @@ import {
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { polaroidFrameStyle } from '@/components/polaroid';
 import { cn } from '@/utils';
+import {
+  pinDrop,
+  pinLift,
+  pinSettled,
+  pinSwing,
+  pinTack,
+} from '@/sound/sfx';
 
 // How long each beat takes, in ms
 const FADE_UI = 280;
@@ -144,6 +151,7 @@ export const PinCeremony: FC<Props> = ({
       if (isCancelled()) return;
       // Picked up, it rises a touch, then is set down on the board
       setIsPolaroid(true);
+      pinLift();
       play(
         liftRef.current,
         [
@@ -178,6 +186,7 @@ export const PinCeremony: FC<Props> = ({
       if (isCancelled()) return;
 
       // The pin drops in from above, hovers a beat, then pushes home
+      pinDrop(PIN_DROP / 1000);
       const drop = play(
         pinRef.current,
         [
@@ -203,6 +212,8 @@ export const PinCeremony: FC<Props> = ({
       // Tack! The pin squashes, ink flicks out and phones give a tiny buzz
       // Not every browser has vibrate (iOS Safari doesn't), whatever the types say
       if ('vibrate' in navigator) navigator.vibrate(12);
+      pinTack();
+      pinSwing(SWING / 1000);
       play(
         pinRef.current,
         [
@@ -248,6 +259,8 @@ export const PinCeremony: FC<Props> = ({
       );
 
       await swing?.finished;
+      if (isCancelled()) return;
+      pinSettled();
       await wait(SETTLE);
       if (!isCancelled()) doneRef.current();
     }

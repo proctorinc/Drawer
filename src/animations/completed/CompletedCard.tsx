@@ -13,6 +13,8 @@ import Button from '@/components/Button';
 import Chip from '@/components/Chip';
 import Badge from '@/pages/trophies/components/Badge';
 import { stickerAnchor } from '@/pages/trophies/components/AchievementCard';
+import { completedCard } from '@/sound/sfx';
+import { useCueWhileShown } from '@/sound/useCue';
 
 /** Matches xpPerAchievement in server/internal/handlers/trophies.handler.go */
 const XP_PER_ACHIEVEMENT = 25;
@@ -143,6 +145,7 @@ export const CompletedCard: StageComponent<'completed'> = ({
   const { leaving, exit, finish } = useStageExit(onDone);
   const titleId = useId();
   const shown = describe(payload);
+  useCueWhileShown(() => completedCard(payload.kind));
 
   // A lone card goes on its own; one of a set waits, so none slip past unseen
   const autoDismiss = !step;

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { cardOut } from '@/sound/sfx';
 
 /** How long the out animations in completed.css run */
 const EXIT_MS = 220;
@@ -23,6 +24,7 @@ export function useStageExit(onDone: () => void) {
     if (done.current) return;
     done.current = true;
     setLeaving(true);
+    cardOut();
     timer.current = setTimeout(() => onDoneRef.current(), EXIT_MS);
   }, []);
 

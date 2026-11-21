@@ -6,6 +6,7 @@ import type { FC } from 'react';
 import type { TickerItem, TickerProps } from '../types';
 import { CheckIcon, StarIcon, TrophyIcon } from '@/components/icons';
 import { cn } from '@/utils';
+import { tickerComplete, tickerCount, tickerIn } from '@/sound/sfx';
 
 /** Let the pill land before the bar moves */
 const FILL_DELAY_MS = 300;
@@ -50,6 +51,8 @@ export const ProgressTicker: FC<TickerProps> = ({ item, onDone }) => {
     if (reduced) return () => window.clearTimeout(leaveId);
     let raf = 0;
     let start: number | undefined;
+    let heard = from;
+    tickerIn();
     const tick = (now: number) => {
       start ??= now;
       const u = Math.min(
@@ -59,6 +62,12 @@ export const ProgressTicker: FC<TickerProps> = ({ item, onDone }) => {
       const value = from + (to - from) * easeOutCubic(u);
       setFrac(ratio(value, goal));
       setCount(Math.round(value));
+      const counted = Math.round(value);
+      if (counted > heard) {
+        heard = counted;
+        if (counted >= goal) tickerComplete();
+        else tickerCount(counted, goal);
+      }
       if (u < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

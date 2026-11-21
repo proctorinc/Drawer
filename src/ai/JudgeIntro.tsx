@@ -92,7 +92,7 @@ export const JudgeIntroDialogue: FC<DialogueProps> = ({
   const [page, setPage] = useState(0);
   const line = lines[page] ?? '';
   const isLast = page >= lines.length - 1;
-  const { shown, done, talking, finish } = useTypewriter(line);
+  const { shown, done, talking, finish } = useTypewriter(line, judge.name);
 
   const advance = () => {
     if (!done) return finish();

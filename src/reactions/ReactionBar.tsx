@@ -10,6 +10,7 @@ import useUser from '@/auth/hooks/useUser';
 import { PlusIcon } from '@/components/icons';
 import { cn } from '@/utils';
 import { refreshProgress } from '@/animations/useProgressWatcher';
+import { reactionPop } from '@/sound/sfx';
 
 // Each pill gets its own wobble and lean, so a row looks drawn one at a time
 const PILL_SHAPES = [
@@ -52,6 +53,10 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
 
   function toggle(reactionId: ReactionId) {
     setPopped((prev) => ({ id: reactionId, n: (prev?.n ?? 0) + 1 }));
+    // Each sticker pops at its own pitch; taking one back is a softer pop
+    let pitch = 0;
+    for (const char of reactionId) pitch += char.charCodeAt(0);
+    reactionPop(pitch % 7, !picked.has(reactionId));
     toggleReaction.mutate(
       { submissionId: submission.id, reactionId },
       {

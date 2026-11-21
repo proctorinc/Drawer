@@ -17,6 +17,7 @@ import { RANK_TIERS, levelTitle, rankFor, tierRange } from '@/levels/ranks';
 import { LevelBadge } from '@/levels/LevelBadge';
 import { RankCard } from '@/levels/RankCard';
 import { cn } from '@/utils';
+import { rankUpSound } from '@/sound/sfx';
 import './rankUp.css';
 
 export { RANK_UP_INTENSITY } from './intensity';
@@ -113,6 +114,37 @@ export const RankUpCelebration: StageComponent<'rankUp'> = ({
     );
     return () => timers.forEach((timer) => window.clearTimeout(timer));
   }, [pace, reduced]);
+
+  // The score: each beat's sounds as it's reached. A skip jumps several
+  // beats at once, so the reveal and the fanfare still land together.
+  const tierIndex = RANK_TIERS.findIndex((tier) => tier.id === to.id);
+  const [sound] = useState(() =>
+    rankUpSound({
+      intensity: Math.max(0, tierIndex) / Math.max(1, RANK_TIERS.length - 1),
+      pace,
+      reveal: fx.reveal,
+      confetti: fx.confetti > 0,
+      sparkles: fx.sparkles > 0,
+      sweep: fx.sheenSweep,
+      buildUp: ((BEATS.new - BEATS.old) * pace) / 1000,
+    }),
+  );
+  const heard = useRef(-1);
+  useEffect(() => {
+    const last = heard.current;
+    if (beat <= last) return;
+    heard.current = beat;
+    const skipped = beat - last > 1;
+    for (let i = last + 1; i <= beat; i++) {
+      const name = BEAT_ORDER[i];
+      // Jumping ahead skips the build-up's lead-in, not the payoff
+      if (skipped && i < beat && (name === 'old' || name === 'turn')) {
+        continue;
+      }
+      sound.beat(name);
+    }
+  }, [beat, sound]);
+  useEffect(() => () => sound.stop(), [sound]);
 
   // Auto-finish, held off while the user is touching or typing
   const lastTouch = useRef(0);

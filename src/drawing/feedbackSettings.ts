@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 
 /**
  * How loud the canvas sounds and how hard it buzzes, kept on this device.
+ * The sound level also sets how loud the celebrations are (src/sound).
  * Each runs from 0 (none) to 4; 3 is how it always felt.
  */
 export type FeedbackLevel = 0 | 1 | 2 | 3 | 4;

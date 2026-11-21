@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { AIJudgeAvatar } from './AIJudgeAvatar';
@@ -10,6 +16,7 @@ import { apiClient } from '@/api/apiClient';
 import { queryKeys, usePromptSubmission } from '@/api/Api';
 import { cn } from '@/utils';
 import { useAnimationQueue } from '@/animations/AnimationQueue';
+import { babble, voiceFor } from '@/sound/sfx';
 
 /** "A goalie" → "goalie", so it reads "your goalie" */
 export const withoutArticle = (prompt: string) =>
@@ -24,11 +31,19 @@ const prefersReducedMotion = () =>
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/** Babble on every this-many letters, so fast typing doesn't buzz */
+const BABBLE_EVERY = 2;
+
 /**
  * Types `text` out a letter at a time, pausing at punctuation like someone
  * talking. `finish` jumps to the end. A new `text` starts typing afresh.
+ * Given a `speaker` name, the letters babble in that speaker's own voice.
  */
-export const useTypewriter = (text: string) => {
+export const useTypewriter = (text: string, speaker?: string) => {
+  const voice = useMemo(
+    () => (speaker ? voiceFor(speaker) : null),
+    [speaker],
+  );
   const startAt = (line: string) => (prefersReducedMotion() ? line.length : 0);
   const [count, setCount] = useState(() => startAt(text));
   const [typing, setTyping] = useState(text);
@@ -36,6 +51,18 @@ export const useTypewriter = (text: string) => {
     setTyping(text);
     setCount(startAt(text));
   }
+
+  // Each letter that appears says a little syllable
+  useEffect(() => {
+    if (!voice || count === 0 || count > text.length) return;
+    const letter = text[count - 1];
+    if (!/\p{L}/u.test(letter)) return;
+    const letters = text.slice(0, count).replace(/[^\p{L}]/gu, '').length;
+    if (letters % BABBLE_EVERY !== 1) return;
+    // Questions lift toward their end
+    const asking = /^[^.!?]*\?/.test(text.slice(count));
+    babble(voice, letter, asking);
+  }, [count, text, voice]);
 
   useEffect(() => {
     if (count >= text.length) return;
@@ -77,7 +104,10 @@ type DialogueProps = {
 export const AIDialogue: FC<DialogueProps> = ({ review, doodle, onClose }) => {
   const prompt = doodle?.prompt;
   const { judge } = review;
-  const { shown, done, talking, finish } = useTypewriter(review.comment);
+  const { shown, done, talking, finish } = useTypewriter(
+    review.comment,
+    judge.name,
+  );
   const advance = () => (done ? onClose() : finish());
 
   useEffect(() => {

@@ -11,6 +11,7 @@ import { useStageExit } from '@/animations/completed/useStageExit';
 import Button from '@/components/Button';
 import { ArrowLeftIcon } from '@/components/icons';
 import { cn } from '@/utils';
+import { cardIn, pageFlip } from '@/sound/sfx';
 
 /** The button's link: an in-app path navigates, anything else opens in a new tab */
 function useFollow(onLeave: () => void, preview: boolean) {
@@ -60,6 +61,15 @@ export const AnnouncementsStage: StageComponent<'announcements'> = ({
   useEffect(() => {
     if (!page) finish();
   }, [page, finish]);
+
+  // A whoosh as it opens, and a page turn each time the page changes
+  const heardIndex = useRef<number | null>(null);
+  useEffect(() => {
+    const before = heardIndex.current;
+    heardIndex.current = index;
+    if (before === null) cardIn();
+    else if (index !== before) pageFlip(index > before ? 1 : -1);
+  }, [index]);
 
   const goNext = () => setIndex((i) => Math.min(i + 1, pages.length - 1));
   const goBack = () => setIndex((i) => Math.max(i - 1, 0));

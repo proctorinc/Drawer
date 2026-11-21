@@ -9,6 +9,7 @@ import { LevelBadge } from '@/levels/LevelBadge';
 import { RANK_CARDS } from '@/levels/rankCards';
 import { levelTitle, rankFor } from '@/levels/ranks';
 import { cn } from '@/utils';
+import { xpIn, xpLand, xpLevelUp, xpOut, xpTick, xpTierUp } from '@/sound/sfx';
 
 /** Wait for the card to land before the bar starts moving */
 const FILL_DELAY_MS = 380;
@@ -16,6 +17,10 @@ const FILL_DELAY_MS = 380;
 const HOLD_MS = 1500;
 /** Slide back up */
 const EXIT_MS = 300;
+/** The bar ticks once per this much of a level as it fills */
+const TICK_STEP = 1 / 10;
+/** …but never closer together than this */
+const TICK_GAP_MS = 45;
 /** Reduced motion: just show the end state for this long */
 const STILL_MS = 1800;
 
@@ -54,10 +59,35 @@ export const XPPopdown: StageComponent<'xp'> = ({ payload, onDone }) => {
     }
     let raf = 0;
     let start: number | undefined;
+    // What the sound last heard, so each notch, level and the landing ring once
+    let heardLevel = plan.segments[0]?.level ?? 0;
+    let heardNotch = Math.floor((plan.segments[0]?.start ?? 0) / TICK_STEP);
+    let lastTickAt = 0;
+    let landed = false;
+    xpIn();
     const tick = (now: number) => {
       start ??= now;
       const t = now - start;
-      setFrame(sampleFill(plan, t - FILL_DELAY_MS));
+      const next = sampleFill(plan, t - FILL_DELAY_MS);
+      setFrame(next);
+      if (next.level > heardLevel) {
+        const crossedTier = rankFor(next.level).id !== rankFor(heardLevel).id;
+        heardLevel = next.level;
+        heardNotch = Math.floor(next.frac / TICK_STEP);
+        if (crossedTier) xpTierUp();
+        else xpLevelUp();
+      } else {
+        const notch = Math.floor(next.frac / TICK_STEP);
+        if (notch > heardNotch && now - lastTickAt >= TICK_GAP_MS) {
+          heardNotch = notch;
+          lastTickAt = now;
+          xpTick(next.frac);
+        }
+      }
+      if (!landed && t >= FILL_DELAY_MS + plan.duration) {
+        landed = true;
+        xpLand();
+      }
       if (t >= FILL_DELAY_MS + plan.duration + HOLD_MS) {
         setLeaving(true);
         return;
@@ -72,6 +102,7 @@ export const XPPopdown: StageComponent<'xp'> = ({ payload, onDone }) => {
   useEffect(() => {
     if (!leaving) return;
     setPopdownBottom(0);
+    if (!reduced) xpOut();
     const id = window.setTimeout(
       () => {
         if (doneRef.current) return;
