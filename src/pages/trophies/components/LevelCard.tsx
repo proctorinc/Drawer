@@ -41,35 +41,20 @@ const LevelCard: FC<Props> = ({ trophies, stickerCount }) => {
   const { tier, card } = rankCardFor(level);
   const { enqueue, isPlaying } = useAnimationQueue();
 
-  /** Tap your card to watch your level fill and your rank arrive again */
+  /** Tap your card to watch your rank arrive again (just the rank, no XP bar) */
   const replay = () => {
     if (isPlaying) return; // Already showing; a second tap would just pile up
-    const at = Date.now();
-    // Fresh into a level there's no bar to fill, so only the rank plays
-    if (xp > levelStartXp) {
-      void enqueue({
-        id: `replay:xp:${at}`,
-        kind: 'xp',
-        payload: {
-          from: { ...trophies.level, xp: levelStartXp },
-          to: trophies.level,
-          gained: xp - levelStartXp,
-        },
-      });
-    }
-    // The first rank is where everyone starts, so it has no rank-up
+    // The first rank is where everyone starts, so it arrives from itself
     const index = RANK_TIERS.indexOf(tier);
-    if (index > 0) {
-      void enqueue({
-        id: `replay:rankUp:${at}`,
-        kind: 'rankUp',
-        payload: {
-          fromTierId: RANK_TIERS[index - 1].id,
-          toTierId: tier.id,
-          level,
-        },
-      });
-    }
+    void enqueue({
+      id: `replay:rankUp:${Date.now()}`,
+      kind: 'rankUp',
+      payload: {
+        fromTierId: RANK_TIERS[Math.max(0, index - 1)].id,
+        toTierId: tier.id,
+        level,
+      },
+    });
   };
 
   return (

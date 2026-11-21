@@ -6,6 +6,11 @@
  *   skips itself after READY_TIMEOUT_MS); anything queued behind it waits.
  * - The ticker plays small top pings one after another in its own lane, and
  *   never waits for the stage.
+ * - XP has a lane of its own too, so the bar fills the moment you earn it:
+ *   XP that came with a stage item (an achievement, a quest) pops down as that
+ *   item comes on stage, and XP on its own pops down straight away, over
+ *   whatever is playing. A rank-up waits for the XP lane to clear, since it's
+ *   the bar that carries you there.
  *
  * The stage and ticker render wherever the provider sits, so it must sit
  * inside the router (stage pieces use Link/useNavigate) and the query client.
@@ -60,6 +65,98 @@ export type StageSnapshot = {
 const mergeReady = (a?: Promise<unknown>, b?: Promise<unknown>) =>
   a && b ? Promise.all([a, b]) : (a ?? b);
 
+type XpPayload = StagePayloads['xp'];
+
+type XpEntry = {
+  id: string;
+  payload: XpPayload;
+  settle: (outcome: StageOutcome) => void;
+  done: Promise<StageOutcome>;
+};
+
+export type XpSnapshot = { id: string; payload: XpPayload } | null;
+
+/**
+ * The XP lane: one popdown at a time, alongside the stage rather than in its
+ * line. XP queued while one is showing waits, and later XP merges into the
+ * one that's waiting so it fills in a single sweep.
+ */
+export class XpLane {
+  private entries: Array<XpEntry> = [];
+  private listeners = new Set<Listener>();
+  private idleWaiters: Array<() => void> = [];
+  private snapshot: XpSnapshot = null;
+
+  subscribe = (listener: Listener) => {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  };
+
+  getSnapshot = () => this.snapshot;
+
+  get idle() {
+    return this.entries.length === 0;
+  }
+
+  /** Resolves once nothing is showing or waiting */
+  whenIdle = (): Promise<void> =>
+    this.idle
+      ? Promise.resolve()
+      : new Promise((resolve) => this.idleWaiters.push(resolve));
+
+  enqueue = (id: string, payload: XpPayload): Promise<StageOutcome> => {
+    const existing = this.entries.find((entry) => entry.id === id);
+    if (existing) return existing.done;
+
+    // entries[0] is showing; anything behind it is waiting
+    const waiting = this.entries.length > 1 ? this.entries.at(-1) : undefined;
+    if (waiting) {
+      waiting.payload = {
+        from: waiting.payload.from,
+        to: payload.to,
+        gained: waiting.payload.gained + payload.gained,
+      };
+      return waiting.done;
+    }
+
+    let settle!: (outcome: StageOutcome) => void;
+    const done = new Promise<StageOutcome>((resolve) => {
+      settle = resolve;
+    });
+    this.entries.push({ id, payload, settle, done });
+    this.emit();
+    return done;
+  };
+
+  finish = (id: string) => this.remove(id, 'played');
+
+  dismiss = (id: string) => this.remove(id, 'dismissed');
+
+  private remove(id: string, outcome: StageOutcome) {
+    const index = this.entries.findIndex((entry) => entry.id === id);
+    if (index === -1) return false;
+    const [entry] = this.entries.splice(index, 1);
+    entry.settle(outcome);
+    this.emit();
+    return true;
+  }
+
+  private emit() {
+    const head = this.entries[0] as XpEntry | undefined;
+    if (head?.id !== this.snapshot?.id) {
+      this.snapshot = head ? { id: head.id, payload: head.payload } : null;
+    }
+    if (this.idle) {
+      const waiters = this.idleWaiters;
+      this.idleWaiters = [];
+      waiters.forEach((resolve) => resolve());
+    }
+    this.listeners.forEach((listener) => listener());
+  }
+}
+
 /** The stage lane, free of React so it can be tested on its own */
 export class StageQueue {
   private entries: Array<StageEntry> = [];
@@ -68,7 +165,11 @@ export class StageQueue {
   /** How many of each group have already been shown (played, skipped or dismissed) */
   private shownInGroup = new Map<string, number>();
 
-  constructor(private readyTimeoutMs = READY_TIMEOUT_MS) {}
+  constructor(
+    private readyTimeoutMs = READY_TIMEOUT_MS,
+    /** Where XP popdowns play, beside the stage */
+    readonly xp = new XpLane(),
+  ) {}
 
   subscribe = (listener: Listener) => {
     this.listeners.add(listener);
@@ -82,38 +183,26 @@ export class StageQueue {
   /**
    * Queue an item. Resolves once it has played, been skipped (its `ready`
    * rejected or timed out) or been dismissed. Queueing an id that's already
-   * waiting or playing, or an `xp` that merges into a waiting one, returns
-   * that item's promise.
+   * waiting or playing returns that item's promise.
+   *
+   * An `xp` item skips the line: it goes to the XP lane as soon as it's
+   * ready, and plays over whatever is on stage.
    */
   enqueue = (item: StageItem): Promise<StageOutcome> => {
     // Settled later, by us; this just stops an early rejection being reported
     item.ready?.catch(() => {});
 
+    if (item.kind === 'xp') {
+      const payload = item.payload as XpPayload;
+      if (!item.ready) return this.xp.enqueue(item.id, payload);
+      return this.withTimeout(item.ready).then(
+        () => this.xp.enqueue(item.id, payload),
+        () => 'skipped' as const,
+      );
+    }
+
     const existing = this.entries.find((entry) => entry.item.id === item.id);
     if (existing) return existing.done;
-
-    if (item.kind === 'xp') {
-      const waitingXp = [...this.entries]
-        .reverse()
-        .find(
-          (entry) => entry.item.kind === 'xp' && entry.status === 'waiting',
-        );
-      if (waitingXp) {
-        const earlier = waitingXp.item.payload as StagePayloads['xp'];
-        const later = item.payload as StagePayloads['xp'];
-        waitingXp.item = {
-          ...waitingXp.item,
-          payload: {
-            from: earlier.from,
-            to: later.to,
-            gained: earlier.gained + later.gained,
-          },
-          ready: mergeReady(waitingXp.item.ready, item.ready),
-        };
-        this.emit();
-        return waitingXp.done;
-      }
-    }
 
     let settle!: (outcome: StageOutcome) => void;
     const done = new Promise<StageOutcome>((resolve) => {
@@ -136,6 +225,7 @@ export class StageQueue {
 
   /** Drop an item, whether it's waiting, preparing or playing */
   dismiss = (id: string) => {
+    if (this.xp.dismiss(id)) return;
     const index = this.entries.findIndex((entry) => entry.item.id === id);
     if (index === -1) return;
     const [entry] = this.entries.splice(index, 1);
@@ -150,14 +240,45 @@ export class StageQueue {
     const head = this.entries[0] as StageEntry | undefined;
     if (head?.status !== 'waiting') return this.emit();
 
-    const { ready } = head.item;
-    if (!ready) {
-      head.status = 'playing';
-      return this.emit();
-    }
+    // A rank-up lands once the bar that got you there has finished filling
+    const ready =
+      head.item.kind === 'rankUp' && !this.xp.idle
+        ? mergeReady(head.item.ready, this.xp.whenIdle())
+        : head.item.ready;
+    if (!ready) return this.play(head);
 
     head.status = 'preparing';
     this.emit();
+    const stillHere = () => this.entries[0] === head;
+    this.withTimeout(ready).then(
+      () => {
+        if (stillHere()) this.play(head);
+      },
+      () => {
+        if (!stillHere()) return;
+        this.entries.shift();
+        this.countShown(head.item);
+        // The XP was still earned, so it still shows
+        this.handOffXp(head.item);
+        head.settle('skipped');
+        this.pump();
+      },
+    );
+  }
+
+  /** Put it on stage, with its XP popping down at the same moment */
+  private play(entry: StageEntry) {
+    entry.status = 'playing';
+    this.handOffXp(entry.item);
+    this.emit();
+  }
+
+  private handOffXp(item: StageItem) {
+    if (item.xp) void this.xp.enqueue(`xp:${item.id}`, item.xp);
+  }
+
+  /** Rejects if `ready` hasn't settled within the ready timeout */
+  private withTimeout(ready: Promise<unknown>) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise((_, reject) => {
       timer = setTimeout(
@@ -165,23 +286,7 @@ export class StageQueue {
         this.readyTimeoutMs,
       );
     });
-    const stillHere = () => this.entries[0] === head;
-    Promise.race([ready, timeout]).then(
-      () => {
-        clearTimeout(timer);
-        if (!stillHere()) return;
-        head.status = 'playing';
-        this.emit();
-      },
-      () => {
-        clearTimeout(timer);
-        if (!stillHere()) return;
-        this.entries.shift();
-        this.countShown(head.item);
-        head.settle('skipped');
-        this.pump();
-      },
-    );
+    return Promise.race([ready, timeout]).finally(() => clearTimeout(timer));
   }
 
   /** Note one more of its group is past, and forget groups that are done */
@@ -344,6 +449,35 @@ const Stage: FC<{ queue: StageQueue }> = ({ queue }) => {
   );
 };
 
+const XpSlot: FC<{ id: string; payload: XpPayload; lane: XpLane }> = ({
+  id,
+  payload,
+  lane,
+}) => {
+  const [onDone] = useState(() => () => lane.finish(id));
+  const Animation = stageRegistry.xp;
+  return (
+    <SkipOnError onError={onDone}>
+      <Suspense fallback={null}>
+        <Animation payload={payload} onDone={onDone} />
+      </Suspense>
+    </SkipOnError>
+  );
+};
+
+const Xp: FC<{ lane: XpLane }> = ({ lane }) => {
+  const current = useSyncExternalStore(lane.subscribe, lane.getSnapshot);
+  if (!current) return null;
+  return (
+    <XpSlot
+      key={current.id}
+      id={current.id}
+      payload={current.payload}
+      lane={lane}
+    />
+  );
+};
+
 const TickerSlot: FC<{ item: TickerItem; queue: TickerQueue }> = ({
   item,
   queue,
@@ -372,7 +506,11 @@ declare global {
       enqueue: StageQueue['enqueue'];
       enqueueTicker: TickerQueue['enqueue'];
       dismiss: StageQueue['dismiss'];
-      state: () => { stage: StageSnapshot; ticker: TickerItem | null };
+      state: () => {
+        stage: StageSnapshot;
+        xp: XpSnapshot;
+        ticker: TickerItem | null;
+      };
     };
   }
 }
@@ -411,6 +549,7 @@ export const AnimationQueueProvider: FC<{ children: ReactNode }> = ({
       dismiss: stage.dismiss,
       state: () => ({
         stage: stage.getSnapshot(),
+        xp: stage.xp.getSnapshot(),
         ticker: ticker.getSnapshot(),
       }),
     };
@@ -423,6 +562,7 @@ export const AnimationQueueProvider: FC<{ children: ReactNode }> = ({
     <AnimationQueueContext.Provider value={queues}>
       {children}
       <Stage queue={queues.stage} />
+      <Xp lane={queues.stage.xp} />
       <Ticker queue={queues.ticker} />
     </AnimationQueueContext.Provider>
   );

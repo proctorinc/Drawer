@@ -6,6 +6,9 @@
  *   only then does the next one start.
  * - The ticker: small, non-blocking pings at the top of the screen (sticker
  *   or quest progress). They never wait for, or hold up, the stage.
+ *
+ * XP popdowns play beside the stage, never in its line: with the item that
+ * earned them (see StageItem.xp), or straight away when on their own.
  */
 import type { FC } from 'react';
 import type { Achievement, AchievementReward } from '@/api/Api';
@@ -31,7 +34,10 @@ export type StagePayloads = {
   review: { submissionId: string };
   /** Today's judge asking you, in character, to draw today's prompt */
   judgeIntro: { intro: JudgeIntro };
-  /** Top popdown: the level bar filling from `from` to `to`, rolling over levels */
+  /**
+   * Top popdown: the level bar filling from `from` to `to`, rolling over
+   * levels. Plays at once, over whatever is on stage, rather than in line.
+   */
   xp: { from: LevelSnapshot; to: LevelSnapshot; gained: number };
   /** Full screen: you crossed into a new rank tier (RANK_TIERS id) */
   rankUp: { fromTierId: string; toTierId: string; level: number };
@@ -68,6 +74,11 @@ export type StageItem<TKind extends StageKind = StageKind> = {
    * quests and their rewards) and play as "2 of 5", one after another.
    */
   group?: string;
+  /**
+   * XP this item earned. Its popdown plays at the same moment the item comes
+   * on stage, so the gain reads as coming from it.
+   */
+  xp?: StagePayloads['xp'];
 };
 
 /** Where an item sits in its group; only set when the group has more than one */

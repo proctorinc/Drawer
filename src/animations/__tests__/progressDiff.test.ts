@@ -158,7 +158,7 @@ describe('diffProgress', () => {
     expect(next.achievements).toEqual({ s1: { progress: 5, achieved: true } });
   });
 
-  it('orders xp, rank up, every completion, then every reward', () => {
+  it('orders every completion, every reward, then the rank up, with XP on the first', () => {
     const reward = { id: 'R', name: 'R', description: '' };
     const a = achievement({ id: 'a', achievedAt: new Date(), reward });
     const b = achievement({ id: 'b', achievedAt: new Date(), reward });
@@ -178,14 +178,20 @@ describe('diffProgress', () => {
       },
     );
     expect(stage.map((item) => item.id)).toEqual([
-      'xp:160',
-      'rankUp:bronze:3',
       'completed:achievement:a',
       'completed:achievement:b',
       `completed:quest:${WEEK}:q1`,
       'reward:R:a',
       'reward:R:b',
+      'rankUp:bronze:3',
     ]);
+    // The XP pops down with the first thing earned, not on its own
+    expect(stage[0].xp).toEqual({
+      from: level(2, 60),
+      to: level(3, 160),
+      gained: 100,
+    });
+    expect(stage.slice(1).some((item) => item.xp)).toBe(false);
   });
 
   it('pings the ticker for progress that does not complete', () => {

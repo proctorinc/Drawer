@@ -36,7 +36,11 @@ export type ProgressInput = {
 };
 
 export type ProgressDiff = {
-  /** In play order: xp, rankUp, completed..., reward... */
+  /**
+   * In play order: completed..., reward..., rankUp. XP rides on the first of
+   * them (its popdown plays alongside), or is its own item at the front when
+   * nothing else was earned.
+   */
   stage: Array<StageItem>;
   ticker: Array<TickerItem>;
   next: ProgressSnapshot;
@@ -47,7 +51,8 @@ export function diffProgress(
   current: ProgressInput,
 ): ProgressDiff {
   const prev = previous ?? EMPTY_SNAPSHOT;
-  const head: Array<StageItem> = [];
+  let xp: StageItem<'xp'> | undefined;
+  let rankUp: StageItem<'rankUp'> | undefined;
   const completed: Array<StageItem> = [];
   const rewards: Array<StageItem> = [];
   const ticker: Array<TickerItem> = [];
@@ -58,15 +63,15 @@ export function diffProgress(
     const from = prev.level;
     const to = pickLevel(current.level);
     if (from && to.xp > from.xp) {
-      head.push({
+      xp = {
         id: `xp:${to.xp}`,
         kind: 'xp',
         payload: { from, to, gained: to.xp - from.xp },
-      });
+      };
       const fromTier = rankFor(from.level);
       const toTier = rankFor(to.level);
       if (fromTier.id !== toTier.id) {
-        head.push({
+        rankUp = {
           id: `rankUp:${toTier.id}:${to.level}`,
           kind: 'rankUp',
           payload: {
@@ -74,7 +79,7 @@ export function diffProgress(
             toTierId: toTier.id,
             level: to.level,
           },
-        });
+        };
       }
     }
     next.level = to;
@@ -165,15 +170,19 @@ export function diffProgress(
     next.quests = { weekStart, progress };
   }
 
-  // Everything earned in one go plays as a set ("2 of 5"); xp and rank-ups
-  // stay on their own, since they're one moment each
+  // Everything earned in one go plays as a set ("2 of 5"). The XP pops down
+  // with the first of them, so it reads as coming from what you just earned
+  // instead of turning up later on its own. A rank-up is the payoff, so it
+  // comes last (the queue also holds it until the XP bar has filled).
   const earned = [...completed, ...rewards];
   const group = earned.length > 1 ? `earned:${earned[0].id}` : undefined;
-  return {
-    stage: [...head, ...earned.map((item) => ({ ...item, group }))],
-    ticker,
-    next,
-  };
+  const stage: Array<StageItem> = earned.map((item) => ({ ...item, group }));
+  if (xp) {
+    if (stage.length) stage[0] = { ...stage[0], xp: xp.payload };
+    else stage.push(xp);
+  }
+  if (rankUp) stage.push(rankUp);
+  return { stage, ticker, next };
 }
 
 function pickLevel(level: LevelSnapshot): LevelSnapshot {
