@@ -74,6 +74,10 @@ interface NotificationContextType {
   isSupported: boolean;
   permission: NotificationPermission | null;
   subscription: PushSubscription | null;
+  /** False until we've looked for this device's subscription, so it isn't mistaken for none */
+  hasChecked: boolean;
+  /** The user turned notifications off in the app on this device */
+  optedOut: boolean;
   error: string | null;
   subscribeToPush: () => Promise<void>;
   unsubscribeFromPush: () => Promise<void>;
@@ -97,7 +101,14 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [subscription, setSubscription] = useState<PushSubscription | null>(
     null,
   );
+  const [hasChecked, setHasChecked] = useState(!isSupported);
+  const [optedOut, setOptedOutState] = useState(isOptedOut);
   const [error, setError] = useState<string | null>(null);
+
+  const rememberOptOut = useCallback((value: boolean) => {
+    setOptedOut(value);
+    setOptedOutState(value);
+  }, []);
 
   // Re-sync on every signed-in open: a subscription made with an old key,
   // never saved by the server, or dropped by the browser would otherwise stay
@@ -109,6 +120,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       let registration = await navigator.serviceWorker.getRegistration();
       const existing = await registration?.pushManager.getSubscription();
       if (existing) setSubscription(existing);
+      setHasChecked(true);
       if (Notification.permission !== 'granted') return;
       // Without a subscription, only recreate one the user hasn't turned off
       if (!existing && isOptedOut()) return;
@@ -117,6 +129,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         await navigator.serviceWorker.register('/service-worker.js');
       setSubscription(await syncSubscription(registration));
     })().catch((err: unknown) => {
+      setHasChecked(true);
       console.error('Failed to sync push subscription:', err);
     });
   }, [isAuthenticated]);
@@ -139,12 +152,12 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      setOptedOut(false);
+      rememberOptOut(false);
       setSubscription(await syncSubscription(registration));
     } catch (err) {
       setError(errorMessage(err, 'Failed to subscribe to push notifications.'));
     }
-  }, []);
+  }, [rememberOptOut]);
 
   const unsubscribeFromPush = useCallback(async () => {
     setError(null);
@@ -153,7 +166,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    setOptedOut(true);
+    rememberOptOut(true);
     try {
       const registration = await navigator.serviceWorker.getRegistration();
       const sub = await registration?.pushManager.getSubscription();
@@ -169,7 +182,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         errorMessage(err, 'Failed to unsubscribe from push notifications.'),
       );
     }
-  }, []);
+  }, [rememberOptOut]);
 
   return (
     <NotificationContext.Provider
@@ -177,6 +190,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         isSupported,
         permission,
         subscription,
+        hasChecked,
+        optedOut,
         error,
         subscribeToPush,
         unsubscribeFromPush,

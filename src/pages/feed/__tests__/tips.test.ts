@@ -1,24 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { pickTips } from '../tips';
-import type { Achievement, User } from '@/api/Api';
-
-const now = new Date('2026-11-18T12:00:00Z');
 
 const base = {
-  incomingInvites: [],
-  achievements: [],
+  canTurnOnNotifications: false,
   unlockedDecorations: [],
   wearing: '',
   faceUnlocked: false,
   hasDrawnFace: false,
-  event: null,
   friendCount: 5,
   seen: [],
-  now,
 } as const;
-
-const sticker = (id: string, achievedAt: string | null) =>
-  ({ id, achievedAt }) as unknown as Achievement;
 
 const ids = (input: Partial<Parameters<typeof pickTips>[0]>) =>
   pickTips({ ...base, ...input }).map((tip) => tip.id);
@@ -28,45 +19,27 @@ describe('pickTips', () => {
     expect(ids({})).toEqual([]);
   });
 
+  it('suggests notifications only when they can be turned on', () => {
+    expect(ids({ canTurnOnNotifications: true })).toEqual(['notifications']);
+  });
+
   it('nudges you to draw your face only once it is unlocked and undrawn', () => {
     expect(ids({ faceUnlocked: true })).toEqual(['face']);
     expect(ids({ faceUnlocked: true, hasDrawnFace: true })).toEqual([]);
     expect(ids({ faceUnlocked: false })).toEqual([]);
   });
 
-  it('shows decorations you own but are not wearing', () => {
+  it('suggests flair once, only while you have some and wear none', () => {
     expect(
-      ids({
+      pickTips({
+        ...base,
         unlockedDecorations: ['FIRST_SNOW', 'CHRISTMAS_LIGHTS'],
-        wearing: 'FIRST_SNOW',
       }),
-    ).toEqual(['decoration:CHRISTMAS_LIGHTS']);
-  });
-
-  it('only celebrates stickers from the last few days', () => {
+    ).toEqual([{ kind: 'flair', id: 'flair', decoration: 'FIRST_SNOW' }]);
     expect(
-      ids({
-        achievements: [
-          sticker('fresh', '2026-11-17T09:00:00Z'),
-          sticker('old', '2026-11-01T09:00:00Z'),
-          sticker('locked', null),
-        ],
-      }),
-    ).toEqual(['sticker:fresh']);
-  });
-
-  it('hides tips you have seen, invites included', () => {
-    const invites = [{ id: 'jim' }, { id: 'ann' }] as Array<User>;
-    expect(
-      ids({ incomingInvites: invites, faceUnlocked: true, seen: ['face'] }),
-    ).toEqual(['invite:jim', 'invite:ann']);
-    expect(
-      ids({
-        incomingInvites: invites,
-        faceUnlocked: true,
-        seen: ['invite:jim'],
-      }),
-    ).toEqual(['invite:ann', 'face']);
+      ids({ unlockedDecorations: ['FIRST_SNOW'], wearing: 'FIRST_SNOW' }),
+    ).toEqual([]);
+    expect(ids({ unlockedDecorations: [] })).toEqual([]);
   });
 
   it('suggests friends only when you have a couple', () => {
@@ -74,28 +47,24 @@ describe('pickTips', () => {
     expect(ids({ friendCount: 2 })).toEqual(['friends']);
   });
 
-  it('shows one tip of each kind, skipping ones you have seen', () => {
+  it('never brings back a tip you closed or tapped', () => {
     expect(
       ids({
-        unlockedDecorations: ['FIRST_SNOW', 'CHRISTMAS_LIGHTS'],
-        achievements: [
-          sticker('a', '2026-11-18T09:00:00Z'),
-          sticker('b', '2026-11-18T08:00:00Z'),
-        ],
-        seen: ['sticker:a'],
+        canTurnOnNotifications: true,
+        faceUnlocked: true,
+        seen: ['notifications'],
       }),
-    ).toEqual(['sticker:b', 'decoration:FIRST_SNOW']);
+    ).toEqual(['face']);
   });
 
-  it('keeps the three most pressing', () => {
+  it('keeps the three most useful', () => {
     expect(
       ids({
-        incomingInvites: [{ id: 'jim' } as User],
+        canTurnOnNotifications: true,
+        unlockedDecorations: ['FIRST_SNOW'],
         faceUnlocked: true,
-        event: { slug: 'xmas', name: 'christmas' },
         friendCount: 1,
-        achievements: [sticker('fresh', '2026-11-18T09:00:00Z')],
       }),
-    ).toEqual(['invite:jim', 'sticker:fresh', 'face']);
+    ).toEqual(['notifications', 'flair', 'face']);
   });
 });
