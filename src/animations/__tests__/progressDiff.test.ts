@@ -316,6 +316,56 @@ describe('diffProgress', () => {
     });
   });
 
+  describe('when the server says what has been celebrated', () => {
+    const earned = (overrides: Partial<Achievement> = {}) =>
+      achievement({ achievedAt: new Date(), progress: 5, ...overrides });
+
+    it('celebrates an uncelebrated one even on a device that has never looked', () => {
+      const a = earned({ celebrated: false });
+      const { stage } = diffProgress(null, { achievements: [a] });
+      expect(stage).toEqual([
+        {
+          id: 'completed:achievement:a1',
+          kind: 'completed',
+          payload: { kind: 'achievement', achievement: a },
+        },
+      ]);
+    });
+
+    it('never replays a celebrated one, whatever this device remembers', () => {
+      // A snapshot from another account (or a stale one) says it wasn't earned
+      const { stage } = diffProgress(
+        snapshot({ achievements: { a1: { progress: 0, achieved: false } } }),
+        { achievements: [earned({ celebrated: true })] },
+      );
+      expect(stage).toEqual([]);
+    });
+
+    it('skips ones already queued or acknowledged here', () => {
+      const { stage } = diffProgress(
+        null,
+        { achievements: [earned({ celebrated: false })] },
+        { pending: new Set(['a1']) },
+      );
+      expect(stage).toEqual([]);
+    });
+
+    it('still pings progress by what this device last saw', () => {
+      const { stage, ticker } = diffProgress(
+        snapshot({ achievements: { a1: { progress: 1, achieved: false } } }),
+        { achievements: [achievement({ progress: 3, celebrated: false })] },
+      );
+      expect(stage).toEqual([]);
+      expect(ticker).toEqual([
+        expect.objectContaining({
+          id: 'achievementProgress:a1:3',
+          from: 1,
+          to: 3,
+        }),
+      ]);
+    });
+  });
+
   it('keeps sections that have not loaded yet', () => {
     const prev = snapshot({
       level: level(2, 60),

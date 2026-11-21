@@ -231,6 +231,8 @@ type Achievement struct {
 	// Secret is set when the details were withheld: a hidden achievement or event sticker
 	// not earned yet. Name, description, goal, progress and reward are then blank.
 	Secret bool `json:"secret"`
+	// Celebrated is set once the player has been shown this one being earned, on any device
+	Celebrated bool `json:"celebrated"`
 }
 
 type RewardUnlock struct {

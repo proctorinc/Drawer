@@ -77,7 +77,7 @@ CREATE INDEX idx_friendships_state ON friendships (state);
 CREATE INDEX idx_friendships_inviter_id ON friendships (inviter_id);
 CREATE TABLE achievements (id TEXT PRIMARY KEY, image_url TEXT NOT NULL, name TEXT NOT NULL, description TEXT NOT NULL, achievement_field TEXT NOT NULL, achievement_value INTEGER NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, category TEXT NOT NULL DEFAULT 'drawing', hidden INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE reward_unlocks (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, achievement_id TEXT, FOREIGN KEY (achievement_id) REFERENCES achievements (id));
-CREATE TABLE user_achievements (achievement_id TEXT NOT NULL, user_id TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id), FOREIGN KEY (achievement_id) REFERENCES achievements (id), UNIQUE (user_id, achievement_id));
+CREATE TABLE user_achievements (achievement_id TEXT NOT NULL, user_id TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, celebrated_at TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id), FOREIGN KEY (achievement_id) REFERENCES achievements (id), UNIQUE (user_id, achievement_id));
 CREATE TABLE user_achievement_checks (user_id TEXT NOT NULL UNIQUE, checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id));
 CREATE TABLE user_stat_calculations (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, stat_type TEXT NOT NULL, stat_value INTEGER NOT NULL, last_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id));
 CREATE INDEX idx_user_achievements_user_id ON user_achievements (user_id);

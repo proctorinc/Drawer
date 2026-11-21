@@ -69,6 +69,30 @@ func HandlerGetAchievementCatalog(c *gin.Context) {
 	})
 }
 
+// HandlerMarkAchievementsCelebrated records that the player has seen these achievements
+// celebrations, so they never replay, here or on another device. An admin viewing as someone
+// else changes nothing: the player should still get to see their own.
+func HandlerMarkAchievementsCelebrated(c *gin.Context) {
+	var body struct {
+		IDs []string `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || len(body.IDs) == 0 || len(body.IDs) > 100 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, Error("Send the ids of the achievements you saw"))
+		return
+	}
+	if middleware.GetImpersonator(c) != nil {
+		c.Status(http.StatusNoContent)
+		return
+	}
+	appCtx := context.GetCtx(c)
+	if err := queries.MarkAchievementsCelebrated(appCtx.DB, c.Request.Context(), middleware.GetUserID(c), body.IDs); err != nil {
+		log.Printf("Error marking achievements celebrated: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to mark achievements celebrated"))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
 func HandlerGetUserAchievements(c *gin.Context) {
 	userId := c.Param("id")
 	appCtx := context.GetCtx(c)
@@ -79,6 +103,10 @@ func HandlerGetUserAchievements(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+	// Whether they've watched their own celebrations is theirs alone
+	for i := range achievements {
+		achievements[i].Celebrated = false
 	}
 	achievements = achievementsPkg.MaskAll(visibleAchievements(c, achievements), false)
 

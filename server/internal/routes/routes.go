@@ -68,6 +68,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			userGroup.GET("/profile", handlers.HandleGetUserProfile)
 			userGroup.GET("/achievements", handlers.HandlerGetMyAchievements)
 			userGroup.GET("/achievements/all", handlers.HandlerGetAchievementCatalog)
+			userGroup.POST("/achievements/celebrated", handlers.HandlerMarkAchievementsCelebrated)
 			userGroup.GET("/invitations", handlers.HandleGetInvitations)
 			userGroup.PUT("/username", handlers.HandleUpdateUsername)
 			userGroup.POST("/profile-pic",

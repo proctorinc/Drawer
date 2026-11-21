@@ -235,6 +235,11 @@ export type Achievement = {
    * yet): the name is "???" and the description, goal, progress and reward are blank
    */
   secret: boolean;
+  /**
+   * You've been shown this one being earned, on some device. Always false on
+   * someone else's achievements; older servers leave it out.
+   */
+  celebrated?: boolean;
 };
 
 export type AchievementCategory =

@@ -6,6 +6,11 @@
  * Each section (level, achievements, quests) is remembered on its own. A
  * section seen for the first time is only recorded, never celebrated, so a
  * new device or a cleared cache doesn't replay everything you've ever earned.
+ *
+ * Earning an achievement or sticker is the exception: the server says whether
+ * it has been celebrated yet (on any device), so it plays exactly once per
+ * account, however many devices you use. Only progress pings still go by
+ * what this device last saw.
  */
 import type { LevelSnapshot, StageItem, TickerItem } from './types';
 import type { Achievement } from '@/api/Api';
@@ -46,9 +51,18 @@ export type ProgressDiff = {
   next: ProgressSnapshot;
 };
 
+export type DiffOptions = {
+  /**
+   * Achievement ids already queued or acknowledged here, whose celebrated flag
+   * the server may not reflect yet. They aren't queued again.
+   */
+  pending?: ReadonlySet<string>;
+};
+
 export function diffProgress(
   previous: ProgressSnapshot | null | undefined,
   current: ProgressInput,
+  { pending }: DiffOptions = {},
 ): ProgressDiff {
   const prev = previous ?? EMPTY_SNAPSHOT;
   let xp: StageItem<'xp'> | undefined;
@@ -95,12 +109,19 @@ export function diffProgress(
         achieved: !!achievement.achievedAt,
       };
       memory[achievement.id] = now;
-      // First load, or an achievement we've never seen: just remember it
-      const was = seen?.[achievement.id];
-      if (!was) continue;
-
       const kind = achievement.eventSlug ? 'sticker' : 'achievement';
-      if (now.achieved && !was.achieved) {
+      const was = seen?.[achievement.id];
+
+      // The server knows whether it has played anywhere yet; an older server
+      // doesn't say, and then it goes by what this device last saw
+      const tracked = typeof achievement.celebrated === 'boolean';
+      const earned = tracked
+        ? now.achieved &&
+          !achievement.celebrated &&
+          !pending?.has(achievement.id)
+        : !!was && now.achieved && !was.achieved;
+
+      if (earned) {
         completed.push({
           id: `completed:${kind}:${achievement.id}`,
           kind: 'completed',
@@ -113,7 +134,7 @@ export function diffProgress(
             payload: { reward: achievement.reward, from: achievement },
           });
         }
-      } else if (!now.achieved && now.progress > was.progress) {
+      } else if (was && !now.achieved && now.progress > was.progress) {
         const tickerKind =
           kind === 'sticker' ? 'stickerProgress' : 'achievementProgress';
         ticker.push({

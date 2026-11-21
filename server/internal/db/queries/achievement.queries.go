@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
+	"strings"
 	"time"
 )
 
 func GetAchievementsAndRewardsByUserID(repo *sql.DB, ctx context.Context, userId string) ([]models.Achievement, map[string]models.RewardUnlock, error) {
 	query := `
-		SELECT a.id, a.name, a.description, a.image_url, a.achievement_field, a.achievement_value, ua.created_at, r.id, r.name, r.description, r.created_at, e.slug, a.category, a.hidden
+		SELECT a.id, a.name, a.description, a.image_url, a.achievement_field, a.achievement_value, ua.created_at, ua.celebrated_at, r.id, r.name, r.description, r.created_at, e.slug, a.category, a.hidden
 		FROM achievements a
 		LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND user_id = ?
 		LEFT JOIN reward_unlocks r ON r.achievement_id = a.id
@@ -30,8 +31,8 @@ func GetAchievementsAndRewardsByUserID(repo *sql.DB, ctx context.Context, userId
 	for rows.Next() {
 		var achievement models.Achievement
 		var rewardID, rewardName, rewardDescription, eventSlug sql.NullString
-		var achievedAt, rewardCreatedAt sql.NullTime
-		if err := rows.Scan(&achievement.ID, &achievement.Name, &achievement.Description, &achievement.ImageURL, &achievement.AchievementField, &achievement.AchievementValue, &achievedAt, &rewardID, &rewardName, &rewardDescription, &rewardCreatedAt, &eventSlug, &achievement.Category, &achievement.Hidden); err != nil {
+		var achievedAt, celebratedAt, rewardCreatedAt sql.NullTime
+		if err := rows.Scan(&achievement.ID, &achievement.Name, &achievement.Description, &achievement.ImageURL, &achievement.AchievementField, &achievement.AchievementValue, &achievedAt, &celebratedAt, &rewardID, &rewardName, &rewardDescription, &rewardCreatedAt, &eventSlug, &achievement.Category, &achievement.Hidden); err != nil {
 			return nil, nil, err
 		}
 
@@ -42,6 +43,7 @@ func GetAchievementsAndRewardsByUserID(repo *sql.DB, ctx context.Context, userId
 		if achievedAt.Valid {
 			achievement.AchievedAt = &achievedAt.Time
 		}
+		achievement.Celebrated = celebratedAt.Valid
 
 		if rewardID.Valid && rewardName.Valid && rewardDescription.Valid && rewardCreatedAt.Valid {
 			reward := models.RewardUnlock{
@@ -65,6 +67,25 @@ func GetAchievementsAndRewardsByUserID(repo *sql.DB, ctx context.Context, userId
 	}
 
 	return achievements, rewards, nil
+}
+
+// MarkAchievementsCelebrated records that the player has been shown these achievements being
+// earned, so no device plays them again. Ids they haven't earned, or already celebrated, are
+// left alone.
+func MarkAchievementsCelebrated(repo *sql.DB, ctx context.Context, userID string, ids []string) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	args := make([]any, 0, len(ids)+1)
+	args = append(args, userID)
+	for _, id := range ids {
+		args = append(args, id)
+	}
+	_, err := repo.ExecContext(ctx, `
+		UPDATE user_achievements SET celebrated_at = CURRENT_TIMESTAMP
+		WHERE user_id = ? AND celebrated_at IS NULL
+			AND achievement_id IN (?`+strings.Repeat(", ?", len(ids)-1)+`)`, args...)
+	return err
 }
 
 // GetAchievementActivity returns the achievements the user and their friends unlocked in the last week as activity

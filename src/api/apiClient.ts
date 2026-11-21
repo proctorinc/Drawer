@@ -488,6 +488,17 @@ export const apiClient = {
     return test;
   },
 
+  /** Records that you've seen these achievements' celebrations, so no device replays them */
+  markAchievementsCelebrated: async (ids: Array<string>): Promise<void> => {
+    const response = await fetchAPI('POST', '/user/achievements/celebrated', {
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+    if (!response.ok) {
+      throw new Error('Failed to mark achievements celebrated');
+    }
+  },
+
   // Admin endpoints
   getAdminDashboard: async (
     searchQuery?: string,

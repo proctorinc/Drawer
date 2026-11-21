@@ -15,6 +15,7 @@ import {
   th,
 } from '../components/ui';
 import { useImpersonateUser } from '@/api/Api';
+import { switchAccount } from '@/animations/useProgressWatcher';
 import Button from '@/components/Button';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 
@@ -28,7 +29,7 @@ const UsersPage = () => {
   const becomeUser = (userId: string) =>
     impersonate.mutate(userId, {
       onSuccess: () => {
-        queryClient.invalidateQueries();
+        void switchAccount(queryClient);
         navigate({ to: '/draw' });
       },
     });

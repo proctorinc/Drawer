@@ -13,7 +13,8 @@ const Watcher: FC<{ userId: string }> = ({ userId }) => {
  */
 const ProgressWatcher: FC = () => {
   const { user } = useAuth();
-  if (!user) return null;
+  // An admin viewing as someone shouldn't see their celebrations, or use them up
+  if (!user || user.impersonatedBy) return null;
   // Keyed so switching accounts (or impersonating) starts fresh
   return <Watcher key={user.id} userId={user.id} />;
 };

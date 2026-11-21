@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useStopImpersonating } from '@/api/Api';
 import useAuth from '@/auth/hooks/useAuth';
+import { switchAccount } from '@/animations/useProgressWatcher';
 
 /** Shown on every page while an admin is viewing the app as someone else */
 const ImpersonationBanner = () => {
@@ -18,7 +19,7 @@ const ImpersonationBanner = () => {
     stop.mutate(undefined, {
       onSuccess: async () => {
         // Wait for /me to come back as the admin before the admin pages check it
-        await queryClient.invalidateQueries();
+        await switchAccount(queryClient);
         navigate({ to: '/draw/admin/users' });
       },
     });
