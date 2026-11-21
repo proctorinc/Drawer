@@ -23,7 +23,11 @@ import Snowfall from '@/events/christmas/Snowfall';
 import { useChristmas } from '@/events/useChristmas';
 import { PushPin } from '@/components/PushPin';
 import { useAnimationQueue } from '@/animations/AnimationQueue';
-import { TodaysJudgeChip, useTodaysJudge } from '@/ai/TodaysJudge';
+import {
+  JUDGE_STRIP_HEIGHT,
+  TodaysJudgeChip,
+  useTodaysJudge,
+} from '@/ai/TodaysJudge';
 
 /** When tomorrow's prompt drops; fixed-width digits so it never jiggles */
 const NextPromptCountdown = () => (
@@ -117,6 +121,9 @@ const DrawingDesk = ({
           }
           onSubmit={onSubmit}
           belowCanvas={judge && <TodaysJudgeChip />}
+          belowCanvasHeight={
+            judge?.criteria.length ? JUDGE_STRIP_HEIGHT : undefined
+          }
           colors={dailyPrompt.colors.slice(0, 3)}
           submitLabel={
             christmas ? (

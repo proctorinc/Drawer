@@ -1,5 +1,5 @@
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
-import type { FC, HTMLAttributes, ReactNode } from 'react';
+import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
 import Button from '@/components/Button';
 import Canvas from '@/drawing/Canvas';
 import { useDrawing } from '@/drawing/DrawingContext';
@@ -18,8 +18,10 @@ type Props = {
   backgroundColor?: string;
   /** Shrink the canvas to fit the height this component is given */
   fit?: boolean;
-  /** A one-line note tucked right under the canvas, e.g. who's judging today */
+  /** A note tucked right under the canvas, e.g. who's judging today */
   belowCanvas?: ReactNode;
+  /** How tall that note is (a CSS length), so a fitted canvas leaves room for it */
+  belowCanvasHeight?: string;
 } & Omit<HTMLAttributes<HTMLDivElement>, 'onSubmit'>;
 
 const DrawingCanvas: FC<Props> = ({
@@ -37,6 +39,7 @@ const DrawingCanvas: FC<Props> = ({
   backgroundColor,
   fit = false,
   belowCanvas,
+  belowCanvasHeight = '1.5rem',
   ...props
 }) => {
   const { canvasRef, hasInk, getPng } = useDrawing();
@@ -89,7 +92,10 @@ const DrawingCanvas: FC<Props> = ({
         )}
       >
         {/* Not pinned yet: the button pins it. Square to the screen so strokes land where the finger is */}
-        <div className="relative flex flex-col animate-drop">
+        <div
+          className="relative flex flex-col animate-drop"
+          style={{ '--below-canvas': belowCanvasHeight } as CSSProperties}
+        >
           <div
             className={cn(
               'overflow-hidden bg-white border-2 border-ink shadow-pencil',
@@ -103,16 +109,18 @@ const DrawingCanvas: FC<Props> = ({
               className={cn(
                 fit &&
                   'max-w-[min(calc(100cqw-4px),var(--canvas-w))] max-h-[min(calc(100cqh-4px),var(--canvas-h))]',
-                // Leave room for the note's line (h-6 + mt-2.5) under the canvas
+                // Leave room for the note (its height + mt-2.5) under the canvas
                 fit &&
                   belowCanvas &&
-                  'max-h-[min(calc(100cqh-4px-2.125rem),var(--canvas-h))]',
+                  'max-h-[min(calc(100cqh-4px-var(--below-canvas)-0.625rem),var(--canvas-h))]',
               )}
               {...canvasProps}
             />
           </div>
           {belowCanvas && (
-            <div className="flex items-center justify-center h-6 mt-2.5 text-sm text-pencil">
+            <div
+              className="flex items-center justify-center h-(--below-canvas) mt-2.5 text-sm text-pencil"
+            >
               {belowCanvas}
             </div>
           )}

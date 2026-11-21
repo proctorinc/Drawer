@@ -70,7 +70,6 @@ export const AIReviewComment: FC<Props> = ({ review, className }) => {
     <AIJudgeDrawer
       judge={judge}
       criteria={review.criteria}
-      score={review.status === 'done' ? review.score : null}
       open={aboutOpen}
       onClose={() => setAboutOpen(false)}
     />
