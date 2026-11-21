@@ -47,18 +47,21 @@ const Pips: FC<{ progress: number; goal: number }> = ({ progress, goal }) => (
   </span>
 );
 
+/** Past this many steps, pips get too wide for the card's right edge */
+const MAX_PIPS = 5;
+
 const QuestItem: FC<{ quest: Quest }> = ({ quest }) => {
   const done = quest.progress >= quest.goal;
 
   return (
     <li
       className={cn(
-        'relative flex items-center gap-3 w-full p-3 border-2 border-ink rounded-sketch-alt shadow-pencil-sm',
+        'flex items-center gap-3 w-full px-3 py-2 border-2 border-ink rounded-sketch-alt shadow-pencil-sm',
         done ? 'bg-[#fff6c9]' : 'bg-white',
       )}
     >
       <Checkbox checked={done} />
-      <div className="flex flex-col gap-1 flex-1 min-w-0">
+      <div className="flex flex-col gap-0.5 flex-1 min-w-0">
         <h3
           className={cn(
             'font-accent font-bold text-xl leading-none',
@@ -68,16 +71,19 @@ const QuestItem: FC<{ quest: Quest }> = ({ quest }) => {
           {quest.title}
         </h3>
         <p className="text-sm text-pencil leading-tight">{quest.description}</p>
-        {!done && (
-          <span className="flex items-center gap-2 text-sm">
-            <Pips progress={quest.progress} goal={quest.goal} />
+      </div>
+      {done ? (
+        <span className="shrink-0 px-2 py-0.5 font-accent font-bold text-xl uppercase text-coral border-[2.5px] border-coral rounded-sketch -rotate-12 opacity-90 animate-in zoom-in-150 fade-in duration-300">
+          done!
+        </span>
+      ) : (
+        <span className="shrink-0 flex flex-col items-end gap-1">
+          <span className="font-accent font-bold text-xl leading-none">
             {quest.progress}/{quest.goal}
           </span>
-        )}
-      </div>
-      {done && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-0.5 font-accent font-bold text-2xl uppercase text-coral border-[2.5px] border-coral rounded-sketch -rotate-12 opacity-90 animate-in zoom-in-150 fade-in duration-300">
-          done!
+          {quest.goal <= MAX_PIPS && (
+            <Pips progress={quest.progress} goal={quest.goal} />
+          )}
         </span>
       )}
     </li>

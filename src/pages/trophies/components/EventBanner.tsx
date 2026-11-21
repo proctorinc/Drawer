@@ -40,13 +40,6 @@ const events: Array<SeasonalEvent> = [
     to: '10-31',
     className: 'bg-[#e6dcff]',
   },
-  {
-    name: 'Doodlevember',
-    blurb: 'Draw every day this month and let your streak do the bragging.',
-    from: '11-01',
-    to: '11-30',
-    className: 'bg-butter',
-  },
 ];
 
 const monthDay = (date: Date) =>
