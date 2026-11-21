@@ -2,7 +2,11 @@ package ai
 
 import (
 	"context"
+	"crypto/sha256"
+	"database/sql"
 	"drawer-service-backend/internal/db/models"
+	"drawer-service-backend/internal/db/queries"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -110,8 +114,38 @@ const introTimeout = 12 * time.Second
 // After a failed intro, how long before the model is asked again
 const introRetryAfter = 10 * time.Minute
 
+// How long the app waits on the database for a saved intro
+const introStoreTimeout = 5 * time.Second
+
+// IntroStore keeps each judge's intro for a day, so it's written once for everyone, however
+// many servers there are or however often they restart.
+type IntroStore interface {
+	// Load returns the saved intro; found is false when there isn't one yet.
+	Load(ctx context.Context, day, personalityID, sourceHash string) (lines []string, found bool, err error)
+	// Save keeps lines unless an intro is already saved, and returns whichever is saved.
+	Save(ctx context.Context, day, personalityID, sourceHash string, lines []string) ([]string, error)
+}
+
+// DBIntroStore keeps intros in the judge_intros table.
+type DBIntroStore struct{ DB *sql.DB }
+
+func (s DBIntroStore) Load(ctx context.Context, day, personalityID, sourceHash string) ([]string, bool, error) {
+	return queries.GetJudgeIntro(s.DB, ctx, day, personalityID, sourceHash)
+}
+
+func (s DBIntroStore) Save(ctx context.Context, day, personalityID, sourceHash string, lines []string) ([]string, error) {
+	return queries.SaveJudgeIntro(s.DB, ctx, day, personalityID, sourceHash, lines)
+}
+
+// introSourceHash fingerprints what an intro is written from: the rules, the prompt and
+// who the judge is. Changing any of them gets a fresh intro.
+func introSourceHash(p models.AIPersonality, prompt string) string {
+	sum := sha256.Sum256([]byte(IntroSystemPrompt(p, prompt)))
+	return hex.EncodeToString(sum[:8])
+}
+
 type introKey struct {
-	day, personalityID, prompt, systemPrompt string
+	day, personalityID, sourceHash string
 }
 
 type introEntry struct {
@@ -120,18 +154,19 @@ type introEntry struct {
 	expires time.Time // Zero for a written intro, which lasts the day
 }
 
-// Intros are written once per judge per day and shared by everyone. They live in memory:
-// a restart just writes a fresh one.
+// Intros are written once per judge per day and shared by everyone: saved in the store,
+// with a copy in memory so a server only looks it up once.
 var intros = struct {
 	sync.Mutex
 	byKey map[introKey]*introEntry
 }{byKey: map[introKey]*introEntry{}}
 
-// TodaysIntro returns the judge's lines asking for today's prompt, writing them the first
-// time they're asked for (callers at the same moment share the one request). Falls back to
-// the stock lines when the provider can't talk or the model fails.
-func TodaysIntro(ctx context.Context, provider Provider, p models.AIPersonality, day, prompt string) []string {
-	key := introKey{day, p.ID, prompt, p.SystemPrompt}
+// TodaysIntro returns the judge's lines asking for today's prompt: the saved ones, or
+// written the first time anyone asks (callers at the same moment share the one request).
+// Falls back to the stock lines when the provider can't talk or the model fails; those
+// aren't saved, so the model is asked again a little later. store may be nil.
+func TodaysIntro(ctx context.Context, provider Provider, store IntroStore, p models.AIPersonality, day, prompt string) []string {
+	key := introKey{day, p.ID, introSourceHash(p, prompt)}
 
 	intros.Lock()
 	// Only today's are worth keeping
@@ -147,7 +182,7 @@ func TodaysIntro(ctx context.Context, provider Provider, p models.AIPersonality,
 	if !ok {
 		entry = &introEntry{ready: make(chan struct{})}
 		intros.byKey[key] = entry
-		go writeIntro(entry, provider, p, prompt)
+		go writeIntro(entry, provider, store, key, p, prompt)
 	}
 	intros.Unlock()
 
@@ -168,10 +203,24 @@ func isClosed(ch chan struct{}) bool {
 	}
 }
 
-// writeIntro asks the model for the intro, on its own clock so one impatient caller
-// leaving doesn't waste it for everyone else.
-func writeIntro(entry *introEntry, provider Provider, p models.AIPersonality, prompt string) {
+// writeIntro uses the saved intro, or asks the model for one and saves it. It runs on its
+// own clock so one impatient caller leaving doesn't waste it for everyone else.
+func writeIntro(entry *introEntry, provider Provider, store IntroStore, key introKey, p models.AIPersonality, prompt string) {
 	defer close(entry.ready)
+
+	if store != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), introStoreTimeout)
+		lines, found, err := store.Load(ctx, key.day, key.personalityID, key.sourceHash)
+		cancel()
+		if err != nil {
+			// Still worth writing one; it just can't be shared
+			log.Printf("AI judge: couldn't load %s's intro: %v", p.Name, err)
+		}
+		if found {
+			entry.lines = lines
+			return
+		}
+	}
 
 	talker, ok := provider.(Talker)
 	if !ok {
@@ -189,5 +238,18 @@ func writeIntro(entry *introEntry, provider Provider, p models.AIPersonality, pr
 		log.Printf("AI judge: %s couldn't write an intro for %q: %v", p.Name, prompt, err)
 		entry.lines = StockIntro(prompt)
 		entry.expires = time.Now().Add(introRetryAfter)
+		return
+	}
+
+	if store != nil {
+		saveCtx, cancel := context.WithTimeout(context.Background(), introStoreTimeout)
+		defer cancel()
+		saved, err := store.Save(saveCtx, key.day, key.personalityID, key.sourceHash, entry.lines)
+		if err != nil {
+			// This server keeps its own for the day, rather than asking the model again
+			log.Printf("AI judge: couldn't save %s's intro: %v", p.Name, err)
+			return
+		}
+		entry.lines = saved
 	}
 }

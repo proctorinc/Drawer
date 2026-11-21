@@ -49,6 +49,10 @@ func NewEventsDB(t *testing.T) *sql.DB {
 	schema := readMigration(t, "schema.sql")
 	var baseSchema []string
 	for _, line := range strings.Split(schema, "\n") {
+		// SQLite makes sqlite_sequence itself; a dump that lists it can't be replayed
+		if strings.Contains(line, "sqlite_sequence") {
+			continue
+		}
 		if !strings.Contains(line, " events ") && !strings.Contains(line, "idx_events_") && !strings.Contains(line, " event_") && !strings.Contains(line, " ai_") {
 			baseSchema = append(baseSchema, line)
 		}

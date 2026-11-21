@@ -620,7 +620,7 @@ func HandleGetTodaysJudgeIntro(c *gin.Context) {
 		Judge:  models.AIJudge{ID: p.ID, Name: p.Name, Bio: p.Bio, AvatarURL: p.AvatarURL, Decoration: p.Decoration},
 		Day:    today,
 		Prompt: prompt.Prompt,
-		Lines:  ai.TodaysIntro(ctx, ai.NewProvider(settings), p, today, prompt.Prompt),
+		Lines:  ai.TodaysIntro(ctx, ai.NewProvider(settings), ai.DBIntroStore{DB: appCtx.DB}, p, today, prompt.Prompt),
 	})
 }
 
