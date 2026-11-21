@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDrawing } from './DrawingContext';
+import { toolFeedback } from './feedback';
 import type { FC, ReactNode } from 'react';
 import { cn, dabShapes } from '@/utils';
 import { EraserIcon, UndoIcon } from '@/components/icons';
@@ -84,7 +85,10 @@ export const Toolbar: FC<Props> = ({ colors }) => {
                 backgroundColor: color,
                 animationDelay: `${150 + index * 70}ms`,
               }}
-              onClick={() => setSelectedColor(color)}
+              onClick={() => {
+                if (!isSelected) toolFeedback.color(index);
+                setSelectedColor(color);
+              }}
             />
           );
         })}
@@ -94,7 +98,10 @@ export const Toolbar: FC<Props> = ({ colors }) => {
           label="Eraser"
           isActive={!selectedColor}
           disabled={!hasInk}
-          onClick={selectEraser}
+          onClick={() => {
+            if (selectedColor) toolFeedback.eraser();
+            selectEraser();
+          }}
         >
           <EraserIcon />
         </ToolButton>
@@ -102,6 +109,7 @@ export const Toolbar: FC<Props> = ({ colors }) => {
           label="Undo"
           disabled={!canUndo}
           onClick={() => {
+            toolFeedback.undo();
             undo();
             setUndoSpin((spin) => spin + 1);
           }}

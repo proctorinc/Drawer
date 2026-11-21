@@ -5,7 +5,7 @@ import { useDailyPrompt } from '../../daily/DailyPromptContext';
 import { PastPages, TodayWall } from './components/DayPages';
 import { SuggestionCards } from './components/SuggestionCards';
 import DrawingCanvas from './components/DrawingCanvas';
-import { PromptTitle } from './components/PromptTitle';
+import { PromptCredit, PromptTitle } from './components/PromptTitle';
 import type { DailyPrompt } from '@/api/Api';
 import Layout from '@/components/Layout';
 import { cn } from '@/utils';
@@ -44,16 +44,14 @@ const NextPromptCountdown = () => (
 
 const PromptHeading = ({ dailyPrompt }: { dailyPrompt: DailyPrompt }) => (
   <section className="flex flex-col gap-1 min-w-0">
-    <span className="flex flex-wrap items-center gap-x-2 text-sm text-pencil">
-      <span className="flex items-center gap-1">
-        <ClockIcon size={13} />
-        <CountDownTimer format="short" /> left
-      </span>
-      {dailyPrompt.createdBy && (
-        <span>prompt by {dailyPrompt.createdBy.username}</span>
-      )}
+    <span className="flex items-center gap-1 text-sm text-pencil">
+      <ClockIcon size={13} />
+      <CountDownTimer format="short" /> left
     </span>
     <PromptTitle prompt={dailyPrompt.prompt} colors={dailyPrompt.colors} />
+    {dailyPrompt.createdBy && (
+      <PromptCredit user={dailyPrompt.createdBy} className="mt-2" />
+    )}
   </section>
 );
 

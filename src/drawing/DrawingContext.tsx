@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { Path } from './shapes/Path';
 import { getEventPoint } from './shapes/Point';
+import { strokeFeedback } from './feedback';
 import type { FC, PointerEvent as ReactPointerEvent } from 'react';
 import type { SerializedPath } from './shapes/Path';
 import { Config } from '@/config/Config';
@@ -50,6 +51,8 @@ const PIXEL_WIDTH = Config.CANVAS_WIDTH * SCALE;
 const PIXEL_HEIGHT = Config.CANVAS_HEIGHT * SCALE;
 // A second finger this early in a stroke means a gesture, not a drawing
 const GESTURE_GRACE_POINTS = 8;
+// A tap that wobbles less than this (in drawing units) is a dot, not a line
+const DOT_WOBBLE = 2.5;
 
 function loadPaths(key: string): Array<Path> {
   try {
@@ -168,11 +171,20 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
     if (!current) return;
     currentRef.current = null;
     const { path } = current;
+    // A finger never lands perfectly still; if it barely moved, it was a
+    // tap, so keep it as one clean dot (a near-zero line can draw nothing)
+    const [first] = path.points;
+    const isDot = path.points.every(
+      (point) => Math.hypot(point.x - first.x, point.y - first.y) < DOT_WOBBLE,
+    );
+    if (isDot) path.points = [first];
+    strokeFeedback.end(isDot ? 'dot' : 'line');
     setPaths((prev) => [...prev, path]);
   }, []);
 
   const dropStroke = useCallback(() => {
     currentRef.current = null;
+    strokeFeedback.end('cancel');
     schedulePaint();
   }, [schedulePaint]);
 
@@ -218,6 +230,13 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
             color === null,
           ),
         };
+        strokeFeedback.start(
+          event.clientX,
+          event.clientY,
+          event.timeStamp,
+          color,
+          event.pointerType,
+        );
         schedulePaint();
       },
       onPointerMove: (event) => {
@@ -231,9 +250,15 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
         > & { getCoalescedEvents?: () => Array<PointerEvent> };
         const samples = native.getCoalescedEvents?.() ?? [];
         const events = samples.length > 0 ? samples : [native];
+        const { points } = current.path;
         for (const sample of events) {
-          current.path.points.push(getEventPoint(sample, event.currentTarget));
+          const point = getEventPoint(sample, event.currentTarget);
+          const last = points[points.length - 1];
+          // Repeats add nothing to the line, and can make a tap draw nothing
+          if (last.x === point.x && last.y === point.y) continue;
+          points.push(point);
         }
+        strokeFeedback.move(native.clientX, native.clientY, native.timeStamp);
         schedulePaint();
       },
       onPointerUp: (event) => {
@@ -252,6 +277,7 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
   );
 
   const clearCanvas = useCallback(() => {
+    if (currentRef.current) strokeFeedback.end('cancel');
     currentRef.current = null;
     setPaths([]);
   }, []);
