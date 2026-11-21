@@ -7,6 +7,7 @@ import { SuggestionCards } from './components/SuggestionCards';
 import DrawingCanvas from './components/DrawingCanvas';
 import { PromptCredit, PromptTitle } from './components/PromptTitle';
 import type { DailyPrompt } from '@/api/Api';
+import { JudgeIntroReplayButton } from '@/ai/JudgeIntro';
 import Layout from '@/components/Layout';
 import { cn } from '@/utils';
 import LoadingScreen from '@/components/LoadingScreen';
@@ -53,9 +54,14 @@ const PromptHeading = ({ dailyPrompt }: { dailyPrompt: DailyPrompt }) => (
       <CountDownTimer format="short" /> left
     </span>
     <PromptTitle prompt={dailyPrompt.prompt} colors={dailyPrompt.colors} />
-    {dailyPrompt.createdBy && (
-      <PromptCredit user={dailyPrompt.createdBy} className="mt-2" />
-    )}
+    <div className="flex items-center justify-between gap-3 mt-2 min-w-0">
+      {dailyPrompt.createdBy ? (
+        <PromptCredit user={dailyPrompt.createdBy} />
+      ) : (
+        <span />
+      )}
+      <JudgeIntroReplayButton />
+    </div>
   </section>
 );
 

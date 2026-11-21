@@ -10,6 +10,7 @@ import { useAnimationQueue } from '@/animations/AnimationQueue';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
 import useAuth from '@/auth/hooks/useAuth';
 import Button from '@/components/Button';
+import { SpeakerIcon } from '@/components/icons';
 import { cn } from '@/utils';
 
 /** Today's judge asking for today's doodle, a speech bubble per line */
@@ -254,6 +255,49 @@ export function useShowJudgeIntro() {
     [enqueue],
   );
 }
+
+/**
+ * A speaker button that plays today's judge intro again. Shows nothing when
+ * judging is off or there's no intro to play.
+ */
+export const JudgeIntroReplayButton: FC<{ className?: string }> = ({
+  className,
+}) => {
+  const { dailyPrompt } = useDailyPrompt();
+  const day = dailyPrompt?.day.slice(0, 10);
+  const { data } = useQuery({
+    queryKey: ['ai', 'judge', 'today', 'intro', day],
+    queryFn: fetchJudgeIntro,
+    enabled: !!day,
+    // Picks up a judge swapped in mid-day
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const { enqueue } = useAnimationQueue();
+  if (!data) return null;
+
+  return (
+    <button
+      type="button"
+      aria-label={`Hear ${data.judge.name}'s request again`}
+      title="Hear the judge's request again"
+      onClick={() =>
+        // Its own id each time, so it isn't merged with the day's first play
+        void enqueue({
+          id: `judge-intro:${data.day}:replay:${Date.now()}`,
+          kind: 'judgeIntro',
+          payload: { intro: data },
+        })
+      }
+      className={cn(
+        'inline-flex flex-none items-center justify-center size-11 bg-white border-2 border-ink rounded-full cursor-pointer hover:bg-paper active:translate-y-px',
+        className,
+      )}
+    >
+      <SpeakerIcon size={22} />
+    </button>
+  );
+};
 
 const Watcher: FC = () => {
   const { dailyPrompt } = useDailyPrompt();
