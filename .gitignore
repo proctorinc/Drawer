@@ -21,3 +21,4 @@ server.log
 build-errors.log
 .claude/worktrees/
 .claude/launch.json
+tsconfig.tsbuildinfo
