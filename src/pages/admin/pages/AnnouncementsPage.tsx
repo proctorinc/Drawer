@@ -146,7 +146,7 @@ const Editor: FC<{
             className={inputClass}
             value={draft.ctaLabel}
             onChange={(e) => set({ ctaLabel: e.target.value })}
-            placeholder="draw something"
+            placeholder="see the trophies"
           />
         </Field>
         <Field
@@ -157,7 +157,7 @@ const Editor: FC<{
             className={inputClass}
             value={draft.ctaUrl}
             onChange={(e) => set({ ctaUrl: e.target.value })}
-            placeholder="/draw"
+            placeholder="/draw/trophies"
           />
         </Field>
       </div>

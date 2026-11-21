@@ -61,6 +61,9 @@ export const AnnouncementsStage: StageComponent<'announcements'> = ({
     if (!page) finish();
   }, [page, finish]);
 
+  const goNext = () => setIndex((i) => Math.min(i + 1, pages.length - 1));
+  const goBack = () => setIndex((i) => Math.max(i - 1, 0));
+
   // Arrow keys page through (Escape closes, from useStageExit)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -71,6 +74,26 @@ export const AnnouncementsStage: StageComponent<'announcements'> = ({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [pages.length]);
+
+  // Swipe left for the next page, right for the one before. Only a mostly
+  // sideways swipe counts, so scrolling a long page doesn't flip it.
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    touchStart.current =
+      e.touches.length === 1 ? { x: t.clientX, y: t.clientY } : null;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touchStart.current;
+    touchStart.current = null;
+    const t = e.changedTouches[0];
+    if (!start) return;
+    const dx = t.clientX - start.x;
+    const dy = t.clientY - start.y;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    if (dx < 0) goNext();
+    else goBack();
+  };
 
   // Lock the page behind
   useEffect(() => {
@@ -96,6 +119,8 @@ export const AnnouncementsStage: StageComponent<'announcements'> = ({
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
+      onTouchStart={pages.length > 1 ? onTouchStart : undefined}
+      onTouchEnd={pages.length > 1 ? onTouchEnd : undefined}
     >
       <div
         className="completed-dim fixed inset-0 paper"
@@ -188,7 +213,7 @@ export const AnnouncementsStage: StageComponent<'announcements'> = ({
                 <button
                   type="button"
                   aria-label="Back"
-                  onClick={() => setIndex(index - 1)}
+                  onClick={goBack}
                   className="press grid place-items-center flex-none size-12 bg-white border-2 border-ink rounded-sketch-alt cursor-pointer"
                 >
                   <ArrowLeftIcon size={22} />
