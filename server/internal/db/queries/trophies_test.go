@@ -221,6 +221,31 @@ func TestQuestCompletions(t *testing.T) {
 	}
 }
 
+// Quests finished before QuestsStartWeek, when there were no quests, don't count
+func TestQuestsBeforeLaunchDontCount(t *testing.T) {
+	db := newTestDB(t)
+	_, err := db.Exec(`
+		INSERT INTO users (id, username, email) VALUES ('me', 'me', 'me@x'), ('pal', 'pal', 'pal@x');
+		INSERT INTO user_submissions (id, user_id, day, created_at) VALUES
+			('old', 'me', '2026-11-12', '2026-11-12 09:00:00'), -- the week before launch
+			('new', 'me', '2026-11-16', '2026-11-16 09:00:00'); -- launch week
+		INSERT INTO reactions (user_id, content_type, content_id, reaction_id, created_at) VALUES
+			('pal', 'submission', 'old', 'cry-laugh', '2026-11-12 10:00:00'),
+			('pal', 'submission', 'new', 'cry-laugh', '2026-11-16 10:00:00');
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	counts, err := GetActivityCounts(db, context.Background(), []string{"me"}, BeginningOfTime, EndOfTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := counts["me"].QuestsCompleted; got != [len(WeeklyQuests)]int{3: 1} {
+		t.Errorf("quests completed = %v, want cry-laugh once, in launch week", got)
+	}
+}
+
 // Only the first ReactionsGivenXPPerDay reactions of a day earn XP, however the day is
 // split between counts and XP events
 func TestReactionsGivenForXPCapsEachDay(t *testing.T) {

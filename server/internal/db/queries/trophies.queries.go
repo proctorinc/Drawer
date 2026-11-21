@@ -91,6 +91,10 @@ var WeeklyQuests = [...]WeeklyQuest{
 	{"cry-laugh", 1},
 }
 
+// QuestsStartWeek is the Monday of the week weekly quests launched. Weeks before it
+// had no quests, so nothing finished in them counts or earns XP.
+const QuestsStartWeek = "2026-11-16"
+
 // achievementKind is the kind prefix GetXPEventsSince gives an earned achievement,
 // followed by its XP, e.g. "achievement:25"
 const achievementKind = "achievement:"
@@ -315,7 +319,8 @@ func weekModifier() string {
 	return fmt.Sprintf("%+d seconds", offset)
 }
 
-// eachQuestCompletion calls each for every weekly quest a user finished in [from, to):
+// eachQuestCompletion calls each for every weekly quest a user finished in [from, to),
+// in a week from QuestsStartWeek on:
 // the quest's WeeklyQuests index and when the step that reached its goal happened. A
 // step counts toward the week it happened in, so each week's progress starts over.
 func eachQuestCompletion(repo *sql.DB, ctx context.Context, userIDs []string, from, to time.Time, each func(userID string, quest int, at time.Time)) error {
@@ -350,13 +355,13 @@ func eachQuestCompletion(repo *sql.DB, ctx context.Context, userIDs []string, fr
 			WHERE owner IN ` + in + ` AND owner != reactor AND for_owner AND reaction_id = 'cry-laugh'
 		),
 		numbered AS (
-			SELECT user_id, quest, datetime(at) AS done_at,
+			SELECT user_id, quest, week, datetime(at) AS done_at,
 				ROW_NUMBER() OVER (PARTITION BY user_id, quest, week ORDER BY datetime(at)) AS step
 			FROM steps
 		)
 		SELECT n.user_id, n.quest, n.done_at FROM numbered n
 		JOIN (` + strings.Join(goals, " UNION ALL ") + `) g ON g.quest = n.quest AND g.goal = n.step
-		WHERE n.done_at >= ? AND n.done_at < ?`
+		WHERE n.week >= ? AND n.done_at >= ? AND n.done_at < ?`
 
 	mod := weekModifier()
 	args := []any{}
@@ -368,7 +373,7 @@ func eachQuestCompletion(repo *sql.DB, ctx context.Context, userIDs []string, fr
 			args = append(args, id)
 		}
 	}
-	args = append(args, from.UTC().Format(sqliteTimestamp), to.UTC().Format(sqliteTimestamp))
+	args = append(args, QuestsStartWeek, from.UTC().Format(sqliteTimestamp), to.UTC().Format(sqliteTimestamp))
 
 	var userID, when string
 	var quest int
