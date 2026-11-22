@@ -57,7 +57,6 @@ export const AchievementSticker: FC<{
     <span className="font-accent font-bold text-lg leading-none mt-1">
       {achievement.name}
     </span>
-    {achievement.xp > 0 && <XPSticker xp={achievement.xp} />}
     <span className="text-xs text-pencil leading-tight">
       {achievement.description}
     </span>

@@ -214,7 +214,7 @@ export const CompletedCard: StageComponent<'completed'> = ({
 
           {shown.xp !== null && (
             <span className="completed-rise" style={rise(0.95)}>
-              <Chip className="h-7 px-3 font-accent font-bold text-lg bg-butter text-ink -rotate-2">
+              <Chip className="h-7 px-3 font-accent font-bold text-lg bg-butter text-butter-ink -rotate-2">
                 +{shown.xp} XP
               </Chip>
             </span>
