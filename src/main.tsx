@@ -71,6 +71,7 @@ import MyDecorationsPage from './pages/profile/DecorationsPage.tsx';
 import { Config } from './config/Config.ts';
 import ImpersonationBanner from './components/ImpersonationBanner.tsx';
 import AppShell from './components/AppShell.tsx';
+import { ConfirmProvider } from './components/Confirm.tsx';
 import type { AchievementTab } from './pages/achievements/AchievementsPage.tsx';
 import type { FC } from 'react';
 
@@ -91,11 +92,13 @@ const rootRoute = createRootRoute({
               <AnimationQueueProvider>
                 <AIDialogueProvider>
                   <DailyPromptProvider>
-                    <ImpersonationBanner />
-                    <ProgressWatcher />
-                    <AnnouncementWatcher />
-                    <JudgeIntroWatcher />
-                    <Outlet />
+                    <ConfirmProvider>
+                      <ImpersonationBanner />
+                      <ProgressWatcher />
+                      <AnnouncementWatcher />
+                      <JudgeIntroWatcher />
+                      <Outlet />
+                    </ConfirmProvider>
                   </DailyPromptProvider>
                 </AIDialogueProvider>
               </AnimationQueueProvider>

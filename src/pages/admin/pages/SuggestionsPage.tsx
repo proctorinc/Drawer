@@ -12,6 +12,7 @@ import { toDay } from '../schedule';
 import type { Calendar } from '../components/PromptDraft';
 import type { FC } from 'react';
 import type { PromptSuggestion } from '@/api/Api';
+import { useConfirm } from '@/components/Confirm';
 
 const SuggestionDraft: FC<{
   suggestion: PromptSuggestion;
@@ -19,6 +20,7 @@ const SuggestionDraft: FC<{
 }> = ({ suggestion, calendar }) => {
   const accept = useAcceptSuggestion();
   const dismiss = useDismissSuggestion();
+  const confirm = useConfirm();
   return (
     <PromptDraft
       calendar={calendar}
@@ -28,12 +30,14 @@ const SuggestionDraft: FC<{
       onSchedule={(draft) =>
         accept.mutateAsync({ id: suggestion.id, ...draft })
       }
-      onDismiss={() => {
-        if (
-          window.confirm(`Dismiss "${suggestion.prompt}"? It can't be undone.`)
-        ) {
-          dismiss.mutate(suggestion.id);
-        }
+      onDismiss={async () => {
+        const ok = await confirm({
+          title: `dismiss "${suggestion.prompt}"?`,
+          message: "it can't be undone.",
+          confirmLabel: 'dismiss',
+          cancelLabel: 'keep it',
+        });
+        if (ok) dismiss.mutate(suggestion.id);
       }}
     />
   );

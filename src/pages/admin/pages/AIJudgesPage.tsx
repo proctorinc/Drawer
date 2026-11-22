@@ -45,6 +45,7 @@ import { useTypewriter } from '@/ai/AIDialogue';
 import { AI_DECORATIONS } from '@/ai/decorations';
 import { AI_SCORE_MAX, formatScore } from '@/ai/score';
 import Button from '@/components/Button';
+import { useConfirm } from '@/components/Confirm';
 import { cn } from '@/utils';
 
 const isLive = (event: AdminEvent, now = Date.now()) =>
@@ -68,6 +69,7 @@ function judgeToday(
 
 const ConnectionPanel: FC<{ settings: AISettings }> = ({ settings }) => {
   const update = useUpdateAISettings();
+  const confirm = useConfirm();
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState(settings.model);
 
@@ -146,10 +148,12 @@ const ConnectionPanel: FC<{ settings: AISettings }> = ({ settings }) => {
               variant="base"
               type="button"
               disableLoad
-              onClick={() => {
-                if (confirm('Remove the saved OpenAI key?')) {
-                  update.mutate({ clearApiKey: true });
-                }
+              onClick={async () => {
+                const ok = await confirm({
+                  title: 'remove the saved OpenAI key?',
+                  confirmLabel: 'remove key',
+                });
+                if (ok) update.mutate({ clearApiKey: true });
               }}
             >
               remove key
@@ -283,6 +287,7 @@ const JudgeEditor: FC<{
 }> = ({ initial, events, onDone }) => {
   const save = useSaveAIPersonality();
   const remove = useDeleteAIPersonality();
+  const confirm = useConfirm();
   const [p, setP] = useState(initial);
   const set = (patch: Partial<AIPersonality>) => setP({ ...p, ...patch });
 
@@ -430,10 +435,13 @@ const JudgeEditor: FC<{
             icon={faTrash}
             className="ml-auto"
             disableLoad
-            onClick={() => {
-              if (confirm(`Delete ${initial.name}?`)) {
-                remove.mutate(initial.id, { onSuccess: onDone });
-              }
+            onClick={async () => {
+              const ok = await confirm({
+                title: `delete ${initial.name}?`,
+                confirmLabel: 'delete',
+                cancelLabel: 'keep',
+              });
+              if (ok) remove.mutate(initial.id, { onSuccess: onDone });
             }}
           >
             delete

@@ -17,6 +17,7 @@ import {
 } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
+import { useAlert, useConfirm } from '@/components/Confirm';
 import { HeartIcon, TrashIcon } from '@/components/icons';
 import { ReactionDrawer } from '@/reactions/ReactionDrawer';
 import { ReactionPile } from '@/reactions/ReactionPile';
@@ -58,6 +59,8 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
   const golden = !isDrawingLocked(submission) && isMasterpiece(submission);
   const addComment = useAddComment();
   const deleteComment = useDeleteComment();
+  const confirm = useConfirm();
+  const alert = useAlert();
   const [newComment, setNewComment] = useState('');
 
   // The comment whose reaction drawer is open, if any
@@ -90,8 +93,14 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
     );
   }
 
-  function removeComment(comment: Comment) {
-    if (!window.confirm("Delete your comment? It can't be undone.")) return;
+  async function removeComment(comment: Comment) {
+    const ok = await confirm({
+      title: 'delete your comment?',
+      message: "it can't be undone.",
+      confirmLabel: 'delete',
+      cancelLabel: 'keep it',
+    });
+    if (!ok) return;
     deleteComment.mutate(
       { submissionId: submission.id, commentId: comment.id },
       {
@@ -103,7 +112,8 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
           queryClient.invalidateQueries({ queryKey: queryKeys.activityFeed });
           refreshProgress(queryClient);
         },
-        onError: (err) => window.alert(err.message),
+        onError: (err) =>
+          alert({ title: "couldn't delete that", message: err.message }),
       },
     );
   }

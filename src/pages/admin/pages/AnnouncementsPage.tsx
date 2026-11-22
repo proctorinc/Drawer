@@ -23,6 +23,7 @@ import type { AnnouncementArt } from '@/announcements/api';
 import { ANNOUNCEMENT_ARTS } from '@/announcements/api';
 import { useShowAnnouncements } from '@/announcements/AnnouncementWatcher';
 import Button from '@/components/Button';
+import { useConfirm } from '@/components/Confirm';
 import { cn } from '@/utils';
 
 const DAY = 86_400_000;
@@ -239,6 +240,7 @@ const Row: FC<{
   const save = useSaveAnnouncement();
   const remove = useDeleteAnnouncement();
   const reset = useResetAnnouncementViews();
+  const confirm = useConfirm();
   const show = useShowAnnouncements();
   const status = statusOf(a);
   const error = save.error ?? remove.error ?? reset.error;
@@ -286,13 +288,13 @@ const Row: FC<{
             <button
               type="button"
               className={link}
-              onClick={() => {
-                if (
-                  confirm(
-                    `Show "${a.title}" again to the ${a.seenBy} players who've seen it?`,
-                  )
-                )
-                  reset.mutate(a.id);
+              onClick={async () => {
+                const ok = await confirm({
+                  title: `show "${a.title}" again?`,
+                  message: `the ${a.seenBy} players who've seen it will get it again.`,
+                  confirmLabel: 'show again',
+                });
+                if (ok) reset.mutate(a.id);
               }}
             >
               show again
@@ -301,9 +303,14 @@ const Row: FC<{
           <button
             type="button"
             className={cn(link, 'text-coral')}
-            onClick={() => {
-              if (confirm(`Delete "${a.title}"? This can't be undone.`))
-                remove.mutate(a.id);
+            onClick={async () => {
+              const ok = await confirm({
+                title: `delete "${a.title}"?`,
+                message: "it can't be undone.",
+                confirmLabel: 'delete',
+                cancelLabel: 'keep it',
+              });
+              if (ok) remove.mutate(a.id);
             }}
           >
             delete

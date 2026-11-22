@@ -4,6 +4,7 @@ import { useRerunAIReview } from '../api';
 import type { FC } from 'react';
 import { formatScore } from '@/ai/score';
 import { cn } from '@/utils';
+import { useConfirm } from '@/components/Confirm';
 
 type Props = {
   submissionId: string;
@@ -32,17 +33,18 @@ export const RerunAIButton: FC<Props> = ({
   className,
 }) => {
   const rerun = useRerunAIReview();
+  const confirm = useConfirm();
 
-  function run() {
+  async function run() {
     const who = judgeName ?? "today's judge";
     const whose = artist ? `${artist}'s` : 'this';
-    if (
-      !window.confirm(
-        `Have ${who} judge ${whose} doodle again? The new review replaces the one the player sees; the old run stays in the AI log.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: `have ${who} judge ${whose} doodle again?`,
+      message:
+        'the new review replaces the one the player sees; the old run stays in the AI log.',
+      confirmLabel: 're-run',
+    });
+    if (!ok) return;
     rerun.mutate({ submissionId, personalityId });
   }
 
