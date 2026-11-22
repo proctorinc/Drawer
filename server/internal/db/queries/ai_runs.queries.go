@@ -42,8 +42,22 @@ type AIRun struct {
 	Model           string                    `json:"model"`
 	Error           string                    `json:"error"`
 	DurationMS      int64                     `json:"durationMs"`
+	Metadata        AIRunMetadata             `json:"metadata"`
 	CreatedAt       time.Time                 `json:"createdAt"`
 	ArtistID        string                    `json:"-"` // For the image URL of a real doodle
+}
+
+// AIRunMetadata is how a run's scores were adjusted in code after the judge answered.
+// Runs logged before it was kept have none.
+type AIRunMetadata struct {
+	Seen          string  `json:"seen,omitempty"`          // What the judge thought the drawing showed
+	Effort        string  `json:"effort,omitempty"`        // real, low or none
+	EffortPenalty float64 `json:"effortPenalty,omitempty"` // Share taken off the overall score
+	Prompt        string  `json:"prompt,omitempty"`        // nailed, complete, partial or missed
+	PromptMissing string  `json:"promptMissing,omitempty"` // The parts of the prompt it found missing
+	PromptBonus   float64 `json:"promptBonus,omitempty"`   // Added to every score
+	Swing         string  `json:"swing,omitempty"`         // The random swing: "boost", "super" or none
+	SwingPoints   float64 `json:"swingPoints,omitempty"`   // Added to every score (negative when hated)
 }
 
 // LogAIRun records a judge call. It never fails the caller: the log is for watching.
@@ -59,6 +73,10 @@ func LogAIRun(repo *sql.DB, ctx context.Context, run AIRun) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	metadataJSON, err := json.Marshal(run.Metadata)
+	if err != nil {
+		return "", err
+	}
 	var userID any
 	if run.User != nil && run.User.ID != "" {
 		userID = run.User.ID
@@ -69,11 +87,11 @@ func LogAIRun(repo *sql.DB, ctx context.Context, run AIRun) (string, error) {
 	}
 	_, err = repo.ExecContext(ctx, `
 		INSERT INTO ai_runs (id, kind, batch_id, personality_id, judge_name, judge_avatar_url, judge_decoration, system_prompt,
-			submission_id, prompt, image_data, user_id, status, score, criteria_scores, comment, model, error, duration_ms)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			submission_id, prompt, image_data, user_id, status, score, criteria_scores, comment, model, error, duration_ms, metadata)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		run.ID, run.Kind, run.BatchID, run.PersonalityID, run.JudgeName, run.JudgeAvatarURL, run.JudgeDecoration, run.SystemPrompt,
 		submissionID, run.Prompt, run.ImageData, userID, run.Status, run.Score, string(criteriaJSON), run.Comment, run.Model,
-		run.Error, run.DurationMS)
+		run.Error, run.DurationMS, string(metadataJSON))
 	if err != nil {
 		return "", fmt.Errorf("error logging AI run: %w", err)
 	}
@@ -85,7 +103,7 @@ func ListAIRuns(repo *sql.DB, ctx context.Context, limit int) ([]AIRun, error) {
 	rows, err := repo.QueryContext(ctx, `
 		SELECT r.id, r.kind, r.batch_id, r.personality_id, r.judge_name, r.judge_avatar_url, r.judge_decoration, r.system_prompt,
 			r.submission_id, r.prompt, r.image_data, r.status, r.score, r.criteria_scores, r.comment, r.model, r.error,
-			r.duration_ms, r.created_at, COALESCE(s.user_id, ''),
+			r.duration_ms, r.metadata, r.created_at, COALESCE(s.user_id, ''),
 			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration
 		FROM ai_runs r
 		LEFT JOIN user_submissions s ON s.id = r.submission_id
@@ -103,13 +121,13 @@ func ListAIRuns(repo *sql.DB, ctx context.Context, limit int) ([]AIRun, error) {
 			run                                                 AIRun
 			submissionID                                        sql.NullString
 			score                                               sql.NullFloat64
-			criteriaJSON                                        string
+			criteriaJSON, metadataJSON                          string
 			userID, username, avatarType, avatarURL, decoration sql.NullString
 			userCreatedAt                                       sql.NullTime
 		)
 		err := rows.Scan(&run.ID, &run.Kind, &run.BatchID, &run.PersonalityID, &run.JudgeName, &run.JudgeAvatarURL,
 			&run.JudgeDecoration, &run.SystemPrompt, &submissionID, &run.Prompt, &run.ImageData, &run.Status, &score,
-			&criteriaJSON, &run.Comment, &run.Model, &run.Error, &run.DurationMS, &run.CreatedAt, &run.ArtistID,
+			&criteriaJSON, &run.Comment, &run.Model, &run.Error, &run.DurationMS, &metadataJSON, &run.CreatedAt, &run.ArtistID,
 			&userID, &username, &userCreatedAt, &avatarType, &avatarURL, &decoration)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning AI run: %w", err)
@@ -123,6 +141,7 @@ func ListAIRuns(repo *sql.DB, ctx context.Context, limit int) ([]AIRun, error) {
 		}
 		run.Criteria = []models.AICriterionScore{}
 		_ = json.Unmarshal([]byte(criteriaJSON), &run.Criteria)
+		_ = json.Unmarshal([]byte(metadataJSON), &run.Metadata)
 		if userID.Valid {
 			run.User = &models.User{
 				ID: userID.String, Username: username.String, CreatedAt: userCreatedAt.Time,

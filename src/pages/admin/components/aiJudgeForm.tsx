@@ -1,4 +1,5 @@
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
+import { describeSwing } from '../api';
 import type { FC, ReactNode } from 'react';
 import type { AICriterion, AIPersonality, AIVerdict } from '../api';
 import { AIReviewComment } from '@/ai/AIReviewComment';
@@ -130,6 +131,22 @@ export const VerdictPreview: FC<{
     />
     <span className="text-xs text-pencil">
       {verdict.seen && <>saw: {verdict.seen} · </>}
+      prompt: {verdict.prompt}
+      {verdict.promptMissing && <> (missing {verdict.promptMissing})</>}
+      {verdict.promptBonus !== 0 && (
+        <>
+          {' '}
+          {verdict.promptBonus > 0 ? '+' : '−'}
+          {Math.abs(verdict.promptBonus)} each
+        </>
+      )}{' '}
+      ·{' '}
+      {verdict.swing.kind && (
+        <>
+          {verdict.swing.points > 0 ? 'loved it' : 'hated it'}:{' '}
+          {describeSwing(verdict.swing.kind, verdict.swing.points)} each ·{' '}
+        </>
+      )}
       {verdict.effortPenalty > 0 && (
         <>
           {verdict.effort === 'none' ? 'no effort' : 'low effort'}: −

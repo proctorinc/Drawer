@@ -88,7 +88,7 @@ func (o *OpenAI) Judge(ctx context.Context, req Request) (string, error) {
 	return o.complete(ctx, []openAIMessage{
 		{Role: "system", Content: SystemPrompt(req.Personality)},
 		{Role: "user", Content: []openAIContentPart{
-			{Type: "text", Text: UserPrompt(req.Prompt)},
+			{Type: "text", Text: UserPrompt(req.Prompt, req.Swing)},
 			// Low detail is plenty for a phone doodle, and the cheapest
 			{Type: "image_url", ImageURL: &openAIImageURL{
 				URL:    "data:image/png;base64," + base64.StdEncoding.EncodeToString(req.Image),

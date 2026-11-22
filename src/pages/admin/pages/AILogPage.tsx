@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { useAIRuns } from '../api';
+import { describeSwing, useAIRuns } from '../api';
 import {
   AdminPage,
   Loaded,
@@ -13,7 +13,7 @@ import {
   th,
 } from '../components/ui';
 import { RerunAIButton } from '../components/RerunAIButton';
-import type { AIRun, AIRunKind } from '../api';
+import type { AIRun, AIRunKind, AIRunMetadata } from '../api';
 import type { FC } from 'react';
 import { AIJudgeAvatar } from '@/ai/AIJudgeAvatar';
 import { AI_SCORE_MAX, formatScore } from '@/ai/score';
@@ -57,6 +57,37 @@ const judgeOf = (run: AIRun) => ({
   decoration: run.judgeDecoration,
 });
 
+/** How the run's scores were adjusted in code after the judge answered */
+const Adjustments: FC<{ metadata: AIRunMetadata }> = ({ metadata: m }) => {
+  const parts: Array<string> = [];
+  if (m.seen) parts.push(`saw: ${m.seen}`);
+  if (m.prompt) {
+    let prompt = `prompt: ${m.prompt}`;
+    if (m.promptMissing) prompt += ` (missing ${m.promptMissing})`;
+    if (m.promptBonus)
+      prompt += ` ${m.promptBonus > 0 ? '+' : '−'}${Math.abs(m.promptBonus)} each`;
+    parts.push(prompt);
+  }
+  if (m.effortPenalty) {
+    parts.push(`${m.effort} effort: −${Math.round(m.effortPenalty * 100)}%`);
+  }
+  if (!m.swing && parts.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm text-pencil">
+      {m.swing && (
+        <Tag
+          className={
+            m.swingPoints && m.swingPoints > 0 ? 'bg-butter' : 'bg-white'
+          }
+        >
+          <b>{describeSwing(m.swing, m.swingPoints ?? 0)}</b> each
+        </Tag>
+      )}
+      {parts.join(' · ')}
+    </div>
+  );
+};
+
 /** Everything about one run, under its row */
 const RunDetails: FC<{ run: AIRun }> = ({ run }) => (
   <div className="grid grid-cols-1 sm:grid-cols-[12rem_1fr] gap-4 sm:gap-6 p-4 bg-paper">
@@ -77,11 +108,12 @@ const RunDetails: FC<{ run: AIRun }> = ({ run }) => (
           {run.criteria.map((c) => (
             <Tag key={c.id} className="bg-white">
               {c.imageUrl && <img src={c.imageUrl} alt="" className="size-4" />}
-              {c.name} <b>{c.score}</b>/{AI_SCORE_MAX}
+              {c.name} <b>{formatScore(c.score)}</b>/{AI_SCORE_MAX}
             </Tag>
           ))}
         </div>
       )}
+      <Adjustments metadata={run.metadata} />
       <div className="flex flex-wrap gap-x-4 text-sm text-pencil">
         <span>model {run.model || '–'}</span>
         <span>took {seconds(run.durationMs)}</span>
@@ -289,6 +321,14 @@ const AILogPage = () => {
                           {run.score !== null
                             ? `${formatScore(run.score)}/${AI_SCORE_MAX}`
                             : '–'}
+                          {run.metadata.swing && (
+                            <div className="font-body font-normal text-xs text-pencil">
+                              {describeSwing(
+                                run.metadata.swing,
+                                run.metadata.swingPoints ?? 0,
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className={cn(td, 'max-w-md')}>
                           {run.status === 'failed' ? (

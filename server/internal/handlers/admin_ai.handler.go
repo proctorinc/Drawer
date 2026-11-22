@@ -267,6 +267,12 @@ type AdminAIVerdict struct {
 	Seen          string  `json:"seen"`
 	Effort        string  `json:"effort"`
 	EffortPenalty float64 `json:"effortPenalty"`
+	// How well it follows the prompt, what it's missing, and the bonus added to every score
+	Prompt        string  `json:"prompt"`
+	PromptMissing string  `json:"promptMissing"`
+	PromptBonus   float64 `json:"promptBonus"`
+	// The rare love or hate swing added to every score, usually none
+	Swing ai.Swing `json:"swing"`
 }
 
 func newAdminAIVerdict(v ai.Verdict, model string) AdminAIVerdict {
@@ -277,6 +283,7 @@ func newAdminAIVerdict(v ai.Verdict, model string) AdminAIVerdict {
 	return AdminAIVerdict{
 		Score: v.Score, Criteria: criteria, Comment: v.Comment, Model: model,
 		Seen: v.Seen, Effort: v.Effort, EffortPenalty: v.EffortPenalty,
+		Prompt: v.Prompt, PromptMissing: v.PromptMissing, PromptBonus: v.PromptBonus, Swing: v.Swing,
 	}
 }
 

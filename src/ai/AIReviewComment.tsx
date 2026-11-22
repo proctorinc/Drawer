@@ -43,7 +43,7 @@ export const CriterionChip: FC<{ criterion: AICriterionScore }> = ({
     )}
     <span>{criterion.name}</span>
     <b>
-      {criterion.score}
+      {formatScore(criterion.score)}
       <span className="font-normal text-pencil">/{AI_SCORE_MAX}</span>
     </b>
   </span>

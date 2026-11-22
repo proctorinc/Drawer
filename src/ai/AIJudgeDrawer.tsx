@@ -1,5 +1,5 @@
 import { AIJudgeAvatar } from './AIJudgeAvatar';
-import { AI_SCORE_MAX } from './score';
+import { AI_SCORE_MAX, formatScore } from './score';
 import type { FC } from 'react';
 import type { AICriterionScore, AIJudge } from '@/api/Api';
 import Sheet from '@/pages/profile/components/Sheet';
@@ -72,7 +72,7 @@ export const AIJudgeDrawer: FC<Props> = ({
               </span>
               {criterion.score !== undefined && (
                 <span className="font-accent font-bold text-xl whitespace-nowrap">
-                  {criterion.score}
+                  {formatScore(criterion.score)}
                   <span className="text-sm text-pencil">/{AI_SCORE_MAX}</span>
                 </span>
               )}

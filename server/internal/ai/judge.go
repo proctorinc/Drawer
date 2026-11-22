@@ -76,12 +76,14 @@ var NewProvider = func(s Settings) Provider {
 const reviewTimeout = 90 * time.Second
 
 // Run asks the provider for a verdict, without saving anything (admin previews use this).
+// It rolls the rare love-or-hate swing first, so the judge knows how it feels.
 func Run(ctx context.Context, provider Provider, req Request) (Verdict, error) {
+	req.Swing = rollSwing()
 	raw, err := provider.Judge(ctx, req)
 	if err != nil {
 		return Verdict{}, err
 	}
-	return ParseVerdict(raw, req.Personality)
+	return ParseVerdict(raw, req.Personality, req.Swing)
 }
 
 // RunMeta says why a judge is being run, for the AI log.
@@ -128,6 +130,14 @@ func RunAndLog(ctx context.Context, repo *sql.DB, provider Provider, req Request
 		run.Score = &verdict.Score
 		run.Criteria = verdict.Criteria
 		run.Comment = verdict.Comment
+		run.Metadata = queries.AIRunMetadata{
+			Seen: verdict.Seen, Effort: verdict.Effort, EffortPenalty: verdict.EffortPenalty,
+			Prompt: verdict.Prompt, PromptMissing: verdict.PromptMissing, PromptBonus: verdict.PromptBonus,
+			Swing: verdict.Swing.Kind, SwingPoints: verdict.Swing.Points,
+		}
+		if verdict.Swing.Kind != SwingNone {
+			log.Printf("AI judge: %s got a %s swing of %+.1f on %q", p.Name, verdict.Swing.Kind, verdict.Swing.Points, req.Prompt)
+		}
 	}
 	// A fresh context: ctx may be why it failed, and the attempt is still worth logging
 	if _, logErr := queries.LogAIRun(repo, context.Background(), run); logErr != nil {

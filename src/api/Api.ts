@@ -174,7 +174,7 @@ export interface AICriterionScore {
   name: string;
   description: string;
   imageUrl: string;
-  /** A whole number out of 10 */
+  /** Out of 10, to at most one decimal place */
   score: number;
 }
 

@@ -331,7 +331,42 @@ export interface AIVerdict {
   effort: 'real' | 'low' | 'none';
   /** Share taken off the score for little or no effort (hidden from players), already applied */
   effortPenalty: number;
+  /** How well it follows the day's prompt */
+  prompt: 'nailed' | 'complete' | 'partial' | 'missed';
+  /** The parts of the prompt the judge found missing, or '' */
+  promptMissing: string;
+  /** Added to every criterion (or the score) for following the prompt, already applied */
+  promptBonus: number;
+  /** The rare swing added to every score because the judge loved or hated it */
+  swing: AISwing;
 }
+
+/** A random swing, rolled in code before the judge sees the doodle. The judge is only told
+ * it loves or hates it; points are added to every score (negative when hated) */
+export interface AISwing {
+  /** '' for no swing (most reviews), 'boost', or the much rarer 'super' */
+  kind: '' | 'boost' | 'super';
+  points: number;
+}
+
+/** How a run's scores were adjusted in code after the judge answered; empty for older runs */
+export interface AIRunMetadata {
+  seen?: string;
+  effort?: 'real' | 'low' | 'none';
+  /** Share taken off the overall score */
+  effortPenalty?: number;
+  prompt?: 'nailed' | 'complete' | 'partial' | 'missed';
+  promptMissing?: string;
+  /** Added to every score */
+  promptBonus?: number;
+  swing?: 'boost' | 'super';
+  /** Added to every score; negative when the judge hated it */
+  swingPoints?: number;
+}
+
+/** "super boost +3.4", "boost −1.2" */
+export const describeSwing = (kind: 'boost' | 'super', points: number) =>
+  `${kind === 'super' ? 'super boost' : 'boost'} ${points > 0 ? '+' : '−'}${Math.abs(points)}`;
 
 export interface AdminAIReview extends Omit<AIReview, 'status'> {
   status: 'pending' | 'done' | 'failed';
@@ -474,6 +509,7 @@ export interface AIRun {
   model: string;
   error: string;
   durationMs: number;
+  metadata: AIRunMetadata;
   createdAt: string;
 }
 

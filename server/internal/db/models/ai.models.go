@@ -51,10 +51,10 @@ type AIJudge struct {
 }
 
 // AICriterionScore is a criterion as it was when the doodle was judged, and its score
-// (a whole number out of AIScoreMax).
+// (out of AIScoreMax, to one decimal).
 type AICriterionScore struct {
 	AICriterion
-	Score int `json:"score"`
+	Score float64 `json:"score"`
 }
 
 // AIReview is an AI judge's score and comment on a doodle.

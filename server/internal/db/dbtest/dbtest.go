@@ -31,6 +31,7 @@ var eventMigrations = []string{
 	// Its tables are already in the schema dump
 	"1795130810_seed_announcements.up.sql",
 	"1795131100_seed_achievement_decorations.up.sql",
+	"1795131900_add_ai_run_metadata.up.sql",
 }
 
 // NewEventsDB returns an in-memory database with the schema from migrations/schema.sql, where
