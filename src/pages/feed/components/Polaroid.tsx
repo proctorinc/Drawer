@@ -7,7 +7,7 @@ import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { LockedDrawing } from '@/drawing/components/LockedDrawing';
 import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 import { CommentIcon } from '@/components/icons';
-import { ReactionPile } from '@/reactions/ReactionPile';
+import { ReactionScatter } from '@/reactions/ReactionScatter';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { polaroidFrameClass } from '@/components/polaroid';
@@ -79,7 +79,7 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
           <Link
             to="/draw/submission/$submissionId"
             params={{ submissionId: submission.id }}
-            aria-label={`Open ${isMine ? 'your' : `${submission.user.username}'s`} doodle`}
+            aria-label={`Open ${isMine ? 'your' : `${submission.user.username}'s`} doodle${reactionCount > 0 ? `, ${reactionCount} ${reactionCount === 1 ? 'reaction' : 'reactions'}` : ''}`}
             className="block aspect-square bg-[#fff8ec] overflow-hidden"
           >
             {isLocked ? (
@@ -96,24 +96,16 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
               className="absolute z-10 -top-5 -left-5 scale-75 origin-top-left pointer-events-none"
             />
           )}
+          {/* Reactions stuck all around the photo's border, most-picked first */}
+          <ReactionScatter counts={submission.counts} seed={index} />
         </div>
-        {/* One line: whose it is, its reactions, and the way into the comments */}
+        {/* One line: whose it is and the way into the comments */}
         <figcaption className="flex items-center gap-1.5 pt-2 pb-2">
           <UserProfileIcon
             user={submission.user}
             size="sm"
             className="flex-none"
           />
-          {reactionCount > 0 && (
-            <Link
-              to="/draw/submission/$submissionId"
-              params={{ submissionId: submission.id }}
-              aria-label={`${reactionCount} ${reactionCount === 1 ? 'reaction' : 'reactions'}`}
-              className="flex flex-1 min-w-0 transition-[scale] duration-300 ease-[var(--ease-spring)] active:scale-90"
-            >
-              <ReactionPile counts={submission.counts} className="flex-1" />
-            </Link>
-          )}
           <Link
             to="/draw/submission/$submissionId"
             params={{ submissionId: submission.id }}
