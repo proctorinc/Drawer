@@ -108,6 +108,12 @@ export const CommentIcon: FC<IconProps> = (props) => (
   </StrokeIcon>
 );
 
+export const TrashIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M4.5 7.2c5-.3 10-.1 15-.2M9.5 7V4.8h5V7M6.5 7.5l1 12.5h9l1-12.5M10.2 11l.3 5.5M13.8 11l-.3 5.5" />
+  </StrokeIcon>
+);
+
 export const SendIcon: FC<IconProps> = (props) => (
   <StrokeIcon {...props}>
     <path d="M5 12h14M13 6l6 6-6 6" />
@@ -207,5 +213,12 @@ export const VibrateOffIcon: FC<IconProps> = (props) => (
   <StrokeIcon {...props}>
     <path d="M8.2 4.2c2.5-.2 5-.2 7.5 0 .3 5.2.3 10.4 0 15.6-2.5.2-5 .2-7.5 0-.3-5.2-.3-10.4 0-15.6z" />
     <path d="M11 16.8h2M4 4l16 16" />
+  </StrokeIcon>
+);
+
+/** Corners pulling back in: shrink a zoomed canvas back to fit */
+export const ZoomOutIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
   </StrokeIcon>
 );

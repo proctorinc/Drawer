@@ -119,7 +119,11 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
   // Every finished stroke, flattened, so a stroke in progress only has to
   // draw itself over one picture
   const committedRef = useRef<HTMLCanvasElement | null>(null);
-  const currentRef = useRef<{ path: Path; pointerId: number } | null>(null);
+  const currentRef = useRef<{
+    path: Path;
+    pointerId: number;
+    pointerType: string;
+  } | null>(null);
   const frameRef = useRef(0);
   const selectedColorRef = useRef(selectedColor);
   selectedColorRef.current = selectedColor;
@@ -201,14 +205,20 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
       onPointerDown: (event) => {
         const current = currentRef.current;
         if (!event.isPrimary) {
-          // A second finger: if the stroke has barely started it was the
-          // first half of a pinch or scroll, so it shouldn't leave a mark
+          // A second finger means a pinch, so the finger already down stops
+          // drawing. If its stroke had barely started it was the first half
+          // of the pinch and leaves no mark; a real line it drew is kept.
+          // (A palm landing beside a pencil doesn't count.)
           if (
             current &&
-            current.path.points.length < GESTURE_GRACE_POINTS &&
+            current.pointerType === 'touch' &&
             event.pointerType === 'touch'
           ) {
-            dropStroke();
+            if (current.path.points.length < GESTURE_GRACE_POINTS) {
+              dropStroke();
+            } else {
+              commitStroke();
+            }
           }
           return;
         }
@@ -225,6 +235,7 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
         const color = selectedColorRef.current;
         currentRef.current = {
           pointerId: event.pointerId,
+          pointerType: event.pointerType,
           path: new Path(
             [getEventPoint(event, event.currentTarget)],
             color ?? '#000',

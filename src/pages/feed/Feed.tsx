@@ -1,153 +1,53 @@
 import { useEffect, useState } from 'react';
-import { Link } from '@tanstack/react-router';
 import { CountDownTimer } from '../../daily/CountdownTimer';
 import { useDailyPrompt } from '../../daily/DailyPromptContext';
 import { PastPages, TodayWall } from './components/DayPages';
 import { SuggestionCards } from './components/SuggestionCards';
-import DrawingCanvas from './components/DrawingCanvas';
-import { PromptCredit, PromptTitle } from './components/PromptTitle';
-import type { DailyPrompt } from '@/api/Api';
-import { JudgeIntroReplayButton } from '@/ai/JudgeIntro';
+import DrawingDesk from './components/DrawingDesk';
+import type { Pinning } from './components/DrawingDesk';
 import Layout from '@/components/Layout';
-import { cn } from '@/utils';
 import LoadingScreen from '@/components/LoadingScreen';
 import { useDrawing } from '@/drawing/DrawingContext';
-import { CanvasSettingsButton } from '@/drawing/CanvasSettings';
-import { ClockIcon, SendIcon, TrophyIcon } from '@/components/icons';
+import { ClockIcon, SendIcon } from '@/components/icons';
 import { useSubmitPromptSuggestion } from '@/api/Api';
-import useUser from '@/auth/hooks/useUser';
-import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
-import { ChristmasIntroOnce } from '@/events/christmas/ChristmasIntro';
-import { TreeIcon } from '@/events/christmas/Decorations';
-import ComingSoonCard from '@/events/ComingSoonCard';
-import OrnamentTally from '@/events/christmas/OrnamentTally';
-import Snowfall from '@/events/christmas/Snowfall';
-import { useChristmas } from '@/events/useChristmas';
+import EventPreviewRow from '@/events/EventPreviewRow';
 import { PushPin } from '@/components/PushPin';
 import { useAnimationQueue } from '@/animations/AnimationQueue';
-import {
-  JUDGE_STRIP_HEIGHT,
-  TodaysJudgeChip,
-  useTodaysJudge,
-} from '@/ai/TodaysJudge';
 
 /** When tomorrow's prompt drops; fixed-width digits so it never jiggles */
-const NextPromptCountdown = () => (
-  <section
-    aria-label="Next prompt"
-    className="flex flex-col items-center gap-1 self-center px-6 pt-2.5 pb-3 bg-white border-2 border-ink rounded-sketch"
-  >
-    <span className="flex items-center gap-1.5 text-sm text-pencil">
-      <ClockIcon size={14} />
-      next prompt in
-    </span>
-    <CountDownTimer
-      monospace
-      className="font-accent font-bold text-[32px] leading-none"
-    />
-  </section>
-);
-
-const PromptHeading = ({ dailyPrompt }: { dailyPrompt: DailyPrompt }) => (
-  <section className="flex flex-col gap-1 min-w-0">
-    <span className="flex items-center gap-1 text-sm text-pencil">
-      <ClockIcon size={13} />
-      <CountDownTimer format="short" /> left
-    </span>
-    <PromptTitle prompt={dailyPrompt.prompt} colors={dailyPrompt.colors} />
-    <div className="flex items-center justify-between gap-3 mt-2 min-w-0">
-      {dailyPrompt.createdBy ? (
-        <PromptCredit user={dailyPrompt.createdBy} />
-      ) : (
-        <span />
-      )}
-      <JudgeIntroReplayButton />
-    </div>
-  </section>
-);
-
-/** Your own corners of the app; everyone else's drawings wait until you've drawn */
-const DeskLinks = () => {
-  const user = useUser();
-
-  return (
-    <nav aria-label="Main" className="flex flex-none items-center gap-2">
-      <CanvasSettingsButton />
-      <Link
-        to="/draw/trophies"
-        aria-label="Trophies"
-        className="press flex items-center justify-center size-10 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil-sm hover:-rotate-6"
-      >
-        <TrophyIcon size={22} />
-      </Link>
-      <UserProfileIcon user={user} size="sm" />
-    </nav>
+const NextPromptCountdown = ({ compact = false }: { compact?: boolean }) =>
+  compact ? (
+    // A quarter of the row beside an event preview: too narrow for 08:12:44,
+    // so hours, minutes and seconds stack, scaled to the card's width (the
+    // row makes this column a size container)
+    <section
+      aria-label="Next prompt"
+      className="flex flex-col items-center justify-center gap-1 w-full px-1.5 py-2 bg-white border-2 border-ink rounded-sketch text-center"
+    >
+      <span className="flex items-center gap-1 text-xs leading-tight text-pencil">
+        <ClockIcon size={12} />
+        next
+      </span>
+      <CountDownTimer
+        format="stack"
+        className="font-accent font-bold text-[clamp(18px,28cqw,26px)] leading-[1.05]"
+      />
+    </section>
+  ) : (
+    <section
+      aria-label="Next prompt"
+      className="flex flex-col items-center gap-1 self-center px-6 pt-2.5 pb-3 bg-white border-2 border-ink rounded-sketch"
+    >
+      <span className="flex items-center gap-1.5 text-sm text-pencil">
+        <ClockIcon size={14} />
+        next prompt in
+      </span>
+      <CountDownTimer
+        monospace
+        className="font-accent font-bold text-[32px] leading-none"
+      />
+    </section>
   );
-};
-
-/** A drawing on its way to the wall, from where its canvas sat */
-export type Pinning = { imageUrl: string; from: DOMRect };
-
-type DrawingDeskProps = {
-  dailyPrompt: DailyPrompt;
-  error: string | null;
-  onSubmit: (png: Blob, canvas: HTMLCanvasElement | null) => void;
-  /** Set while the drawing is being pinned: the tools fade while it animates */
-  pinning: Pinning | null;
-};
-
-/** Nothing but the prompt and the canvas, sized to fit any screen */
-const DrawingDesk = ({
-  dailyPrompt,
-  error,
-  onSubmit,
-  pinning,
-}: DrawingDeskProps) => {
-  const christmas = useChristmas();
-  const { data: judge } = useTodaysJudge();
-
-  return (
-    <div className="paper flex justify-center h-dvh overflow-hidden">
-      {christmas && <Snowfall />}
-      <main
-        className={cn(
-          'relative flex flex-col gap-4 w-full max-w-md px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(16px,env(safe-area-inset-bottom))] animate-rise transition-opacity duration-300',
-          // The polaroid takes over from the canvas, so everything here fades
-          pinning && 'opacity-0 pointer-events-none',
-        )}
-      >
-        <header className="flex items-start justify-between gap-3">
-          <PromptHeading dailyPrompt={dailyPrompt} />
-          <DeskLinks />
-        </header>
-        {christmas?.countdownDays && <OrnamentTally event={christmas} />}
-        <DrawingCanvas
-          fit
-          className="flex-1 min-h-0"
-          backgroundColor={
-            dailyPrompt.colors.length === 4 ? dailyPrompt.colors[3] : undefined
-          }
-          onSubmit={onSubmit}
-          belowCanvas={judge && <TodaysJudgeChip />}
-          belowCanvasHeight={
-            judge?.criteria.length ? JUDGE_STRIP_HEIGHT : undefined
-          }
-          colors={dailyPrompt.colors.slice(0, 3)}
-          submitLabel={
-            christmas ? (
-              <>
-                hang it on the tree
-                <TreeIcon />
-              </>
-            ) : undefined
-          }
-        />
-        {error && <p className="text-center text-coral">{error}</p>}
-      </main>
-      <ChristmasIntroOnce />
-    </div>
-  );
-};
 
 const SuggestPrompt = () => {
   const promptSuggestionMutation = useSubmitPromptSuggestion();
@@ -157,7 +57,7 @@ const SuggestPrompt = () => {
 
   return (
     <form
-      className="relative flex flex-col gap-2 w-full px-4 pt-5 pb-4 bg-[#fff6c9] rotate-1 shadow-[1px_2px_6px_rgba(43,42,51,0.15)]"
+      className="relative flex flex-col gap-2 w-full px-4 pt-5 pb-4 bg-[#fff6c9] rotate-1 border-2 border-ink"
       onSubmit={(event) => {
         event.preventDefault();
         setError(null);
@@ -285,8 +185,9 @@ const Feed = () => {
 
   return (
     <Layout>
-      <NextPromptCountdown />
-      <ComingSoonCard />
+      <EventPreviewRow
+        aside={(compact) => <NextPromptCountdown compact={compact} />}
+      />
       <TodayWall />
       <SuggestionCards />
       <SuggestPrompt />

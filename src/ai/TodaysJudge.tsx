@@ -36,7 +36,11 @@ export const JUDGE_STRIP_HEIGHT = '4.375rem';
  * little box per thing they score. Any of it opens a drawer about them.
  * Shows nothing when judging is off.
  */
-export const TodaysJudgeChip: FC<{ className?: string }> = ({ className }) => {
+export const TodaysJudgeChip: FC<{
+  className?: string;
+  /** Just the "judged by" line; the criteria wait in the drawer */
+  compact?: boolean;
+}> = ({ className, compact = false }) => {
   const { data } = useTodaysJudge();
   const [open, setOpen] = useState(false);
   if (!data) return null;
@@ -60,7 +64,7 @@ export const TodaysJudgeChip: FC<{ className?: string }> = ({ className }) => {
             judged by <span className="underline">{judge.name}</span>
           </span>
         </span>
-        {criteria.length > 0 && (
+        {!compact && criteria.length > 0 && (
           <span className="flex gap-1.5 w-full h-11">
             {criteria.map((criterion) => (
               <span

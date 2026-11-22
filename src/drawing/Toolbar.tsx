@@ -7,10 +7,14 @@ import { EraserIcon, UndoIcon } from '@/components/icons';
 
 type Props = {
   colors: Array<string>;
+  /** Smaller tools, for sharing a row with the submit button on short screens */
+  compact?: boolean;
+  className?: string;
 };
 
 type ToolButtonProps = {
   label: string;
+  compact?: boolean;
   isActive?: boolean;
   disabled?: boolean;
   onClick: () => void;
@@ -19,6 +23,7 @@ type ToolButtonProps = {
 
 const ToolButton: FC<ToolButtonProps> = ({
   label,
+  compact,
   isActive,
   disabled,
   onClick,
@@ -31,7 +36,8 @@ const ToolButton: FC<ToolButtonProps> = ({
     disabled={disabled}
     onClick={onClick}
     className={cn(
-      'press flex items-center justify-center size-[46px] border-2 border-ink rounded-sketch-alt shadow-pencil-sm cursor-pointer disabled:cursor-default disabled:opacity-35 disabled:shadow-none',
+      'press flex items-center justify-center border-2 border-ink rounded-sketch-alt shadow-pencil-sm cursor-pointer disabled:cursor-default disabled:opacity-35 disabled:shadow-none',
+      compact ? 'size-10 max-[359px]:size-9' : 'size-[46px]',
       isActive ? 'bg-me -rotate-6' : 'bg-white',
     )}
   >
@@ -39,7 +45,7 @@ const ToolButton: FC<ToolButtonProps> = ({
   </button>
 );
 
-export const Toolbar: FC<Props> = ({ colors }) => {
+export const Toolbar: FC<Props> = ({ colors, compact = false, className }) => {
   const {
     selectedColor,
     setSelectedColor,
@@ -65,8 +71,19 @@ export const Toolbar: FC<Props> = ({ colors }) => {
   }, [hasInk, selectedColor, firstColor, setSelectedColor]);
 
   return (
-    <div className="flex items-center justify-between w-full">
-      <div className="flex gap-3 items-center">
+    <div
+      className={cn(
+        'flex items-center justify-between w-full',
+        compact && 'gap-2',
+        className,
+      )}
+    >
+      <div
+        className={cn(
+          'flex items-center',
+          compact ? 'gap-2 max-[359px]:gap-1.5' : 'gap-3',
+        )}
+      >
         {colors.map((color, index) => {
           const isSelected = selectedColor === color;
           return (
@@ -76,7 +93,11 @@ export const Toolbar: FC<Props> = ({ colors }) => {
               aria-label={`Color ${index + 1}`}
               aria-pressed={isSelected}
               className={cn(
-                colors.length > 3 ? 'size-[42px]' : 'size-[50px]',
+                compact
+                  ? 'size-10 max-[359px]:size-9'
+                  : colors.length > 3
+                    ? 'size-[42px]'
+                    : 'size-[50px]',
                 'border-2 border-ink cursor-pointer transition-[scale,rotate,box-shadow] duration-300 ease-[var(--ease-spring)] active:scale-90 animate-in zoom-in-0 fill-mode-both',
                 dabShapes[index % dabShapes.length],
                 isSelected
@@ -95,9 +116,10 @@ export const Toolbar: FC<Props> = ({ colors }) => {
           );
         })}
       </div>
-      <div className="flex gap-2">
+      <div className={cn('flex', compact ? 'gap-1.5' : 'gap-2')}>
         <ToolButton
           label="Eraser"
+          compact={compact}
           isActive={!selectedColor}
           disabled={!hasInk}
           onClick={() => {
@@ -109,6 +131,7 @@ export const Toolbar: FC<Props> = ({ colors }) => {
         </ToolButton>
         <ToolButton
           label="Undo"
+          compact={compact}
           disabled={!canUndo}
           onClick={() => {
             toolFeedback.undo();

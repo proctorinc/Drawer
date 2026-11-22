@@ -1,7 +1,9 @@
 import { faDownload } from '@fortawesome/free-solid-svg-icons';
+import { useRef } from 'react';
 import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
+import type { PinchZoomHandle } from '@/drawing/usePinchZoom';
 import Button from '@/components/Button';
-import Canvas from '@/drawing/Canvas';
+import ZoomableCanvas from '@/drawing/ZoomableCanvas';
 import { useDrawing } from '@/drawing/DrawingContext';
 import { Toolbar } from '@/drawing/Toolbar';
 import { cn } from '@/utils';
@@ -44,8 +46,11 @@ const DrawingCanvas: FC<Props> = ({
 }) => {
   const { canvasRef, hasInk, getPng } = useDrawing();
   const { className: divClassName, ...divProps } = props;
+  const zoomRef = useRef<PinchZoomHandle>(null);
 
   async function handleSubmitCanvas() {
+    // Callers animate from where the canvas sits, so show all of it first
+    zoomRef.current?.reset(false);
     const blob = await getPng(backgroundColor);
     onSubmit?.(blob, canvasRef.current);
   }
@@ -96,27 +101,20 @@ const DrawingCanvas: FC<Props> = ({
           className="relative flex flex-col animate-drop"
           style={{ '--below-canvas': belowCanvasHeight } as CSSProperties}
         >
-          <div
-            className={cn(
-              'overflow-hidden bg-white border-2 border-ink shadow-pencil',
-              variant === 'round'
-                ? 'rounded-full'
-                : 'rounded-[6px_14px_8px_12px/12px_6px_14px_8px]',
+          <ZoomableCanvas
+            zoomRef={zoomRef}
+            variant={variant}
+            backgroundColor={backgroundColor}
+            canvasClassName={cn(
+              fit &&
+                'max-w-[min(calc(100cqw-4px),var(--canvas-w))] max-h-[min(calc(100cqh-4px),var(--canvas-h))]',
+              // Leave room for the note (its height + mt-2.5) under the canvas
+              fit &&
+                belowCanvas &&
+                'max-h-[min(calc(100cqh-4px-var(--below-canvas)-0.625rem),var(--canvas-h))]',
             )}
-          >
-            <Canvas
-              style={{ backgroundColor: backgroundColor }}
-              className={cn(
-                fit &&
-                  'max-w-[min(calc(100cqw-4px),var(--canvas-w))] max-h-[min(calc(100cqh-4px),var(--canvas-h))]',
-                // Leave room for the note (its height + mt-2.5) under the canvas
-                fit &&
-                  belowCanvas &&
-                  'max-h-[min(calc(100cqh-4px-var(--below-canvas)-0.625rem),var(--canvas-h))]',
-              )}
-              {...canvasProps}
-            />
-          </div>
+            canvasProps={canvasProps}
+          />
           {belowCanvas && (
             <div className="flex items-center justify-center h-(--below-canvas) mt-2.5 text-sm text-pencil">
               {belowCanvas}
