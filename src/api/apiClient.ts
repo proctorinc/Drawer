@@ -332,6 +332,17 @@ export const apiClient = {
     return response.json();
   },
 
+  deleteComment: async (submissionId: string, commentId: string) => {
+    const response = await fetchAPI(
+      'DELETE',
+      `/submission/${submissionId}/comment/${commentId}`,
+    );
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "couldn't delete that comment, try again");
+    }
+  },
+
   // Reactions
   toggleSubmissionReaction: async (
     submissionId: string,

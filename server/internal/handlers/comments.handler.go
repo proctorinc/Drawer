@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"drawer-service-backend/internal/achievements"
 	requestContext "drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
@@ -152,4 +153,63 @@ func HandleCommentToggleReaction(c *gin.Context) {
 	}()
 
 	c.JSON(http.StatusOK, response)
+}
+
+// HandleDeleteComment deletes a comment, and the reactions on it. Only the person who
+// wrote the comment may delete it.
+func HandleDeleteComment(c *gin.Context) {
+	requester := middleware.GetUser(c)
+	appCtx := requestContext.GetCtx(c)
+	ctx := c.Request.Context()
+
+	submissionID := c.Param("id")
+	commentID := c.Param("commentId")
+
+	var authorID string
+	err := appCtx.DB.QueryRowContext(ctx,
+		"SELECT user_id FROM comments WHERE id = ? AND submission_id = ?", commentID, submissionID,
+	).Scan(&authorID)
+	if err == sql.ErrNoRows {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Comment not found"})
+		return
+	} else if err != nil {
+		log.Printf("Error looking up comment %s: %v", commentID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete comment"})
+		return
+	}
+	if authorID != requester.ID {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "You can only delete your own comments"})
+		return
+	}
+
+	tx, err := appCtx.DB.BeginTx(ctx, nil)
+	if err != nil {
+		log.Printf("Error starting transaction to delete comment %s: %v", commentID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete comment"})
+		return
+	}
+	defer tx.Rollback()
+
+	// Reactions point at comments by content_id with no foreign key, so clear them by hand
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM reactions WHERE content_type = 'comment' AND content_id = ?", commentID,
+	); err != nil {
+		log.Printf("Error deleting reactions on comment %s: %v", commentID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete comment"})
+		return
+	}
+	if _, err := tx.ExecContext(ctx,
+		"DELETE FROM comments WHERE id = ? AND user_id = ?", commentID, requester.ID,
+	); err != nil {
+		log.Printf("Error deleting comment %s: %v", commentID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete comment"})
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		log.Printf("Error committing delete of comment %s: %v", commentID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete comment"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"deleted": true})
 }

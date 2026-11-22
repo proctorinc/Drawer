@@ -542,6 +542,18 @@ export function useAddComment() {
   });
 }
 
+export function useDeleteComment() {
+  return useMutation({
+    mutationFn: ({
+      submissionId,
+      commentId,
+    }: {
+      submissionId: string;
+      commentId: string;
+    }) => apiClient.deleteComment(submissionId, commentId),
+  });
+}
+
 export function useToggleSubmissionReaction() {
   return useMutation({
     mutationFn: ({
