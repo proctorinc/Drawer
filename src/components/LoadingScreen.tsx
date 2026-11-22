@@ -1,9 +1,26 @@
 import Logo from './Logo';
+import { useFullscreenPage, useShell } from './AppShell';
+import useAuth from '@/auth/hooks/useAuth';
 
+/**
+ * Inside the app, a page still loading keeps the masthead and navbar and shows
+ * a scribble where its content will go. Before sign-in it's the full splash.
+ */
 const LoadingScreen = () => {
+  const inShell = useShell() !== null;
+  const { isAuthenticated } = useAuth();
+  const inline = inShell && isAuthenticated;
+  useFullscreenPage(!inline);
+
   return (
-    <div className="paper flex flex-col gap-8 h-dvh items-center justify-center">
-      <Logo size="lg" className="animate-float" />
+    <div
+      className={
+        inline
+          ? 'flex flex-col flex-grow min-h-[60dvh] items-center justify-center pb-36'
+          : 'paper flex flex-col gap-8 h-dvh items-center justify-center'
+      }
+    >
+      {!inline && <Logo size="lg" className="animate-float" />}
       <svg
         width="120"
         height="16"

@@ -23,7 +23,7 @@ type Props = {
 
 export const UserProfileProvider: FC<Props> = ({ children }) => {
   const currentUser = useUser();
-  const { userId } = useParams({ from: '/draw/profile/$userId' });
+  const { userId } = useParams({ from: '/_app/draw/profile/$userId' });
   const {
     data,
     isLoading,

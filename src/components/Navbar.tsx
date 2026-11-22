@@ -25,10 +25,9 @@ function tabFor(pathname: string) {
   return -1;
 }
 
-// Each page mounts its own Navbar, so tab changes are tracked at module level.
-// A freshly mounted bar starts on the previous tab and animates to the new one.
-// The outgoing page's bar sees the new URL before it unmounts, so the change
-// is recorded during render by whichever bar sees it first.
+// The bar lives in AppShell and stays mounted across pages, but it remounts
+// when you come back from admin, so tab changes are tracked at module level:
+// a freshly mounted bar starts on the previous tab and animates to the new one.
 let currentTab: number | null = null;
 let previousTab: number | null = null;
 let changedAt = 0;

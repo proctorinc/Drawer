@@ -67,8 +67,8 @@ function status(event: ActiveEvent, isLive: boolean): [string, string] {
  */
 const EventPage = () => {
   const me = useUser();
-  const { slug } = useParams({ from: '/draw/event/$slug' });
-  const { user: userParam } = useSearch({ from: '/draw/event/$slug' });
+  const { slug } = useParams({ from: '/_app/draw/event/$slug' });
+  const { user: userParam } = useSearch({ from: '/_app/draw/event/$slug' });
   const viewingFriend = !!userParam && userParam !== me.id;
   const {
     data: recap,

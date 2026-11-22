@@ -70,6 +70,7 @@ import StickersPage from './pages/profile/StickersPage.tsx';
 import MyDecorationsPage from './pages/profile/DecorationsPage.tsx';
 import { Config } from './config/Config.ts';
 import ImpersonationBanner from './components/ImpersonationBanner.tsx';
+import AppShell from './components/AppShell.tsx';
 import type { AchievementTab } from './pages/achievements/AchievementsPage.tsx';
 import type { FC } from 'react';
 
@@ -106,9 +107,16 @@ const rootRoute = createRootRoute({
   ),
 });
 
+// Pathless: the persistent masthead and navbar around every non-admin page
+const appRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: '_app',
+  component: AppShell,
+});
+
 // Root route that redirects to /draw
 const rootRedirectRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/',
   component: () => (
     <AuthRoute>
@@ -118,7 +126,7 @@ const rootRedirectRoute = createRoute({
 });
 
 const indexRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw',
   component: () => (
     <AuthRoute>
@@ -132,7 +140,7 @@ const indexRoute = createRoute({
 });
 
 const userProfileRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/profile/me',
   // ?try=<decoration> opens the edit sheet wearing it, from the flair page
   validateSearch: (search: Record<string, unknown>): { try?: string } => ({
@@ -148,7 +156,7 @@ const userProfileRoute = createRoute({
 });
 
 const drawProfilePicRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/profile/pic',
   // ?slot=0..2 draws into that face slot; without it, the next empty one
   validateSearch: (search: Record<string, unknown>): { slot?: number } => {
@@ -170,7 +178,7 @@ const drawProfilePicRoute = createRoute({
 });
 
 const friendProfileRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/profile/$userId',
   component: () => (
     <AuthRoute>
@@ -184,7 +192,7 @@ const friendProfileRoute = createRoute({
 // Your own are under /me; the static segment there outranks $userId, so
 // /draw/profile/me/... needs routes of its own
 const myDrawingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/profile/me/drawings',
   component: () => (
     <AuthRoute>
@@ -194,7 +202,7 @@ const myDrawingsRoute = createRoute({
 });
 
 const myStickersRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/profile/me/stickers',
   component: () => (
     <AuthRoute>
@@ -204,7 +212,7 @@ const myStickersRoute = createRoute({
 });
 
 const myDecorationsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/profile/me/decorations',
   component: () => (
     <AuthRoute>
@@ -216,7 +224,7 @@ const myDecorationsRoute = createRoute({
 });
 
 const drawingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/profile/$userId/drawings',
   component: () => (
     <AuthRoute>
@@ -226,7 +234,7 @@ const drawingsRoute = createRoute({
 });
 
 const stickersRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/profile/$userId/stickers',
   component: () => (
     <AuthRoute>
@@ -236,7 +244,7 @@ const stickersRoute = createRoute({
 });
 
 const trophiesRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/trophies',
   component: () => (
     <AuthRoute>
@@ -248,7 +256,7 @@ const trophiesRoute = createRoute({
 });
 
 const achievementsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/achievements',
   validateSearch: (
     search: Record<string, unknown>,
@@ -263,7 +271,7 @@ const achievementsRoute = createRoute({
 });
 
 const eventRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/event/$slug',
   validateSearch: (search: Record<string, unknown>): { user?: string } => ({
     user: typeof search.user === 'string' ? search.user : undefined,
@@ -277,13 +285,13 @@ const eventRoute = createRoute({
 
 // Old links (push notifications, bookmarks) still point here
 const legacyActivityRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/activity',
   component: () => <Navigate to="/draw/trophies" replace />,
 });
 
 const promptSubmissionRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/submission/$submissionId',
   component: () => (
     <AuthRoute>
@@ -294,7 +302,7 @@ const promptSubmissionRoute = createRoute({
 
 // The beta lab: admins and testers they've let in (each page checks)
 const betaDuelsRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/beta',
   component: () => (
     <AuthRoute>
@@ -304,7 +312,7 @@ const betaDuelsRoute = createRoute({
 });
 
 const betaDuelRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/draw/beta/duel/$duelId',
   component: () => (
     <AuthRoute>
@@ -366,37 +374,39 @@ const adminPages = [
 ];
 
 const createProfileRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/auth/sign-up',
   component: () => <CreateProfilePage />,
 });
 
 const loginRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => appRoute,
   path: '/auth/login',
   component: () => <LoginPage />,
 });
 
 const routeTree = rootRoute.addChildren([
-  rootRedirectRoute,
-  indexRoute,
-  userProfileRoute,
-  drawProfilePicRoute,
-  friendProfileRoute,
-  myDrawingsRoute,
-  myStickersRoute,
-  myDecorationsRoute,
-  drawingsRoute,
-  stickersRoute,
-  trophiesRoute,
-  achievementsRoute,
-  eventRoute,
-  legacyActivityRoute,
-  createProfileRoute,
-  loginRoute,
-  promptSubmissionRoute,
-  betaDuelsRoute,
-  betaDuelRoute,
+  appRoute.addChildren([
+    rootRedirectRoute,
+    indexRoute,
+    userProfileRoute,
+    drawProfilePicRoute,
+    friendProfileRoute,
+    myDrawingsRoute,
+    myStickersRoute,
+    myDecorationsRoute,
+    drawingsRoute,
+    stickersRoute,
+    trophiesRoute,
+    achievementsRoute,
+    eventRoute,
+    legacyActivityRoute,
+    createProfileRoute,
+    loginRoute,
+    promptSubmissionRoute,
+    betaDuelsRoute,
+    betaDuelRoute,
+  ]),
   adminRoute.addChildren(adminPages),
 ]);
 

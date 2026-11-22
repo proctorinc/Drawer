@@ -8,7 +8,7 @@ import LoadingScreen from '@/components/LoadingScreen';
 const PromptSubmissionPage = () => {
   const navigate = useNavigate();
   const { submissionId } = useParams({
-    from: '/draw/submission/$submissionId',
+    from: '/_app/draw/submission/$submissionId',
   });
   const { data: profile } = useGetMyProfile();
   const {

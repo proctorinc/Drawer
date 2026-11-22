@@ -114,7 +114,7 @@ const DrawFace: FC<CanvasProps> = ({ slot, isRedraw }) => {
 };
 
 const DrawProfilePicPage = () => {
-  const { slot: requested } = useSearch({ from: '/draw/profile/pic' });
+  const { slot: requested } = useSearch({ from: '/_app/draw/profile/pic' });
   const { avatars, customAvatarIsUnlocked, profile } = useMyProfilePage();
 
   // Until it's unlocked there are no slots to list; draw into the first one

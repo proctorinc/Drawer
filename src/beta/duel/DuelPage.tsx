@@ -144,7 +144,7 @@ const headline = (duel: Duel, userId: string) => {
 };
 
 const DuelPage = () => {
-  const { duelId } = useParams({ from: '/draw/beta/duel/$duelId' });
+  const { duelId } = useParams({ from: '/_app/draw/beta/duel/$duelId' });
   const user = useUser();
   const duel = useDuel(duelId, user.id);
   const [intro, setIntro] = useState(
