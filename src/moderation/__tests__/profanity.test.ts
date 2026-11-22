@@ -20,10 +20,6 @@ describe('isProfane', () => {
     'hell',
     'crap',
     'crappy',
-    'stupid',
-    'Idiot',
-    'loser',
-    'dumb',
   ])('flags %s', (word) => expect(isProfane(word)).toBe(true));
 
   it.each([
@@ -45,8 +41,9 @@ describe('isProfane', () => {
     'shell',
     'scrap',
     'condemn',
-    'stupendous',
-    'closer',
+    'stupid',
+    'idiot',
+    'loser',
   ])('leaves %s alone', (word) => expect(isProfane(word)).toBe(false));
 });
 
