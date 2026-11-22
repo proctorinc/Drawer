@@ -83,6 +83,8 @@ type Quest struct {
 	Goal        int    `json:"goal"`
 	// XP is the bonus for finishing it this week
 	XP int `json:"xp"`
+	// OutOfReach is set when there aren't enough days left this week to finish it
+	OutOfReach bool `json:"outOfReach,omitempty"`
 }
 
 type LeaderboardEntry struct {
@@ -147,6 +149,10 @@ func HandleGetTrophies(c *gin.Context) {
 	}
 
 	quests, questsEvent := weeklyQuests(weekly[requester.ID]), (*EventLink)(nil)
+	if err := markOutOfReach(repo, ctx, requester.ID, time.Now(), quests); err != nil {
+		fail("today's drawing", err)
+		return
+	}
 	event, err := queries.GetActiveEvent(repo, ctx, events.Now(context.GetCtx(c).Config))
 	if err == nil {
 		quests, questsEvent = []Quest{}, &EventLink{Slug: event.Slug, Name: event.Name, Theme: event.Theme}
@@ -253,7 +259,7 @@ func weekOf(monday, nextMonday time.Time) Week {
 // newQuest is one of queries.WeeklyQuests, with its goal and bonus filled in
 func newQuest(id, title, description string, progress int) Quest {
 	i, _ := queries.QuestIndex(id)
-	return Quest{id, title, description, progress, queries.WeeklyQuests[i].Goal, xp.QuestBonus[id]}
+	return Quest{ID: id, Title: title, Description: description, Progress: progress, Goal: queries.WeeklyQuests[i].Goal, XP: xp.QuestBonus[id]}
 }
 
 func weeklyQuests(a queries.ActivityCounts) []Quest {
@@ -261,7 +267,35 @@ func weeklyQuests(a queries.ActivityCounts) []Quest {
 		newQuest("draw-5", "Five-a-week", "Draw on 5 days this week", a.Drawings),
 		newQuest("react-3", "Hype squad", "React to 3 friends' drawings", a.DrawingsReacted),
 		newQuest("comment-3", "Chatterbox", "Leave 3 comments on friends' drawings", a.CommentsWritten),
-		newQuest("cry-laugh", "Class clown", "Make a friend cry-laugh", a.CryLaughsReceived),
+		newQuest("get-comment", "Conversation starter", "Get a comment on one of your drawings", a.CommentsReceived),
+	}
+}
+
+// markOutOfReach flags the quests the days left this week can't finish (see outOfReach)
+func markOutOfReach(repo *sql.DB, ctx gocontext.Context, userID string, now time.Time, quests []Quest) error {
+	drewToday, err := queries.CheckUserSubmittedToday(repo, ctx, userID)
+	if err != nil {
+		return err
+	}
+	outOfReach(quests, now, drewToday)
+	return nil
+}
+
+// outOfReach flags the draw-5 quest (or its event version) when the days left this
+// week can't make up the goal. One drawing a day counts, so someone who's drawn today
+// has only the days after it left.
+func outOfReach(quests []Quest, now time.Time, drewToday bool) {
+	_, nextMonday := weekBounds(now)
+	// Today through Sunday, counted on UTC calendar dates so a DST change can't skew it
+	date := func(t time.Time) time.Time { return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC) }
+	daysLeft := int(date(nextMonday).Sub(date(now)).Hours() / 24)
+	if drewToday {
+		daysLeft--
+	}
+	for i, q := range quests {
+		if strings.TrimPrefix(q.ID, "event-") == "draw-5" && q.Progress < q.Goal {
+			quests[i].OutOfReach = q.Progress+daysLeft < q.Goal
+		}
 	}
 }
 

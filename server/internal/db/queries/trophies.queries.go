@@ -28,6 +28,7 @@ type ActivityCounts struct {
 	CommentsWrittenForXP int `json:"-"`
 	ReactionsReceived    int `json:"reactionsReceived"`
 	CryLaughsReceived    int `json:"cryLaughsReceived"`
+	CommentsReceived     int `json:"commentsReceived"` // friends' comments on the user's drawings
 	Achievements         int `json:"achievements"`
 	// AchievementXP is what the achievements earned are worth together
 	AchievementXP int `json:"-"`
@@ -88,7 +89,7 @@ var WeeklyQuests = [...]WeeklyQuest{
 	{"draw-5", 5},
 	{"react-3", 3},
 	{"comment-3", 3},
-	{"cry-laugh", 1},
+	{"get-comment", 1},
 }
 
 // QuestsStartWeek is the Monday of the week weekly quests launched. Weeks before it
@@ -230,6 +231,12 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 			AND created_at >= ? AND created_at < ?
 		GROUP BY owner
 		UNION ALL
+		SELECT s.user_id, 'commentsReceived', COUNT(*) FROM comments c
+		JOIN user_submissions s ON s.id = c.submission_id
+		WHERE s.user_id IN ` + in + ` AND s.user_id != c.user_id AND c.created_at >= ? AND c.created_at < ?
+			AND ` + countedAt("s.user_id", "c.created_at") + `
+		GROUP BY s.user_id
+		UNION ALL
 		SELECT user_id, 'achievements', COUNT(*) FROM user_achievements
 		WHERE user_id IN ` + in + ` AND created_at >= ? AND created_at < ?
 			AND ` + countedAt("user_id", "created_at") + `
@@ -246,7 +253,7 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 		GROUP BY user_id
 	`
 
-	const parts = 11
+	const parts = 12
 	args := make([]any, 0, parts*(len(userIDs)+2))
 	for i := range parts {
 		for _, id := range userIDs {
@@ -289,6 +296,8 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 			c.ReactionsReceived = n
 		case "cryLaughsReceived":
 			c.CryLaughsReceived = n
+		case "commentsReceived":
+			c.CommentsReceived = n
 		case "achievements":
 			c.Achievements = n
 		case "achievementXP":
@@ -351,8 +360,10 @@ func eachQuestCompletion(repo *sql.DB, ctx context.Context, userIDs []string, fr
 			WHERE c.user_id IN ` + in + ` AND s.user_id != c.user_id
 				AND ` + countedAt("c.user_id", "c.created_at") + `
 			UNION ALL
-			SELECT owner, 3, ` + week("created_at") + `, created_at FROM ro
-			WHERE owner IN ` + in + ` AND owner != reactor AND for_owner AND reaction_id = 'cry-laugh'
+			SELECT s.user_id, 3, ` + week("c.created_at") + `, c.created_at FROM comments c
+			JOIN user_submissions s ON s.id = c.submission_id
+			WHERE s.user_id IN ` + in + ` AND s.user_id != c.user_id
+				AND ` + countedAt("s.user_id", "c.created_at") + `
 		),
 		numbered AS (
 			SELECT user_id, quest, week, datetime(at) AS done_at,

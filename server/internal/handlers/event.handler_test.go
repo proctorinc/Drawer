@@ -192,7 +192,8 @@ func TestEventLeaderboardBreaksDoodleTiesByXP(t *testing.T) {
 	router, repo := newEventsRouter(t, "2026-12-05")
 	submit(t, repo, "m1", "me", "2026-11-27")
 	submit(t, repo, "f1", "friend", "2026-11-27")
-	// Same doodles, but the friend also commented during the event
+	// Same doodles, but the friend also commented during the event, which finishes my
+	// get-a-comment quest
 	dbtest.Exec(t, repo, `INSERT INTO comments (user_id, submission_id, text, created_at)
 		VALUES ('friend', 'm1', 'nice', '2026-11-28 12:00:00')`)
 
@@ -204,8 +205,8 @@ func TestEventLeaderboardBreaksDoodleTiesByXP(t *testing.T) {
 		XP      int
 	}
 	json.Unmarshal(entries, &got)
-	if len(got) != 2 || got[0].User.ID != "friend" || got[0].XP != 13 || got[1].XP != 10 {
-		t.Errorf("entries = %+v, want friend (13 XP) ahead of me (10 XP)", got)
+	if len(got) != 2 || got[0].User.ID != "me" || got[0].XP != 25 || got[1].XP != 13 {
+		t.Errorf("entries = %+v, want me (25 XP) ahead of friend (13 XP)", got)
 	}
 }
 

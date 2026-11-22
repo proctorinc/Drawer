@@ -263,6 +263,10 @@ func HandleGetEventRecap(c *gin.Context) {
 			return
 		}
 		quests = &EventQuests{Week: weekOf(week, nextWeek), Quests: eventQuests(event, thisWeek, thisWeekEvent)}
+		if err := markOutOfReach(appCtx.DB, ctx, userID, time.Now(), quests.Quests); err != nil {
+			fail("quests", err)
+			return
+		}
 	}
 
 	c.JSON(http.StatusOK, EventRecapResponse{

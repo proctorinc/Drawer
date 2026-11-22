@@ -53,12 +53,14 @@ const MAX_PIPS = 5;
 
 const QuestItem: FC<{ quest: Quest }> = ({ quest }) => {
   const done = quest.progress >= quest.goal;
+  const missed = !done && quest.outOfReach;
 
   return (
     <li
       className={cn(
         'flex items-center gap-3 w-full px-3 py-2 border-2 border-ink rounded-sketch-alt',
         done ? 'bg-[#fff6c9]' : 'bg-white',
+        missed && 'opacity-45 grayscale',
       )}
     >
       <Checkbox checked={done} />
@@ -74,7 +76,9 @@ const QuestItem: FC<{ quest: Quest }> = ({ quest }) => {
           </h3>
           {quest.xp > 0 && <XPSticker xp={quest.xp} />}
         </div>
-        <p className="text-sm text-pencil leading-tight">{quest.description}</p>
+        <p className="text-sm text-pencil leading-tight">
+          {missed ? 'Not enough days left this week' : quest.description}
+        </p>
       </div>
       {done ? (
         <span className="shrink-0 px-2 py-0.5 font-accent font-bold text-xl uppercase text-coral border-[2.5px] border-coral rounded-sketch -rotate-12 opacity-90 animate-in zoom-in-150 fade-in duration-300">

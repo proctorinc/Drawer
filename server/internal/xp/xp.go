@@ -25,10 +25,10 @@ const (
 
 // QuestBonus is the XP for finishing each of queries.WeeklyQuests in a week, by ID
 var QuestBonus = map[string]int{
-	"draw-5":    30,
-	"react-3":   15,
-	"comment-3": 15,
-	"cry-laugh": 20,
+	"draw-5":      30,
+	"react-3":     15,
+	"comment-3":   15,
+	"get-comment": 15,
 }
 
 // JudgeBonus is the extra XP for a doodle the judge scored at JudgeScores index i

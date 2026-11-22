@@ -46,7 +46,7 @@ type questCopy struct{ title, description string }
 // eventCopy is how an event theme words its XP actions and weekly quests.
 type eventCopy struct {
 	drawing, reactionGiven, reactionReceived, sticker string
-	drawQuest, reactQuest, commentQuest, laughQuest   questCopy
+	drawQuest, reactQuest, commentQuest, chatQuest    questCopy
 }
 
 var genericEventCopy = eventCopy{
@@ -57,7 +57,7 @@ var genericEventCopy = eventCopy{
 	drawQuest:        questCopy{"Event regular", "Draw on 5 days this week"},
 	reactQuest:       questCopy{"Join in", "Send event reactions to 3 friends' drawings"},
 	commentQuest:     questCopy{"Chatterbox", "Leave 3 comments on friends' drawings"},
-	laughQuest:       questCopy{"Class clown", "Make a friend cry-laugh"},
+	chatQuest:        questCopy{"Conversation starter", "Get a comment on one of your doodles"},
 }
 
 var eventCopyByTheme = map[string]eventCopy{
@@ -69,7 +69,7 @@ var eventCopyByTheme = map[string]eventCopy{
 		drawQuest:        questCopy{"Deck the tree", "Hang a doodle on 5 days this week"},
 		reactQuest:       questCopy{"Spread some cheer", "Send festive reactions to 3 friends' drawings"},
 		commentQuest:     questCopy{"Carol singer", "Leave 3 comments on friends' drawings"},
-		laughQuest:       questCopy{"Ho ho ho", "Make a friend cry-laugh"},
+		chatQuest:        questCopy{"Season's greetings", "Get a comment on one of your doodles"},
 	},
 }
 
@@ -126,7 +126,7 @@ func eventQuests(event models.Event, a queries.ActivityCounts, e queries.EventAc
 		newQuest("draw-5", words.drawQuest.title, words.drawQuest.description, a.Drawings),
 		react,
 		newQuest("comment-3", words.commentQuest.title, words.commentQuest.description, a.CommentsWritten),
-		newQuest("cry-laugh", words.laughQuest.title, words.laughQuest.description, a.CryLaughsReceived),
+		newQuest("get-comment", words.chatQuest.title, words.chatQuest.description, a.CommentsReceived),
 	}
 	for i := range quests {
 		quests[i].ID = "event-" + quests[i].ID

@@ -82,9 +82,10 @@ func TestGetActivityCounts(t *testing.T) {
 		CommentsWrittenForXP: 1,
 		ReactionsReceived:    2,
 		CryLaughsReceived:    2,
+		CommentsReceived:     1, // pal's, not my own
 		Achievements:         1,
 		AchievementXP:        40,
-		QuestsCompleted:      [len(WeeklyQuests)]int{3: 1}, // got cry-laughed
+		QuestsCompleted:      [len(WeeklyQuests)]int{3: 1}, // got a comment
 	}
 	if week["me"] != wantMe {
 		t.Errorf("me this week = %+v, want %+v", week["me"], wantMe)
@@ -102,7 +103,7 @@ func TestGetActivityCounts(t *testing.T) {
 	if strings.Join(achieved, ",") != "achievement:40" {
 		t.Errorf("achievement XP events = %v, want achievement:40", achieved)
 	}
-	wantPal := ActivityCounts{Drawings: 1, ReactionsGiven: 2, ReactionsGivenForXP: 2, DrawingsReacted: 1, CommentsWritten: 1, CommentsWrittenForXP: 1, ReactionsReceived: 2}
+	wantPal := ActivityCounts{Drawings: 1, ReactionsGiven: 2, ReactionsGivenForXP: 2, DrawingsReacted: 1, CommentsWritten: 1, CommentsWrittenForXP: 1, ReactionsReceived: 2, CommentsReceived: 1, QuestsCompleted: [len(WeeklyQuests)]int{3: 1}}
 	if week["pal"] != wantPal {
 		t.Errorf("pal this week = %+v, want %+v", week["pal"], wantPal)
 	}
@@ -229,9 +230,9 @@ func TestQuestsBeforeLaunchDontCount(t *testing.T) {
 		INSERT INTO user_submissions (id, user_id, day, created_at) VALUES
 			('old', 'me', '2026-11-12', '2026-11-12 09:00:00'), -- the week before launch
 			('new', 'me', '2026-11-16', '2026-11-16 09:00:00'); -- launch week
-		INSERT INTO reactions (user_id, content_type, content_id, reaction_id, created_at) VALUES
-			('pal', 'submission', 'old', 'cry-laugh', '2026-11-12 10:00:00'),
-			('pal', 'submission', 'new', 'cry-laugh', '2026-11-16 10:00:00');
+		INSERT INTO comments (submission_id, user_id, text, created_at) VALUES
+			('old', 'pal', 'nice', '2026-11-12 10:00:00'),
+			('new', 'pal', 'nice', '2026-11-16 10:00:00');
 	`)
 	if err != nil {
 		t.Fatal(err)
@@ -242,7 +243,7 @@ func TestQuestsBeforeLaunchDontCount(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := counts["me"].QuestsCompleted; got != [len(WeeklyQuests)]int{3: 1} {
-		t.Errorf("quests completed = %v, want cry-laugh once, in launch week", got)
+		t.Errorf("quests completed = %v, want get-comment once, in launch week", got)
 	}
 }
 

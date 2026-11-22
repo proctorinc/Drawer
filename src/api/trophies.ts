@@ -27,6 +27,8 @@ export interface Quest {
   goal: number;
   /** Bonus XP for finishing it this week */
   xp: number;
+  /** Too few days are left this week to finish it */
+  outOfReach?: boolean;
 }
 
 /** Monday to Sunday, YYYY-MM-DD */
