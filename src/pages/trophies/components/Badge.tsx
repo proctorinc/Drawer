@@ -36,7 +36,7 @@ const badgeSrc = (achievement: Achievement): string | undefined =>
 
 type Props = {
   achievement: Achievement;
-  /** Not earned yet: shown as a faded preview */
+  /** Not earned yet: shown in full color, just see-through */
   locked?: boolean;
   className?: string;
 };
@@ -70,12 +70,12 @@ const Badge: FC<Props> = ({ achievement, locked, className }) => {
     return (
       <div
         className={cn(
-          'grid place-items-center border-2 border-ink rounded-blob',
-          locked ? 'border-dashed border-pencil text-pencil' : 'bg-me',
+          'grid place-items-center border-2 border-ink rounded-blob bg-me',
+          locked && 'opacity-55',
           className,
         )}
       >
-        <StarIcon size={24} fill={locked ? undefined : 'white'} />
+        <StarIcon size={24} fill="white" />
       </div>
     );
   }
@@ -86,7 +86,7 @@ const Badge: FC<Props> = ({ achievement, locked, className }) => {
       alt=""
       draggable={false}
       onError={() => setMissing(true)}
-      className={cn(locked && 'grayscale opacity-40', className)}
+      className={cn(locked && 'opacity-55', className)}
     />
   );
 };

@@ -42,7 +42,7 @@ const StickerReward: FC<{ sticker: Achievement }> = ({ sticker }) => {
           {decoration && (
             <span className="relative mt-2">
               <span
-                className={cn('flex', !earned && 'opacity-75 grayscale-[30%]')}
+                className={cn('flex', !earned && 'opacity-75')}
               >
                 <UserProfileIcon
                   user={{ ...me, decoration }}

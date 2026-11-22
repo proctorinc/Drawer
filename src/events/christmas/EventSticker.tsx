@@ -25,7 +25,7 @@ const EventSticker: FC<Props> = ({ achievement, locked, className }) => (
   <svg
     viewBox="0 0 48 52"
     aria-hidden="true"
-    className={cn(locked && 'opacity-40', className)}
+    className={cn(locked && 'opacity-55', className)}
   >
     <path
       d="M24 2v6"
@@ -39,7 +39,7 @@ const EventSticker: FC<Props> = ({ achievement, locked, className }) => (
       width="14"
       height="7"
       rx="1.5"
-      fill={locked ? 'none' : 'var(--color-xmas-gold)'}
+      fill="var(--color-xmas-gold)"
       stroke="var(--color-ink)"
       strokeWidth={2}
     />
@@ -47,24 +47,21 @@ const EventSticker: FC<Props> = ({ achievement, locked, className }) => (
       cx="24"
       cy="32"
       r="18"
-      fill={locked ? 'none' : baubleColor(achievement)}
+      fill={baubleColor(achievement)}
       stroke="var(--color-ink)"
       strokeWidth={2.2}
-      strokeDasharray={locked ? '4 4' : undefined}
     />
-    {!locked && (
-      <>
-        <path
-          d="M8 30q16 8 32 0"
-          fill="none"
-          stroke="#fff"
-          strokeWidth={2.5}
-          strokeLinecap="round"
-          strokeDasharray="1 5"
-        />
-        <ellipse cx="17" cy="24" rx="4" ry="2.5" fill="#fff" opacity={0.7} />
-      </>
-    )}
+    <>
+      <path
+        d="M8 30q16 8 32 0"
+        fill="none"
+        stroke="#fff"
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeDasharray="1 5"
+      />
+      <ellipse cx="17" cy="24" rx="4" ry="2.5" fill="#fff" opacity={0.7} />
+    </>
   </svg>
 );
 

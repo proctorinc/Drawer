@@ -26,6 +26,7 @@ import type {
 import { useGetAchievementCatalog } from '@/api/Api';
 import Button from '@/components/Button';
 import Chip from '@/components/Chip';
+import XPSticker from '@/components/XPSticker';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
 import { PencilIcon } from '@/components/icons';
@@ -235,8 +236,9 @@ const EarnedCard: FC<CardProps> = ({ achievement, highlighted }) => {
           <p className="text-sm text-pencil leading-tight">
             {achievement.description}
           </p>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap items-center gap-1.5">
             <Chip className="h-6 text-sm bg-me">collected</Chip>
+            {achievement.xp > 0 && <XPSticker xp={achievement.xp} />}
             {achievement.hidden && (
               <Chip className="h-6 text-sm bg-blush">secret found</Chip>
             )}
@@ -266,9 +268,12 @@ const LockedCard: FC<CardProps> = ({ achievement, highlighted }) => {
         />
         <div className="flex flex-col gap-1.5 flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2">
-            <h3 className="font-accent font-bold text-xl leading-none truncate">
-              {achievement.name}
-            </h3>
+            <div className="flex items-center gap-2 min-w-0">
+              <h3 className="font-accent font-bold text-xl leading-none truncate">
+                {achievement.name}
+              </h3>
+              {achievement.xp > 0 && <XPSticker xp={achievement.xp} />}
+            </div>
             <AchievementCount achievement={achievement} />
           </div>
           <p className="text-sm text-pencil leading-tight">
