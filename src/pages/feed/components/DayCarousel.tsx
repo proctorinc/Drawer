@@ -6,14 +6,51 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import SubmissionSheet from './SubmissionSheet';
-import type { FC } from 'react';
+import type { CSSProperties, FC } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
 import { useGetMyProfile } from '@/api/Api';
 import Layout from '@/components/Layout';
+import Masthead from '@/components/Masthead';
+import { cn } from '@/utils';
 import { isSameDay } from '@/days';
 
 const arrowClass =
   'press flex items-center justify-center size-7 bg-white border-2 border-ink rounded-blob text-sm text-ink cursor-pointer disabled:invisible';
+
+/** True once the page has scrolled down at all */
+function useScrolled() {
+  const [scrolled, setScrolled] = useState(() => window.scrollY > 0);
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 0);
+    window.addEventListener('scroll', update, { passive: true });
+    return () => window.removeEventListener('scroll', update);
+  }, []);
+  return scrolled;
+}
+
+/** Floats over the strip's edge and bounces toward the doodles you can swipe to */
+const SwipeHint: FC<{
+  dir: -1 | 1;
+  onClick: () => void;
+}> = ({ dir, onClick }) => (
+  <button
+    aria-label={dir < 0 ? 'Previous doodle' : 'Next doodle'}
+    tabIndex={-1}
+    onClick={onClick}
+    className={cn(
+      // Halfway down the photo, whose width tracks the page's
+      'absolute z-20 top-[calc(min(100vw,28rem)/2)] cursor-pointer animate-in fade-in zoom-in-75 duration-300',
+      dir < 0 ? 'left-1' : 'right-1',
+    )}
+  >
+    <span
+      className="flex items-center justify-center size-9 bg-white border-2 border-ink rounded-blob text-ink animate-hint"
+      style={{ '--hint-dir': dir } as CSSProperties}
+    >
+      <FontAwesomeIcon icon={dir < 0 ? faChevronLeft : faChevronRight} />
+    </span>
+  </button>
+);
 
 /**
  * That day's doodles from you and your friends (never the artist's friends),
@@ -43,6 +80,9 @@ const DayCarousel: FC<Props> = ({ submission }) => {
   const index = doodles.findIndex((doodle) => doodle.id === submission.id);
   const stripRef = useRef<HTMLUListElement>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Hints hide mid-swipe and come back, bouncing again, once it settles
+  const [swiping, setSwiping] = useState(false);
+  const scrolled = useScrolled();
 
   const shownIndex = (strip: HTMLElement) =>
     Math.round(strip.scrollLeft / strip.clientWidth);
@@ -70,8 +110,10 @@ const DayCarousel: FC<Props> = ({ submission }) => {
 
   // Once a swipe comes to rest, the URL follows (replacing, so back still leaves)
   function handleScroll() {
+    setSwiping(true);
     clearTimeout(settleTimer.current);
     settleTimer.current = setTimeout(() => {
+      setSwiping(false);
       // Tapped away (say, the navbar) mid-swipe: following now would replace
       // wherever you went with this doodle again
       const here = `/draw/submission/${submission.id}`;
@@ -97,49 +139,67 @@ const DayCarousel: FC<Props> = ({ submission }) => {
   return (
     <Layout
       back
-      header={
-        doodles.length > 1 && (
-          <div className="flex items-center justify-center gap-3 text-pencil">
-            <button
-              aria-label="Previous doodle"
-              disabled={index <= 0}
-              onClick={() => flip(-1)}
-              className={arrowClass}
-            >
-              <FontAwesomeIcon icon={faChevronLeft} />
-            </button>
-            <span>
-              {index + 1} of {doodles.length}
-            </span>
-            <button
-              aria-label="Next doodle"
-              disabled={index >= doodles.length - 1}
-              onClick={() => flip(1)}
-              className={arrowClass}
-            >
-              <FontAwesomeIcon icon={faChevronRight} />
-            </button>
-          </div>
-        )
+      masthead={
+        // Stays pinned to the top, so back and the doodle switcher are
+        // always in reach however far down the comments you are
+        <div
+          className={cn(
+            'sticky top-0 z-30 flex flex-col pb-3 bg-paper border-b-2 border-dashed transition-colors duration-200',
+            scrolled ? 'border-line' : 'border-transparent',
+          )}
+        >
+          <Masthead back />
+          {doodles.length > 1 && (
+            <div className="flex items-center justify-center gap-3 pt-3 text-pencil">
+              <button
+                aria-label="Previous doodle"
+                disabled={index <= 0}
+                onClick={() => flip(-1)}
+                className={arrowClass}
+              >
+                <FontAwesomeIcon icon={faChevronLeft} />
+              </button>
+              <span>
+                {index + 1} of {doodles.length}
+              </span>
+              <button
+                aria-label="Next doodle"
+                disabled={index >= doodles.length - 1}
+                onClick={() => flip(1)}
+                className={arrowClass}
+              >
+                <FontAwesomeIcon icon={faChevronRight} />
+              </button>
+            </div>
+          )}
+        </div>
       }
     >
-      {/* Bleeds past the page's padding so each page slides in edge to edge */}
-      <ul
-        ref={stripRef}
-        onScroll={handleScroll}
-        aria-label="Doodles from this day"
-        className="flex items-start w-[calc(100%+3rem)] -mx-6 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none]"
-      >
-        {doodles.map((doodle) => (
-          // Top padding leaves room for the polaroid's push pin
-          <li
-            key={doodle.id}
-            className="w-full shrink-0 snap-center snap-always px-6 pt-3"
-          >
-            <SubmissionSheet doodle={doodle} />
-          </li>
-        ))}
-      </ul>
+      <div className="relative w-full">
+        {!swiping && index > 0 && (
+          <SwipeHint key={`prev-${index}`} dir={-1} onClick={() => flip(-1)} />
+        )}
+        {!swiping && index >= 0 && index < doodles.length - 1 && (
+          <SwipeHint key={`next-${index}`} dir={1} onClick={() => flip(1)} />
+        )}
+        {/* Bleeds past the page's padding so each page slides in edge to edge */}
+        <ul
+          ref={stripRef}
+          onScroll={handleScroll}
+          aria-label="Doodles from this day"
+          className="flex items-start w-[calc(100%+3rem)] -mx-6 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none]"
+        >
+          {doodles.map((doodle) => (
+            // Top padding leaves room for the polaroid's push pin
+            <li
+              key={doodle.id}
+              className="w-full shrink-0 snap-center snap-always px-6 pt-3"
+            >
+              <SubmissionSheet doodle={doodle} />
+            </li>
+          ))}
+        </ul>
+      </div>
     </Layout>
   );
 };
