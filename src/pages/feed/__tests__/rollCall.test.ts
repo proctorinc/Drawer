@@ -34,6 +34,17 @@ describe('collapsedLayout', () => {
     ]);
   });
 
+  it('stacks the still-drawing tight even with room to spare', () => {
+    const { spots } = collapsedLayout(2, 3, 300, 36);
+    expect(spots).toEqual([
+      { x: 0, y: 0 },
+      { x: 42, y: 0 },
+      { x: 264, y: 0 },
+      { x: 246, y: 0 },
+      { x: 228, y: 0 },
+    ]);
+  });
+
   it('overlaps a crowd so everyone fits', () => {
     const { spots } = collapsedLayout(8, 8, 300, 36);
     expect(spots.every(Boolean)).toBe(true);
