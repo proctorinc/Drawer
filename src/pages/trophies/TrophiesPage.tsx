@@ -15,6 +15,7 @@ import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
 import { PushPin } from '@/components/PushPin';
 import { SectionLink } from '@/components/ShowAllLink';
+import { currentSteps } from '@/achievements/paths';
 
 const SectionTitle: FC<{ children: ReactNode; aside?: ReactNode }> = ({
   children,
@@ -63,9 +64,9 @@ const TrophiesPage = () => {
 
   const { quests, questsEvent, leaderboard, week, xpRules } = trophies.data;
   const { achievements } = achievementsQuery.data;
-  // Just the few closest to done; the achievements page has the rest
-  const inProgress = achievements
-    .filter((a) => !a.achievedAt && !a.secret)
+  // Just the few current steps closest to done; the achievements page has the rest
+  const inProgress = currentSteps(achievements)
+    .filter((a) => !a.secret)
     .sort(byClosestToDone)
     .slice(0, UP_NEXT_COUNT);
   const questsDone = quests.filter((q) => q.progress >= q.goal).length;

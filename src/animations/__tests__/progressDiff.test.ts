@@ -321,7 +321,7 @@ describe('diffProgress', () => {
     expect(ticker).toEqual([]);
   });
 
-  it('pings only the nearest rung of a ladder', () => {
+  it('pings only the current step of a path', () => {
     const streak = (id: string, goal: number, progress: number) =>
       achievement({
         id,
@@ -360,7 +360,7 @@ describe('diffProgress', () => {
     ]);
   });
 
-  it("skips a ladder's progress when one of its rungs was just earned", () => {
+  it("skips a path's progress when one of its steps was just earned", () => {
     const { stage, ticker } = diffProgress(
       snapshot({
         achievements: {
@@ -389,6 +389,34 @@ describe('diffProgress', () => {
     );
     expect(stage.map((item) => item.id)).toEqual(['completed:achievement:s-3']);
     expect(ticker).toEqual([]);
+  });
+
+  it('never pings a step past the current one, however close it is', () => {
+    // An explicit path, made of different counts: the later step is further along
+    const step = (
+      id: string,
+      pathStep: number,
+      goal: number,
+      progress: number,
+    ) =>
+      achievement({
+        id,
+        achievementField: id,
+        achievementValue: goal,
+        progress,
+        path: 'social',
+        pathStep,
+      });
+    const { ticker } = diffProgress(
+      snapshot({
+        achievements: {
+          friends: { progress: 1, achieved: false },
+          comments: { progress: 8, achieved: false },
+        },
+      }),
+      { achievements: [step('comments', 2, 10, 9), step('friends', 1, 5, 2)] },
+    );
+    expect(ticker.map((t) => t.id)).toEqual(['achievementProgress:friends:2']);
   });
 
   it('remembers achievements it has never seen without celebrating them', () => {

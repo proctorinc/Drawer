@@ -1,4 +1,12 @@
-import { COLORS, Overlay, Sparkle, fineInk, ink, motion } from './art';
+import {
+  COLORS,
+  Overlay,
+  Sparkle,
+  fineInk,
+  ink,
+  motion,
+  onCircle,
+} from './art';
 import type { FC } from 'react';
 
 /*
@@ -363,3 +371,56 @@ export const Crown: FC = () => (
     <Sparkle x={62} y={-36} r={2.6} delay="1.1s" fill={COLORS.butter} />
   </Overlay>
 );
+
+/** A laurel wreath around the crown of the head, for a month without a miss */
+export const LaurelWreath: FC = () => {
+  // Leaves step up each side from the temples to just short of the top
+  const side = (from: number, to: number) =>
+    Array.from({ length: 7 }, (_, i) => from + ((to - from) * i) / 6);
+  const leaves = [
+    ...side(196, 258).map((deg) => ({ deg, tilt: 40 })),
+    ...side(344, 282).map((deg) => ({ deg, tilt: -40 })),
+  ];
+  return (
+    <Overlay>
+      <path
+        d="M17 29A47 47 0 0 1 46 3M83 29A47 47 0 0 0 54 3"
+        fill="none"
+        {...ink}
+        stroke={COLORS.goldDeep}
+        strokeWidth={2.4}
+      />
+      {leaves.map(({ deg, tilt }) => {
+        const { x, y } = onCircle(deg, 49);
+        return (
+          <ellipse
+            key={deg}
+            cx={x}
+            cy={y}
+            rx={6.4}
+            ry={2.8}
+            transform={`rotate(${deg + 90 + tilt} ${x} ${y})`}
+            fill={COLORS.green}
+            {...fineInk}
+          />
+        );
+      })}
+      {[226, 314].map((deg) => {
+        const { x, y } = onCircle(deg, 44);
+        return (
+          <circle
+            key={deg}
+            cx={x}
+            cy={y}
+            r={2.2}
+            fill={COLORS.gold}
+            {...fineInk}
+          />
+        );
+      })}
+      <path d="M45 1l5 4l5-4l-1 7l-4-2l-4 2z" fill={COLORS.gold} {...ink} />
+      <Sparkle x={12} y={8} r={3.4} fill={COLORS.butter} delay="0s" />
+      <Sparkle x={90} y={14} r={2.8} fill={COLORS.butter} delay="0.7s" />
+    </Overlay>
+  );
+};

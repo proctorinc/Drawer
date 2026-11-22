@@ -66,6 +66,12 @@ export type DecorationId =
   | 'APPLE_HAT'
   | 'GILDED_FRAME'
   | 'HALO'
+  | 'PALETTE'
+  | 'LAUREL_WREATH'
+  | 'BALLOONS'
+  | 'QUILL'
+  | 'GOLD_STARS'
+  | 'PLATINUM_PENCIL'
   | 'RAIN_CLOUD'
   | 'CROWN'
   | 'MYTHIC_WINGS';
@@ -245,6 +251,13 @@ export type Achievement = {
    * someone else's achievements; older servers leave it out.
    */
   celebrated?: boolean;
+  /**
+   * The path it's a step on (see src/achievements/paths.ts); its own id when
+   * it stands alone. Older servers leave these out.
+   */
+  path?: string;
+  /** Its place on its path, from 1 */
+  pathStep?: number;
 };
 
 export type AchievementCategory =

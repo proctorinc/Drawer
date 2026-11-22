@@ -11,13 +11,13 @@ import (
 
 func GetAchievementsAndRewardsByUserID(repo *sql.DB, ctx context.Context, userId string) ([]models.Achievement, map[string]models.RewardUnlock, error) {
 	query := `
-		SELECT a.id, a.name, a.description, a.image_url, a.achievement_field, a.achievement_value, ua.created_at, ua.celebrated_at, r.id, r.name, r.description, r.created_at, e.slug, a.category, a.hidden, a.xp
+		SELECT a.id, a.name, a.description, a.image_url, a.achievement_field, a.achievement_value, ua.created_at, ua.celebrated_at, r.id, r.name, r.description, r.created_at, e.slug, a.category, a.hidden, a.xp, COALESCE(a.path, a.id), a.path_step
 		FROM achievements a
 		LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND user_id = ?
 		LEFT JOIN reward_unlocks r ON r.achievement_id = a.id
 		LEFT JOIN event_achievements ea ON ea.achievement_id = a.id
 		LEFT JOIN events e ON e.id = ea.event_id
-		ORDER BY a.achievement_field, a.achievement_value
+		ORDER BY COALESCE(a.path, a.id), a.path_step, a.achievement_value
 	`
 
 	rows, err := repo.QueryContext(ctx, query, userId)
@@ -33,7 +33,7 @@ func GetAchievementsAndRewardsByUserID(repo *sql.DB, ctx context.Context, userId
 		var achievement models.Achievement
 		var rewardID, rewardName, rewardDescription, eventSlug sql.NullString
 		var achievedAt, celebratedAt, rewardCreatedAt sql.NullTime
-		if err := rows.Scan(&achievement.ID, &achievement.Name, &achievement.Description, &achievement.ImageURL, &achievement.AchievementField, &achievement.AchievementValue, &achievedAt, &celebratedAt, &rewardID, &rewardName, &rewardDescription, &rewardCreatedAt, &eventSlug, &achievement.Category, &achievement.Hidden, &achievement.XP); err != nil {
+		if err := rows.Scan(&achievement.ID, &achievement.Name, &achievement.Description, &achievement.ImageURL, &achievement.AchievementField, &achievement.AchievementValue, &achievedAt, &celebratedAt, &rewardID, &rewardName, &rewardDescription, &rewardCreatedAt, &eventSlug, &achievement.Category, &achievement.Hidden, &achievement.XP, &achievement.Path, &achievement.PathStep); err != nil {
 			return nil, nil, err
 		}
 

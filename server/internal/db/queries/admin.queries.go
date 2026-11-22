@@ -179,13 +179,13 @@ type AdminAchievement struct {
 func GetAllAchievements(repo *sql.DB, ctx context.Context) ([]AdminAchievement, error) {
 	rows, err := repo.QueryContext(ctx, `
 		SELECT a.id, a.name, a.description, a.image_url, a.achievement_field, a.achievement_value,
-			r.id, r.name, r.description, e.slug, a.category, a.hidden, a.xp,
+			r.id, r.name, r.description, e.slug, a.category, a.hidden, a.xp, COALESCE(a.path, a.id), a.path_step,
 			(SELECT COUNT(*) FROM user_achievements ua WHERE ua.achievement_id = a.id)
 		FROM achievements a
 		LEFT JOIN reward_unlocks r ON r.achievement_id = a.id
 		LEFT JOIN event_achievements ea ON ea.achievement_id = a.id
 		LEFT JOIN events e ON e.id = ea.event_id
-		ORDER BY e.slug IS NOT NULL, e.slug, a.achievement_field, a.achievement_value`)
+		ORDER BY e.slug IS NOT NULL, e.slug, COALESCE(a.path, a.id), a.path_step`)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func GetAllAchievements(repo *sql.DB, ctx context.Context) ([]AdminAchievement, 
 		var a AdminAchievement
 		var rewardID, rewardName, rewardDescription, eventSlug sql.NullString
 		if err := rows.Scan(&a.ID, &a.Name, &a.Description, &a.ImageURL, &a.AchievementField, &a.AchievementValue,
-			&rewardID, &rewardName, &rewardDescription, &eventSlug, &a.Category, &a.Hidden, &a.XP, &a.EarnedBy); err != nil {
+			&rewardID, &rewardName, &rewardDescription, &eventSlug, &a.Category, &a.Hidden, &a.XP, &a.Path, &a.PathStep, &a.EarnedBy); err != nil {
 			return nil, err
 		}
 		if rewardID.Valid {

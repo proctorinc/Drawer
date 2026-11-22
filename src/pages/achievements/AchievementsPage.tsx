@@ -16,6 +16,7 @@ import {
   AchievementCount,
   completion,
 } from '../trophies/components/AchievementMeter';
+import PathCarousel, { pathStepClassName } from './PathCarousel';
 import type { FC, KeyboardEvent } from 'react';
 import type {
   Achievement,
@@ -23,6 +24,7 @@ import type {
   AchievementReward,
   DecorationId,
 } from '@/api/Api';
+import type { AchievementPath } from '@/achievements/paths';
 import { useGetAchievementCatalog } from '@/api/Api';
 import Button from '@/components/Button';
 import Chip from '@/components/Chip';
@@ -33,6 +35,7 @@ import { PencilIcon } from '@/components/icons';
 import useUser from '@/auth/hooks/useUser';
 import { DECORATIONS } from '@/decorations/decorations';
 import { cn } from '@/utils';
+import { currentSteps, groupPaths } from '@/achievements/paths';
 
 export const CATEGORIES: Array<{
   id: AchievementCategory;
@@ -51,7 +54,10 @@ export const CATEGORIES: Array<{
   },
 ];
 
-/** The first tab, before the categories: what you're closest to earning */
+/**
+ * The first tab, before the categories: what you're closest to earning. Only
+ * each path's current step; the ones after it wait their turn.
+ */
 const NEXT_UP = {
   id: 'next',
   label: 'next up',
@@ -82,6 +88,10 @@ const byNotDoneFirst = (a: Achievement, b: Achievement) =>
   (a.achievedAt && b.achievedAt
     ? new Date(b.achievedAt).getTime() - new Date(a.achievedAt).getTime()
     : completion(b) - completion(a));
+
+/** The step a path's carousel opens on: the current one, or its last once all are done */
+const focus = (path: AchievementPath) =>
+  path.steps[Math.min(path.current, path.steps.length - 1)];
 
 // The preview avatar is a picture of you, not a link to your profile
 const ignoreClick = () => {};
@@ -178,9 +188,13 @@ const cardShell = (achievement: Achievement, highlighted: boolean) => ({
   badge: cn(highlighted && 'animate-[wiggle_0.6s_ease-in-out_500ms_2]'),
 });
 
-type CardProps = { achievement: Achievement; highlighted: boolean };
+type CardProps = {
+  achievement: Achievement;
+  highlighted: boolean;
+  className?: string;
+};
 
-const SecretCard: FC<CardProps> = ({ achievement, highlighted }) => {
+const SecretCard: FC<CardProps> = ({ achievement, highlighted, className }) => {
   const event = achievement.category === 'events';
   const shell = cardShell(achievement, highlighted);
   return (
@@ -189,6 +203,7 @@ const SecretCard: FC<CardProps> = ({ achievement, highlighted }) => {
       className={cn(
         'flex items-center gap-3 w-full p-3 border-2 border-dashed border-pencil rounded-sketch',
         shell.className,
+        className,
       )}
     >
       <Badge
@@ -209,7 +224,7 @@ const SecretCard: FC<CardProps> = ({ achievement, highlighted }) => {
   );
 };
 
-const EarnedCard: FC<CardProps> = ({ achievement, highlighted }) => {
+const EarnedCard: FC<CardProps> = ({ achievement, highlighted, className }) => {
   const shell = cardShell(achievement, highlighted);
   return (
     <li
@@ -217,6 +232,7 @@ const EarnedCard: FC<CardProps> = ({ achievement, highlighted }) => {
       className={cn(
         'flex flex-col gap-3 w-full p-3 bg-white border-2 border-ink rounded-sketch',
         shell.className,
+        className,
       )}
     >
       <div className="flex items-center gap-3">
@@ -250,7 +266,7 @@ const EarnedCard: FC<CardProps> = ({ achievement, highlighted }) => {
   );
 };
 
-const LockedCard: FC<CardProps> = ({ achievement, highlighted }) => {
+const LockedCard: FC<CardProps> = ({ achievement, highlighted, className }) => {
   const shell = cardShell(achievement, highlighted);
   return (
     <li
@@ -258,6 +274,7 @@ const LockedCard: FC<CardProps> = ({ achievement, highlighted }) => {
       className={cn(
         'flex flex-col gap-3 w-full p-3 bg-white border-2 border-ink rounded-sketch',
         shell.className,
+        className,
       )}
     >
       <div className="flex items-center gap-3">
@@ -333,11 +350,20 @@ const AchievementsPage = () => {
   const { achievements } = catalog.data;
   const inTab = (id: AchievementTab) =>
     id === NEXT_UP.id
-      ? achievements.filter((a) => !a.achievedAt && !a.secret)
+      ? currentSteps(achievements).filter((a) => !a.secret)
       : achievements.filter((a) => a.category === id);
   const selected = tab ?? NEXT_UP.id;
   const current = TABS.find((t) => t.id === selected)!;
-  const shown = inTab(selected).sort(byNotDoneFirst);
+  // Next up is just the current steps. A category lines each path up in a
+  // carousel, placed by the step it opens on.
+  const shown =
+    selected === NEXT_UP.id
+      ? inTab(selected)
+          .sort(byNotDoneFirst)
+          .map((a) => ({ id: a.id, steps: [a], current: 0 }))
+      : groupPaths(inTab(selected)).sort((a, b) =>
+          byNotDoneFirst(focus(a), focus(b)),
+        );
   const earnedCount = achievements.filter((a) => a.achievedAt).length;
   const secretsLeft = achievements.filter(
     (a) => a.secret && a.category !== 'events',
@@ -437,13 +463,31 @@ const AchievementsPage = () => {
         <p className="text-pencil">{current.blurb}</p>
         {shown.length > 0 ? (
           <ul key={selected} className="flex flex-col gap-3 w-full stagger">
-            {shown.map((achievement) => (
-              <AchievementRow
-                key={achievement.id}
-                achievement={achievement}
-                highlighted={achievementAnchor(achievement) === linked}
-              />
-            ))}
+            {shown.map((path) =>
+              path.steps.length > 1 ? (
+                <PathCarousel
+                  key={path.id}
+                  path={path}
+                  linkedId={
+                    path.steps.find((a) => achievementAnchor(a) === linked)?.id
+                  }
+                  renderStep={(achievement) => (
+                    <AchievementRow
+                      key={achievement.id}
+                      achievement={achievement}
+                      highlighted={achievementAnchor(achievement) === linked}
+                      className={pathStepClassName}
+                    />
+                  )}
+                />
+              ) : (
+                <AchievementRow
+                  key={path.id}
+                  achievement={path.steps[0]}
+                  highlighted={achievementAnchor(path.steps[0]) === linked}
+                />
+              ),
+            )}
           </ul>
         ) : (
           <p className="w-full p-4 text-center text-pencil border-2 border-dashed border-pencil rounded-sketch">

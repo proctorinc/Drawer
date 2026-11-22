@@ -17,6 +17,7 @@ import type { Achievement } from '@/api/Api';
 import type { Quest } from '@/api/trophies';
 import { rankFor } from '@/levels/ranks';
 import { isOneShot } from '@/achievements/oneShot';
+import { groupPaths, pathOf } from '@/achievements/paths';
 
 export type AchievementMemory = { progress: number; achieved: boolean };
 
@@ -114,9 +115,15 @@ export function diffProgress(
   if (current.achievements) {
     const seen = prev.achievements;
     const memory: Record<string, AchievementMemory> = {};
-    // Progress pings, at most one per ladder (see ladderKey)
-    const pings = new Map<string, TickerItem>();
-    const ladderEarned = new Set<string>();
+    // Only a path's current step pings its progress; the steps after it wait
+    // their turn (see src/achievements/paths.ts)
+    const inPlay = new Set(
+      groupPaths(current.achievements).flatMap((path) =>
+        path.current < path.steps.length ? [path.steps[path.current].id] : [],
+      ),
+    );
+    const pings: Array<TickerItem & { path: string }> = [];
+    const pathEarned = new Set<string>();
     for (const achievement of current.achievements) {
       const now: AchievementMemory = {
         progress: achievement.progress,
@@ -135,9 +142,9 @@ export function diffProgress(
           !pending?.has(achievement.id)
         : !!was && now.achieved && !was.achieved;
 
-      const ladder = ladderKey(achievement);
+      const path = pathOf(achievement);
       if (earned) {
-        ladderEarned.add(ladder);
+        pathEarned.add(path);
         completed.push({
           id: `completed:${kind}:${achievement.id}`,
           kind: 'completed',
@@ -153,13 +160,15 @@ export function diffProgress(
       } else if (
         was &&
         !now.achieved &&
+        inPlay.has(achievement.id) &&
         now.progress > was.progress &&
         // You earn these or you don't; a better near miss isn't progress
         !isOneShot(achievement)
       ) {
         const tickerKind =
           kind === 'sticker' ? 'stickerProgress' : 'achievementProgress';
-        const ping: TickerItem = {
+        pings.push({
+          path,
           id: `${tickerKind}:${achievement.id}:${now.progress}`,
           kind: tickerKind,
           label: achievement.name,
@@ -167,15 +176,12 @@ export function diffProgress(
           from: was.progress,
           to: now.progress,
           goal: achievement.achievementValue,
-        };
-        // The lowest rung decides; a farther one never stands in for it
-        const other = pings.get(ladder);
-        if (!other || closer(ping, other)) pings.set(ladder, ping);
+        });
       }
     }
-    // Earning a tier is the news; the next tier's progress can wait
-    for (const [ladder, ping] of pings) {
-      if (!ladderEarned.has(ladder) && worthPinging(ping)) ticker.push(ping);
+    // Completing a step is the news; the next step's progress can wait
+    for (const { path, ...ping } of pings) {
+      if (!pathEarned.has(path) && worthPinging(ping)) ticker.push(ping);
     }
     next.achievements = memory;
   }
@@ -232,17 +238,7 @@ export function diffProgress(
   return { stage, ticker: capPings(ticker), next };
 }
 
-/**
- * Achievements that count the same thing at rising goals (3, 14, 30 and 100
- * days in a row; 25 and 100 comments) form a ladder. One action moves every
- * rung at once, but only the next rung up is worth a ping.
- */
-function ladderKey(achievement: Achievement): string {
-  if (!achievement.achievementField) return `id:${achievement.id}`;
-  return `${achievement.eventSlug ?? ''}:${achievement.achievementField}`;
-}
-
-/** Whether a is nearer its goal than b (the lower rung, on a ladder) */
+/** Whether a is nearer its goal than b */
 function closer(a: TickerItem, b: TickerItem): boolean {
   const ra = a.goal > 0 ? a.to / a.goal : 1;
   const rb = b.goal > 0 ? b.to / b.goal : 1;

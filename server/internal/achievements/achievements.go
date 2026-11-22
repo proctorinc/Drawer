@@ -48,6 +48,14 @@ var decorations = map[RewardUnlockId]bool{
 	"RAIN_CLOUD":    true,
 	"CROWN":         true,
 	"MYTHIC_WINGS":  true,
+
+	// Flair for the hard steps of a path (migrations/1795132100_seed_path_decorations.up.sql)
+	"PALETTE":         true,
+	"LAUREL_WREATH":   true,
+	"BALLOONS":        true,
+	"QUILL":           true,
+	"GOLD_STARS":      true,
+	"PLATINUM_PENCIL": true,
 }
 
 // IsDecoration reports whether a reward is a decoration, worn on the avatar one at a time
@@ -300,6 +308,9 @@ func Mask(achievement models.Achievement, events bool) models.Achievement {
 		Category: achievement.Category,
 		Hidden:   achievement.Hidden,
 		Secret:   true,
+		// Where it sits on its path isn't the secret, just what it takes
+		Path:     achievement.Path,
+		PathStep: achievement.PathStep,
 	}
 	// A live event's stickers are on its page anyway, but which event stays a surprise
 	if isEvent {

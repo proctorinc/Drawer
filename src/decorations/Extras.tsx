@@ -15,44 +15,202 @@ import type { CSSProperties, FC } from 'react';
  * The bottom right is left clear for the level badge.
  */
 
+const Pencil: FC<{ body: string; stripe: string; eraser: string }> = ({
+  body,
+  stripe,
+  eraser,
+}) => (
+  <g transform="translate(104 14) rotate(126)">
+    <rect
+      x={0}
+      y={-3.6}
+      width={7}
+      height={7.2}
+      rx={2.4}
+      fill={eraser}
+      {...ink}
+    />
+    <rect
+      x={6}
+      y={-3.6}
+      width={4.5}
+      height={7.2}
+      fill={COLORS.silver}
+      {...ink}
+    />
+    <rect x={10.5} y={-3.6} width={23.5} height={7.2} fill={body} {...ink} />
+    <path d="M11 0h22.5" fill="none" stroke={stripe} strokeWidth={1} />
+    <path d="M34 -3.6L44 0L34 3.6z" fill="#f2d6a8" {...ink} />
+    <path d="M40.6 -1.2L44 0L40.6 1.2z" fill={COLORS.ink} />
+  </g>
+);
+
 /** A pencil tucked behind the ear */
 export const PencilEar: FC = () => (
   <Overlay>
-    <g transform="translate(104 14) rotate(126)">
-      <rect
-        x={0}
-        y={-3.6}
-        width={7}
-        height={7.2}
-        rx={2.4}
-        fill={COLORS.pink}
-        {...ink}
-      />
-      <rect
-        x={6}
-        y={-3.6}
-        width={4.5}
-        height={7.2}
-        fill={COLORS.silver}
-        {...ink}
-      />
-      <rect
-        x={10.5}
-        y={-3.6}
-        width={23.5}
-        height={7.2}
-        fill={COLORS.gold}
-        {...ink}
-      />
-      <path
-        d="M11 0h22.5"
-        fill="none"
-        stroke={COLORS.goldDeep}
-        strokeWidth={1}
-      />
-      <path d="M34 -3.6L44 0L34 3.6z" fill="#f2d6a8" {...ink} />
-      <path d="M40.6 -1.2L44 0L40.6 1.2z" fill={COLORS.ink} />
+    <Pencil body={COLORS.gold} stripe={COLORS.goldDeep} eraser={COLORS.pink} />
+  </Overlay>
+);
+
+/** The same pencil, in platinum, and it knows it */
+export const PlatinumPencil: FC = () => (
+  <Overlay>
+    <Pencil body="#e4e9ef" stripe="#9aa4b1" eraser={COLORS.lilac} />
+    <Sparkle x={98} y={2} r={4} fill={COLORS.white} delay="0s" />
+    <Sparkle x={80} y={40} r={2.8} fill={COLORS.white} delay="0.5s" />
+    <Sparkle x={106} y={30} r={2.2} fill={COLORS.white} delay="0.9s" />
+  </Overlay>
+);
+
+/** A painter's palette floating by your head, a brush still wet */
+export const Palette: FC = () => (
+  <Overlay>
+    <g className="animate-float [transform-box:fill-box]">
+      <g transform="translate(-2 6) rotate(-18)">
+        <path
+          d="M0 10C0 -2 14 -9 27 -6C38 -3 40 6 33 10C28 13 30 18 26 21C18 27 0 24 0 10z"
+          fill="#f2d6a8"
+          {...ink}
+        />
+        <ellipse
+          cx={24}
+          cy={13}
+          rx={3.2}
+          ry={2.4}
+          fill="var(--color-paper)"
+          {...fineInk}
+        />
+        <circle cx={8} cy={4} r={3.2} fill={COLORS.coral} {...fineInk} />
+        <circle cx={17} cy={-1} r={3} fill={COLORS.butter} {...fineInk} />
+        <circle cx={28} cy={2} r={2.8} fill={COLORS.blue} {...fineInk} />
+        <circle cx={7} cy={14} r={3} fill={COLORS.green} {...fineInk} />
+        <circle cx={15} cy={19} r={2.6} fill={COLORS.purple} {...fineInk} />
+        <g transform="translate(34 -12) rotate(118)">
+          <rect
+            x={0}
+            y={-1.5}
+            width={24}
+            height={3}
+            rx={1.5}
+            fill={COLORS.wood}
+            {...fineInk}
+          />
+          <rect
+            x={-4}
+            y={-1.9}
+            width={4.4}
+            height={3.8}
+            fill={COLORS.silver}
+            {...fineInk}
+          />
+          <path
+            d="M-4 -2.1Q-10 -2 -12 0Q-10 2 -4 2.1z"
+            fill={COLORS.coral}
+            {...fineInk}
+          />
+        </g>
+      </g>
     </g>
+  </Overlay>
+);
+
+const Balloon: FC<{ x: number; y: number; fill: string; delay: string }> = ({
+  x,
+  y,
+  fill,
+  delay,
+}) => (
+  <g transform={`translate(${x} ${y})`}>
+    <g style={motion(`sway 3.4s ease-in-out ${delay} infinite`, '50% 100%')}>
+      <path
+        d="M0 0Q-9 -1 -9 -12Q-9 -22 0 -22Q9 -22 9 -12Q9 -1 0 0z"
+        fill={fill}
+        {...ink}
+      />
+      <path d="M-1.6 3L0 0L1.6 3z" fill={fill} {...fineInk} />
+      <path
+        d="M-5 -16Q-4 -19 -1 -19.6"
+        fill="none"
+        stroke={COLORS.white}
+        strokeWidth={1.6}
+        strokeLinecap="round"
+      />
+    </g>
+  </g>
+);
+
+/** A bunch of balloons tied on beside you, one for each of the crew */
+export const Balloons: FC = () => (
+  <Overlay>
+    <path
+      d="M-6 52Q-4 40 -10 26M-6 52Q-2 36 2 18M-6 52Q-6 38 -18 34"
+      fill="none"
+      {...fineInk}
+    />
+    <Balloon x={-18} y={34} fill={COLORS.blue} delay="0.5s" />
+    <Balloon x={-10} y={26} fill={COLORS.coral} delay="0s" />
+    <Balloon x={2} y={18} fill={COLORS.butter} delay="0.9s" />
+    <path d="M-8 50l2 2l2-2l-2 4z" fill={COLORS.purple} {...fineInk} />
+  </Overlay>
+);
+
+/** A big feathered quill tucked behind the ear, for the art critic */
+export const Quill: FC = () => (
+  <Overlay>
+    <g transform="translate(96 30) rotate(-34)">
+      <g style={motion('sway 4s ease-in-out infinite', '50% 100%')}>
+        <path
+          d="M0 0C-8 -10 -8 -30 2 -46C10 -32 10 -12 0 0z"
+          fill={COLORS.white}
+          {...ink}
+        />
+        <path
+          d="M-5 -26l4 3M-5 -16l4 3M6 -30l-4 3M6 -20l-4 3"
+          fill="none"
+          {...fineInk}
+        />
+        <path d="M2 -44Q0 -20 0 6" fill="none" {...ink} />
+        <path d="M-1.8 6L0 13L1.8 6z" fill={COLORS.ink} {...fineInk} />
+      </g>
+    </g>
+    <g transform="translate(97 48)">
+      <path
+        d="M0 -4Q3.2 0.8 0 2.4Q-3.2 0.8 0 -4z"
+        fill={COLORS.ink}
+        style={motion('deco-sweat 2.6s ease-in 0.8s infinite')}
+      />
+    </g>
+  </Overlay>
+);
+
+const star = (r: number) =>
+  Array.from({ length: 10 }, (_, i) => {
+    const { x, y } = onCircle(i * 36 - 90, i % 2 ? r * 0.45 : r);
+    return `${i ? 'L' : 'M'}${x - 50} ${y - 50}`;
+  }).join('') + 'z';
+
+/** Five gold stars over your head, one for each great score */
+export const GoldStars: FC = () => (
+  <Overlay>
+    {[
+      { deg: 200, r: 6, delay: '0s' },
+      { deg: 230, r: 7, delay: '0.3s' },
+      { deg: 270, r: 8.5, delay: '0.6s' },
+      { deg: 310, r: 7, delay: '0.9s' },
+      { deg: 340, r: 6, delay: '1.2s' },
+    ].map(({ deg, r, delay }) => {
+      const { x, y } = onCircle(deg, 62);
+      return (
+        <g key={deg} transform={`translate(${x} ${y})`}>
+          <g
+            className="animate-float [transform-box:fill-box]"
+            style={{ animationDelay: delay }}
+          >
+            <path d={star(r)} fill={COLORS.gold} {...ink} />
+          </g>
+        </g>
+      );
+    })}
   </Overlay>
 );
 

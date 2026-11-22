@@ -238,6 +238,10 @@ type Achievement struct {
 	Secret bool `json:"secret"`
 	// Celebrated is set once the player has been shown this one being earned, on any device
 	Celebrated bool `json:"celebrated"`
+	// Path is the line of achievements this one is a step on, each leading to the next;
+	// one alone on its path has its own id here. PathStep is its place on it, from 1.
+	Path     string `json:"path"`
+	PathStep int    `json:"pathStep"`
 }
 
 type RewardUnlock struct {

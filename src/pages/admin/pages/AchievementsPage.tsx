@@ -47,6 +47,13 @@ const AchievementDemo: FC<{
         <dd>
           {achievement.achievementField} ≥ {goal}
         </dd>
+        <dt className="text-pencil">path</dt>
+        <dd>
+          {achievement.path ?? '–'}
+          {achievement.pathStep ? `, step ${achievement.pathStep}` : ''}
+        </dd>
+        <dt className="text-pencil">worth</dt>
+        <dd>{achievement.xp} XP</dd>
         <dt className="text-pencil">players see</dt>
         <dd>
           {achievement.hidden ? (
