@@ -65,13 +65,16 @@ const FavoriteFrame: FC<FrameProps> = ({
         size={26}
         className="absolute z-10 -top-[19px] left-1/2 -ml-[13px]"
       />
+      {/* Square from its width alone: in the swap sheet's grid the frame is
+          stretched to the row's height, and h-full would stretch the drawing
+          with it, pushing the caption strip out the bottom of the frame */}
       {isLocked ? (
-        <LockedDrawing />
+        <LockedDrawing className="h-auto" />
       ) : (
         <DrawingImage
           imageUrl={submission.imageUrl}
           draggable={false}
-          className="bg-[#fff8ec]"
+          className="h-auto bg-[#fff8ec]"
         />
       )}
       {/* The wall's caption strip, shrunk: its reactions and comments */}
