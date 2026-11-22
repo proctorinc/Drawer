@@ -4,13 +4,14 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useFlair } from './useFlair';
 import { UserProfileIcon } from './components/profile-icons/UserProfileIcon';
 import type { FC } from 'react';
-import type { DecorationId } from '@/api/Api';
+import type { Achievement, DecorationId } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import Banner from '@/components/Banner';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
 import ShowAllLink from '@/components/ShowAllLink';
 import { DECORATIONS } from '@/decorations/decorations';
+import { achievementAnchor } from '@/pages/trophies/components/AchievementCard';
 import { cn } from '@/utils';
 
 // The avatar inside a tile would otherwise open your profile when tapped
@@ -18,23 +19,38 @@ const ignoreClick = () => {};
 
 const tilts = ['-rotate-2', 'rotate-1', '-rotate-1', 'rotate-2'];
 
-/** One decoration on your face; tapping it opens the edit sheet wearing it */
+/**
+ * One decoration on your face. Tapping an unlocked one opens the edit sheet
+ * wearing it; a locked one jumps to the achievement that earns it.
+ */
 const FlairTile: FC<{
   id: DecorationId;
   index: number;
   unlocked: boolean;
-  sticker?: string;
-}> = ({ id, index, unlocked, sticker }) => {
+  achievement?: Achievement;
+}> = ({ id, index, unlocked, achievement }) => {
   const user = useUser();
   const wearing = user.decoration === id;
+  const sticker = achievement?.name;
+  const linkProps =
+    !unlocked && achievement
+      ? ({
+          to: '/draw/achievements',
+          search: { tab: achievement.category },
+          hash: achievementAnchor(achievement),
+          'aria-label': `${DECORATIONS[id].name} (locked): see how to earn the ${achievement.name} sticker`,
+        } as const)
+      : ({
+          to: '/draw/profile/me',
+          hash: 'decorations',
+          search: { try: id },
+          'aria-label': `try on ${DECORATIONS[id].name}${unlocked ? '' : ' (locked)'}`,
+        } as const);
 
   return (
     <li className={cn('flex', tilts[index % tilts.length])}>
       <Link
-        to="/draw/profile/me"
-        hash="decorations"
-        search={{ try: id }}
-        aria-label={`try on ${DECORATIONS[id].name}${unlocked ? '' : ' (locked)'}`}
+        {...linkProps}
         className={cn(
           'press relative flex flex-col items-center gap-1.5 w-full p-3 text-center border-2 rounded-sketch-alt cursor-pointer hover:rotate-0',
           wearing ? 'bg-me border-ink' : 'bg-white border-ink',
@@ -71,7 +87,7 @@ const FlairTile: FC<{
 
 /** All the flair you can wear, unlocked or not, grouped by what earns it */
 const DecorationsPage = () => {
-  const { groups, isUnlocked, stickerFor, unlocked, available, isLoading } =
+  const { groups, isUnlocked, achievementFor, unlocked, available, isLoading } =
     useFlair();
 
   if (isLoading) return <LoadingScreen />;
@@ -107,7 +123,7 @@ const DecorationsPage = () => {
                   id={id}
                   index={i}
                   unlocked={isUnlocked(id)}
-                  sticker={stickerFor(id)}
+                  achievement={achievementFor(id)}
                 />
               ))}
             </ul>

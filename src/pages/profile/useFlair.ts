@@ -7,9 +7,11 @@ export function useFlair() {
   const { achievementsData } = useMyProfilePage();
 
   const isUnlocked = (id: DecorationId) => !!achievementsData?.rewards.has(id);
+  /** The achievement whose sticker unlocks it */
+  const achievementFor = (id: DecorationId) =>
+    achievementsData?.achievements.find((a) => a.reward?.id === id);
   /** The sticker that unlocks it, by name */
-  const stickerFor = (id: DecorationId) =>
-    achievementsData?.achievements.find((a) => a.reward?.id === id)?.name;
+  const stickerFor = (id: DecorationId) => achievementFor(id)?.name;
   // Flair from an event that hasn't started (or that you missed) stays out of
   // sight: its sticker isn't listed, so there's nothing to earn it with
   const isAvailable = (id: DecorationId) => isUnlocked(id) || !!stickerFor(id);
@@ -18,12 +20,22 @@ export function useFlair() {
     ids: group.ids.filter(isAvailable),
   })).filter((group) => group.ids.length > 0);
   const available = groups.flatMap((group) => group.ids);
+  const earnedAt = (id: DecorationId) => {
+    const at = achievementFor(id)?.achievedAt;
+    return at ? new Date(at).getTime() : 0;
+  };
+  /** Unlocked flair, newest first (by when its sticker was earned) */
+  const recent = available
+    .filter(isUnlocked)
+    .sort((a, b) => earnedAt(b) - earnedAt(a));
 
   return {
     isUnlocked,
+    achievementFor,
     stickerFor,
     groups,
-    unlocked: available.filter(isUnlocked).length,
+    recent,
+    unlocked: recent.length,
     available: available.length,
     isLoading: !achievementsData,
   };
