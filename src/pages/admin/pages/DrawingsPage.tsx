@@ -16,7 +16,7 @@ import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 
 const DrawingTile: FC<{ submission: AdminSubmission }> = ({ submission }) => (
-  <li className="flex flex-col gap-2 p-2 pb-3 bg-white border-2 border-ink rounded-sketch shadow-pencil-sm">
+  <li className="flex flex-col gap-2 p-2 pb-3 bg-white border-2 border-ink rounded-sketch">
     <Link
       to="/draw/submission/$submissionId"
       params={{ submissionId: submission.id }}

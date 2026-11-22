@@ -14,7 +14,7 @@ const EventBadge: FC<Props> = ({ days, className }) => (
     role="img"
     aria-label={`Doodlemas, ${days} days of doodles`}
     className={cn(
-      'relative flex flex-col items-center px-5 pt-4 pb-3 bg-white border-[2.5px] border-ink rounded-[20px_14px_22px_16px/16px_22px_14px_20px] shadow-pencil -rotate-2 animate-drop',
+      'relative flex flex-col items-center px-5 pt-4 pb-3 bg-white border-[2.5px] border-ink rounded-[20px_14px_22px_16px/16px_22px_14px_20px] -rotate-2 animate-drop',
       className,
     )}
   >

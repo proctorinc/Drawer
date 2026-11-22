@@ -57,7 +57,7 @@ const QuestItem: FC<{ quest: Quest }> = ({ quest }) => {
   return (
     <li
       className={cn(
-        'flex items-center gap-3 w-full px-3 py-2 border-2 border-ink rounded-sketch-alt shadow-pencil-sm',
+        'flex items-center gap-3 w-full px-3 py-2 border-2 border-ink rounded-sketch-alt',
         done ? 'bg-[#fff6c9]' : 'bg-white',
       )}
     >

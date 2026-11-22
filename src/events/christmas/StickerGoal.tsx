@@ -8,7 +8,7 @@ export const stickerCard = (earned: boolean) =>
   cn(
     'relative grid grid-rows-subgrid justify-items-center gap-2 px-2 pt-4 pb-3 border-2 rounded-sketch text-center',
     earned
-      ? 'bg-white border-ink shadow-pencil-sm'
+      ? 'bg-white border-ink'
       : 'bg-paper border-dashed border-line',
   );
 

@@ -16,7 +16,7 @@ const IncomingInvites = () => {
       {incoming.map(({ inviter }, i) => (
         <div
           key={inviter.id}
-          className={`relative flex flex-col gap-3 p-4 pt-5 bg-blush shadow-[1px_2px_6px_rgba(43,42,51,0.18)] ${i % 2 ? 'rotate-1' : '-rotate-1'}`}
+          className={`relative flex flex-col gap-3 p-4 pt-5 bg-blush border-2 border-ink ${i % 2 ? 'rotate-1' : '-rotate-1'}`}
         >
           <PushPin
             color={'#ffb400'}

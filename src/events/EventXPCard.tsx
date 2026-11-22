@@ -21,7 +21,7 @@ const EventXPCard: FC<Props> = ({ xp, className }) => {
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 w-full p-4 bg-white border-2 border-ink rounded-sketch shadow-pencil',
+        'flex flex-col gap-3 w-full p-4 bg-white border-2 border-ink rounded-sketch',
         className,
       )}
     >

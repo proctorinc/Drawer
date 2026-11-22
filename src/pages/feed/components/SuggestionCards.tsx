@@ -103,7 +103,7 @@ const TipCard: FC<CardProps> = ({
 }) => (
   <li
     className={cn(
-      'relative flex-none flex gap-3 w-64 p-3 pt-4 bg-white shadow-[1px_2px_6px_rgba(43,42,51,0.18)] snap-start animate-drop',
+      'relative flex-none flex gap-3 w-64 p-3 pt-4 bg-white border-2 border-ink snap-start animate-drop',
       index % 2 ? 'rotate-1' : '-rotate-1',
     )}
     style={{ animationDelay: `${index * 90}ms` }}

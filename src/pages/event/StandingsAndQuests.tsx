@@ -35,7 +35,7 @@ const StandingsAndQuests: FC<Props> = ({ standings, quests }) => {
       <div className="flex items-center justify-between gap-2">
         <div
           role="tablist"
-          className="flex p-1 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil-sm"
+          className="flex p-1 bg-white border-2 border-ink rounded-sketch-alt"
           onKeyDown={onKeyDown}
         >
           {panels.map((panel, i) => (

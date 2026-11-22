@@ -65,7 +65,7 @@ const StickersPage = () => {
         {isMe ? 'earn more stickers' : 'how stickers are earned'}
       </ShowAllLink>
       {earned.length > 0 ? (
-        <ul className="grid grid-cols-3 gap-x-3 gap-y-5 w-full p-4 pt-5 bg-white border-2 border-ink rounded-sketch shadow-pencil">
+        <ul className="grid grid-cols-3 gap-x-3 gap-y-5 w-full p-4 pt-5 bg-white border-2 border-ink rounded-sketch">
           {earned.map((achievement, i) => (
             <AchievementSticker
               key={achievement.id}

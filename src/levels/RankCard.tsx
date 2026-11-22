@@ -47,7 +47,7 @@ export const RankCard: FC<Props> = ({
     <div
       data-rank={tier.id}
       className={cn(
-        'relative w-full border-2 border-ink rounded-sketch shadow-pencil transition-[background-color] duration-500',
+        'relative w-full border-2 border-ink rounded-sketch transition-[background-color] duration-500',
         spins && 'rank-spin',
         tier.glow && 'rank-card-glow',
         className,

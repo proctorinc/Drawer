@@ -102,7 +102,7 @@ const EventBanner: FC<{ liveEvent: LiveEvent | null }> = ({ liveEvent }) => {
   return (
     <section
       className={cn(
-        'relative flex flex-col gap-1 w-full px-4 pt-5 pb-4 border-2 border-ink rounded-sketch-alt shadow-pencil rotate-[-1deg]',
+        'relative flex flex-col gap-1 w-full px-4 pt-5 pb-4 border-2 border-ink rounded-sketch-alt rotate-[-1deg]',
         event.className,
       )}
     >

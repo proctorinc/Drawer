@@ -31,7 +31,7 @@ const Point: FC<{ icon: ReactNode; title: string; children: ReactNode }> = ({
   children,
 }) => (
   <li className="flex gap-3">
-    <span className="flex-none flex items-center justify-center size-10 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil-sm">
+    <span className="flex-none flex items-center justify-center size-10 bg-white border-2 border-ink rounded-sketch-alt">
       {icon}
     </span>
     <span className="flex flex-col leading-snug">

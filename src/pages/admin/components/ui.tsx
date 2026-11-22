@@ -47,7 +47,7 @@ export const Panel: FC<{ className?: string; children: ReactNode }> = ({
 }) => (
   <div
     className={cn(
-      'bg-white border-2 border-ink rounded-sketch shadow-pencil-sm',
+      'bg-white border-2 border-ink rounded-sketch',
       className,
     )}
   >

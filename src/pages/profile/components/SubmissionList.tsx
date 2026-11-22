@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import type { CSSProperties, FC } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
+import { polaroidFrameClass } from '@/components/polaroid';
 import { parseDay } from '@/days';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { LockedDrawing } from '@/drawing/components/LockedDrawing';
@@ -52,7 +53,7 @@ const SubmissionList: FC<Props> = ({ prompts }) => {
                     'relative flex flex-col gap-1 p-1.5 pb-1 rotate-[var(--tilt)] transition-[rotate,scale] duration-300 ease-[var(--ease-spring)] hover:rotate-0 hover:scale-105 active:scale-95',
                     golden
                       ? goldFrameClass
-                      : 'bg-white shadow-[1px_2px_5px_rgba(43,42,51,0.18)]',
+                      : polaroidFrameClass,
                   )}
                   style={
                     {

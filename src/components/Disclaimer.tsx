@@ -12,7 +12,7 @@ const Disclaimer: FC<Props> = ({ title, children }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="relative flex flex-col gap-2 w-full px-5 pt-5 pb-3 bg-[#fff6c9] -rotate-1 shadow-[1px_2px_6px_rgba(43,42,51,0.15)]">
+    <div className="relative flex flex-col gap-2 w-full px-5 pt-5 pb-3 bg-[#fff6c9] -rotate-1 border-2 border-ink">
       <PushPin
         color={'#3a7bd5'}
         lean={14}

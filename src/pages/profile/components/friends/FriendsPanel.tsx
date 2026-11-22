@@ -19,7 +19,7 @@ const FriendsPanel: FC<Props> = ({ profile }) => {
     <>
       <IncomingInvites />
 
-      <div className="relative flex flex-col gap-3 p-4 bg-sky border-2 border-ink rounded-sketch shadow-pencil">
+      <div className="relative flex flex-col gap-3 p-4 bg-sky border-2 border-ink rounded-sketch">
         <p className="font-accent font-bold text-2xl leading-none">
           doodling is better with friends
         </p>

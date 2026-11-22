@@ -122,7 +122,7 @@ const PromptPreview: FC<{ prompt: AdminPrompt }> = ({ prompt }) => {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-[auto_1fr] gap-8 overflow-x-auto pb-2 items-start">
       {/* translate-z keeps the snow's position:fixed inside the phone */}
-      <div className="paper relative flex flex-col gap-4 w-[390px] shrink-0 h-[780px] px-5 py-4 overflow-hidden border-[3px] border-ink rounded-[36px] shadow-pencil [transform:translateZ(0)]">
+      <div className="paper relative flex flex-col gap-4 w-[390px] shrink-0 h-[780px] px-5 py-4 overflow-hidden border-[3px] border-ink rounded-[36px] [transform:translateZ(0)]">
         {christmas && <Snowfall />}
         <header
           className={cn(

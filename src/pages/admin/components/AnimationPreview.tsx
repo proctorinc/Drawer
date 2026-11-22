@@ -162,7 +162,7 @@ const PhonePlayer: FC<{
     >
       <div
         ref={setFrame}
-        className="paper relative overflow-hidden border-[3px] border-ink rounded-[36px] shadow-pencil origin-top-left [container-type:size]"
+        className="paper relative overflow-hidden border-[3px] border-ink rounded-[36px] origin-top-left [container-type:size]"
         style={{
           width: PHONE.width,
           height: PHONE.height,
@@ -260,7 +260,7 @@ export const ShowAnimationButton: FC<{
               run={run}
               onDone={() => setPlaying(false)}
             />
-            <div className="flex flex-col gap-3 w-full max-w-[390px] md:w-64 shrink-0 p-4 bg-white border-2 border-ink rounded-sketch shadow-pencil-sm">
+            <div className="flex flex-col gap-3 w-full max-w-[390px] md:w-64 shrink-0 p-4 bg-white border-2 border-ink rounded-sketch">
               <span className="text-sm text-pencil">mobile preview</span>
               <h2 className="font-accent font-bold text-xl md:text-2xl leading-tight">
                 {title}

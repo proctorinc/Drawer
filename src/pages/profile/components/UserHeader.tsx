@@ -88,7 +88,7 @@ const UserHeader: FC<Props> = ({
           {footer}
         </RankCard>
       ) : (
-        <div className="flex flex-col gap-3 p-4 bg-white border-2 border-ink rounded-sketch shadow-pencil">
+        <div className="flex flex-col gap-3 p-4 bg-white border-2 border-ink rounded-sketch">
           {row}
           {footer}
         </div>

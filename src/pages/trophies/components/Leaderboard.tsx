@@ -39,7 +39,7 @@ const Leaderboard: FC<Props> = ({ entries, myId }) => {
 
   return (
     <>
-      <ol className="flex flex-col w-full bg-white border-2 border-ink rounded-sketch shadow-pencil overflow-clip stagger">
+      <ol className="flex flex-col w-full bg-white border-2 border-ink rounded-sketch overflow-clip stagger">
         {shown.map((entry, i) => {
           // Entries come sorted by XP, so ties share the rank of the first of them
           const rank = entries.findIndex((e) => e.xp === entry.xp) + 1;
@@ -62,7 +62,7 @@ const Leaderboard: FC<Props> = ({ entries, myId }) => {
                 className={cn(
                   'grid place-items-center w-10 h-8 shrink-0 font-accent font-bold text-lg',
                   medal &&
-                    'border-2 border-ink rounded-blob shadow-pencil-sm -rotate-6',
+                    'border-2 border-ink rounded-blob -rotate-6',
                   medal?.className,
                 )}
               >
