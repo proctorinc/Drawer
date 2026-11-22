@@ -303,6 +303,24 @@ describe('diffProgress', () => {
     ]);
   });
 
+  it("doesn't ping a better near miss on a one-shot achievement", () => {
+    const judge = (progress: number) =>
+      achievement({
+        id: 'judge-best-10',
+        achievementField: 'AI_BEST_SCORE',
+        achievementValue: 10,
+        progress,
+      });
+    const { stage, ticker } = diffProgress(
+      snapshot({
+        achievements: { 'judge-best-10': { progress: 5, achieved: false } },
+      }),
+      { achievements: [judge(7)] },
+    );
+    expect(stage).toEqual([]);
+    expect(ticker).toEqual([]);
+  });
+
   it('pings only the nearest rung of a ladder', () => {
     const streak = (id: string, goal: number, progress: number) =>
       achievement({

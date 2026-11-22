@@ -16,6 +16,7 @@ import type { LevelSnapshot, StageItem, TickerItem } from './types';
 import type { Achievement } from '@/api/Api';
 import type { Quest } from '@/api/trophies';
 import { rankFor } from '@/levels/ranks';
+import { isOneShot } from '@/achievements/oneShot';
 
 export type AchievementMemory = { progress: number; achieved: boolean };
 
@@ -149,7 +150,13 @@ export function diffProgress(
             payload: { reward: achievement.reward, from: achievement },
           });
         }
-      } else if (was && !now.achieved && now.progress > was.progress) {
+      } else if (
+        was &&
+        !now.achieved &&
+        now.progress > was.progress &&
+        // You earn these or you don't; a better near miss isn't progress
+        !isOneShot(achievement)
+      ) {
         const tickerKind =
           kind === 'sticker' ? 'stickerProgress' : 'achievementProgress';
         const ping: TickerItem = {
