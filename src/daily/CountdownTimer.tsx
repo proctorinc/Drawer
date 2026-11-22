@@ -5,8 +5,8 @@ import { cn } from '@/utils';
 
 type Props = {
   className?: string;
-  /** clock: 08:12:44, short: 8h 12m */
-  format?: 'clock' | 'short';
+  /** clock: 08:12:44, short: 8h 12m, stack: hours, minutes, seconds on their own lines */
+  format?: 'clock' | 'short' | 'stack';
   /** Give every character its own fixed-width cell, so nothing shifts as it ticks */
   monospace?: boolean;
 };
@@ -53,6 +53,30 @@ export const CountDownTimer: FC<Props> = ({
   }, [queryClient]);
 
   const text = format === 'short' ? formatShort(seconds) : formatClock(seconds);
+
+  if (format === 'stack') {
+    const parts = [
+      [Math.floor(seconds / 3600), 'hr'],
+      [Math.floor((seconds % 3600) / 60), 'min'],
+      [seconds % 60, 's'],
+    ] as const;
+    return (
+      <span
+        aria-label={text}
+        role="timer"
+        className={cn('inline-grid grid-cols-[auto_auto] gap-x-1', className)}
+      >
+        {parts.map(([value, unit]) => (
+          <span key={unit} aria-hidden="true" className="contents">
+            <span className="text-right tabular-nums">{pad(value)}</span>
+            <span className="self-end pb-[0.12em] text-left text-[0.55em] font-normal text-pencil">
+              {unit}
+            </span>
+          </span>
+        ))}
+      </span>
+    );
+  }
 
   if (monospace) {
     return (

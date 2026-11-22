@@ -32,10 +32,14 @@ const FLAKES = [
  * A wrapped present teasing Christmas before it starts: when, and nothing
  * else. What's inside stays a surprise until the event is live.
  */
-const ChristmasTeaser: FC<{ event: UpcomingEvent; className?: string }> = ({
-  event,
-  className,
-}) => {
+type TeaserProps = {
+  event: UpcomingEvent;
+  className?: string;
+  /** Sharing a row with another card: tighter type and gift tag */
+  compact?: boolean;
+};
+
+const ChristmasTeaser: FC<TeaserProps> = ({ event, className, compact }) => {
   const days = daysUntil(event.startsAt);
 
   return (
@@ -43,7 +47,7 @@ const ChristmasTeaser: FC<{ event: UpcomingEvent; className?: string }> = ({
       aria-label={`${event.name} is coming`}
       className={cn('relative w-full -rotate-1 animate-drop', className)}
     >
-      <div className="relative overflow-hidden bg-xmas-red border-[2.5px] border-ink rounded-sketch-alt shadow-pencil">
+      <div className="relative overflow-hidden bg-xmas-red border-[2.5px] border-ink rounded-sketch-alt">
         {/* Gold ribbon, both ways, like a wrapped gift, crossing under the tag */}
         <span
           aria-hidden="true"
@@ -78,23 +82,43 @@ const ChristmasTeaser: FC<{ event: UpcomingEvent; className?: string }> = ({
 
         <Lights bulbs={11} className="-mt-1 -mb-2" />
 
-        <div className="relative flex items-center gap-3 px-4 pb-7">
+        <div
+          className={cn(
+            'relative flex items-center pb-7',
+            compact ? 'gap-2 px-3' : 'gap-3 px-4',
+          )}
+        >
           <div className="flex flex-col items-start gap-1 flex-1 min-w-0">
             <span className="px-1.5 bg-white text-xmas-green text-[11px] font-bold uppercase tracking-[2px] border-2 border-ink rounded-sketch -rotate-2">
               coming soon
             </span>
-            <h2 className="font-accent font-bold text-[30px] leading-none text-white [text-shadow:2px_2px_0_var(--color-ink)]">
+            <h2
+              className={cn(
+                'font-accent font-bold leading-none text-white',
+                compact ? 'text-[24px]' : 'text-[30px]',
+              )}
+            >
               {event.name}
             </h2>
           </div>
 
           {/* Gift tag with the countdown */}
-          <div className="relative flex-none flex flex-col items-center w-[76px] px-1.5 pt-3.5 pb-1.5 bg-paper border-2 border-ink rounded-[6px_6px_12px_12px] shadow-pencil-sm rotate-6">
+          <div
+            className={cn(
+              'relative flex-none flex flex-col items-center px-1.5 pt-3.5 pb-1.5 bg-paper border-2 border-ink rounded-[6px_6px_12px_12px] rotate-6',
+              compact ? 'w-[64px]' : 'w-[76px]',
+            )}
+          >
             <span
               aria-hidden="true"
               className="absolute top-1 left-1/2 -ml-1 size-2.5 rounded-full border-2 border-ink bg-xmas-red"
             />
-            <span className="font-accent font-bold text-[28px] leading-none text-xmas-red tabular-nums">
+            <span
+              className={cn(
+                'font-accent font-bold leading-none text-xmas-red tabular-nums',
+                compact ? 'text-[24px]' : 'text-[28px]',
+              )}
+            >
               {days}
             </span>
             <span className="text-xs text-pencil leading-tight whitespace-nowrap">
@@ -108,15 +132,12 @@ const ChristmasTeaser: FC<{ event: UpcomingEvent; className?: string }> = ({
 };
 
 /** A plain teaser for any other kind of event */
-const GenericTeaser: FC<{ event: UpcomingEvent; className?: string }> = ({
-  event,
-  className,
-}) => {
+const GenericTeaser: FC<TeaserProps> = ({ event, className }) => {
   const sleeps = daysUntil(event.startsAt);
   return (
     <section
       className={cn(
-        'flex flex-col gap-1 w-full px-4 py-3 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil -rotate-1',
+        'flex flex-col gap-1 w-full px-4 py-3 bg-white border-2 border-ink rounded-sketch-alt -rotate-1',
         className,
       )}
     >
@@ -134,15 +155,18 @@ const GenericTeaser: FC<{ event: UpcomingEvent; className?: string }> = ({
 };
 
 /** Announces the next event shortly before it starts; nothing otherwise */
-const ComingSoonCard: FC<{ className?: string }> = ({ className }) => {
+const ComingSoonCard: FC<{ className?: string; compact?: boolean }> = ({
+  className,
+  compact,
+}) => {
   const { isAuthenticated } = useAuth();
   const { data: event } = useUpcomingEvent(isAuthenticated);
   if (!event) return null;
 
   return event.theme === 'christmas' ? (
-    <ChristmasTeaser event={event} className={className} />
+    <ChristmasTeaser event={event} className={className} compact={compact} />
   ) : (
-    <GenericTeaser event={event} className={className} />
+    <GenericTeaser event={event} className={className} compact={compact} />
   );
 };
 
