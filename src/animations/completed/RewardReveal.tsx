@@ -282,7 +282,7 @@ export const RewardReveal: StageComponent<'reward'> = ({
           <p className="text-lg text-pencil leading-tight">
             {reward.description}
           </p>
-          <p className="text-sm text-pencil/80">for earning {from.name}</p>
+          <p className="text-sm text-pencil/80">for completing {from.name}</p>
         </div>
 
         <div

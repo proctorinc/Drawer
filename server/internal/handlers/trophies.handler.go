@@ -52,7 +52,7 @@ func xpRules(repo *sql.DB, ctx gocontext.Context) ([]XPRule, error) {
 		{"Comment on a friend's drawing", xpPerCommentWritten, 0},
 		{"React to a friend", xpPerReactionGiven, 0},
 		{"Get a reaction", xpPerReactionReceived, 0},
-		xpRange("Earn an achievement", low, high),
+		xpRange("Complete an achievement", low, high),
 		xpRange("Score 5+ with the judge", judgeBonusXP(0), judgeBonusXP(queries.JudgeScoreSteps-1)),
 		xpRange("Finish a weekly quest", slices.Min(slices.Collect(maps.Values(xp.QuestBonus))), slices.Max(slices.Collect(maps.Values(xp.QuestBonus)))),
 	}, nil

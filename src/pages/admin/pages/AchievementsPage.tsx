@@ -50,14 +50,14 @@ const AchievementDemo: FC<{
         <dt className="text-pencil">players see</dt>
         <dd>
           {achievement.hidden ? (
-            <Tag className="bg-blush">secret until earned</Tag>
+            <Tag className="bg-blush">secret until completed</Tag>
           ) : achievement.eventSlug ? (
             'a mystery on the achievements page'
           ) : (
-            'how to earn it'
+            'how to complete it'
           )}
         </dd>
-        <dt className="text-pencil">earned by</dt>
+        <dt className="text-pencil">completed by</dt>
         <dd>
           {achievement.earnedBy} of {players}
         </dd>
@@ -75,8 +75,8 @@ const AchievementDemo: FC<{
           animations
         </span>
         <ShowAnimationButton
-          label="earned"
-          title={`${achievement.name} earned`}
+          label="completed"
+          title={`${achievement.name} completed`}
           demo={achievementCompletedDemo(achievement)}
         />
         <ShowAnimationButton
@@ -117,7 +117,7 @@ const AchievementsPage = () => {
               aside={
                 <span className="flex flex-wrap items-center justify-end gap-3">
                   <ShowAnimationButton
-                    label="earn them all at once"
+                    label="complete them all at once"
                     title={`all ${items.length} stickers at once`}
                     demo={earnedAllDemo(items)}
                   />
