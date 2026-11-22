@@ -1,4 +1,5 @@
 import AchievementCard from './components/AchievementCard';
+import { completion } from './components/AchievementMeter';
 import EventBanner from './components/EventBanner';
 import Leaderboard from './components/Leaderboard';
 import LevelCard from './components/LevelCard';
@@ -13,7 +14,7 @@ import Chip from '@/components/Chip';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
 import { PushPin } from '@/components/PushPin';
-import ShowAllLink from '@/components/ShowAllLink';
+import { SectionLink } from '@/components/ShowAllLink';
 
 const SectionTitle: FC<{ children: ReactNode; aside?: ReactNode }> = ({
   children,
@@ -28,9 +29,6 @@ const SectionTitle: FC<{ children: ReactNode; aside?: ReactNode }> = ({
 );
 
 const UP_NEXT_COUNT = 3;
-
-const completion = (a: Achievement) =>
-  a.achievementValue > 0 ? a.progress / a.achievementValue : 0;
 
 const byClosestToDone = (a: Achievement, b: Achievement) =>
   completion(b) - completion(a);
@@ -98,23 +96,25 @@ const TrophiesPage = () => {
 
       {inProgress.length > 0 && (
         <>
-          <SectionTitle>up next</SectionTitle>
+          <SectionLink
+            to="/draw/achievements"
+            search={{ tab: 'next' }}
+            heading="up next"
+            className="-mb-2"
+          />
           <ul className="flex flex-col gap-3 w-full stagger">
             {inProgress.map((achievement) => (
-              <AchievementCard key={achievement.id} achievement={achievement} />
+              <AchievementCard
+                key={achievement.id}
+                achievement={achievement}
+                linked
+              />
             ))}
           </ul>
         </>
       )}
-      <ShowAllLink
-        to="/draw/achievements"
-        search={{ tab: 'next' }}
-        className="-mt-2"
-      >
-        see every achievement
-      </ShowAllLink>
 
-      <section className="relative flex flex-col gap-1 w-full px-4 pt-5 pb-4 bg-[#fff6c9] rotate-1 shadow-[1px_2px_6px_rgba(43,42,51,0.15)]">
+      <section className="relative flex flex-col gap-1 w-full px-4 pt-5 pb-4 bg-[#fff6c9] rotate-1 border-2 border-ink">
         <PushPin
           color={'#ff6b57'}
           lean={-14}

@@ -32,3 +32,45 @@ export const ShowAllButton: FC<{
 );
 
 export default ShowAllLink;
+
+type SectionLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+  /** The section's title, on the left */
+  heading: ReactNode;
+  /** The underlined words on the right; "see all" unless given */
+  label?: ReactNode;
+};
+
+const SectionLinkAnchor = forwardRef<HTMLAnchorElement, SectionLinkProps>(
+  ({ heading, label = 'see all', className, children, ...props }, ref) => (
+    <a
+      ref={ref}
+      {...props}
+      className={cn(
+        'group flex items-end justify-between gap-2 w-full cursor-pointer',
+        className,
+      )}
+    >
+      <h2 className="font-accent font-bold text-[28px] leading-none">
+        {heading}
+      </h2>
+      {children}
+      <span className="flex items-center gap-1 shrink-0 font-accent font-bold text-lg leading-none">
+        <span className="underline decoration-2 underline-offset-4 group-hover:decoration-coral">
+          {label}
+        </span>
+        <span
+          aria-hidden="true"
+          className="transition-transform group-hover:translate-x-1"
+        >
+          →
+        </span>
+      </span>
+    </a>
+  ),
+);
+
+/**
+ * A section title that opens the full page: the whole header is the link,
+ * with an underlined "see all →" on the right
+ */
+export const SectionLink = createLink(SectionLinkAnchor);

@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import type { Achievement } from '@/api/Api';
-import ShowAllLink from '@/components/ShowAllLink';
+import { SectionLink } from '@/components/ShowAllLink';
 import { bookPage } from '@/pages/profile/useBookOwner';
 import { AchievementSticker } from '@/pages/trophies/components/AchievementCard';
 
@@ -29,16 +29,24 @@ const StickerBook: FC<Props> = ({ userId, achievements, emptyText }) => {
 
   return (
     <section className="flex flex-col gap-4 w-full">
-      <div className="flex items-end justify-between gap-2">
-        <h2 className="font-accent font-bold text-[28px] leading-none">
-          latest stickers
-        </h2>
-        <span className="text-pencil">
-          {earned.length}/{achievements.length} collected
-        </span>
-      </div>
+      {earned.length > RECENT_STICKERS ? (
+        <SectionLink
+          {...bookPage(userId, 'stickers')}
+          heading="latest stickers"
+          label={`see all ${earned.length}`}
+        />
+      ) : (
+        <div className="flex items-end justify-between gap-2">
+          <h2 className="font-accent font-bold text-[28px] leading-none">
+            latest stickers
+          </h2>
+          <span className="text-pencil">
+            {earned.length}/{achievements.length} collected
+          </span>
+        </div>
+      )}
       {recent.length > 0 ? (
-        <ul className="grid grid-cols-3 gap-x-3 gap-y-5 w-full p-4 pt-5 bg-white border-2 border-ink rounded-sketch shadow-pencil">
+        <ul className="grid grid-cols-3 gap-x-3 gap-y-5 w-full p-4 pt-5 bg-white border-2 border-ink rounded-sketch">
           {recent.map((achievement, i) => (
             <AchievementSticker
               key={achievement.id}
@@ -51,11 +59,6 @@ const StickerBook: FC<Props> = ({ userId, achievements, emptyText }) => {
         <p className="w-full p-4 text-center text-pencil bg-white border-2 border-dashed border-pencil rounded-sketch">
           {emptyText}
         </p>
-      )}
-      {earned.length > RECENT_STICKERS && (
-        <ShowAllLink {...bookPage(userId, 'stickers')} className="-mt-1">
-          show all {earned.length}
-        </ShowAllLink>
       )}
     </section>
   );

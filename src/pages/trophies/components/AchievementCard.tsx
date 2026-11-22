@@ -1,5 +1,10 @@
+import { Link } from '@tanstack/react-router';
 import Badge from './Badge';
-import ProgressBar from './ProgressBar';
+import {
+  AchievementBar,
+  AchievementCount,
+  completion,
+} from './AchievementMeter';
 import type { CSSProperties, FC } from 'react';
 import type { Achievement } from '@/api/Api';
 import Chip from '@/components/Chip';
@@ -27,8 +32,7 @@ export const AchievementSticker: FC<{
     className={cn(
       'flex flex-col items-center gap-1 text-center animate-drop rotate-[var(--tilt)]',
       anchorMargin,
-      highlighted &&
-        'bg-me rounded-sketch shadow-[0_0_0_6px_var(--color-me)]',
+      highlighted && 'bg-me rounded-sketch shadow-[0_0_0_6px_var(--color-me)]',
     )}
     style={
       {
@@ -69,19 +73,22 @@ export const AchievementSticker: FC<{
   </li>
 );
 
-/** An achievement still being worked on */
-const AchievementCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
-  const { progress, achievementValue: goal } = achievement;
-  const almostThere = goal > 0 && progress / goal >= 0.75;
+/** Element id that `/draw/achievements#achievement-<id>` links scroll to */
+export const achievementAnchor = (achievement: Achievement) =>
+  `achievement-${achievement.id}`;
 
-  return (
-    <li
-      id={stickerAnchor(achievement)}
-      className={cn(
-        'flex items-center gap-3 w-full p-3 bg-white border-2 border-ink rounded-sketch shadow-pencil-sm',
-        anchorMargin,
-      )}
-    >
+const cardClass =
+  'flex items-center gap-3 w-full p-3 bg-white border-2 border-ink rounded-sketch';
+
+/** An achievement still being worked on */
+const AchievementCard: FC<{
+  achievement: Achievement;
+  /** Tapping it opens it on the achievements page, among its category */
+  linked?: boolean;
+}> = ({ achievement, linked }) => {
+  const almostThere = completion(achievement) >= 0.75;
+  const body = (
+    <>
       <Badge achievement={achievement} locked className="size-14 shrink-0" />
       <div className="flex flex-col gap-1.5 flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
@@ -91,9 +98,7 @@ const AchievementCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
             </h3>
             {achievement.xp > 0 && <XPSticker xp={achievement.xp} />}
           </div>
-          <span className="font-accent font-bold text-lg leading-none whitespace-nowrap">
-            {Math.min(progress, goal)}/{goal}
-          </span>
+          <AchievementCount achievement={achievement} />
         </div>
         <p className="text-sm text-pencil leading-tight">
           {achievement.description}
@@ -101,12 +106,9 @@ const AchievementCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
             <span className="text-pencil/70"> · best {achievement.best}</span>
           )}
         </p>
-        <ProgressBar
-          value={progress}
-          max={goal}
-          label={`${achievement.name} progress`}
+        <AchievementBar
+          achievement={achievement}
           fill={almostThere ? 'bg-coral' : 'bg-me'}
-          className="h-3"
         />
         {(almostThere || achievement.reward) && (
           <div className="flex flex-wrap gap-1.5">
@@ -121,6 +123,23 @@ const AchievementCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
           </div>
         )}
       </div>
+    </>
+  );
+
+  return (
+    <li id={stickerAnchor(achievement)} className={cn('flex', anchorMargin)}>
+      {linked ? (
+        <Link
+          to="/draw/achievements"
+          search={{ tab: achievement.category }}
+          hash={achievementAnchor(achievement)}
+          className={cn(cardClass, 'press shadow-pencil-sm hover:bg-paper transition-colors')}
+        >
+          {body}
+        </Link>
+      ) : (
+        <div className={cardClass}>{body}</div>
+      )}
     </li>
   );
 };

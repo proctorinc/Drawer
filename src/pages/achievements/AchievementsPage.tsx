@@ -1,14 +1,36 @@
-import { useNavigate, useSearch } from '@tanstack/react-router';
-import { useRef } from 'react';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearch,
+} from '@tanstack/react-router';
+import { useEffect, useRef } from 'react';
+import { faLock } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import Badge from '../trophies/components/Badge';
+import { achievementAnchor } from '../trophies/components/AchievementCard';
+import { UserProfileIcon } from '../profile/components/profile-icons/UserProfileIcon';
 import ProgressBar from '../trophies/components/ProgressBar';
+import {
+  AchievementBar,
+  AchievementCount,
+  completion,
+} from '../trophies/components/AchievementMeter';
 import type { FC, KeyboardEvent } from 'react';
-import type { Achievement, AchievementCategory } from '@/api/Api';
+import type {
+  Achievement,
+  AchievementCategory,
+  AchievementReward,
+  DecorationId,
+} from '@/api/Api';
 import { useGetAchievementCatalog } from '@/api/Api';
 import Button from '@/components/Button';
 import Chip from '@/components/Chip';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
+import { PencilIcon } from '@/components/icons';
+import useUser from '@/auth/hooks/useUser';
+import { DECORATIONS } from '@/decorations/decorations';
 import { cn } from '@/utils';
 
 export const CATEGORIES: Array<{
@@ -52,9 +74,6 @@ const earnedOn = (achievement: Achievement) =>
     year: 'numeric',
   });
 
-const completion = (a: Achievement) =>
-  a.achievementValue > 0 ? a.progress / a.achievementValue : 0;
-
 /** Not done first, closest to done at the top; then secrets; then earned, newest first */
 const rank = (a: Achievement) => (a.achievedAt ? 2 : a.secret ? 1 : 0);
 const byNotDoneFirst = (a: Achievement, b: Achievement) =>
@@ -63,11 +82,118 @@ const byNotDoneFirst = (a: Achievement, b: Achievement) =>
     ? new Date(b.achievedAt).getTime() - new Date(a.achievedAt).getTime()
     : completion(b) - completion(a));
 
-const SecretCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
+// The preview avatar is a picture of you, not a link to your profile
+const ignoreClick = () => {};
+
+const decorationOf = (reward: AchievementReward) =>
+  reward.id in DECORATIONS ? (reward.id as DecorationId) : null;
+
+/**
+ * What an achievement unlocks, shown on you: your avatar wearing the flair,
+ * faded behind a lock until it's earned, then a tap away from trying it on
+ */
+const RewardPanel: FC<{ reward: AchievementReward; earned: boolean }> = ({
+  reward,
+  earned,
+}) => {
+  const me = useUser();
+  const decoration = decorationOf(reward);
+  const name = decoration
+    ? DECORATIONS[decoration].name
+    : reward.name.toLowerCase();
+
+  const contents = (
+    <>
+      <span className={cn('relative flex p-1.5', !earned && 'opacity-80')}>
+        {decoration ? (
+          <UserProfileIcon
+            user={{ ...me, decoration }}
+            size="lg"
+            showLevel={false}
+            onClick={ignoreClick}
+            className="hover:scale-100 hover:rotate-0"
+          />
+        ) : (
+          <span className="flex items-center justify-center size-12 bg-white border-2 border-ink rounded-full">
+            <PencilIcon size={22} />
+          </span>
+        )}
+      </span>
+      <span className="flex flex-col gap-0.5 flex-1 min-w-0 text-left">
+        <span className="text-xs text-pencil leading-none">
+          {decoration
+            ? earned
+              ? 'flair unlocked'
+              : 'unlocks flair'
+            : earned
+              ? 'unlocked'
+              : 'unlocks'}
+        </span>
+        <span className="font-accent font-bold text-lg leading-none">
+          {name}
+        </span>
+      </span>
+      {earned && decoration ? (
+        <span className="shrink-0 font-accent font-bold leading-none underline decoration-2 underline-offset-4">
+          try it on →
+        </span>
+      ) : (
+        !earned && (
+          <span className="flex items-center justify-center shrink-0 size-6 rounded-full bg-ink text-white text-[11px]">
+            <FontAwesomeIcon icon={faLock} />
+          </span>
+        )
+      )}
+    </>
+  );
+
+  const panelClass = cn(
+    'flex items-center gap-2 w-full pr-3 border-2 rounded-sketch-alt',
+    earned ? 'bg-me border-ink' : 'bg-paper border-dashed border-pencil',
+  );
+
+  return earned && decoration ? (
+    <Link
+      to="/draw/profile/me"
+      hash="decorations"
+      search={{ try: decoration }}
+      aria-label={`try on ${name}`}
+      className={cn(panelClass, 'press cursor-pointer')}
+    >
+      {contents}
+    </Link>
+  ) : (
+    <div className={panelClass}>{contents}</div>
+  );
+};
+
+/** Every card on the page: a link to one makes it wiggle into view */
+const cardShell = (achievement: Achievement, highlighted: boolean) => ({
+  id: achievementAnchor(achievement),
+  className: cn(
+    'scroll-mt-[calc(50vh-6rem)]',
+    highlighted && 'outline-[3px] outline-coral outline-offset-2',
+  ),
+  badge: cn(highlighted && 'animate-[wiggle_0.6s_ease-in-out_500ms_2]'),
+});
+
+type CardProps = { achievement: Achievement; highlighted: boolean };
+
+const SecretCard: FC<CardProps> = ({ achievement, highlighted }) => {
   const event = achievement.category === 'events';
+  const shell = cardShell(achievement, highlighted);
   return (
-    <li className="flex items-center gap-3 w-full p-3 border-2 border-dashed border-pencil rounded-sketch">
-      <Badge achievement={achievement} className="size-14 shrink-0" />
+    <li
+      id={shell.id}
+      className={cn(
+        'flex items-center gap-3 w-full p-3 border-2 border-dashed border-pencil rounded-sketch',
+        shell.className,
+      )}
+    >
+      <Badge
+        achievement={achievement}
+        className={cn('size-14 shrink-0', shell.badge)}
+      />
       <div className="flex flex-col gap-1 min-w-0">
         <h3 className="font-accent font-bold text-xl leading-none text-pencil">
           {event ? 'mystery sticker' : 'secret achievement'}
@@ -75,92 +201,114 @@ const SecretCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
         <p className="text-sm text-pencil leading-tight">
           {event
             ? 'Only shows itself during an event. Keep an eye out.'
-            : 'How to earn this one is a secret. Keep doodling and you might stumble on it.'}
+            : 'How to complete this one is a secret. Keep doodling and you might stumble on it.'}
         </p>
       </div>
     </li>
   );
 };
 
-const EarnedCard: FC<{ achievement: Achievement }> = ({ achievement }) => (
-  <li className="flex items-center gap-3 w-full p-3 bg-white border-2 border-ink rounded-sketch">
-    <Badge achievement={achievement} className="size-16 shrink-0" />
-    <div className="flex flex-col gap-1 flex-1 min-w-0">
-      <div className="flex items-baseline justify-between gap-2">
-        <h3 className="font-accent font-bold text-xl leading-none truncate">
-          {achievement.name}
-        </h3>
-        <span className="text-xs text-pencil whitespace-nowrap">
-          {earnedOn(achievement)}
-        </span>
-      </div>
-      <p className="text-sm text-pencil leading-tight">
-        {achievement.description}
-      </p>
-      <div className="flex flex-wrap gap-1.5">
-        <Chip className="h-6 text-sm bg-me">collected</Chip>
-        {achievement.hidden && (
-          <Chip className="h-6 text-sm bg-blush">secret found</Chip>
-        )}
-        {achievement.reward && (
-          <Chip className="h-6 text-sm">
-            unlocked {achievement.reward.name.toLowerCase()}
-          </Chip>
-        )}
-      </div>
-    </div>
-  </li>
-);
-
-const LockedCard: FC<{ achievement: Achievement }> = ({ achievement }) => {
-  const { progress, achievementValue: goal } = achievement;
+const EarnedCard: FC<CardProps> = ({ achievement, highlighted }) => {
+  const shell = cardShell(achievement, highlighted);
   return (
-    <li className="flex items-center gap-3 w-full p-3 bg-white border-2 border-ink rounded-sketch">
-      <Badge achievement={achievement} locked className="size-14 shrink-0" />
-      <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-        <div className="flex items-baseline justify-between gap-2">
-          <h3 className="font-accent font-bold text-xl leading-none truncate">
-            {achievement.name}
-          </h3>
-          <span className="font-accent font-bold text-lg leading-none whitespace-nowrap">
-            {Math.min(progress, goal)}/{goal}
-          </span>
-        </div>
-        <p className="text-sm text-pencil leading-tight">
-          {achievement.description}
-          {achievement.best !== undefined && (
-            <span className="text-pencil/70"> · best {achievement.best}</span>
-          )}
-        </p>
-        <ProgressBar
-          value={progress}
-          max={goal}
-          label={`${achievement.name} progress`}
-          className="h-3"
+    <li
+      id={shell.id}
+      className={cn(
+        'flex flex-col gap-3 w-full p-3 bg-white border-2 border-ink rounded-sketch',
+        shell.className,
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <Badge
+          achievement={achievement}
+          className={cn('size-16 shrink-0', shell.badge)}
         />
-        {achievement.reward && (
-          <div className="flex">
-            <Chip className="h-6 text-sm bg-me">
-              unlocks {achievement.reward.name.toLowerCase()}
-            </Chip>
+        <div className="flex flex-col gap-1 flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="font-accent font-bold text-xl leading-none truncate">
+              {achievement.name}
+            </h3>
+            <span className="text-xs text-pencil whitespace-nowrap">
+              {earnedOn(achievement)}
+            </span>
           </div>
-        )}
+          <p className="text-sm text-pencil leading-tight">
+            {achievement.description}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            <Chip className="h-6 text-sm bg-me">collected</Chip>
+            {achievement.hidden && (
+              <Chip className="h-6 text-sm bg-blush">secret found</Chip>
+            )}
+          </div>
+        </div>
       </div>
+      {achievement.reward && <RewardPanel reward={achievement.reward} earned />}
     </li>
   );
 };
 
-const AchievementRow: FC<{ achievement: Achievement }> = ({ achievement }) => {
-  if (achievement.achievedAt) return <EarnedCard achievement={achievement} />;
-  if (achievement.secret) return <SecretCard achievement={achievement} />;
-  return <LockedCard achievement={achievement} />;
+const LockedCard: FC<CardProps> = ({ achievement, highlighted }) => {
+  const shell = cardShell(achievement, highlighted);
+  return (
+    <li
+      id={shell.id}
+      className={cn(
+        'flex flex-col gap-3 w-full p-3 bg-white border-2 border-ink rounded-sketch',
+        shell.className,
+      )}
+    >
+      <div className="flex items-center gap-3">
+        <Badge
+          achievement={achievement}
+          locked
+          className={cn('size-14 shrink-0', shell.badge)}
+        />
+        <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="font-accent font-bold text-xl leading-none truncate">
+              {achievement.name}
+            </h3>
+            <AchievementCount achievement={achievement} />
+          </div>
+          <p className="text-sm text-pencil leading-tight">
+            {achievement.description}
+            {achievement.best !== undefined && (
+              <span className="text-pencil/70"> · best {achievement.best}</span>
+            )}
+          </p>
+          <AchievementBar achievement={achievement} />
+        </div>
+      </div>
+      {achievement.reward && (
+        <RewardPanel reward={achievement.reward} earned={false} />
+      )}
+    </li>
+  );
+};
+
+const AchievementRow: FC<CardProps> = (props) => {
+  if (props.achievement.achievedAt) return <EarnedCard {...props} />;
+  if (props.achievement.secret) return <SecretCard {...props} />;
+  return <LockedCard {...props} />;
 };
 
 const AchievementsPage = () => {
   const catalog = useGetAchievementCatalog();
-  const { tab } = useSearch({ from: '/draw/achievements' });
+  const { tab } = useSearch({ from: '/_app/draw/achievements' });
   const navigate = useNavigate({ from: '/draw/achievements' });
   const tabRefs = useRef<Partial<Record<AchievementTab, HTMLElement>>>({});
+  const linked = useLocation().hash.replace(/^#/, '');
+
+  // Links like ...#achievement-12 land on that card. The router scrolls to
+  // the hash itself, but only if the card was already rendered.
+  useEffect(() => {
+    if (catalog.data && linked) {
+      document
+        .getElementById(linked)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [catalog.data, linked]);
 
   if (catalog.isLoading) return <LoadingScreen />;
 
@@ -285,13 +433,17 @@ const AchievementsPage = () => {
         {shown.length > 0 ? (
           <ul key={selected} className="flex flex-col gap-3 w-full stagger">
             {shown.map((achievement) => (
-              <AchievementRow key={achievement.id} achievement={achievement} />
+              <AchievementRow
+                key={achievement.id}
+                achievement={achievement}
+                highlighted={achievementAnchor(achievement) === linked}
+              />
             ))}
           </ul>
         ) : (
           <p className="w-full p-4 text-center text-pencil border-2 border-dashed border-pencil rounded-sketch">
             {selected === NEXT_UP.id
-              ? 'You’ve earned everything there is to earn. Wow.'
+              ? 'You’ve completed every achievement there is. Wow.'
               : 'Nothing here yet. Check back soon.'}
           </p>
         )}
