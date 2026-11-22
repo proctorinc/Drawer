@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearch } from '@tanstack/react-router';
 import { useMyProfilePage } from './context/MyProfileContext';
 import AccountFooter from './components/AccountFooter';
 import EditProfile from './components/EditProfile';
+import FlairShelf from './components/FlairShelf';
 import Sheet from './components/Sheet';
 import ProfileStats from './components/ProfileStats';
 import Sketchbook from './components/Sketchbook';
@@ -11,10 +12,8 @@ import UserHeader from './components/UserHeader';
 import FriendsPanel from './components/friends/FriendsPanel';
 import IncomingInvites from './components/friends/IncomingInvites';
 import { useFriendInvites } from './components/friends/useFriendInvites';
-import { useFlair } from './useFlair';
 import { PencilIcon } from '@/components/icons';
 import LoadingScreen from '@/components/LoadingScreen';
-import ShowAllLink from '@/components/ShowAllLink';
 import { useGetTrophies } from '@/api/trophies';
 import { levelTitle } from '@/levels/ranks';
 import Layout from '@/components/Layout';
@@ -39,8 +38,7 @@ const MyProfilePage = () => {
   const [sheet, setSheet] = useState<SheetId | null>(null);
   const navigate = useNavigate();
   const hash = useLocation({ select: (location) => location.hash });
-  const tryOn = useSearch({ from: '/draw/profile/me' }).try;
-  const flair = useFlair();
+  const tryOn = useSearch({ from: '/_app/draw/profile/me' }).try;
 
   useEffect(() => {
     const linked = SHEET_FOR_HASH[hash];
@@ -107,11 +105,7 @@ const MyProfilePage = () => {
           emptyText="No stickers yet. Your first one is a single drawing away."
         />
       )}
-      {!flair.isLoading && flair.available > 0 && (
-        <ShowAllLink to="/draw/profile/me/decorations">
-          my flair · {flair.unlocked}/{flair.available} unlocked
-        </ShowAllLink>
-      )}
+      <FlairShelf />
       <AccountFooter />
 
       <Sheet
