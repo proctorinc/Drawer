@@ -229,9 +229,14 @@ export const FriendsToday = () => {
           {drawn.length} of {everyone.length}
         </span>
       </button>
+      {/* z-20 makes the row its own layer: the avatars' z-indexes, the open
+          menu and the invisible "show everyone" button stack only inside it,
+          so none of them can sit over the navbar (z-50) as the row scrolls
+          under it. It's still above the polaroids' pins (z-10) and below the
+          masthead (z-30), so menus there open over the row */}
       <div
         ref={rowRef}
-        className="relative transition-[height] duration-500 ease-[var(--ease-spring)]"
+        className="relative z-20 transition-[height] duration-500 ease-[var(--ease-spring)]"
         style={{ height: layout.height }}
       >
         {width > 0 && (
