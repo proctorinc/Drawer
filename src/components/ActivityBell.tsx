@@ -6,7 +6,6 @@ import {
   FriendsIcon,
   MegaphoneIcon,
   PencilIcon,
-  TrophyIcon,
 } from './icons';
 import type { FC, ReactNode } from 'react';
 import type {
@@ -20,6 +19,7 @@ import useAuth from '@/auth/hooks/useAuth';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import Badge from '@/pages/trophies/components/Badge';
+import { LevelBadge } from '@/levels/LevelBadge';
 import { getReaction } from '@/reactions/catalog';
 import { ReactionSticker } from '@/reactions/ReactionSticker';
 import { cn, timeAgo } from '@/utils';
@@ -29,6 +29,7 @@ import { formatScore } from '@/ai/score';
 import { isMasterpiece } from '@/ai/Masterpiece';
 import { useAnnouncements } from '@/announcements/api';
 import { useShowAnnouncements } from '@/announcements/AnnouncementWatcher';
+import { CleanText } from '@/moderation/CleanText';
 
 const useIsMe = () => {
   const { user } = useAuth();
@@ -86,11 +87,11 @@ const ActivityText: FC<{ activity: Activity }> = ({ activity }) => {
       // A friend's day of achievements is one row, however many they earned
       return count > 1 ? (
         <>
-          {name} earned {count} achievements
+          {name} completed {count} achievements
         </>
       ) : (
         <>
-          {isMe(activity.user) ? 'You' : name} earned{' '}
+          {isMe(activity.user) ? 'You' : name} completed{' '}
           <i>{activity.achievement?.name}</i>
         </>
       );
@@ -101,10 +102,11 @@ const ActivityText: FC<{ activity: Activity }> = ({ activity }) => {
     case 'friend_accepted':
       return <>{name} accepted your friend request</>;
     case 'comment':
+      // The avatar and thumbnail already say who and on what, so a single comment is just its words
       return count === 1 ? (
-        <>
-          {names} commented on {drawing}: “{activity.comment?.text}”
-        </>
+        <i>
+          “<CleanText text={activity.comment?.text} />”
+        </i>
       ) : (
         <>
           {names} left {count} comments on {drawing}
@@ -129,7 +131,7 @@ const ActivityText: FC<{ activity: Activity }> = ({ activity }) => {
       return (
         <>
           {names} {reactionVerb(activity)} your comment “
-          {activity.comment?.text}”
+          <CleanText text={activity.comment?.text} />”
         </>
       );
   }
@@ -254,10 +256,13 @@ const ActivityThumbnail: FC<{ activity: Activity }> = ({ activity }) => {
   }
   switch (activity.action) {
     case 'level_up':
+      // The level itself, worn in its rank's colors like everywhere else
       return (
-        <IconTile>
-          <TrophyIcon size={22} />
-        </IconTile>
+        <LevelBadge
+          level={activity.level ?? 1}
+          size={44}
+          className="mx-0.5 rotate-2"
+        />
       );
     case 'friend_request':
     case 'friend_accepted':

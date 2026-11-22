@@ -11,12 +11,13 @@ import { AIReviewComment, ScoreSticker } from '@/ai/AIReviewComment';
 import {
   queryKeys,
   useAddComment,
+  useDeleteComment,
   usePromptSubmission,
   useToggleCommentReaction,
 } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
-import { HeartIcon } from '@/components/icons';
+import { HeartIcon, TrashIcon } from '@/components/icons';
 import { ReactionDrawer } from '@/reactions/ReactionDrawer';
 import { ReactionPile } from '@/reactions/ReactionPile';
 import { ReactionSticker } from '@/reactions/ReactionSticker';
@@ -28,9 +29,11 @@ import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
 import { ShareButton } from '@/pages/profile/components/friends/ShareButton';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { ReactionBar } from '@/reactions/ReactionBar';
+import { ReactorList } from '@/reactions/ReactorList';
 import { bigPolaroidFrameClass } from '@/components/polaroid';
 import { cn, timeAgo } from '@/utils';
 import { GoldTrim, goldFrameClass, isMasterpiece } from '@/ai/Masterpiece';
+import { CleanText } from '@/moderation/CleanText';
 
 /** A pin color that varies page to page but stays put for a given doodle */
 function pinColor(id: string) {
@@ -55,7 +58,12 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
   // A perfect 10 is framed in gold, once you can see it
   const golden = !isDrawingLocked(submission) && isMasterpiece(submission);
   const addComment = useAddComment();
+  const deleteComment = useDeleteComment();
   const [newComment, setNewComment] = useState('');
+  const reactionCount = submission.reactions.length;
+  const reactorCount = new Set(
+    submission.reactions.map((reaction) => reaction.user.id),
+  ).size;
 
   // The comment whose reaction drawer is open, if any
   const [reactingTo, setReactingTo] = useState<Comment | null>(null);
@@ -83,6 +91,24 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
           });
           refreshProgress(queryClient);
         },
+      },
+    );
+  }
+
+  function removeComment(comment: Comment) {
+    if (!window.confirm("Delete your comment? It can't be undone.")) return;
+    deleteComment.mutate(
+      { submissionId: submission.id, commentId: comment.id },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.promptSubmission(submission.id),
+          });
+          queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
+          queryClient.invalidateQueries({ queryKey: queryKeys.activityFeed });
+          refreshProgress(queryClient);
+        },
+        onError: (err) => window.alert(err.message),
       },
     );
   }
@@ -122,17 +148,31 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
               <PinButton submission={submission} variant="corner" />
             )}
           </div>
-          {/* One line, as on the wall: whose it is, its reactions and the
-              way down to the comments */}
-          <div className="flex items-center gap-2 mt-3">
+          {/* Whose it is, what it was meant to be and when */}
+          <div className="flex items-center gap-3 mt-3">
             <UserProfileIcon
               user={submission.user}
               size="sm"
               className="flex-none"
             />
-            <ReactionBar
-              submission={submission}
-              className="flex-1 min-w-0 min-h-8"
+            <div className="flex-1 min-w-0">
+              <h2 className="font-accent font-bold text-[26px] leading-none text-balance">
+                {submission.prompt}
+              </h2>
+              <p className="text-sm text-pencil">
+                {parseDay(submission.day).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </p>
+            </div>
+            <ShareButton
+              className="flex-none"
+              imageUrl={
+                isDrawingLocked(submission) ? undefined : submission.imageUrl
+              }
+              text={`Checkout ${submission.user.id === currentUser.id ? 'my' : `${submission.user.username}'s`} doodle of ${submission.prompt.toLowerCase()}!`}
             />
           </div>
         </div>
@@ -140,26 +180,34 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
           <XPNote submission={submission} className="mt-4" />
         )}
       </div>
-      <div className="flex justify-between gap-2 w-full items-center">
-        <div className="w-full font-bold">
-          <h2 className="font-accent font-bold text-[30px] leading-none text-balance">
-            {submission.prompt}
-          </h2>
-          <p className="text-secondary">
-            {parseDay(submission.day).toLocaleDateString('en-US', {
-              month: 'long',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-          </p>
-        </div>
-        <ShareButton
-          imageUrl={
-            isDrawingLocked(submission) ? undefined : submission.imageUrl
-          }
-          text={`Checkout ${submission.user.id === currentUser.id ? 'my' : `${submission.user.username}'s`} doodle of ${submission.prompt.toLowerCase()}!`}
-        ></ShareButton>
-      </div>
+      {/* The reactions, and who left each one */}
+      <Card>
+        <CardContent className="gap-3">
+          <div className="flex items-baseline justify-between">
+            <h3 className="font-accent font-bold text-2xl leading-none">
+              reactions
+            </h3>
+            {reactionCount > 0 && (
+              <span className="text-sm text-pencil">
+                {reactionCount} from {reactorCount}{' '}
+                {reactorCount === 1 ? 'friend' : 'friends'}
+              </span>
+            )}
+          </div>
+          {/* You can't react to your own, so with none there's nothing to show */}
+          {reactionCount === 0 && submission.user.id === currentUser.id ? (
+            <span className="text-pencil">no reactions yet</span>
+          ) : (
+            <ReactionBar submission={submission} className="min-h-8" />
+          )}
+          {reactionCount > 0 && (
+            <ReactorList
+              reactions={submission.reactions}
+              className="pt-3 border-t-2 border-dashed border-line"
+            />
+          )}
+        </CardContent>
+      </Card>
       <ReactionDrawer
         title="react to comment"
         open={!!reactingTo}
@@ -200,12 +248,23 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
                             })
                           }
                         />{' '}
-                        {comment.text}
+                        <CleanText text={comment.text} />
                       </div>
                       <div className="flex flex-col gap-2 items-end">
                         <span className="text-xs text-secondary ml-2 whitespace-nowrap">
                           {timeAgo(comment.createdAt)}
                         </span>
+                        {comment.user.id === currentUser.id && (
+                          <button
+                            type="button"
+                            aria-label="Delete your comment"
+                            disabled={deleteComment.isPending}
+                            onClick={() => removeComment(comment)}
+                            className="grid place-items-center size-7 cursor-pointer text-pencil transition-[scale,color] duration-300 ease-[var(--ease-spring)] hover:scale-110 hover:text-ink active:scale-90 disabled:opacity-50"
+                          >
+                            <TrashIcon size={18} />
+                          </button>
+                        )}
                         {comment.user.id !== currentUser.id && (
                           <button
                             type="button"

@@ -3,6 +3,7 @@ import { hitKeywords } from '../api';
 import type { FC } from 'react';
 import type { DuelGuess, DuelRound, KeywordMark, MarkStatus } from '../api';
 import { cn } from '@/utils';
+import { CleanText } from '@/moderation/CleanText';
 
 /** Green for "means the same", yellow for "close", plain for a miss: like Wordle */
 export const tileClass: Record<MarkStatus, string> = {
@@ -77,7 +78,7 @@ export const GuessRow: FC<{ guess: DuelGuess; fresh?: boolean }> = ({
               )}
               style={fresh ? { animationDelay: `${i * 120}ms` } : undefined}
             >
-              {word.text}
+              <CleanText text={word.text} />
             </span>
             {word.note && (
               <span className="mt-0.5 text-[0.7rem] leading-tight text-center text-pencil">

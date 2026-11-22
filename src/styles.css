@@ -8,6 +8,8 @@
   --font-cursive: 'Caveat', cursive;
   /* Titles and numbers */
   --font-accent: 'Gaegu', sans-serif;
+  /* Redacted swear words only */
+  --font-silly: 'Chewy', 'Gaegu', sans-serif;
 
   /* Sketchbook palette */
   --color-paper: #fbf8f1;
@@ -49,6 +51,7 @@
   --animate-highlight: highlight 0.7s 0.25s ease-out both;
   --animate-scribble: scribble 0.9s 0.2s ease-out both;
   --animate-float: float 3s ease-in-out infinite;
+  --animate-hint: hint 1.1s ease-in-out 0.3s 3;
   /* An AI judge's face while it's speaking: a quick, chatty bob */
   --animate-talk: talk 0.32s ease-in-out infinite;
 
@@ -189,6 +192,22 @@
       rotate: var(--tilt, 0deg);
     }
   }
+  /* A nudge toward --hint-dir (1 right, -1 left): there's more this way */
+  @keyframes hint {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    40% {
+      translate: calc(var(--hint-dir, 1) * 7px) 0;
+    }
+    60% {
+      translate: calc(var(--hint-dir, 1) * 2px) 0;
+    }
+    75% {
+      translate: calc(var(--hint-dir, 1) * 5px) 0;
+    }
+  }
   @keyframes rise {
     from {
       opacity: 0;
@@ -236,7 +255,16 @@
 @utility rounded-blob {
   border-radius: 58% 42% 55% 45% / 48% 58% 42% 52%;
 }
-/* A second pencil line just off the edge */
+/*
+ * A second pencil line just off the edge. Only three kinds of things get one:
+ *  - things you press: buttons and tappable cards (with `press`, which sinks
+ *    them onto it)
+ *  - things floating over the page: the navbar, menus, tooltips, toasts
+ *  - the one thing a screen is about, and the picked one of a set: the canvas
+ *    while drawing, a celebration card, a selected chip
+ * Everything else that just sits on the page (panels, lists, cards, badges,
+ * polaroids, pinned notes) is flat: an ink outline and no shadow.
+ */
 @utility shadow-pencil {
   box-shadow:
     3px 4px 0 -1px var(--color-paper),

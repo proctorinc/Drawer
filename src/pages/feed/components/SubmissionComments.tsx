@@ -4,6 +4,7 @@ import { useNavigate } from '@tanstack/react-router';
 import type { Comment } from '@/api/Api';
 import type { FC } from 'react';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
+import { CleanText } from '@/moderation/CleanText';
 
 type Props = {
   submissionId: string;
@@ -18,7 +19,7 @@ const SubmissionComments: FC<Props> = ({ submissionId, comments }) => {
       {comments.length > 0 && (
         <div className="flex gap-2 items-center">
           <UserProfileIcon size="sm" user={comments[0].user} />{' '}
-          {comments[0].text}
+          <CleanText text={comments[0].text} />
         </div>
       )}
       <button
