@@ -29,7 +29,6 @@ import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
 import { ShareButton } from '@/pages/profile/components/friends/ShareButton';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { ReactionBar } from '@/reactions/ReactionBar';
-import { ReactorList } from '@/reactions/ReactorList';
 import { bigPolaroidFrameClass } from '@/components/polaroid';
 import { cn, timeAgo } from '@/utils';
 import { GoldTrim, goldFrameClass, isMasterpiece } from '@/ai/Masterpiece';
@@ -60,10 +59,6 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
   const addComment = useAddComment();
   const deleteComment = useDeleteComment();
   const [newComment, setNewComment] = useState('');
-  const reactionCount = submission.reactions.length;
-  const reactorCount = new Set(
-    submission.reactions.map((reaction) => reaction.user.id),
-  ).size;
 
   // The comment whose reaction drawer is open, if any
   const [reactingTo, setReactingTo] = useState<Comment | null>(null);
@@ -180,34 +175,8 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
           <XPNote submission={submission} className="mt-4" />
         )}
       </div>
-      {/* The reactions, and who left each one */}
-      <Card>
-        <CardContent className="gap-3">
-          <div className="flex items-baseline justify-between">
-            <h3 className="font-accent font-bold text-2xl leading-none">
-              reactions
-            </h3>
-            {reactionCount > 0 && (
-              <span className="text-sm text-pencil">
-                {reactionCount} from {reactorCount}{' '}
-                {reactorCount === 1 ? 'friend' : 'friends'}
-              </span>
-            )}
-          </div>
-          {/* You can't react to your own, so with none there's nothing to show */}
-          {reactionCount === 0 && submission.user.id === currentUser.id ? (
-            <span className="text-pencil">no reactions yet</span>
-          ) : (
-            <ReactionBar submission={submission} className="min-h-8" />
-          )}
-          {reactionCount > 0 && (
-            <ReactorList
-              reactions={submission.reactions}
-              className="pt-3 border-t-2 border-dashed border-line"
-            />
-          )}
-        </CardContent>
-      </Card>
+      {/* Just the reactions, each with its reactor's face on the corner */}
+      <ReactionBar submission={submission} className="w-full px-2" />
       <ReactionDrawer
         title="react to comment"
         open={!!reactingTo}

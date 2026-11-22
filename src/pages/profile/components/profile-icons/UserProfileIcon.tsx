@@ -14,13 +14,14 @@ import { LevelBadge } from '@/levels/LevelBadge';
 import { useUserLevel } from '@/levels/useUserLevel';
 
 // Level badge diameter for each avatar size
-const BADGE_SIZES = { sm: 17, lg: 21, xl: 30, '2xl': 44 } as const;
+const BADGE_SIZES = { xs: 12, sm: 17, lg: 21, xl: 30, '2xl': 44 } as const;
 
 export const userProfileIconVariants = cva(
   'cursor-pointer select-none rounded-full border-ink flex items-center justify-center hover:scale-110 hover:-rotate-6 transition-[scale,rotate] duration-300 ease-[var(--ease-spring)]',
   {
     variants: {
       size: {
+        xs: 'w-6 h-6 text-[11px] border-[1.5px]',
         sm: 'w-9 h-9 text-sm border-2',
         lg: 'w-12 h-12 text-lg border-2',
         xl: 'w-20 h-20 text-3xl border-[2.5px]',
