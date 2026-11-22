@@ -144,7 +144,8 @@ const DayCarousel: FC<Props> = ({ submission }) => {
         // always in reach however far down the comments you are
         <div
           className={cn(
-            'sticky top-0 z-30 flex flex-col pb-3 bg-paper border-b-2 border-dashed transition-colors duration-200',
+            // bg-fixed lines its dots up with the page's, wherever the column sits
+            'paper bg-fixed sticky top-0 z-30 flex flex-col pb-3 border-b-2 border-dashed transition-colors duration-200',
             scrolled ? 'border-line' : 'border-transparent',
           )}
         >
