@@ -301,7 +301,7 @@ export class StageQueue {
     head.status = 'preparing';
     this.emit();
     const stillHere = () => this.entries[0] === head;
-    this.withTimeout(ready).then(
+    this.withTimeout(ready, head.item.readyTimeoutMs).then(
       () => {
         if (stillHere()) this.play(head);
       },
@@ -336,12 +336,12 @@ export class StageQueue {
   }
 
   /** Rejects if `ready` hasn't settled within the ready timeout */
-  private withTimeout(ready: Promise<unknown>) {
+  private withTimeout(ready: Promise<unknown>, ms = this.readyTimeoutMs) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const timeout = new Promise((_, reject) => {
       timer = setTimeout(
         () => reject(new Error('Stage item never got ready')),
-        this.readyTimeoutMs,
+        ms,
       );
     });
     return Promise.race([ready, timeout]).finally(() => clearTimeout(timer));

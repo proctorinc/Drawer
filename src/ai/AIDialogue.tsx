@@ -308,6 +308,12 @@ export const stagedReviews = new Map<
   { review: AIReview; doodle?: DialogueDoodle }
 >();
 
+/**
+ * How long a just-drawn doodle's review holds the stage. The server gives the
+ * judge 90 seconds before failing it; this leaves room for the poll after.
+ */
+export const REVIEW_WAIT_MS = 100_000;
+
 /** The stage item id for a doodle's review, so the same one never queues twice */
 export const reviewStageId = (submissionId: string) => `review:${submissionId}`;
 
@@ -398,6 +404,9 @@ export const AIDialogueProvider: FC<{ children: ReactNode }> = ({
           kind: 'review',
           payload: { submissionId },
           ready,
+          // Hold everything behind it (the XP it earned) for as long as the
+          // judge may take, rather than the stage's usual patience
+          readyTimeoutMs: REVIEW_WAIT_MS,
         }).then((outcome) => {
           // Skipped while still watching means the stage timed out on it
           if (outcome !== 'played' && held.get(submissionId) === turn) {
@@ -406,6 +415,17 @@ export const AIDialogueProvider: FC<{ children: ReactNode }> = ({
         });
       },
       showReview: (review, doodle) => {
+        // Its turn is already held (the bell heard it before the watcher did):
+        // speak in that turn rather than marking it heard, which would have
+        // the watcher cancel the turn and let the XP behind it play instead
+        const turn = held.get(review.submissionId);
+        if (turn && !turn.gaveUp) {
+          held.delete(review.submissionId);
+          setWatching((ids) => ids.filter((id) => id !== review.submissionId));
+          stage(review, doodle);
+          turn.resolve();
+          return;
+        }
         stage(review, doodle);
         enqueue({
           id: reviewStageId(review.submissionId),

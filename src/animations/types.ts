@@ -70,6 +70,8 @@ export type StageItem<TKind extends StageKind = StageKind> = {
    * review that's still being written). Rejects or times out → skipped.
    */
   ready?: Promise<unknown>;
+  /** How long `ready` may hold the line, if not the stage's usual timeout */
+  readyTimeoutMs?: number;
   /**
    * Items that share a group were earned together (a batch of stickers,
    * quests and their rewards) and play as "2 of 5", one after another.

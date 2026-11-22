@@ -108,6 +108,25 @@ describe('StageQueue', () => {
     expect(playingId(queue)).toBe('next');
   });
 
+  it('lets an item wait longer than the usual timeout', async () => {
+    vi.useFakeTimers();
+    const queue = new StageQueue(1000);
+    const slow = deferred();
+    const held = queue.enqueue({
+      ...review('r', slow.promise),
+      readyTimeoutMs: 5000,
+    });
+    queue.enqueue(xp('xp', 0, 50));
+    await vi.advanceTimersByTimeAsync(4000);
+    expect(queue.xp.getSnapshot()).toBeNull();
+    slow.resolve();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(playingId(queue)).toBe('r');
+    queue.finish('r');
+    await expect(held).resolves.toBe('played');
+    expect(queue.xp.getSnapshot()?.id).toBe('xp');
+  });
+
   it('dismisses waiting and playing items', async () => {
     const queue = new StageQueue();
     const a = queue.enqueue(review('a'));
