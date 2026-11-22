@@ -84,9 +84,9 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			userGroup.PUT("/avatars/:slot/wear",
 				middleware.RewardUnlockRequired(repo, achievements.CUSTOM_PROFILE_PIC),
 				handlers.HandleWearAvatar)
-			userGroup.PUT("/profile-pic/toggle",
-				middleware.RewardUnlockRequired(repo, achievements.CUSTOM_PROFILE_PIC),
-				handlers.HandleToggleAvatarType)
+			// Not gated: going back to initials has to work even after the unlock is lost.
+			// The handler checks the unlock only when switching to a drawn face.
+			userGroup.PUT("/profile-pic/toggle", handlers.HandleToggleAvatarType)
 			userGroup.PUT("/decoration", handlers.HandleUpdateDecoration)
 
 			userGroup.GET("/levels", handlers.HandleGetUserLevels)

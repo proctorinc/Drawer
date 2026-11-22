@@ -429,6 +429,20 @@ func HandleToggleAvatarType(c *gin.Context) {
 		avatarType = "custom"
 	}
 
+	// Anyone can go back to initials; only switching to a drawn face needs the unlock
+	if avatarType == "custom" {
+		unlocked, err := queries.HasRewardUnlocked(appCtx.DB, c.Request.Context(), requester.ID, string(achievements.CUSTOM_PROFILE_PIC))
+		if err != nil {
+			log.Printf("Error checking custom face unlock for %s: %v", requester.ID, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update profile picture"})
+			return
+		}
+		if !unlocked {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": fmt.Sprintf("You have not unlocked the required %s reward", achievements.CUSTOM_PROFILE_PIC)})
+			return
+		}
+	}
+
 	err := queries.UpdateUserAvatarType(appCtx.DB, c.Request.Context(), requester.ID, avatarType)
 
 	if err != nil {
