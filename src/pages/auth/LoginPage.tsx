@@ -4,6 +4,7 @@ import { SignIn } from '@clerk/react';
 import Layout from '@/components/Layout';
 import useAuth from '@/auth/hooks/useAuth';
 import { useLogoIconUrl } from '@/components/logo/BrandProvider';
+import { Config } from '@/config/Config';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -22,12 +23,15 @@ const LoginPage: React.FC = () => {
   return (
     <Layout>
       <div className="flex flex-col justify-center items-center w-full gap-4 flex-grow">
-        <SignIn
-          appearance={{ options: { logoImageUrl: logoUrl } }}
-          routing="hash"
-          signUpUrl="/auth/sign-up"
-          fallbackRedirectUrl="/draw"
-        />
+        {/* No Clerk under DEV_AUTH_BYPASS; you're sent on to /draw */}
+        {!Config.DEV_AUTH_BYPASS && (
+          <SignIn
+            appearance={{ options: { logoImageUrl: logoUrl } }}
+            routing="hash"
+            signUpUrl="/auth/sign-up"
+            fallbackRedirectUrl="/draw"
+          />
+        )}
       </div>
     </Layout>
   );

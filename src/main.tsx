@@ -73,16 +73,26 @@ import ImpersonationBanner from './components/ImpersonationBanner.tsx';
 import AppShell from './components/AppShell.tsx';
 import { ConfirmProvider } from './components/Confirm.tsx';
 import type { AchievementTab } from './pages/achievements/AchievementsPage.tsx';
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 
 const queryClient = new QueryClient();
 
-const rootRoute = createRootRoute({
-  component: () => (
+// DEV_AUTH_BYPASS runs without Clerk at all (see AuthProvider)
+const SessionProvider: FC<{ children: ReactNode }> = ({ children }) =>
+  Config.DEV_AUTH_BYPASS ? (
+    <>{children}</>
+  ) : (
     <ClerkProvider
       publishableKey={Config.CLERK_PUBLISHABLE_KEY}
       afterSignOutUrl="/auth/login"
     >
+      {children}
+    </ClerkProvider>
+  );
+
+const rootRoute = createRootRoute({
+  component: () => (
+    <SessionProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <BrandProvider>
@@ -106,7 +116,7 @@ const rootRoute = createRootRoute({
           </BrandProvider>
         </AuthProvider>
       </QueryClientProvider>
-    </ClerkProvider>
+    </SessionProvider>
   ),
 });
 

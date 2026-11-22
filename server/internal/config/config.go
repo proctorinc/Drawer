@@ -10,12 +10,19 @@ import (
 )
 
 type Config struct {
-	Port            string
-	DatabaseURL     string
-	AllowedOrigin   string
-	Env             string
-	ClerkSecretKey  string
-	DevUserEmail    string
+	Port           string
+	DatabaseURL    string
+	AllowedOrigin  string
+	Env            string
+	ClerkSecretKey string
+	DevUserEmail   string
+	// Development only: skip Clerk and sign every request in as the seeded admin, user1
+	DevAuthBypass bool
+	// Who DEV_AUTH_BYPASS signs you in as; defaults to the seeded admin, user1
+	DevAuthUserID string
+	// Development only: false keeps drawer.db as it is (say, a copy of production)
+	// instead of wiping and reseeding it on every start
+	DevSeedData     bool
 	EventsFakeNow   string // Non-production only: pretend "now" is this date for events
 	EventsNotify    bool   // Also send event push broadcasts outside production (always on in production)
 	S3BucketName    string
@@ -56,8 +63,13 @@ func LoadConfig() *Config {
 		dbURL = "file:drawer.db?cache=shared&_journal=WAL&_timeout=5000"
 	}
 
+	devAuthBypass := getEnv("DEV_AUTH_BYPASS", "") == "true"
+	if devAuthBypass && env != "development" {
+		log.Fatal("DEV_AUTH_BYPASS only works with ENV=development")
+	}
+
 	clerkSecretKey := getEnv("CLERK_SECRET_KEY", "")
-	if clerkSecretKey == "" {
+	if clerkSecretKey == "" && !devAuthBypass {
 		log.Fatal("CLERK_SECRET_KEY is required")
 	}
 
@@ -70,6 +82,9 @@ func LoadConfig() *Config {
 		Env:             env,
 		ClerkSecretKey:  clerkSecretKey,
 		DevUserEmail:    getEnv("DEV_USER_EMAIL", ""),
+		DevAuthBypass:   devAuthBypass,
+		DevAuthUserID:   getEnv("DEV_AUTH_USER_ID", "user1"),
+		DevSeedData:     getEnv("DEV_SEED_DATA", "true") != "false",
 		EventsFakeNow:   getEnv("EVENTS_FAKE_NOW", ""),
 		EventsNotify:    getEnv("EVENT_NOTIFICATIONS_ENABLED", "") == "true",
 		S3BucketName:    getEnv("S3_BUCKET_NAME", ""),

@@ -54,13 +54,31 @@ func ClerkSessionRequired() gin.HandlerFunc {
 	}
 }
 
+// devUserIDContextKey marks a request signed in by DevSession instead of Clerk.
+var devUserIDContextKey = "DEV_USER_ID"
+
+// DevSession stands in for ClerkSessionRequired when DEV_AUTH_BYPASS is on (development only),
+// signing every request in as userID.
+func DevSession(userID string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Set(devUserIDContextKey, userID)
+		c.Next()
+	}
+}
+
 // AuthRequired loads the Drawer user for the Clerk session. Must run after ClerkSessionRequired.
 func AuthRequired(repo *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ctx := c.Request.Context()
-		clerkID := GetClerkUserID(c)
-
-		user, err := findOrLinkUser(repo, ctx, clerkID)
+		var user *models.User
+		var err error
+		clerkID := ""
+		if devID := c.GetString(devUserIDContextKey); devID != "" {
+			user, err = queries.GetUserByID(repo, ctx, devID)
+		} else {
+			clerkID = GetClerkUserID(c)
+			user, err = findOrLinkUser(repo, ctx, clerkID)
+		}
 		if err != nil {
 			if errors.Is(err, sql.ErrNoRows) {
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "Profile not found", "code": ProfileRequiredCode})

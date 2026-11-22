@@ -32,13 +32,14 @@ func InitDB(cfg *config.Config) (*sql.DB, error) {
 			return nil, fmt.Errorf("failed to open database connection: %w", err)
 		}
 
-		err = initializeDevData(res, cfg.DevUserEmail)
-
-		if err != nil {
-			return nil, fmt.Errorf("failed to initialize dev data: %w", err)
+		if cfg.DevSeedData {
+			if err = initializeDevData(res, cfg.DevUserEmail); err != nil {
+				return nil, fmt.Errorf("failed to initialize dev data: %w", err)
+			}
+			log.Println("Initialized dev database")
+		} else {
+			log.Println("DEV_SEED_DATA=false: using drawer.db as it is")
 		}
-
-		log.Println("Initialized dev database")
 
 		db = res
 	}

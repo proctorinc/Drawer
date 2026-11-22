@@ -54,7 +54,12 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 		apiGroup.POST("/cron/tick", handlers.HandleCronTick)
 
 		clerkGroup := apiGroup.Group("/")
-		clerkGroup.Use(middleware.ClerkSessionRequired())
+		if cfg.DevAuthBypass {
+			log.Printf("DEV_AUTH_BYPASS is on: every request is signed in as %s, Clerk is skipped", cfg.DevAuthUserID)
+			clerkGroup.Use(middleware.DevSession(cfg.DevAuthUserID))
+		} else {
+			clerkGroup.Use(middleware.ClerkSessionRequired())
+		}
 
 		// Signed in to Clerk, but may not have a Drawer profile yet
 		clerkGroup.POST("/auth/register", handlers.HandleRegister)

@@ -7,6 +7,17 @@ import type { User } from '@/api/Api';
 import { useCreateUser, useGetMe, useLogoutUser } from '@/api/Api';
 import { ProfileRequiredError, setAuthTokenGetter } from '@/api/apiClient';
 import { nameToColor } from '@/utils';
+import { Config } from '@/config/Config';
+
+// With DEV_AUTH_BYPASS there's no ClerkProvider: you're always signed in, and
+// the server knows who you are without a token
+const useDevAuth = () => ({
+  isLoaded: true,
+  isSignedIn: true,
+  getToken: () => Promise.resolve(null),
+  signOut: () => Promise.resolve(),
+});
+const useSessionAuth = Config.DEV_AUTH_BYPASS ? useDevAuth : useClerkAuth;
 
 type AuthContextType = {
   user?: User;
@@ -31,7 +42,7 @@ type Props = {
 export const AuthProvider: FC<Props> = ({ children }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { isLoaded, isSignedIn, getToken, signOut } = useClerkAuth();
+  const { isLoaded, isSignedIn, getToken, signOut } = useSessionAuth();
   // Set during render so it is in place before any child query runs
   setAuthTokenGetter(getToken);
 
