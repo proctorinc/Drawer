@@ -90,7 +90,9 @@ const Navbar = () => {
         <span
           aria-hidden="true"
           className={cn(
-            'absolute top-[10px] w-14 h-[46px] bg-butter rounded-[45%_55%_40%_60%/55%_45%_60%_40%] transition-[left,scale,opacity] duration-500 ease-[var(--ease-spring)]',
+            // pointer-events-none: when no tab is active the faded blob parks
+            // over the draw button and would swallow taps on the pencil
+            'absolute top-[10px] w-14 h-[46px] pointer-events-none bg-butter rounded-[45%_55%_40%_60%/55%_45%_60%_40%] transition-[left,scale,opacity] duration-500 ease-[var(--ease-spring)]',
             !showBlob && 'scale-50 opacity-0',
           )}
           style={{ left: blobLeft(blobTab === -1 ? 1 : blobTab) }}
