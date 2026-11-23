@@ -33,7 +33,6 @@
   --color-me-ink: var(--color-ink);
 
   /* Legacy names, mapped onto the sketchbook palette */
-  --color-base: var(--color-paper);
   --color-card: #ffffff;
   --color-border: var(--color-ink);
   --color-primary: var(--color-ink);
