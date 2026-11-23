@@ -317,6 +317,8 @@ export interface AIPersonality {
   isDefault: boolean;
   eventId: string | null;
   enabled: boolean;
+  /** Criteria measure faults (0 to 10), so the better the doodle, the lower the score */
+  scoresBackwards: boolean;
   criteria: Array<AICriterion>;
   createdAt?: string;
 }

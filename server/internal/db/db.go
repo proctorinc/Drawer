@@ -349,6 +349,13 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 	if _, err = db.Exec(string(composition)); err != nil {
 		return fmt.Errorf("failed to add Sir Doodleton's composition criterion: %w", err)
 	}
+	grinch, err := os.ReadFile("./migrations/1795132610_seed_grinch.up.sql")
+	if err != nil {
+		return fmt.Errorf("failed to read the Grinch: %w", err)
+	}
+	if _, err = db.Exec(string(grinch)); err != nil {
+		return fmt.Errorf("failed to seed the Grinch: %w", err)
+	}
 	styles, err := os.ReadFile("./migrations/1795130500_judge_comment_styles.up.sql")
 	if err != nil {
 		return fmt.Errorf("failed to read the judges' comment styles: %w", err)

@@ -156,6 +156,12 @@ type Request struct {
 	// The swing added to every score because the judge loves or hates it; usually none.
 	// Run rolls it.
 	Swing Swing
+	// For a judge that scores backwards: whether the artist promised, in his intro, to join
+	// his plot (true) or refused (false); nil when they never answered
+	Pledge *bool
+	// The doodle's day (YYYY-MM-DD), so the judge can mark a special one like Christmas Eve;
+	// "" when there's no real day (a testing-ground drawing)
+	Day string
 }
 
 // Verdict is a judge's review, checked and clamped to the 1..10 scale.
@@ -182,6 +188,13 @@ type Verdict struct {
 	PromptBonus float64
 	// The swing added to every score because the judge loved or hated it, already applied
 	Swing Swing
+	// The judge scores backwards: its criteria measure faults, so the lower, the better the
+	// doodle (see models.AIPersonality.ScoresBackwards)
+	Backwards bool
+	// What the artist promised that judge before drawing (Request.Pledge)
+	Pledge *bool
+	// The doodle's day (Request.Day)
+	Day string
 	// How the judge's answer became these scores, for admins
 	Breakdown models.AIScoreBreakdown
 	// Every call made to the model for this verdict, in order, for the AI log
@@ -196,6 +209,10 @@ func EvaluateSystemPrompt(p models.AIPersonality) string {
 	var b strings.Builder
 	b.WriteString(evaluateRules)
 	b.WriteString("\n\nScoring:\n")
+	if p.ScoresBackwards {
+		writeFaultScoring(&b, p)
+		return b.String()
+	}
 	if len(p.Criteria) == 0 {
 		fmt.Fprintf(&b, "Give the doodle one overall score from 1 (dreadful) to %d (masterpiece), to one decimal place (e.g. 6.5). Use the whole range.\n", models.AIScoreMax)
 	} else {
@@ -207,6 +224,22 @@ func EvaluateSystemPrompt(p models.AIPersonality) string {
 	}
 	fmt.Fprintf(&b, "A %d is almost never given: only a doodle so good it would stop you in your tracks. Most good doodles land between 6 and 8.", models.AIScoreMax)
 	return b.String()
+}
+
+// writeFaultScoring asks a judge that scores backwards for its faults, from 0 (none at all) to
+// 10. A great doodle scores near 0 on every one; a 0 overall takes a flawless one.
+func writeFaultScoring(b *strings.Builder, p models.AIPersonality) {
+	fmt.Fprintf(b, "This judge scores faults, so every score runs the other way: from 0 (none of it at all) to %d (nothing but), to one decimal place (e.g. 3.5). A crisp, skillful, festive doodle that nails the prompt scores low on every one; a careless, gloomy scribble that misses the prompt scores high. The rough guides above run the other way here: a few scribbled brush-width strokes are a mess of 8 to %d, crisp detail carved finer than the brush is a mess of 0 to 2. A blank or unrelated image scores high, not low.\n", models.AIScoreMax, models.AIScoreMax)
+	if len(p.Criteria) == 0 {
+		fmt.Fprintf(b, "Give one overall score for how much is wrong with it, from 0 to %d.\n", models.AIScoreMax)
+	} else {
+		b.WriteString("Score each of these faults, by id:\n")
+		for _, c := range p.Criteria {
+			fmt.Fprintf(b, "- %s: %q. %s\n", c.ID, c.Name, strings.TrimSpace(c.Description))
+		}
+		fmt.Fprintf(b, "Also give an overall score from 0 to %d; it is replaced by the average of the scores above.\n", models.AIScoreMax)
+	}
+	b.WriteString(`In "improve", say what would have brought each score down. Give a 0 only when there is truly none of that fault: most decent doodles land between 2 and 5, and a 0 on every fault is almost never given.`)
 }
 
 // EvaluateMessage introduces the doodle to the first call. It never mentions the swing: the
@@ -265,8 +298,98 @@ func CommentMessage(prompt string, v Verdict) string {
 		fmt.Fprintf(&b, " (%s)", strings.Join(parts, ", "))
 	}
 	fmt.Fprintf(&b, "\nWorth joking about: %s\n\nWrite your comment.", orNothing(v.Notable))
+	if v.Backwards {
+		b.WriteString(backwardsMood(v.Score))
+		b.WriteString(pledgeTwist(v.Score, v.Pledge))
+	}
+	b.WriteString(commentOccasion(v.Backwards, v.Day))
 	b.WriteString(swingFeeling(v.Swing))
 	return b.String()
+}
+
+// A judge that scores backwards (the Grinch) has stolen Doodlemas and asked everyone to help
+// ruin it by drawing badly. How he takes a doodle depends on whose side the artist chose:
+// AccompliceScore and up, they drew it badly and joined his plot; DefierScore and down, they
+// drew it well and defied him.
+const (
+	AccompliceScore = 7.0
+	DefierScore     = 3.0
+)
+
+// Each mood has a pool of angles; a review gets one at random, so his comments don't all
+// sound the same.
+var (
+	accompliceAngles = []string{
+		"Knight them your official accomplice in the plot to ruin Doodlemas, with a ridiculous villain title.",
+		"Announce the place of honor in your cave where you're hanging it, and what it's next to.",
+		"Gloat over the damage this doodle does to Doodlemas, as if it were a brilliant act of sabotage.",
+		"Compare it, lovingly, to something you adore: burnt fruitcake, a broken ornament, a soggy stocking, a lump of coal.",
+		"Plot the next step of your scheme together, with them as your trusty sidekick.",
+		"Get choked up at how gloriously awful it is, then gruffly pretend you didn't.",
+		"Praise exactly what's wrong with it, detail by detail, like a proud mentor.",
+	}
+	defierAngles = []string{
+		"Complain how unbearably good it is, as if it were drawn to annoy you personally.",
+		"Threaten to stuff it up a chimney, haul it up your mountain, or bury it under the fruitcake.",
+		"Accuse them of being a cheerful spy from the town below, sent to foil your plot.",
+		"Grumble through the good things in it as if reading out a list of crimes.",
+		"Mutter to your long-suffering dog about this traitor and their disgustingly nice drawing.",
+		"Insist it's awful, accidentally reveal you're impressed, and get even angrier about it.",
+		"Warn them there's always next Sunday, and they'd better be on your side by then.",
+		"Say it's so cheerful you need a long lie-down in the darkest corner of your cave.",
+	}
+	undecidedAngles = []string{
+		"You can't tell whose side they're on: interrogate them like a suspicious detective.",
+		"Grudgingly admit some of it is awful enough, while other bits are sickeningly nice.",
+		"Tell them to commit next Sunday: help ruin Doodlemas properly, or face your wrath.",
+		"Call it a half-hearted act of sabotage and tell them a real accomplice commits.",
+	}
+)
+
+// pickAngle picks one of n angles. Tests swap it out.
+var pickAngle = func(n int) int { return rand.IntN(n) }
+
+// backwardsMood tells a judge that scores backwards how to take this doodle, by whose side
+// the artist chose, with one angle to take, picked at random for variety.
+func backwardsMood(score float64) string {
+	const scale = " Your scores count faults: the lower they are, the better the doodle and the more it disgusts you; the higher, the more gloriously awful and the more it delights you. Never mention scores."
+	var mood string
+	var angles []string
+	switch {
+	case score >= AccompliceScore:
+		mood = " You've stolen Doodlemas and asked everyone to help ruin it by drawing badly, and this artist DID: they're your accomplice now. Open by praising them for joining your plot to ruin Doodlemas, gleefully, in your sneering way."
+		angles = accompliceAngles
+	case score <= DefierScore:
+		mood = " You've stolen Doodlemas and asked everyone to help ruin it by drawing badly, and this artist DEFIED you and drew it well. You're unhappy and irritated that it's so good, the way good cheer irritates you. Roast them for it."
+		angles = defierAngles
+	default:
+		mood = " You've stolen Doodlemas and asked everyone to help ruin it by drawing badly. This artist went halfway, and you can't decide if they're with you or against you."
+		angles = undecidedAngles
+	}
+	return scale + mood + " Your angle this time: " + angles[pickAngle(len(angles))]
+}
+
+// pledgeTwist tells a judge that scores backwards what the artist promised him before drawing,
+// and whether the doodle kept that promise, so he calls it out. "" when they never answered.
+func pledgeTwist(score float64, pledge *bool) string {
+	if pledge == nil {
+		return ""
+	}
+	joined := *pledge
+	switch {
+	case joined && score >= AccompliceScore:
+		return " Before drawing, they SWORE to join your plot, and they kept their word. Mention that they're as good as their word, a true villain."
+	case joined && score <= DefierScore:
+		return " Before drawing, they SWORE to join your plot, then drew it well anyway. A TRAITOR! Call out the betrayal, outraged."
+	case joined:
+		return " Before drawing, they swore to join your plot, then only went halfway. Hold them to their promise."
+	case score <= DefierScore:
+		return " Before drawing, they REFUSED to join your plot, to your face, and they meant it. Call out their defiance."
+	case score >= AccompliceScore:
+		return " Before drawing, they REFUSED to join your plot, yet drew this gloriously awful thing. A secret accomplice after all? Gloat that they couldn't resist."
+	default:
+		return " Before drawing, they refused to join your plot, and still couldn't commit either way. Needle them about it."
+	}
 }
 
 // formatScore writes a score without a trailing ".0".
@@ -398,35 +521,49 @@ type rawEvaluation struct {
 }
 
 // ParseEvaluation reads the first call's JSON answer and fits it to the personality. Every
-// score the judge gives is rounded to one decimal and clamped to 1..10, and a criterion it
-// skipped gets 5. Each score then moves by the bonus (or penalty) for how well the doodle
-// follows the prompt, and by the swing, staying within 0..10. With criteria, the overall
+// score the judge gives is rounded to one decimal and clamped to 1..10 (0..10 for a judge
+// that scores faults), and a criterion it skipped gets 5. Each score then moves by the bonus
+// (or penalty) for how well the doodle follows the prompt (not for a judge that scores
+// faults: it rates the prompt itself), and by the swing, staying within 0..10. With criteria, the overall
 // score is their average to one decimal place (so it can't disagree with them). Doodles that
-// clearly took little or no effort then lose a share of the overall score. The verdict has
+// clearly took little or no effort then lose a share of the overall score (not with a judge
+// that scores faults: a lazy doodle is what it loves). The verdict has
 // no comment yet: the second call writes it.
 func ParseEvaluation(raw string, p models.AIPersonality, swing Swing) (Verdict, error) {
 	var rv rawEvaluation
 	if err := json.Unmarshal([]byte(raw), &rv); err != nil {
 		return Verdict{}, fmt.Errorf("judge's evaluation isn't valid JSON: %w", err)
 	}
+	// The lowest score the judge can give: 1, or 0 for a judge that scores faults
+	floor := 1.0
+	if p.ScoresBackwards {
+		floor = 0
+	}
 
 	verdict := Verdict{
 		Seen: strings.TrimSpace(rv.Seen), Idea: strings.TrimSpace(rv.Idea), Notable: strings.TrimSpace(rv.Notable),
 		Effort: EffortReal, Prompt: PromptComplete, PromptMissing: strings.TrimSpace(rv.Missing), Swing: swing,
-		Breakdown: models.AIScoreBreakdown{GivenScore: rv.Score, FittedScore: fitScore(rv.Score), Improve: strings.TrimSpace(rv.Improve)},
+		Backwards: p.ScoresBackwards,
+		Breakdown: models.AIScoreBreakdown{GivenScore: rv.Score, FittedScore: fitScore(rv.Score, floor), Improve: strings.TrimSpace(rv.Improve)},
 	}
 	if _, ok := effortPenalties[rv.Effort]; ok {
 		verdict.Effort = rv.Effort
 	}
-	verdict.EffortPenalty = effortPenalties[verdict.Effort]
+	if !p.ScoresBackwards {
+		// A judge that scores backwards loves a lazy doodle, so it scores as high as he rates it
+		verdict.EffortPenalty = effortPenalties[verdict.Effort]
+	}
 	if _, ok := promptBonuses[rv.Prompt]; ok {
 		verdict.Prompt = rv.Prompt
 	}
-	verdict.PromptBonus = promptBonuses[verdict.Prompt]
+	if !p.ScoresBackwards {
+		// A judge that scores backwards rates the prompt itself, as a fault
+		verdict.PromptBonus = promptBonuses[verdict.Prompt]
+	}
 	if len(p.Criteria) > 0 {
-		verdict.Criteria, verdict.Breakdown.Criteria, verdict.Score = scoreCriteria(rv, p, verdict.PromptBonus+swing.Points)
+		verdict.Criteria, verdict.Breakdown.Criteria, verdict.Score = scoreCriteria(rv, p, verdict.PromptBonus+swing.Points, floor)
 	} else {
-		verdict.Score = adjustScore(rv.Score, verdict.PromptBonus+swing.Points)
+		verdict.Score = adjustScore(rv.Score, verdict.PromptBonus+swing.Points, floor)
 	}
 	verdict.Breakdown.BeforeEffort = verdict.Score
 	if verdict.EffortPenalty > 0 {
@@ -452,7 +589,7 @@ func ParseComment(raw string) (string, error) {
 
 // scoreCriteria fits the judge's criteria scores to the personality, moves each by the
 // adjustment (prompt bonus plus swing), and averages them. It also returns each one's steps.
-func scoreCriteria(rv rawEvaluation, p models.AIPersonality, adjustment float64) ([]models.AICriterionScore, []models.AICriterionStep, float64) {
+func scoreCriteria(rv rawEvaluation, p models.AIPersonality, adjustment, floor float64) ([]models.AICriterionScore, []models.AICriterionStep, float64) {
 	given, improve := map[string]float64{}, map[string]string{}
 	for _, c := range rv.Criteria {
 		given[c.ID], improve[c.ID] = c.Score, strings.TrimSpace(c.Improve)
@@ -467,25 +604,25 @@ func scoreCriteria(rv rawEvaluation, p models.AIPersonality, adjustment float64)
 		if !ok {
 			score = models.AIScoreMax / 2
 		}
-		final := adjustScore(score, adjustment)
+		final := adjustScore(score, adjustment, floor)
 		criteria = append(criteria, models.AICriterionScore{AICriterion: c, Score: final})
 		steps = append(steps, models.AICriterionStep{
-			ID: c.ID, Name: c.Name, Given: score, Skipped: !ok, Fitted: fitScore(score), Score: final, Improve: improve[c.ID],
+			ID: c.ID, Name: c.Name, Given: score, Skipped: !ok, Fitted: fitScore(score, floor), Score: final, Improve: improve[c.ID],
 		})
 		total += final
 	}
 	return criteria, steps, math.Round(total/float64(len(p.Criteria))*10) / 10
 }
 
-// adjustScore fits a score the judge gave to 1..AIScoreMax at one decimal, then moves it by
-// the adjustment, never past 0..AIScoreMax.
-func adjustScore(given, adjustment float64) float64 {
-	return min(max(roundScore(fitScore(given)+adjustment), 0), models.AIScoreMax)
+// adjustScore fits a score the judge gave to floor..AIScoreMax at one decimal, then moves it
+// by the adjustment, never past 0..AIScoreMax.
+func adjustScore(given, adjustment, floor float64) float64 {
+	return min(max(roundScore(fitScore(given, floor)+adjustment), 0), models.AIScoreMax)
 }
 
-// fitScore rounds a score the judge gave to one decimal and keeps it to 1..AIScoreMax.
-func fitScore(given float64) float64 {
-	return min(max(roundScore(given), 1), models.AIScoreMax)
+// fitScore rounds a score the judge gave to one decimal and keeps it to floor..AIScoreMax.
+func fitScore(given, floor float64) float64 {
+	return min(max(roundScore(given), floor), models.AIScoreMax)
 }
 
 func roundScore(score float64) float64 {

@@ -34,6 +34,7 @@ const DecorationPreview: FC<{ decoration: DecorationId }> = ({
     <span className="flex scale-125">
       <UserProfileIcon
         user={{ ...me, decoration }}
+        decorationPreview
         size="2xl"
         showLevel={false}
         onClick={ignoreClick}

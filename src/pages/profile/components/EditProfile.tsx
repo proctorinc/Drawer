@@ -57,9 +57,7 @@ const Swatch: FC<SwatchProps> = ({
     onClick={onClick}
     className={cn(
       'press relative flex items-center justify-center size-[68px] border-2 rounded-sketch-alt cursor-pointer',
-      isSelected
-        ? 'bg-me border-ink shadow-pencil-sm'
-        : 'bg-white border-line',
+      isSelected ? 'bg-me border-ink shadow-pencil-sm' : 'bg-white border-line',
       (isLocked || isDashed) && 'border-dashed',
       isDashed && 'border-ink bg-transparent',
     )}
@@ -148,7 +146,9 @@ const FacePicker = () => {
           <Swatch
             label="draw my face"
             isLocked
-            onClick={() => setNote('keep a 14 day streak to draw your own face')}
+            onClick={() =>
+              setNote('keep a 14 day streak to draw your own face')
+            }
           >
             <span className="flex items-center justify-center size-12 border-2 border-dashed border-ink rounded-full">
               <PencilIcon size={22} />
@@ -274,6 +274,7 @@ const FlairPicker: FC<{ tryOn?: string }> = ({ tryOn }) => {
           >
             <UserProfileIcon
               user={{ ...user, decoration: '' }}
+              decorationPreview
               size="lg"
               onClick={ignoreClick}
               showLevel={false}
@@ -292,6 +293,7 @@ const FlairPicker: FC<{ tryOn?: string }> = ({ tryOn }) => {
               >
                 <UserProfileIcon
                   user={{ ...user, decoration: id }}
+                  decorationPreview
                   size="lg"
                   onClick={ignoreClick}
                   showLevel={false}

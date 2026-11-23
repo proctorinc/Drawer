@@ -30,6 +30,8 @@ import {
   SpeechBubble,
   Sweatband,
 } from './Extras';
+import { GrinchHeart } from './GrinchHeart';
+import { GrinchHat } from './GrinchHat';
 import type { FC } from 'react';
 import type { DecorationId } from '@/api/Api';
 import { SantaHat } from '@/events/christmas/Decorations';
@@ -59,6 +61,11 @@ export const DECORATIONS: Record<DecorationId, Decoration> = {
     name: 'golden santa hat',
     group: 'doodlemas',
     Art: GoldenSantaHat,
+  },
+  GRINCH_HAT: {
+    name: "the grinch's hat",
+    group: 'doodlemas',
+    Art: GrinchHat,
   },
 
   // Achievement flair: silly and common for the easy ones, showier the harder
@@ -92,6 +99,11 @@ export const DECORATIONS: Record<DecorationId, Decoration> = {
   GILDED_FRAME: { name: 'gilded frame', group: 'judges', Art: GildedFrame },
   GOLD_STARS: { name: 'gold stars', group: 'judges', Art: GoldStars },
   HALO: { name: 'halo', group: 'judges', Art: Halo },
+  GRINCH_HEART: {
+    name: "the grinch's heart",
+    group: 'judges',
+    Art: GrinchHeart,
+  },
 
   RAIN_CLOUD: { name: 'silver lining', group: 'levels', Art: RainCloud },
   PLATINUM_PENCIL: {

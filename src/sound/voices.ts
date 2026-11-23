@@ -1,8 +1,8 @@
 /**
  * The AI judges' talking voices: silly cartoon babble, one little "bop" for
  * each syllable of their line as it types out. Every syllable lands on a note
- * of a cheerful scale, so it bounces along like a tune instead of beeping at
- * random. Each judge we know has their own funny instrument; anyone new gets
+ * of a cheerful scale (a sour one for the Grinch), so it bounces along like a
+ * tune instead of beeping at random. Each judge we know has their own funny instrument; anyone new gets
  * one picked from their name, in a key of their own.
  */
 
@@ -15,8 +15,9 @@ import type { Cue } from './engine';
  * - boing: a squeaky "bwip!" that springs upward, with a bubbly wobble
  * - kazoo: a buzzy, snooty honk that droops at the end
  * - bwomp: a big bouncy tuba-ish "bwomp"
+ * - grumble: a low, growly, sour mutter that sinks as it goes
  */
-type Sound = 'bop' | 'boing' | 'kazoo' | 'bwomp';
+type Sound = 'bop' | 'boing' | 'kazoo' | 'bwomp' | 'grumble';
 
 export type Voice = {
   sound: Sound;
@@ -28,6 +29,10 @@ export type Voice = {
   droop: number;
   /** Sleigh bells when they're excited */
   jingle?: boolean;
+  /** A throaty growl when they're worked up */
+  snarl?: boolean;
+  /** The notes they babble on: sunny (the default), or sour and sinister */
+  mode?: 'sunny' | 'sinister';
   /** 1 is the usual level */
   volume: number;
   /** Typing pace: over 1 is slower, more deliberate */
@@ -76,6 +81,21 @@ const PERSONAS: Array<{ match: RegExp; voice: Voice }> = [
       jingle: true,
       volume: 1,
       pace: 1.15,
+    },
+  },
+  {
+    // The Grinch: a low, sour grumble on villain's notes, sinking at the end
+    // of every sentence, with a growl when he's worked up. Slow and sneering.
+    match: /grinch/i,
+    voice: {
+      sound: 'grumble',
+      root: 45,
+      range: 3,
+      droop: 3,
+      snarl: true,
+      mode: 'sinister',
+      volume: 1,
+      pace: 1.25,
     },
   },
 ];
@@ -173,9 +193,11 @@ export type Syllable = PlannedSyllable & {
 
 // Major pentatonic: any run of these notes sounds sunny
 const PENTA = [0, 2, 4, 7, 9];
-const scale = (root: number, step: number) => {
-  const octave = Math.floor(step / PENTA.length);
-  return root + octave * 12 + PENTA[((step % 5) + 5) % 5];
+// Minor with a flat second and a tritone: the classic villain's notes
+const SINISTER = [0, 1, 3, 6, 7];
+const scale = (root: number, step: number, notes = PENTA) => {
+  const octave = Math.floor(step / notes.length);
+  return root + octave * 12 + notes[((step % 5) + 5) % 5];
 };
 
 type Say = { note: number; length: number; volume: number };
@@ -224,6 +246,31 @@ const SOUNDS: Record<Sound, (c: Cue, say: Say) => void> = {
       volume: volume * 0.5,
     });
   },
+  grumble: (c, { note, length, volume }) => {
+    // Two rough, slightly out-of-tune buzzes sagging a semitone, muffled like
+    // a mutter under his breath
+    for (const detune of [-14, 14]) {
+      c.tone(hz(note), {
+        type: 'sawtooth',
+        glideTo: hz(note - 1),
+        detune,
+        attack: 0.02,
+        hold: length * 0.35,
+        decay: length * 0.75,
+        vibrato: { depth: 25, rate: 5 },
+        filter: { from: 1300, to: 420, q: 8 },
+        volume: volume * 0.45,
+      });
+    }
+    // A rumble in his chest, an octave down
+    c.tone(hz(note - 12), {
+      type: 'sine',
+      glideTo: hz(note - 13),
+      attack: 0.01,
+      decay: length,
+      volume: volume * 0.7,
+    });
+  },
   bwomp: (c, { note, length, volume }) => {
     // A round "bwomp" that bounces down, and a thump in its belly
     c.tone(hz(note + 4), {
@@ -252,6 +299,7 @@ const LEVEL: Record<Sound, number> = {
   boing: 0.18,
   kazoo: 0.2,
   bwomp: 0.1,
+  grumble: 0.14,
 };
 
 /** Says one syllable of babble in a judge's voice */
@@ -264,7 +312,11 @@ export function speak(voice: Voice, syllable: Syllable) {
     Math.round(voice.droop * progress);
   if (ending === '?') step += Math.round(voice.range * progress * progress);
   if (ending === '!') step += 1;
-  const note = scale(voice.root, step);
+  const note = scale(
+    voice.root,
+    step,
+    voice.mode === 'sinister' ? SINISTER : PENTA,
+  );
 
   // Mid-word bops are quick; the end of a phrase holds on, "boppp"
   const length = syllable.trailing
@@ -275,6 +327,27 @@ export function speak(voice: Voice, syllable: Syllable) {
 
   return play((c) => {
     SOUNDS[voice.sound](c, { note, length, volume });
+    if (voice.snarl && ending === '!' && syllable.trailing) {
+      // A growl: a rattling low buzz and a rush of breath that sinks away
+      c.tone(hz(voice.root - 12), {
+        at: 0.04,
+        type: 'sawtooth',
+        glideTo: hz(voice.root - 15),
+        attack: 0.02,
+        decay: 0.3,
+        vibrato: { depth: 70, rate: 26 },
+        filter: { from: 700, to: 220, q: 4 },
+        volume: 0.06,
+      });
+      c.noise({
+        at: 0.04,
+        filter: 'lowpass',
+        frequency: 1100,
+        sweepTo: 240,
+        decay: 0.28,
+        volume: 0.05,
+      });
+    }
     if (voice.jingle && ending === '!' && syllable.trailing) {
       // Sleigh bells: a quick shake of bright jingles
       for (let i = 0; i < 4; i++) {

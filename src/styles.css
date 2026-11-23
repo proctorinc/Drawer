@@ -63,6 +63,11 @@
   --color-snow: #9fb6cf;
   --animate-blink: blink 1.8s ease-in-out infinite;
   --animate-twinkle: twinkle 1.4s ease-in-out infinite;
+  /* Ornaments on the Christmas tree: a slow swell, a glint across, a sparkle */
+  --animate-breathe: breathe 5s ease-in-out infinite;
+  --animate-swell: swell 5s ease-in-out infinite;
+  --animate-glint: glint 5s ease-in-out infinite;
+  --animate-sparkle: sparkle 5s ease-in-out infinite;
   --animate-sway: sway 4s ease-in-out infinite;
 
   @keyframes talk {
@@ -114,6 +119,57 @@
       opacity: 0.35;
     }
   }
+  @keyframes breathe {
+    0%,
+    100% {
+      scale: 1;
+    }
+    50% {
+      scale: var(--breathe-to, 1.07);
+    }
+  }
+  /* A hung ornament holds still, then grows as the glint crosses it and settles back */
+  @keyframes swell {
+    0%,
+    36%,
+    66%,
+    100% {
+      scale: 1;
+    }
+    50% {
+      scale: var(--breathe-to, 1.12);
+    }
+  }
+  /* Sweeps across around the swell's peak, and waits offstage the rest of the time */
+  @keyframes glint {
+    0%,
+    40% {
+      translate: -110% 0;
+      opacity: 0;
+    }
+    46% {
+      opacity: 1;
+    }
+    60%,
+    100% {
+      translate: 110% 0;
+      opacity: 0;
+    }
+  }
+  @keyframes sparkle {
+    0%,
+    38%,
+    66%,
+    100% {
+      opacity: 0;
+      scale: 0.3;
+    }
+    50% {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+
   @keyframes twinkle {
     0%,
     100% {
@@ -492,6 +548,30 @@ body {
   }
 }
 
+/* The Grinch's heart: three thumps, each a size bigger, then it settles back */
+@keyframes deco-grow {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  10% {
+    transform: scale(1.12);
+  }
+  18% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.24);
+  }
+  38% {
+    transform: scale(1.06);
+  }
+  52%,
+  80% {
+    transform: scale(1.4);
+  }
+}
+
 /* Level badges on avatars (src/levels/LevelBadge.tsx) */
 @property --rank-angle {
   syntax: '<angle>';
@@ -673,5 +753,15 @@ body {
   .gold-shine {
     animation: none;
     display: none;
+  }
+}
+
+/* The tree's slow movement is decoration: keep it still for anyone who'd rather */
+@media (prefers-reduced-motion: reduce) {
+  .animate-breathe,
+  .animate-swell,
+  .animate-glint,
+  .animate-sparkle {
+    animation: none;
   }
 }

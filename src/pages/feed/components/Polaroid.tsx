@@ -13,7 +13,7 @@ import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { polaroidFrameClass } from '@/components/polaroid';
 import { cn } from '@/utils';
 import { GoldTrim, goldFrameClass, isMasterpiece } from '@/ai/Masterpiece';
-import { ScoreSticker } from '@/ai/AIReviewComment';
+import { ScoreSticker, judgeFace } from '@/ai/AIReviewComment';
 
 // Repeating per-card variety, so the wall looks hand-pinned rather than gridded
 const TILTS = [-2, 1.8, 1, -1.4, 2, -0.8];
@@ -93,6 +93,7 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
             <ScoreSticker
               score={submission.aiReview.score}
               mine={isMine}
+              face={judgeFace(submission.aiReview.judge)}
               className="absolute z-10 -top-5 -left-5 scale-75 origin-top-left pointer-events-none"
             />
           )}

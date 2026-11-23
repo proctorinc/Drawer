@@ -204,9 +204,26 @@ describe('sfx', () => {
     expect(pickle.range).toBeGreaterThan(critic.range);
   });
 
+  it('gives the Grinch a low, sinister grumble with a growl', () => {
+    const grinch = voices.voiceFor('The Grinch');
+    const santa = voices.voiceFor('Santa');
+    expect(grinch.sound).toBe('grumble');
+    expect(grinch.mode).toBe('sinister');
+    expect(grinch.snarl).toBe(true);
+    // Deeper than even Santa, and sinking at the end of every sentence
+    expect(grinch.root).toBeLessThan(santa.root);
+    expect(grinch.droop).toBeGreaterThan(santa.droop);
+  });
+
   it('babbles every syllable of a line in every voice', () => {
     const line = 'Hmm. Magnifique, darling? Ho ho, splendid pickles!';
-    for (const name of ['Sir Doodleton', 'Professor Pickles', 'Santa', 'Zed']) {
+    for (const name of [
+      'Sir Doodleton',
+      'Professor Pickles',
+      'Santa',
+      'The Grinch',
+      'Zed',
+    ]) {
       const voice = voices.voiceFor(name);
       for (const syllable of voices.syllablesOf(line).values()) {
         for (const ending of ['.', '?', '!'] as const) {

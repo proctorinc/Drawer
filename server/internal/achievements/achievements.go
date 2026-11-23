@@ -7,6 +7,7 @@ import (
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/stats"
 	"log"
+	"slices"
 	"time"
 )
 
@@ -48,6 +49,11 @@ var decorations = map[RewardUnlockId]bool{
 	"RAIN_CLOUD":    true,
 	"CROWN":         true,
 	"MYTHIC_WINGS":  true,
+
+	// For a 0 from the Grinch (migrations/1795132610_seed_grinch.up.sql)
+	"GRINCH_HEART": true,
+	// For seeing every Grinch day through (migrations/1795132710_grinch_season.up.sql)
+	"GRINCH_HAT": true,
 
 	// Flair for the hard steps of a path (migrations/1795132100_seed_path_decorations.up.sql)
 	"PALETTE":         true,
@@ -230,23 +236,24 @@ func (as *AchievementService) UpdateAchievementsOnce(userId string) error {
 
 /* Check all submission achievements to see if a user has earned any */
 func (as *AchievementService) UpdateSubmissionAchievements(userId string) error {
-	return as.updateUserAchievementsByAchievementField(as.DB, as.Ctx, userId, []string{
+	return as.updateUserAchievementsByAchievementField(as.DB, as.Ctx, userId, append([]string{
 		string(stats.SUBMISSION_STREAK),
 		string(stats.SUBMISSION_TOTAL),
 		string(stats.EVENT_SUBMISSION_TOTAL),
 		string(stats.EVENT_COUNTDOWN_TOTAL),
-	})
+	}, slices.Concat(stats.EVENT_DAY_FIELDS, stats.GRINCH_PLEDGE_FIELDS)...)) // drawing the day's doodle also locks in the answer to the Grinch
 }
 
 /* Check the AI judge achievements, after one of the user's doodles was reviewed */
 func (as *AchievementService) UpdateJudgeAchievements(userId string) error {
-	return as.updateUserAchievementsByAchievementField(as.DB, as.Ctx, userId, stats.AI_FIELDS)
+	return as.updateUserAchievementsByAchievementField(as.DB, as.Ctx, userId, slices.Concat(stats.AI_FIELDS, stats.GRINCH_SCORE_FIELDS))
 }
 
 /* Check all comment achievements to see if a user has earned any */
 func (as *AchievementService) UpdateCommentAchievements(userId string) error {
 	return as.updateUserAchievementsByAchievementField(as.DB, as.Ctx, userId, []string{
 		string(stats.COMMENT_TOTAL),
+		string(stats.EVENT_COMMENT_TOTAL),
 	})
 }
 
@@ -254,6 +261,8 @@ func (as *AchievementService) UpdateCommentAchievements(userId string) error {
 func (as *AchievementService) UpdateReactionAchievements(userId string) error {
 	return as.updateUserAchievementsByAchievementField(as.DB, as.Ctx, userId, []string{
 		string(stats.REACTION_TOTAL),
+		string(stats.EVENT_REACTION_TOTAL),
+		string(stats.EVENT_FRIENDS_CHEERED),
 	})
 }
 

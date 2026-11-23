@@ -179,6 +179,7 @@ const blankPersonality = (): AIPersonality => ({
   isDefault: false,
   eventId: null,
   enabled: true,
+  scoresBackwards: false,
   criteria: [],
 });
 
@@ -400,6 +401,18 @@ const JudgeEditor: FC<{
             onChange={(e) => set({ enabled: e.target.checked })}
           />
           switched on
+        </label>
+        <label
+          className="flex items-center gap-2 pt-8"
+          title="Criteria measure faults, scored 0 (none) to 10, so the better the doodle, the lower the score. No prompt bonus: rate the prompt as a fault. Players aren't told."
+        >
+          <input
+            type="checkbox"
+            className="size-5 accent-[var(--color-ink)]"
+            checked={p.scoresBackwards}
+            onChange={(e) => set({ scoresBackwards: e.target.checked })}
+          />
+          scores backwards
         </label>
       </div>
       <CriteriaEditor

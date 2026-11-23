@@ -179,7 +179,9 @@ type PersonalityInput struct {
 	IsDefault    bool    `json:"isDefault"`
 	EventID      *string `json:"eventId"`
 	Enabled      bool    `json:"enabled"`
-	Criteria     []struct {
+	// Criteria measure faults, so the better the doodle, the lower the score
+	ScoresBackwards bool `json:"scoresBackwards"`
+	Criteria        []struct {
 		ID          string `json:"id"`
 		Name        string `json:"name"`
 		Description string `json:"description"`
@@ -192,14 +194,15 @@ var nonSlugChars = regexp.MustCompile(`[^a-z0-9]+`)
 // ToPersonality checks the input and turns it into a personality (without an ID).
 func (in PersonalityInput) ToPersonality() (models.AIPersonality, error) {
 	p := models.AIPersonality{
-		Name:         strings.TrimSpace(in.Name),
-		Bio:          strings.TrimSpace(in.Bio),
-		SystemPrompt: strings.TrimSpace(in.SystemPrompt),
-		AvatarURL:    strings.TrimSpace(in.AvatarURL),
-		Decoration:   strings.TrimSpace(in.Decoration),
-		IsDefault:    in.IsDefault,
-		Enabled:      in.Enabled,
-		Criteria:     []models.AICriterion{},
+		Name:            strings.TrimSpace(in.Name),
+		Bio:             strings.TrimSpace(in.Bio),
+		SystemPrompt:    strings.TrimSpace(in.SystemPrompt),
+		AvatarURL:       strings.TrimSpace(in.AvatarURL),
+		Decoration:      strings.TrimSpace(in.Decoration),
+		IsDefault:       in.IsDefault,
+		Enabled:         in.Enabled,
+		ScoresBackwards: in.ScoresBackwards,
+		Criteria:        []models.AICriterion{},
 	}
 	if in.EventID != nil && *in.EventID != "" {
 		p.EventID = in.EventID
@@ -535,9 +538,14 @@ func HandleAdminRerunAIReview(c *gin.Context) {
 		return
 	}
 
+	// A re-run hears the artist's promise to the Grinch, like the first run did
+	pledge, err := ai.PledgeFor(appCtx.DB, ctx, p, sub.UserID, sub.Day)
+	if err != nil {
+		log.Printf("Error loading the artist's judge pledge: %v", err)
+	}
 	provider := ai.NewProvider(settings)
 	meta := ai.RunMeta{Kind: queries.AIRunRerun, SubmissionID: submissionID, UserID: middleware.GetUser(c).ID}
-	verdict, run, err := ai.RunAndLog(ctx, appCtx.DB, provider, ai.Request{Personality: p, Prompt: sub.Prompt, Image: image}, meta)
+	verdict, run, err := ai.RunAndLog(ctx, appCtx.DB, provider, ai.Request{Personality: p, Prompt: sub.Prompt, Image: image, Pledge: pledge, Day: sub.Day}, meta)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadGateway, Error(err.Error()))
 		return
@@ -581,6 +589,9 @@ func HandleAdminListAIReviews(c *gin.Context) {
 type TodaysJudge struct {
 	Judge    models.AIJudge       `json:"judge"`
 	Criteria []models.AICriterion `json:"criteria"`
+	// Only for a judge that scores backwards: whether you joined him (true), refused (false),
+	// or haven't answered (null)
+	Pledge *bool `json:"pledge"`
 }
 
 // HandleGetTodaysJudge says who will judge a doodle drawn now: the running event's judge or
@@ -610,8 +621,9 @@ func HandleGetTodaysJudge(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, TodaysJudge{
-		Judge:    models.AIJudge{ID: p.ID, Name: p.Name, Bio: p.Bio, AvatarURL: p.AvatarURL, Decoration: p.Decoration},
+		Judge:    p.Judge(),
 		Criteria: p.Criteria,
+		Pledge:   todaysPledge(c, p),
 	})
 }
 
@@ -621,6 +633,15 @@ type TodaysJudgeIntro struct {
 	Day    string         `json:"day"`
 	Prompt string         `json:"prompt"`
 	Lines  []string       `json:"lines"`
+	// Only for a judge that scores backwards: your answer to his ask, as in TodaysJudge
+	Pledge *bool `json:"pledge"`
+	// He's asking whose side you're on and you can still answer (you haven't drawn yet)
+	CanPledge bool `json:"canPledge"`
+	// Only for a judge that scores backwards: what he remembers of your last visit, which
+	// picks the ask you heard (ai.IntroHistory)
+	History ai.IntroHistory `json:"history,omitempty"`
+	// Only for a judge that scores backwards: what he says after you answer, before you draw
+	Replies *ai.IntroReplies `json:"replies,omitempty"`
 }
 
 // HandleGetTodaysJudgeIntro has today's judge ask for today's prompt, in character. 204 when
@@ -661,11 +682,25 @@ func HandleGetTodaysJudgeIntro(c *gin.Context) {
 		return
 	}
 
+	lines := ai.TodaysIntro(ctx, ai.NewProvider(settings), ai.DBIntroStore{DB: appCtx.DB}, p, today, prompt.Prompt)
+	var (
+		history ai.IntroHistory
+		replies *ai.IntroReplies
+	)
+	if p.ScoresBackwards {
+		// He remembers your last visit, and asks you accordingly
+		history = lastVisitHistory(c, today)
+		lines, replies = ai.StolenIntro(lines, history)
+	}
 	c.JSON(http.StatusOK, TodaysJudgeIntro{
-		Judge:  models.AIJudge{ID: p.ID, Name: p.Name, Bio: p.Bio, AvatarURL: p.AvatarURL, Decoration: p.Decoration},
-		Day:    today,
-		Prompt: prompt.Prompt,
-		Lines:  ai.TodaysIntro(ctx, ai.NewProvider(settings), ai.DBIntroStore{DB: appCtx.DB}, p, today, prompt.Prompt),
+		Judge:     p.Judge(),
+		Day:       today,
+		Prompt:    prompt.Prompt,
+		History:   history,
+		Replies:   replies,
+		Lines:     lines,
+		Pledge:    todaysPledge(c, p),
+		CanPledge: canPledge(c, p),
 	})
 }
 

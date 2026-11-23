@@ -105,6 +105,7 @@ func Run(ctx context.Context, provider Provider, req Request) (Verdict, error) {
 	if err == nil {
 		var verdict Verdict
 		if verdict, err = ParseEvaluation(raw, req.Personality, req.Swing); err == nil {
+			verdict.Pledge, verdict.Day = req.Pledge, req.Day
 			attempt = verdict
 		} else {
 			call.Error = err.Error()
@@ -275,13 +276,31 @@ func StartNewSubmissionReview(ctx context.Context, repo *sql.DB, cfg *config.Con
 	if err := queries.StartAIReview(repo, ctx, submissionID, personality); err != nil {
 		return nil, err
 	}
+	pledge, err := pledgeFor(repo, ctx, personality, sub.UserID, sub.Day)
+	if err != nil {
+		// Only flavor for the comment: judge it without
+		log.Printf("AI judge: %v", err)
+	}
 	return &NewSubmissionReview{
 		repo:         repo,
 		provider:     NewProvider(settings),
 		submissionID: submissionID,
 		artistID:     sub.UserID,
-		req:          Request{Personality: personality, Prompt: sub.Prompt},
+		req:          Request{Personality: personality, Prompt: sub.Prompt, Pledge: pledge, Day: sub.Day},
 	}, nil
+}
+
+// PledgeFor is what the artist promised a judge that scores backwards before drawing day's
+// doodle (nil for any other judge, or when they never answered), for Request.Pledge.
+func PledgeFor(repo *sql.DB, ctx context.Context, p models.AIPersonality, userID, day string) (*bool, error) {
+	return pledgeFor(repo, ctx, p, userID, day)
+}
+
+func pledgeFor(repo *sql.DB, ctx context.Context, p models.AIPersonality, userID, day string) (*bool, error) {
+	if !p.ScoresBackwards {
+		return nil, nil
+	}
+	return queries.GetJudgePledge(repo, ctx, userID, day)
 }
 
 // Run judges the doodle and saves the verdict (or the failure).

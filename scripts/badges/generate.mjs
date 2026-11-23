@@ -171,6 +171,31 @@ const judgeHead = (x, y, fill, card, s = 1) =>
     <text x="25" y="29" text-anchor="middle" font-family="'Nunito','Arial Rounded MT Bold',Arial,sans-serif" font-weight="900" font-size="17" fill="${INK}">${card}</text>
   </g>`;
 
+/**
+ * The Grinch's face, as public/ai/grinch.svg draws it (keep the two in step), in a
+ * 100×100 box: centered on (x, y), s times bigger
+ */
+const grinchFace = (x, y, s = 1) =>
+  `<g transform="translate(${x - 50 * s} ${y - 50 * s}) scale(${s})" stroke="${INK}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M38 22 Q50 14 62 22 Q70 30 72 40 L78 42 L74 47 L80 51 L74 54 Q74 68 64 76 L58 80 L54 86 L50 80 L46 86 L42 80 L36 76 Q26 68 26 54 L20 51 L26 47 L22 42 L28 40 Q30 30 38 22 Z" fill="#9bd45a"/>
+      <path d="M46 19 Q48 12 52 15 Q54 10 57 16" fill="none"/>
+      <ellipse cx="40" cy="45" rx="7" ry="6.5" fill="#fff6b8"/>
+      <ellipse cx="60" cy="45" rx="7" ry="6.5" fill="#fff6b8"/>
+      <circle cx="43" cy="46" r="3" fill="#2b2a33" stroke="none"/>
+      <circle cx="63" cy="46" r="3" fill="#2b2a33" stroke="none"/>
+      <circle cx="44" cy="45" r="0.9" fill="#fff" stroke="none"/>
+      <circle cx="64" cy="45" r="0.9" fill="#fff" stroke="none"/>
+      <path d="M33 44 Q40 39 47 44 Q40 41.5 33 44 Z" fill="#9bd45a"/>
+      <path d="M53 44 Q60 39 67 44 Q60 41.5 53 44 Z" fill="#9bd45a"/>
+      <path d="M31 36 Q38 30 47 35" fill="none" stroke-width="4.5"/>
+      <path d="M53 32 Q61 25 69 31" fill="none" stroke-width="4.5"/>
+      <ellipse cx="50" cy="55" rx="3" ry="2" fill="#4d7a24"/>
+      <path d="M31 60 Q50 66 71 58 Q62 73 50 73 Q37 72 31 60 Z" fill="#3f6b1e"/>
+      <path d="M33 61.2 Q50 66.5 69 59.6 L67 63.5 Q50 69 35 64.5 Z" fill="#fff" stroke-width="1.5"/>
+      <path d="M43 72.5 Q50 69 57 72.4" fill="#ff8f8f" stroke-width="1.5"/>
+      <path d="M27 56 Q28 60 32 61 M75 54 Q74 58 70 59.5" fill="none" stroke-width="2"/>
+  </g>`;
+
 const badges = {
   // drawing
   'submission_total-25': frame(
@@ -459,6 +484,36 @@ const badges = {
       judgeHead(170, 100, C.blush, '9', 0.85) +
       judgeHead(116, 112, C.mint, '8', 0.95) +
       chip(3),
+  ),
+  // Secret: a doodle so cheerful the Grinch gave it a flat 0
+  'grinch_zero_total-1': frame(
+    'gz1',
+    '#c9f2dc',
+    '#b5ead0',
+    -45,
+    grinchFace(118, 112, 1.9) + chip(0),
+    // His furry shoulders, cut off by the sticker's edge
+    `<path d="M40 240 Q48 196 82 190 L94 198 L106 190 L120 198 L134 190 L146 198 L158 190 Q192 196 200 240 Z" fill="#7cbf3f" ${stroke()}/>`,
+  ),
+
+  // Secret: drew badly on purpose and joined his plot to ruin Doodlemas
+  'grinch_side_total-1': frame(
+    'gs1',
+    '#2f4a22',
+    '#3a5a2a',
+    45,
+    grinchFace(112, 108, 1.75) +
+      // A sack of stolen Doodlemas, slung over his shoulder
+      `<g transform="rotate(14 178 168)">
+         <path d="M150 196 Q144 150 170 142 L178 132 L188 142 Q212 152 206 196 Q178 206 150 196 Z" fill="${C.brown}" ${stroke()}/>
+         <path d="M166 144 Q178 150 192 144" fill="none" ${stroke(4)}/>
+         <path d="M170 132 Q178 122 186 132" fill="none" ${stroke(4)}/>
+         <rect x="168" y="160" width="16" height="12" rx="2" fill="${C.red}" ${stroke(3)}/>
+         <path d="M176 160 v12" ${stroke(3)}/>
+       </g>` +
+      sparkle(52, 64, 7, C.butter) +
+      sparkle(186, 70, 6, C.white),
+    `<path d="M40 240 Q48 194 80 188 L92 196 L104 188 L118 196 L132 188 L144 196 L156 188 Q190 194 200 240 Z" fill="#7cbf3f" ${stroke()}/>`,
   ),
 
   // levels, colored like their rank

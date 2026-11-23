@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import { AIJudgeAvatar } from './AIJudgeAvatar';
 import { useTypewriter, withoutArticle } from './AIDialogue';
@@ -19,7 +19,47 @@ export interface JudgeIntro {
   day: string;
   prompt: string;
   lines: Array<string>;
+  /**
+   * Only when the judge scores backwards (the Grinch): whether you joined his
+   * plot (true), refused (false), or haven't answered (null)
+   */
+  pledge?: boolean | null;
+  /** The Grinch is asking whose side you're on, and you haven't drawn yet */
+  canPledge?: boolean;
+  /**
+   * What the Grinch remembers of your last visit, which picked his ask: a new
+   * face, a loyal accomplice, a traitor (joined, then drew well), a rebel
+   * (refused, drew well) or a secret fan (refused, then drew badly anyway)
+   */
+  history?: IntroHistory;
+  /** What he says after you answer, before you draw: to a yes, and to a no */
+  replies?: { yes: string; no: string };
 }
+
+export type IntroHistory =
+  | 'first'
+  | 'loyal'
+  | 'traitor'
+  | 'rebel'
+  | 'secretFan';
+
+/** The yes (join or stay with him) and no buttons for his ask, by your history */
+const PLEDGE_LABELS: Record<IntroHistory, { yes: string; no: string }> = {
+  first: { yes: 'Join him', no: 'Never!' },
+  loyal: { yes: 'Stay loyal', no: 'Quit him' },
+  traitor: { yes: 'Come crawling back', no: 'Never!' },
+  rebel: { yes: 'Switch sides', no: 'Still never!' },
+  secretFan: { yes: 'Admit it, join him', no: 'Never!' },
+};
+
+/** Answers the Grinch's ask: join his plot to ruin the day, or refuse */
+export const saveJudgePledge = async (joined: boolean) => {
+  const response = await fetchAPI('POST', '/ai/judge/today/pledge', {
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ joined }),
+  });
+  if (!response.ok) throw new Error('Failed to save your answer');
+};
 
 /** Fetches the judge's intro; null when judging is off or there's no prompt */
 const fetchJudgeIntro = async (): Promise<JudgeIntro | null> => {
@@ -76,6 +116,12 @@ type DialogueProps = {
   /** Off to draw it */
   onAccept: () => void;
   onClose: () => void;
+  /**
+   * Set when the Grinch is asking you to join his plot (and you haven't drawn
+   * yet): the last page asks yes or no instead of "let's draw". This gets the
+   * answer; then he replies to it before you're sent off to draw.
+   */
+  onPledge?: (joined: boolean) => void;
 };
 
 /**
@@ -87,8 +133,16 @@ export const JudgeIntroDialogue: FC<DialogueProps> = ({
   intro,
   onAccept,
   onClose,
+  onPledge,
 }) => {
-  const { judge, lines, prompt } = intro;
+  const { judge, prompt } = intro;
+  // The Grinch has stolen the day: the lights go out and he makes an entrance
+  const stolen = !!judge.scoresBackwards;
+  const labels = PLEDGE_LABELS[intro.history ?? 'first'] ?? PLEDGE_LABELS.first;
+  // His reply to your answer, once you've given it: one more page
+  const [reply, setReply] = useState<string | null>(null);
+  const lines = reply === null ? intro.lines : [...intro.lines, reply];
+  const asking = stolen && !!onPledge && reply === null;
   const [page, setPage] = useState(0);
   const line = lines[page] ?? '';
   const isLast = page >= lines.length - 1;
@@ -99,13 +153,23 @@ export const JudgeIntroDialogue: FC<DialogueProps> = ({
     if (!isLast) setPage((n) => n + 1);
   };
 
+  const answer = (joined: boolean) => {
+    onPledge?.(joined);
+    const said = joined ? intro.replies?.yes : intro.replies?.no;
+    if (!said) return onAccept();
+    setReply(said);
+    setPage(intro.lines.length);
+  };
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose();
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        if (done && isLast) onAccept();
-        else advance();
+        // His question needs a real answer, not a stray key
+        if (done && isLast) {
+          if (!asking) onAccept();
+        } else advance();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -114,9 +178,13 @@ export const JudgeIntroDialogue: FC<DialogueProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/70 cursor-pointer animate-in fade-in duration-200"
+      className={cn(
+        'fixed inset-0 z-[60] flex items-end justify-center cursor-pointer animate-in fade-in',
+        stolen ? 'bg-[#071004]/95 duration-700' : 'bg-ink/70 duration-200',
+      )}
       onClick={advance}
     >
+      {stolen && <StolenBanner />}
       <div
         role="dialog"
         aria-modal="true"
@@ -137,7 +205,9 @@ export const JudgeIntroDialogue: FC<DialogueProps> = ({
             <b className="font-accent font-bold text-2xl leading-none">
               {judge.name}
             </b>
-            <span className="text-sm text-pencil truncate">today's judge</span>
+            <span className="text-sm text-pencil truncate">
+              {stolen ? 'stole doodlemas' : "today's judge"}
+            </span>
           </div>
         </div>
 
@@ -176,7 +246,44 @@ export const JudgeIntroDialogue: FC<DialogueProps> = ({
                 />
               ))}
             </span>
-            {done && isLast ? (
+            {done && isLast && asking ? (
+              <span className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-1 duration-300">
+                <Button
+                  size="sm"
+                  variant="base"
+                  disableLoad
+                  aria-pressed={intro.pledge === true}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    answer(true);
+                  }}
+                >
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    {/* His side */}
+                    <SideFace src={judge.avatarUrl} />
+                    {labels.yes}
+                    {intro.pledge === true && ' ✓'}
+                  </span>
+                </Button>
+                <Button
+                  size="sm"
+                  disableLoad
+                  autoFocus
+                  aria-pressed={intro.pledge === false}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    answer(false);
+                  }}
+                >
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                    {/* Christmas's side */}
+                    <SideFace src="/ai/santa.svg" />
+                    {labels.no}
+                    {intro.pledge === false && ' ✓'}
+                  </span>
+                </Button>
+              </span>
+            ) : done && isLast ? (
               <span className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-1 duration-300">
                 <Button
                   size="sm"
@@ -218,6 +325,31 @@ export const JudgeIntroDialogue: FC<DialogueProps> = ({
   );
 };
 
+/** A little face on an answer button, showing whose side it puts you on */
+const SideFace: FC<{ src: string }> = ({ src }) => (
+  <img
+    src={src}
+    alt=""
+    className="size-6 -my-1 flex-none rounded-full border-[1.5px] border-ink bg-white"
+  />
+);
+
+/** Across the top of the darkened page when the Grinch takes over the day */
+const StolenBanner: FC = () => (
+  <div
+    aria-hidden="true"
+    className="absolute inset-x-0 top-[max(2.5rem,env(safe-area-inset-top))] flex flex-col items-center gap-2 px-4 text-center pointer-events-none animate-in fade-in zoom-in-90 duration-700 delay-300 fill-mode-backwards"
+  >
+    <span className="font-accent font-bold text-sm uppercase tracking-[0.3em] text-[#9bd45a]">
+      breaking news
+    </span>
+    <span className="font-accent font-bold text-4xl leading-none text-white -rotate-2 animate-[wiggle_0.6s_ease-in-out_1s_2]">
+      doodlemas has been
+      <span className="block mt-1 text-[#e5483b] text-5xl">stolen!</span>
+    </span>
+  </div>
+);
+
 /** The stage wrapper: plays the intro, then sends you to your canvas if you accept */
 export const JudgeIntroPlayer: FC<{
   intro: JudgeIntro;
@@ -225,18 +357,41 @@ export const JudgeIntroPlayer: FC<{
 }> = ({ intro, onDone }) => {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const queryClient = useQueryClient();
 
   useEffect(() => markIntroSeen(intro.day), [intro.day]);
+
+  const accept = () => {
+    onDone();
+    // The canvas is on the home page while today's doodle is still to draw
+    if (pathname !== '/draw') void navigate({ to: '/draw' });
+  };
+
+  // The Grinch asks whose side you're on, until you've drawn (then it's locked in).
+  // The server says which: this plays on the stage, outside the daily prompt.
+  const asking = !!intro.canPledge;
 
   return (
     <JudgeIntroDialogue
       intro={intro}
       onClose={onDone}
-      onAccept={() => {
-        onDone();
-        // The canvas is on the home page while today's doodle is still to draw
-        if (pathname !== '/draw') void navigate({ to: '/draw' });
-      }}
+      onAccept={accept}
+      onPledge={
+        asking
+          ? (joined) => {
+              saveJudgePledge(joined)
+                .catch(() => {
+                  // He just won't know; not worth stopping you from drawing
+                })
+                .finally(
+                  () =>
+                    void queryClient.invalidateQueries({
+                      queryKey: ['ai', 'judge', 'today'],
+                    }),
+                );
+            }
+          : undefined
+      }
     />
   );
 };

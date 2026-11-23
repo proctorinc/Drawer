@@ -3,30 +3,45 @@ import { AIJudgeAvatar } from './AIJudgeAvatar';
 import { AIJudgeDrawer } from './AIJudgeDrawer';
 import { AI_SCORE_MAX, formatScore } from './score';
 import type { FC } from 'react';
-import type { AICriterionScore, AIReview } from '@/api/Api';
+import type { AICriterionScore, AIJudge, AIReview } from '@/api/Api';
 import { cn, timeAgo } from '@/utils';
 
 /** The overall score, as a little sticker slapped on the comment. Your own
- * doodle's score wears your profile color; everyone else's stays butter */
+ * doodle's score wears your profile color; everyone else's stays butter.
+ * A judge that scores backwards (the Grinch) gets his face on it, so his
+ * upside-down score reads as his, not a usual one. */
 export const ScoreSticker: FC<{
   score: number;
   mine?: boolean;
+  /** The Grinch's face, for his scores (see judgeFace) */
+  face?: string;
   className?: string;
-}> = ({ score, mine = false, className }) => (
+}> = ({ score, mine = false, face, className }) => (
   <span
     className={cn(
       'inline-flex items-baseline gap-0.5 px-2 py-0.5 -rotate-6 rounded-sketch-alt border-2 border-ink font-accent font-bold leading-none whitespace-nowrap',
       mine ? 'bg-me text-me-ink' : 'bg-butter text-ink',
       className,
     )}
-    aria-label={`scored ${formatScore(score)} out of ${AI_SCORE_MAX}`}
+    aria-label={`${face ? "the Grinch's approval" : 'scored'} ${formatScore(score)} out of ${AI_SCORE_MAX}`}
   >
+    {face && (
+      <img
+        src={face}
+        alt=""
+        className="self-center size-5 mr-0.5 -my-1 flex-none rounded-full border-[1.5px] border-ink bg-white"
+      />
+    )}
     <span className="text-xl">{formatScore(score)}</span>
     <span className={cn('text-xs', mine ? 'text-me-ink' : 'text-pencil')}>
       /{AI_SCORE_MAX}
     </span>
   </span>
 );
+
+/** The face for a judge's score sticker: only a judge that scores backwards gets one */
+export const judgeFace = (judge: AIJudge) =>
+  judge.scoresBackwards ? judge.avatarUrl : undefined;
 
 /** One criterion's artwork, name and score */
 export const CriterionChip: FC<{ criterion: AICriterionScore }> = ({
@@ -123,7 +138,11 @@ export const AIReviewComment: FC<Props> = ({
             {timeAgo(review.createdAt)}
           </span>
           {review.score !== null && (
-            <ScoreSticker score={review.score} mine={mine} />
+            <ScoreSticker
+              score={review.score}
+              mine={mine}
+              face={judgeFace(review.judge)}
+            />
           )}
         </div>
       </div>

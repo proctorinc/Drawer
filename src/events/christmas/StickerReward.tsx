@@ -41,11 +41,10 @@ const StickerReward: FC<{ sticker: Achievement }> = ({ sticker }) => {
         <span className="flex flex-col items-center gap-1.5">
           {decoration && (
             <span className="relative mt-2">
-              <span
-                className={cn('flex', !earned && 'opacity-75')}
-              >
+              <span className={cn('flex', !earned && 'opacity-75')}>
                 <UserProfileIcon
                   user={{ ...me, decoration }}
+                  decorationPreview
                   size="lg"
                   onClick={ignoreClick}
                 />

@@ -1,12 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  BellIcon,
-  FriendsIcon,
-  MegaphoneIcon,
-  PencilIcon,
-} from './icons';
+import { BellIcon, FriendsIcon, MegaphoneIcon, PencilIcon } from './icons';
 import type { FC, ReactNode } from 'react';
 import type {
   Achievement,

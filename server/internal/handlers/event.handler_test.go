@@ -7,10 +7,12 @@ import (
 	requestContext "drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/dbtest"
 	"drawer-service-backend/internal/db/models"
+	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -373,5 +375,27 @@ func TestEventStaysSecretUntilItStarts(t *testing.T) {
 	router, _ = newEventsRouter(t, "2027-01-05")
 	if n := countEventStickers(router); n != 0 {
 		t.Errorf("%d unearned event stickers shown after the event, want 0", n)
+	}
+}
+
+// Standings go by XP, with doodles only breaking a tie
+func TestRankLeaderboard(t *testing.T) {
+	entry := func(id string, xp, doodles int) queries.EventLeaderboardEntry {
+		e := queries.EventLeaderboardEntry{XP: xp, Doodles: doodles}
+		e.User.ID = id
+		return e
+	}
+	entries := []queries.EventLeaderboardEntry{
+		entry("drawer", 40, 9),
+		entry("chatty", 90, 2),
+		entry("tied-more", 40, 12),
+	}
+	rankLeaderboard(entries)
+	got := []string{}
+	for _, e := range entries {
+		got = append(got, e.User.ID)
+	}
+	if strings.Join(got, ",") != "chatty,tied-more,drawer" {
+		t.Errorf("order = %v, want chatty, tied-more, drawer", got)
 	}
 }

@@ -10,6 +10,8 @@ import { cn } from '@/utils';
 export interface TodaysJudge {
   judge: AIJudge;
   criteria: Array<Omit<AICriterionScore, 'score'>>;
+  /** Only for the Grinch: you joined his plot (true), refused (false), or haven't said */
+  pledge?: boolean | null;
 }
 
 /** Who will score a doodle drawn now; null when judging is off */
@@ -44,7 +46,7 @@ export const TodaysJudgeChip: FC<{
   const { data } = useTodaysJudge();
   const [open, setOpen] = useState(false);
   if (!data) return null;
-  const { judge, criteria } = data;
+  const { judge, criteria, pledge } = data;
 
   return (
     <>
@@ -62,6 +64,13 @@ export const TodaysJudgeChip: FC<{
           <AIJudgeAvatar judge={judge} size="xs" />
           <span>
             judged by <span className="underline">{judge.name}</span>
+            {/* Your mission for the day, by the side you took in his intro */}
+            {judge.scoresBackwards &&
+              (pledge ? (
+                <b className="font-bold text-xmas-green"> · draw it badly!</b>
+              ) : (
+                <b className="font-bold text-xmas-red"> · make him furious!</b>
+              ))}
           </span>
         </span>
         {!compact && criteria.length > 0 && (

@@ -11,7 +11,8 @@ const HAT_SINK = 0.44; // brim sits this far out from center (0.5 = the edge)
 const HAT_WIDTH = 0.62;
 const BRIM = { x: 19 / 40, y: 25 / 32 };
 
-const hatStyle = (() => {
+/** Where a hat sits on any round avatar, tilted to match: shared by every hat drawn here */
+export const hatStyle = (() => {
   const angle = (HAT_ANGLE * Math.PI) / 180;
   const anchorX = 0.5 + HAT_SINK * Math.cos(angle);
   const anchorY = 0.5 - HAT_SINK * Math.sin(angle);

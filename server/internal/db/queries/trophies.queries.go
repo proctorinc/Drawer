@@ -132,11 +132,17 @@ const JudgeScoreSteps = 51
 // doodle, followed by its score in tenths, e.g. "judge87" for 8.7
 const judgeKind = "judge"
 
-// judgedDoodles is each doodle the AI judge scored 5 or more, with that score in tenths
+// judgedScore is what a review's score is worth in XP. For a judge that scores backwards (the
+// Grinch) it's how mad he got, 10 minus his score: his high scores go to lazy doodles, and
+// drawing well enough to make him furious is the point.
+const judgedScore = `CASE WHEN p.scores_backwards = 1 THEN ROUND(10 - r.score, 1) ELSE r.score END`
+
+// judgedDoodles is each doodle whose judge's score is worth 5 or more, in tenths
 var judgedDoodles = `
-	SELECT s.user_id, s.day, CAST(ROUND(r.score * 10) AS INTEGER) AS tenths, r.updated_at
+	SELECT s.user_id, s.day, CAST(ROUND(` + judgedScore + ` * 10) AS INTEGER) AS tenths, r.updated_at
 	FROM ai_reviews r JOIN user_submissions s ON s.id = r.submission_id
-	WHERE r.status = 'done' AND r.score >= 5 AND ` + countedDay("s.user_id", "s.day") + `
+	JOIN ai_personalities p ON p.id = r.personality_id
+	WHERE r.status = 'done' AND ` + judgedScore + ` >= 5 AND ` + countedDay("s.user_id", "s.day") + `
 `
 
 // JudgeScoreIndex parses a judged-doodle kind into its JudgeScores index
@@ -353,6 +359,7 @@ func eachQuestCompletion(repo *sql.DB, ctx context.Context, userIDs []string, fr
 			SELECT reactor, 1, week, MIN(created_at) FROM (
 				SELECT reactor, content_id, created_at, ` + week("created_at") + ` AS week FROM ro
 				WHERE reactor IN ` + in + ` AND owner != reactor AND for_reactor AND content_type = 'submission'
+					AND ` + eventReactionsOnly("ro") + `
 			) GROUP BY reactor, content_id, week
 			UNION ALL
 			SELECT c.user_id, 2, ` + week("c.created_at") + `, c.created_at FROM comments c
@@ -397,6 +404,18 @@ func eachQuestCompletion(repo *sql.DB, ctx context.Context, userIDs []string, fr
 		}
 	})
 	return cmp.Or(err, parseErr)
+}
+
+// eventReactionsOnly keeps a reaction from table t unless it was given while an event
+// with its own reactions ran and isn't one of them: the event swaps the react quest
+// for its festive version (see eventQuests), so plain reactions don't count then.
+func eventReactionsOnly(t string) string {
+	return `NOT EXISTS (
+		SELECT 1 FROM events e
+		WHERE datetime(` + t + `.created_at) >= datetime(e.starts_at) AND datetime(` + t + `.created_at) < datetime(e.ends_at)
+			AND EXISTS (SELECT 1 FROM event_reactions er WHERE er.event_id = e.id)
+			AND ` + t + `.reaction_id NOT IN (SELECT reaction_id FROM event_reactions er WHERE er.event_id = e.id)
+	)`
 }
 
 // GetAchievementXPRange is the least and most an achievement is worth

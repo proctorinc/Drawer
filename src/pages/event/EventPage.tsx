@@ -15,6 +15,8 @@ import { ChristmasIntroButton } from '@/events/christmas/ChristmasIntro';
 import EventBadge from '@/events/christmas/EventBadge';
 import EventLeaderboard from '@/events/christmas/EventLeaderboard';
 import EventStickers from '@/events/christmas/EventStickers';
+import GrinchDays from '@/events/christmas/GrinchDays';
+import { splitEventAchievements } from '@/events/christmas/eventAchievements';
 import { EventXPInfo } from '@/events/EventXPCard';
 import { countdownCopy } from '@/events/useChristmas';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
@@ -97,11 +99,12 @@ const EventPage = () => {
   const { event, submissions, user, xp, quests } = recap;
   const isLive = liveEvent?.slug === event.slug;
   // Stickers come from your own achievements, so they're only shown for you
-  const stickers = viewingFriend
-    ? []
-    : (achievements?.achievements.filter((a) => a.eventSlug === event.slug) ??
-      []);
-  const stickersEarned = stickers.filter((s) => s.achievedAt).length;
+  const { main: stickers, extras } = viewingFriend
+    ? { main: [], extras: [] }
+    : splitEventAchievements(achievements?.achievements ?? [], event.slug);
+  const stickersEarned = [...stickers, ...extras].filter(
+    (s) => s.achievedAt,
+  ).length;
   const [day, left] = status(event, isLive);
   // Each doodle hangs on the tree on its own day
   const drawingsByDay = Object.fromEntries(
@@ -125,7 +128,11 @@ const EventPage = () => {
       {event.countdownDays ? (
         // The title and status fill the empty corners beside the tree's tip
         <section className="relative flex flex-col items-center gap-2 w-full">
-          <ChristmasTree event={event} drawings={drawingsByDay} />
+          <ChristmasTree
+            event={event}
+            drawings={drawingsByDay}
+            grinchDays={recap.grinchDays}
+          />
           <EventBadge
             days={event.countdownDays}
             className="absolute top-1 left-0 scale-[0.65] origin-top-left"
@@ -164,12 +171,16 @@ const EventPage = () => {
         </section>
       )}
 
+      {recap.grinchDays && (
+        <GrinchDays event={event} days={recap.grinchDays} />
+      )}
+
       {stickers.length > 0 && (
         <Section
           title="christmas stickers"
-          aside={`${stickersEarned}/${stickers.length} collected`}
+          aside={`${stickersEarned}/${stickers.length + extras.length} collected`}
         >
-          <EventStickers stickers={stickers} />
+          <EventStickers stickers={stickers} extras={extras} />
         </Section>
       )}
 
@@ -178,7 +189,6 @@ const EventPage = () => {
         <StandingsAndQuests
           standings={{
             label: 'standings',
-            aside: 'doodles, then XP',
             content: <EventLeaderboard slug={event.slug} />,
           }}
           quests={{
@@ -189,13 +199,14 @@ const EventPage = () => {
         />
       ) : (
         !viewingFriend && (
-          <Section title="christmas standings" aside="doodles, then XP">
+          <Section title="christmas standings">
             <EventLeaderboard slug={event.slug} />
           </Section>
         )
       )}
 
-      {!viewingFriend && (
+      {/* The trophies page is closed while the event runs */}
+      {!viewingFriend && !isLive && (
         <Link
           to="/draw/trophies"
           className="flex items-center justify-center gap-2 w-full pt-4 border-t-2 border-dashed border-line font-accent font-bold text-xl text-pencil hover:text-ink transition-colors"

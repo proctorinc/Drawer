@@ -3,9 +3,13 @@ import type { CSSProperties, FC } from 'react';
 import type { AIReview } from '@/api/Api';
 import { cn } from '@/utils';
 
-/** A doodle the AI judge gave a perfect score: it gets the gold frame everywhere */
+/**
+ * A doodle the AI judge gave a perfect score: it gets the gold frame everywhere.
+ * Not from a judge that scores backwards, whose 10s go to lazy doodles.
+ */
 export const isMasterpiece = (doodle?: { aiReview?: AIReview | null } | null) =>
   doodle?.aiReview?.status === 'done' &&
+  !doodle.aiReview.judge.scoresBackwards &&
   (doodle.aiReview.score ?? 0) >= AI_SCORE_MAX;
 
 /** In place of a polaroid's white frame: solid gold with an ink outline */

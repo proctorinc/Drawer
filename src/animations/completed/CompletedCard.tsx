@@ -17,7 +17,7 @@ import { stickerAnchor } from '@/pages/trophies/components/AchievementCard';
 import { completedCard } from '@/sound/sfx';
 import { useCueWhileShown } from '@/sound/useCue';
 
-/** Matches xpPerAchievement in server/internal/handlers/trophies.handler.go */
+/** The usual XP for an achievement, for one that came without its own */
 const XP_PER_ACHIEVEMENT = 25;
 
 /** The card goes on its own after this long */
@@ -102,7 +102,7 @@ function describe(
     heading: sticker ? 'sticker earned!' : 'achievement unlocked!',
     name: achievement.name,
     description: achievement.description,
-    xp: XP_PER_ACHIEVEMENT,
+    xp: achievement.xp || XP_PER_ACHIEVEMENT,
     to: sticker
       ? { to: '/draw/event/$slug', params: { slug: achievement.eventSlug! } }
       : {

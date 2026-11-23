@@ -73,6 +73,18 @@ export interface EventRecap {
   xp: EventXP;
   /** This week's quests: only on your own recap, while the event is live */
   quests: { week: Week; quests: Array<Quest> } | null;
+  /**
+   * The days the Grinch judges during the event, with whose side they took:
+   * joined him (true), turned him down (false), or never answered (null).
+   * Older servers leave it out.
+   */
+  grinchDays?: Array<GrinchDay>;
+}
+
+export interface GrinchDay {
+  /** YYYY-MM-DD */
+  day: string;
+  joined: boolean | null;
 }
 
 export const eventKeys = {

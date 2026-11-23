@@ -166,11 +166,17 @@ func HandleGetEventLeaderboard(c *gin.Context) {
 	for i := range entries {
 		entries[i].XP = xpFor(during[entries[i].User.ID])
 	}
-	slices.SortStableFunc(entries, func(a, b queries.EventLeaderboardEntry) int {
-		return cmp.Or(b.Doodles-a.Doodles, b.XP-a.XP)
-	})
+	rankLeaderboard(entries)
 
 	c.JSON(http.StatusOK, EventLeaderboardResponse{Entries: entries})
+}
+
+// rankLeaderboard puts the most XP earned during the event first, with doodles drawn
+// breaking ties
+func rankLeaderboard(entries []queries.EventLeaderboardEntry) {
+	slices.SortStableFunc(entries, func(a, b queries.EventLeaderboardEntry) int {
+		return cmp.Or(b.XP-a.XP, b.Doodles-a.Doodles)
+	})
 }
 
 type EventRecapStats struct {
@@ -188,6 +194,8 @@ type EventRecapResponse struct {
 	XP          EventXP                       `json:"xp"`
 	// Quests is this week's quests, only on your own recap while the event is live
 	Quests *EventQuests `json:"quests"`
+	// GrinchDays is the days the Grinch judges during the event, with whose side they took
+	GrinchDays []queries.GrinchDay `json:"grinchDays"`
 }
 
 // HandleGetEventRecap returns a user's doodles and stats for an event: the
@@ -278,8 +286,9 @@ func HandleGetEventRecap(c *gin.Context) {
 			ReactionsReceived: reactionsReceived,
 			LongestStreak:     events.LongestStreak(recapEvent.Progress.DoodledDays),
 		},
-		XP:     eventXP(event, during, duringEvent),
-		Quests: quests,
+		XP:         eventXP(event, during, duringEvent),
+		Quests:     quests,
+		GrinchDays: grinchDaysFor(c, userID, days),
 	})
 }
 

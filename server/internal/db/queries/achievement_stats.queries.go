@@ -19,11 +19,18 @@ var (
 		FROM ai_reviews r JOIN user_submissions s ON s.id = r.submission_id
 		WHERE s.user_id = ? AND r.status = 'done' AND ` + countedDay("s.user_id", "s.day")
 	aiReviewCountQuery = `SELECT COUNT(*)` + judgedDoodlesOf
+	// Scores from a judge that scores backwards (the Grinch) don't count toward these: his
+	// high scores go to lazy doodles, and his low ones have their own achievement
+	scoredFairly = ` AND r.personality_id NOT IN (SELECT id FROM ai_personalities WHERE scores_backwards = 1)`
 	// Floored, so a 9.9 doesn't count as a perfect 10
-	aiBestScoreQuery  = `SELECT COALESCE(CAST(MAX(r.score) AS INTEGER), 0)` + judgedDoodlesOf
-	aiGreatCountQuery = `SELECT COUNT(*)` + judgedDoodlesOf + ` AND r.score >= 8`
-	aiLowCountQuery   = `SELECT COUNT(*)` + judgedDoodlesOf + ` AND r.score < 2`
+	aiBestScoreQuery  = `SELECT COALESCE(CAST(MAX(r.score) AS INTEGER), 0)` + judgedDoodlesOf + scoredFairly
+	aiGreatCountQuery = `SELECT COUNT(*)` + judgedDoodlesOf + scoredFairly + ` AND r.score >= 8`
+	aiLowCountQuery   = `SELECT COUNT(*)` + judgedDoodlesOf + scoredFairly + ` AND r.score < 2`
 	aiJudgesMetQuery  = `SELECT COUNT(DISTINCT r.personality_id)` + judgedDoodlesOf
+	// The Grinch scores faults, so a flat 0 from him takes a flawless doodle
+	grinchZeroCountQuery = `SELECT COUNT(*)` + judgedDoodlesOf + ` AND r.personality_id = 'ai-grinch' AND r.score = 0`
+	// Drawing badly enough on purpose that the Grinch takes you as his accomplice (ai.AccompliceScore)
+	grinchSideCountQuery = `SELECT COUNT(*)` + judgedDoodlesOf + ` AND r.personality_id = 'ai-grinch' AND r.score >= 7`
 )
 
 func countFor(repo *sql.DB, ctx context.Context, query, userID string) (int, error) {
@@ -70,4 +77,14 @@ func CalculateAILowCount(repo *sql.DB, ctx context.Context, userID string) (int,
 // CalculateAIJudgesMet is how many different judges have reviewed the user's doodles
 func CalculateAIJudgesMet(repo *sql.DB, ctx context.Context, userID string) (int, error) {
 	return countFor(repo, ctx, aiJudgesMetQuery, userID)
+}
+
+// CalculateGrinchZeroCount is how many of the user's doodles the Grinch scored a flat 0
+func CalculateGrinchZeroCount(repo *sql.DB, ctx context.Context, userID string) (int, error) {
+	return countFor(repo, ctx, grinchZeroCountQuery, userID)
+}
+
+// CalculateGrinchSideCount is how many of the user's doodles the Grinch took as an accomplice's
+func CalculateGrinchSideCount(repo *sql.DB, ctx context.Context, userID string) (int, error) {
+	return countFor(repo, ctx, grinchSideCountQuery, userID)
 }

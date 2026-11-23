@@ -97,16 +97,24 @@ const DeskByline: FC<{ createdBy: User | null; fit: Fit }> = ({
 /** Your own corners of the app; everyone else's drawings wait until you've drawn */
 const DeskLinks = () => {
   const user = useUser();
+  const christmas = useChristmas();
 
   return (
     <nav aria-label="Main" className="flex flex-none items-center gap-2">
       <CanvasSettingsButton />
       <Link
-        to="/draw/trophies"
-        aria-label="Trophies"
+        // During Doodlemas the trophies page steps aside for the event's
+        {...(christmas
+          ? { to: '/draw/event/$slug', params: { slug: christmas.slug } }
+          : { to: '/draw/trophies' })}
+        aria-label={christmas ? christmas.name : 'Trophies'}
         className="press flex items-center justify-center size-10 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil-sm hover:-rotate-6"
       >
-        <TrophyIcon size={22} />
+        {christmas ? (
+          <TreeIcon size={22} className="text-ink" />
+        ) : (
+          <TrophyIcon size={22} />
+        )}
       </Link>
       <UserProfileIcon user={user} size="sm" />
     </nav>

@@ -4,6 +4,8 @@ import type { Achievement } from '@/api/Api';
 import { StarIcon } from '@/components/icons';
 import { cn } from '@/utils';
 import EventSticker from '@/events/christmas/EventSticker';
+import GrinchOutline from '@/events/christmas/GrinchOutline';
+import { isGrinchAchievement } from '@/events/christmas/eventAchievements';
 
 /**
  * Art lives in src/assets/badges, named after what the achievement counts
@@ -46,6 +48,10 @@ const Badge: FC<Props> = ({ achievement, locked, className }) => {
   const [missing, setMissing] = useState(false);
 
   if (achievement.secret) {
+    // The Grinch's secrets give away whose they are, not what they take
+    if (isGrinchAchievement(achievement)) {
+      return <GrinchOutline className={className} />;
+    }
     return (
       <MysteryBadge
         event={achievement.category === 'events'}

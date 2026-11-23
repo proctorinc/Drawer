@@ -1,3 +1,4 @@
+import { Navigate } from '@tanstack/react-router';
 import AchievementCard from './components/AchievementCard';
 import { completion } from './components/AchievementMeter';
 import EventBanner from './components/EventBanner';
@@ -16,6 +17,7 @@ import LoadingScreen from '@/components/LoadingScreen';
 import { PushPin } from '@/components/PushPin';
 import { SectionLink } from '@/components/ShowAllLink';
 import { currentSteps } from '@/achievements/paths';
+import { useChristmas } from '@/events/useChristmas';
 
 const SectionTitle: FC<{ children: ReactNode; aside?: ReactNode }> = ({
   children,
@@ -140,4 +142,22 @@ const TrophiesPage = () => {
   );
 };
 
-export default TrophiesPage;
+/**
+ * Doodlemas takes over from the trophies page while it runs: its page holds the
+ * week's (festive) quests and standings, so every link here lands there instead
+ */
+const TrophiesRoute = () => {
+  const christmas = useChristmas();
+  if (christmas) {
+    return (
+      <Navigate
+        to="/draw/event/$slug"
+        params={{ slug: christmas.slug }}
+        replace
+      />
+    );
+  }
+  return <TrophiesPage />;
+};
+
+export default TrophiesRoute;

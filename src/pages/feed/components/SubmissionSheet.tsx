@@ -7,7 +7,7 @@ import { XPNote } from './XPNote';
 import type { FC } from 'react';
 import type { Comment, ReactionId, UserPromptSubmission } from '@/api/Api';
 import { refreshProgress } from '@/animations/useProgressWatcher';
-import { AIReviewComment, ScoreSticker } from '@/ai/AIReviewComment';
+import { AIReviewComment, ScoreSticker, judgeFace } from '@/ai/AIReviewComment';
 import {
   queryKeys,
   useAddComment,
@@ -145,6 +145,7 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
                 <ScoreSticker
                   score={submission.aiReview.score}
                   mine={submission.user.id === currentUser.id}
+                  face={judgeFace(submission.aiReview.judge)}
                   className="absolute z-10 -top-6 -left-6 pointer-events-none"
                 />
               )}

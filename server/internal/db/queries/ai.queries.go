@@ -54,7 +54,7 @@ func SetAISettings(repo *sql.DB, ctx context.Context, values map[string]string) 
 
 // --- Personalities ---
 
-const aiPersonalityColumns = `id, slug, name, bio, system_prompt, avatar_url, decoration, is_default, event_id, enabled, created_at`
+const aiPersonalityColumns = `id, slug, name, bio, system_prompt, avatar_url, decoration, is_default, event_id, enabled, created_at, scores_backwards`
 
 func scanAIPersonality(row eventRowScanner) (models.AIPersonality, error) {
 	var (
@@ -62,7 +62,7 @@ func scanAIPersonality(row eventRowScanner) (models.AIPersonality, error) {
 		eventID sql.NullString
 	)
 	err := row.Scan(&p.ID, &p.Slug, &p.Name, &p.Bio, &p.SystemPrompt, &p.AvatarURL, &p.Decoration,
-		&p.IsDefault, &eventID, &p.Enabled, &p.CreatedAt)
+		&p.IsDefault, &eventID, &p.Enabled, &p.CreatedAt, &p.ScoresBackwards)
 	if err != nil {
 		return models.AIPersonality{}, err
 	}
@@ -178,18 +178,18 @@ func SaveAIPersonality(repo *sql.DB, ctx context.Context, p models.AIPersonality
 
 		if creating {
 			_, err := tx.ExecContext(ctx, `
-				INSERT INTO ai_personalities (id, slug, name, bio, system_prompt, avatar_url, decoration, is_default, event_id, enabled)
-				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				p.ID, p.Slug, p.Name, p.Bio, p.SystemPrompt, p.AvatarURL, p.Decoration, p.IsDefault, eventID, p.Enabled)
+				INSERT INTO ai_personalities (id, slug, name, bio, system_prompt, avatar_url, decoration, is_default, event_id, enabled, scores_backwards)
+				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+				p.ID, p.Slug, p.Name, p.Bio, p.SystemPrompt, p.AvatarURL, p.Decoration, p.IsDefault, eventID, p.Enabled, p.ScoresBackwards)
 			if err != nil {
 				return err
 			}
 		} else {
 			res, err := tx.ExecContext(ctx, `
 				UPDATE ai_personalities SET slug = ?, name = ?, bio = ?, system_prompt = ?, avatar_url = ?, decoration = ?,
-					is_default = ?, event_id = ?, enabled = ?
+					is_default = ?, event_id = ?, enabled = ?, scores_backwards = ?
 				WHERE id = ?`,
-				p.Slug, p.Name, p.Bio, p.SystemPrompt, p.AvatarURL, p.Decoration, p.IsDefault, eventID, p.Enabled, p.ID)
+				p.Slug, p.Name, p.Bio, p.SystemPrompt, p.AvatarURL, p.Decoration, p.IsDefault, eventID, p.Enabled, p.ScoresBackwards, p.ID)
 			if err != nil {
 				return err
 			}
@@ -310,7 +310,7 @@ func FailAIReview(repo *sql.DB, ctx context.Context, submissionID, reason string
 }
 
 const aiReviewColumns = `r.submission_id, r.status, r.score, r.criteria_scores, r.comment, r.model, r.error, r.created_at,
-	p.id, p.name, p.bio, p.avatar_url, p.decoration`
+	p.id, p.name, p.bio, p.avatar_url, p.decoration, p.scores_backwards`
 
 func scanAIReview(row eventRowScanner) (models.AIReview, error) {
 	var (
@@ -320,7 +320,7 @@ func scanAIReview(row eventRowScanner) (models.AIReview, error) {
 	)
 	err := row.Scan(&review.SubmissionID, &review.Status, &score, &criteriaJSON, &review.Comment,
 		&review.Model, &review.Error, &review.CreatedAt,
-		&review.Judge.ID, &review.Judge.Name, &review.Judge.Bio, &review.Judge.AvatarURL, &review.Judge.Decoration)
+		&review.Judge.ID, &review.Judge.Name, &review.Judge.Bio, &review.Judge.AvatarURL, &review.Judge.Decoration, &review.Judge.ScoresBackwards)
 	if err != nil {
 		return models.AIReview{}, err
 	}
@@ -427,7 +427,7 @@ func ListRecentAIReviews(repo *sql.DB, ctx context.Context, limit int) ([]AdminA
 		)
 		err := rows.Scan(&review.SubmissionID, &review.Status, &score, &criteriaJSON, &review.Comment,
 			&review.Model, &review.Error, &review.CreatedAt,
-			&review.Judge.ID, &review.Judge.Name, &review.Judge.Bio, &review.Judge.AvatarURL, &review.Judge.Decoration,
+			&review.Judge.ID, &review.Judge.Name, &review.Judge.Bio, &review.Judge.AvatarURL, &review.Judge.Decoration, &review.Judge.ScoresBackwards,
 			&prompt, &review.Day, &review.Artist.ID, &review.Artist.Username, &review.Artist.CreatedAt,
 			&review.Artist.AvatarType, &review.Artist.AvatarURL, &review.Artist.Decoration)
 		if err != nil {
@@ -497,7 +497,7 @@ func GetAIReviewActivity(repo *sql.DB, ctx context.Context, userID string, cfg *
 		)
 		dest := append([]any{&review.SubmissionID, &review.Status, &score, &criteria, &review.Comment,
 			&review.Model, &review.Error, &review.CreatedAt,
-			&review.Judge.ID, &review.Judge.Name, &review.Judge.Bio, &review.Judge.AvatarURL, &review.Judge.Decoration,
+			&review.Judge.ID, &review.Judge.Name, &review.Judge.Bio, &review.Judge.AvatarURL, &review.Judge.Decoration, &review.Judge.ScoresBackwards,
 			&judgedAt, &heardAt, &prompt}, activityUserDest(&artist)...)
 		if err := rows.Scan(dest...); err != nil {
 			return nil, fmt.Errorf("error scanning AI review activity: %w", err)

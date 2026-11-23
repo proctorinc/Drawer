@@ -7,18 +7,21 @@ import (
 
 // AIPersonality is an AI judge's character: who it is, how it talks and what it scores.
 type AIPersonality struct {
-	ID           string        `json:"id"`
-	Slug         string        `json:"slug"`
-	Name         string        `json:"name"`
-	Bio          string        `json:"bio"`          // A sentence or two about them, shown when players tap their face
-	SystemPrompt string        `json:"systemPrompt"` // Its character, as instructions to the model
-	AvatarURL    string        `json:"avatarUrl"`
-	Decoration   string        `json:"decoration"` // An AI-only decoration id the frontend draws, or ""
-	IsDefault    bool          `json:"isDefault"`  // Judges every day no event judge covers
-	EventID      *string       `json:"eventId"`    // Judges instead of the default while this event runs
-	Enabled      bool          `json:"enabled"`
-	Criteria     []AICriterion `json:"criteria"` // At most MaxAICriteria; none means one overall score
-	CreatedAt    time.Time     `json:"createdAt"`
+	ID           string  `json:"id"`
+	Slug         string  `json:"slug"`
+	Name         string  `json:"name"`
+	Bio          string  `json:"bio"`          // A sentence or two about them, shown when players tap their face
+	SystemPrompt string  `json:"systemPrompt"` // Its character, as instructions to the model
+	AvatarURL    string  `json:"avatarUrl"`
+	Decoration   string  `json:"decoration"` // An AI-only decoration id the frontend draws, or ""
+	IsDefault    bool    `json:"isDefault"`  // Judges every day no event judge covers
+	EventID      *string `json:"eventId"`    // Judges instead of the default while this event runs
+	Enabled      bool    `json:"enabled"`
+	// Its criteria measure faults (gloom, mess, missing the prompt), so the better the doodle,
+	// the lower its scores; a 0 is the best a doodle can do. Players aren't told.
+	ScoresBackwards bool          `json:"scoresBackwards"`
+	Criteria        []AICriterion `json:"criteria"` // At most MaxAICriteria; none means one overall score
+	CreatedAt       time.Time     `json:"createdAt"`
 }
 
 // MaxAICriteria is how many criteria a judge can score separately.
@@ -51,6 +54,13 @@ type AIJudge struct {
 	Bio        string `json:"bio"`
 	AvatarURL  string `json:"avatarUrl"`
 	Decoration string `json:"decoration"`
+	// Scores faults, so its scores earn nothing (no XP bonus, gold frame or score achievements)
+	ScoresBackwards bool `json:"scoresBackwards,omitempty"`
+}
+
+// Judge is the personality's public face, as players see it.
+func (p AIPersonality) Judge() AIJudge {
+	return AIJudge{ID: p.ID, Name: p.Name, Bio: p.Bio, AvatarURL: p.AvatarURL, Decoration: p.Decoration, ScoresBackwards: p.ScoresBackwards}
 }
 
 // AICriterionScore is a criterion as it was when the doodle was judged, and its score

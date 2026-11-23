@@ -83,7 +83,6 @@ CREATE INDEX idx_user_achievements_user_id ON user_achievements (user_id);
 CREATE INDEX idx_user_achievements_achievement_id ON user_achievements (achievement_id);
 CREATE INDEX idx_user_achievements_user_id_achievement_id ON user_achievements (user_id, achievement_id);
 CREATE INDEX idx_reward_unlocks_achievement_id ON reward_unlocks (achievement_id);
-CREATE INDEX idx_achievements_path ON achievements (path, path_step);
 CREATE INDEX idx_user_stat_calculations_user_id ON user_stat_calculations (user_id);
 CREATE INDEX idx_user_stat_calculations_stat_type ON user_stat_calculations (stat_type);
 CREATE INDEX idx_user_stat_updates_user_id ON user_stat_calculations (user_id);
@@ -108,7 +107,7 @@ CREATE TABLE event_achievements (achievement_id TEXT PRIMARY KEY, event_id TEXT 
 CREATE INDEX idx_event_achievements_event_id ON event_achievements (event_id);
 CREATE TABLE event_notifications_sent (event_id TEXT NOT NULL, kind TEXT NOT NULL, sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (event_id, kind), FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE CASCADE);
 CREATE TABLE ai_settings (KEY TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE ai_personalities (id TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL, bio TEXT NOT NULL DEFAULT '', system_prompt TEXT NOT NULL, avatar_url TEXT NOT NULL DEFAULT '', decoration TEXT NOT NULL DEFAULT '', is_default INTEGER NOT NULL DEFAULT 0, event_id TEXT, enabled INTEGER NOT NULL DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE SET NULL);
+CREATE TABLE ai_personalities (id TEXT PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL, bio TEXT NOT NULL DEFAULT '', system_prompt TEXT NOT NULL, avatar_url TEXT NOT NULL DEFAULT '', decoration TEXT NOT NULL DEFAULT '', is_default INTEGER NOT NULL DEFAULT 0, event_id TEXT, enabled INTEGER NOT NULL DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, scores_backwards INTEGER NOT NULL DEFAULT 0, FOREIGN KEY (event_id) REFERENCES events (id) ON DELETE SET NULL);
 CREATE UNIQUE INDEX idx_ai_personalities_default ON ai_personalities (is_default) WHERE is_default = 1;
 CREATE INDEX idx_ai_personalities_event_id ON ai_personalities (event_id);
 CREATE TABLE ai_criteria (id TEXT PRIMARY KEY, personality_id TEXT NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', image_url TEXT NOT NULL DEFAULT '', FOREIGN KEY (personality_id) REFERENCES ai_personalities (id) ON DELETE CASCADE);
@@ -118,6 +117,7 @@ CREATE INDEX idx_ai_reviews_personality_id ON ai_reviews (personality_id);
 CREATE INDEX idx_ai_reviews_created_at ON ai_reviews (created_at);
 CREATE TABLE ai_runs (id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK (kind IN ('submission', 'rerun', 'test')), batch_id TEXT NOT NULL DEFAULT '', personality_id TEXT NOT NULL, judge_name TEXT NOT NULL, judge_avatar_url TEXT NOT NULL DEFAULT '', judge_decoration TEXT NOT NULL DEFAULT '', system_prompt TEXT NOT NULL DEFAULT '', submission_id TEXT, prompt TEXT NOT NULL DEFAULT '', image_data TEXT NOT NULL DEFAULT '', user_id TEXT, status TEXT NOT NULL CHECK (status IN ('done', 'failed')), score REAL, criteria_scores TEXT NOT NULL DEFAULT '[]', comment TEXT NOT NULL DEFAULT '', model TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '', duration_ms INTEGER NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, metadata TEXT NOT NULL DEFAULT '{}', applied_at TIMESTAMP);
 CREATE INDEX idx_ai_runs_created_at ON ai_runs (created_at);
+CREATE TABLE judge_pledges (user_id TEXT NOT NULL, day TEXT NOT NULL, personality_id TEXT NOT NULL, event_id TEXT, joined INTEGER NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (user_id, day), FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
 CREATE INDEX idx_ai_runs_kind ON ai_runs (kind);
 CREATE TABLE user_avatars (user_id TEXT NOT NULL, slot INTEGER NOT NULL CHECK (slot BETWEEN 0 AND 2), url TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (user_id, slot), FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
 CREATE TABLE announcements (id TEXT PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', art TEXT NOT NULL DEFAULT 'none', image_url TEXT NOT NULL DEFAULT '', cta_label TEXT NOT NULL DEFAULT '', cta_url TEXT NOT NULL DEFAULT '', position INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 0, starts_at TIMESTAMP NOT NULL, expires_at TIMESTAMP NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
@@ -145,3 +145,4 @@ CREATE TABLE app_settings (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE user_achievements_archive (achievement_id TEXT NOT NULL, user_id TEXT NOT NULL, created_at TIMESTAMP, celebrated_at TIMESTAMP, archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+CREATE INDEX idx_achievements_path ON achievements (path, path_step);

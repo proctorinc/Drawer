@@ -40,6 +40,7 @@ const AvatarRow: FC<{ decoration: DecorationId | '' }> = ({ decoration }) => {
           onClick={noop}
           showLevel={false}
           user={demoUser(['ann', 'bo', 'cass', 'dee'][i], decoration)}
+          decorationPreview
         />
       ))}
       <UserProfileIcon
@@ -47,6 +48,7 @@ const AvatarRow: FC<{ decoration: DecorationId | '' }> = ({ decoration }) => {
         onClick={noop}
         showLevel={false}
         user={{ ...me, decoration }}
+        decorationPreview
       />
     </div>
   );

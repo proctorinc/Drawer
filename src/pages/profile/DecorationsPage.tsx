@@ -60,6 +60,7 @@ const FlairTile: FC<{
         <span className={cn('flex', !unlocked && 'opacity-60')}>
           <UserProfileIcon
             user={{ ...user, decoration: id }}
+            decorationPreview
             size="lg"
             onClick={ignoreClick}
             showLevel={false}

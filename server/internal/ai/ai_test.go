@@ -15,8 +15,10 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 // The real roll, kept for the test that checks it
@@ -559,7 +561,7 @@ func TestPickAIPersonality(t *testing.T) {
 	if p, _ = queries.PickAIPersonality(repo, ctx, event.ID, "2026-12-05"); p.ID != "ai-professor-pickles" {
 		t.Errorf("on a day handed to Professor Pickles, judge = %v", p.ID)
 	}
-	if p, _ = queries.PickAIPersonality(repo, ctx, event.ID, "2026-12-06"); p.ID != "ai-santa" {
+	if p, _ = queries.PickAIPersonality(repo, ctx, event.ID, "2026-12-04"); p.ID != "ai-santa" {
 		t.Errorf("on the next day, judge = %v; want Santa", p.ID)
 	}
 	// A switched-off pick falls back as usual
@@ -993,5 +995,470 @@ func TestRollSwingKeepsTheDice(t *testing.T) {
 		if s.Kind != SwingNone && s.Roll.Hates != (s.Points < 0) {
 			t.Fatalf("hates %v but %v points", s.Roll.Hates, s.Points)
 		}
+	}
+}
+
+func TestTheGrinchJudgesChristmasSundays(t *testing.T) {
+	repo := dbtest.NewEventsDB(t)
+	ctx := context.Background()
+	event, err := queries.GetEventBySlug(repo, ctx, "christmas-2026")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, day := range []string{"2026-11-29", "2026-12-06", "2026-12-13", "2026-12-20", "2026-12-24"} {
+		p, err := queries.PickAIPersonality(repo, ctx, event.ID, day)
+		if err != nil || p.ID != "ai-grinch" || !p.ScoresBackwards || len(p.Criteria) != 3 {
+			t.Errorf("%s: judge = %s (backwards %v, %d criteria), %v; want the Grinch, backwards, with 3", day, p.ID, p.ScoresBackwards, len(p.Criteria), err)
+		}
+	}
+	for _, day := range []string{"2026-11-28", "2026-11-30", "2026-12-25"} {
+		if p, _ := queries.PickAIPersonality(repo, ctx, event.ID, day); p.ID != "ai-santa" {
+			t.Errorf("%s: judge = %s; want Santa", day, p.ID)
+		}
+	}
+	// His criteria are what he wants, and each tells players to go against him
+	g, _ := queries.GetAIPersonality(repo, ctx, "ai-grinch")
+	names := []string{}
+	for _, c := range g.Criteria {
+		names = append(names, c.Name)
+		if !strings.Contains(c.Description, "him") {
+			t.Errorf("%s should dare players to go against him: %s", c.Name, c.Description)
+		}
+	}
+	if strings.Join(names, ", ") != "humbug, cave art, spoiled" {
+		t.Errorf("the Grinch's criteria = %v", names)
+	}
+	// Players never hear outright that he scores backwards
+	for _, giveaway := range []string{"backwards", "upside", "0", "zero", "low score"} {
+		if strings.Contains(strings.ToLower(g.Bio), giveaway) {
+			t.Errorf("the Grinch's bio gives it away (%q): %s", giveaway, g.Bio)
+		}
+	}
+}
+
+func grinch() models.AIPersonality {
+	return models.AIPersonality{
+		ID: "grinch", Name: "The Grinch", SystemPrompt: "You are the Grinch.", ScoresBackwards: true,
+		Criteria: []models.AICriterion{
+			{ID: "humbug", Name: "humbug", Description: "How gloomy it is."},
+			{ID: "mess", Name: "mess", Description: "How sloppy it is."},
+		},
+	}
+}
+
+func TestABackwardsJudgeIsAskedForFaults(t *testing.T) {
+	system := EvaluateSystemPrompt(grinch())
+	for _, want := range []string{"from 0 (none of it at all)", "- humbug:", "A blank or unrelated image scores high", "most decent doodles land between 2 and 5"} {
+		if !strings.Contains(system, want) {
+			t.Errorf("a backwards judge's evaluation should say %q:\n%s", want, system)
+		}
+	}
+	if strings.Contains(system, "masterpiece") || strings.Contains(system, "between 6 and 8") {
+		t.Errorf("a backwards judge shouldn't get the usual 1-to-10 scale:\n%s", system)
+	}
+	if strings.Contains(EvaluateSystemPrompt(santa()), "faults") {
+		t.Errorf("other judges score as usual")
+	}
+}
+
+func TestABackwardsJudgeScoresFaultsAsGiven(t *testing.T) {
+	// Scores aren't flipped, and missing the prompt adds nothing: it's a fault he rates himself
+	v, err := ParseEvaluation(`{"prompt": "missed", "criteria": [{"id": "humbug", "score": 7}, {"id": "mess", "score": 8.5}], "score": 1}`, grinch(), Swing{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !v.Backwards || v.PromptBonus != 0 || v.Criteria[0].Score != 7 || v.Criteria[1].Score != 8.5 || v.Score != 7.8 {
+		t.Errorf("faults: criteria %+v, score %v, prompt bonus %v; want 7, 8.5 and 7.8 with no bonus", v.Criteria, v.Score, v.PromptBonus)
+	}
+
+	// A flawless doodle can get a real 0; other judges never go under 1 on their own
+	v, _ = ParseEvaluation(`{"prompt": "nailed", "criteria": [{"id": "humbug", "score": 0}, {"id": "mess", "score": -1}], "score": 0}`, grinch(), Swing{})
+	if v.Score != 0 || v.Criteria[0].Score != 0 || v.Criteria[1].Score != 0 {
+		t.Errorf("flawless: criteria %+v, score %v; want all 0", v.Criteria, v.Score)
+	}
+	if v, _ = ParseEvaluation(`{"prompt": "complete", "criteria": [{"id": "nice", "score": 0}, {"id": "spirit", "score": 0}], "score": 0}`, santa(), Swing{}); v.Score != 1 {
+		t.Errorf("Santa's lowest = %v; want 1", v.Score)
+	}
+
+	// A hated doodle can be pushed to 0 too
+	v, _ = ParseEvaluation(`{"criteria": [{"id": "humbug", "score": 1}, {"id": "mess", "score": 1.5}], "score": 1}`, grinch(), Swing{Kind: SwingBoost, Points: -2})
+	if v.Score != 0 {
+		t.Errorf("hated: score %v; want 0", v.Score)
+	}
+
+	// A lazy, off-prompt scribble is what he loves: no effort penalty, it keeps his top marks
+	v, _ = ParseEvaluation(`{"effort": "none", "prompt": "missed", "criteria": [{"id": "humbug", "score": 9.5}, {"id": "mess", "score": 10}], "score": 10}`, grinch(), Swing{})
+	if v.Score != 9.8 || v.EffortPenalty != 0 {
+		t.Errorf("blank canvas: score %v, effort penalty %v; want 9.8 and none", v.Score, v.EffortPenalty)
+	}
+	// He takes it as joining his plot to ruin Doodlemas, and praises them for it
+	if msg := CommentMessage("a cat", v); !strings.Contains(msg, "praising them for joining your plot") {
+		t.Errorf("a lazy doodle's comment message should have him welcome an accomplice: %s", msg)
+	}
+	// A good doodle defied him; a middling one leaves him unsure
+	if msg := CommentMessage("a cat", Verdict{Backwards: true, Score: 1.5}); !strings.Contains(msg, "DEFIED you") || strings.Contains(msg, "praising") {
+		t.Errorf("a good doodle should get roasted for defying him: %s", msg)
+	}
+	if msg := CommentMessage("a cat", Verdict{Backwards: true, Score: 5}); !strings.Contains(msg, "went halfway") {
+		t.Errorf("a middling doodle should leave him unsure: %s", msg)
+	}
+
+	msg := CommentMessage("a cat", Verdict{Backwards: true, Swing: Swing{Kind: SwingSuper, Points: 3.5}})
+	if !strings.Contains(msg, "OBSESSED") || !strings.Contains(msg, "count faults") {
+		t.Errorf("comment message for a loved doodle, backwards: %s", msg)
+	}
+	if strings.Contains(CommentMessage("a cat", Verdict{}), "faults") {
+		t.Errorf("only a backwards judge hears about it")
+	}
+}
+
+func TestAGrinchZeroIsARealZero(t *testing.T) {
+	repo := dbtest.NewEventsDB(t)
+	ctx := context.Background()
+	dbtest.Exec(t, repo, `INSERT INTO users (id, username, email) VALUES ('u1', 'u1', 'u1@example.com')`)
+	dbtest.Exec(t, repo, `INSERT INTO user_submissions (id, user_id, day) VALUES ('s1', 'u1', '2026-11-29')`)
+
+	g, err := queries.GetAIPersonality(repo, ctx, "ai-grinch")
+	if err != nil {
+		t.Fatal(err)
+	}
+	answer := `{"prompt": "nailed", "criteria": [{"id": "ai-grinch-humbug", "score": 0}, {"id": "ai-grinch-cave-art", "score": 0}, {"id": "ai-grinch-spoiled", "score": 0}], "score": 0, "comment": "Bah."}`
+	if _, err := Review(ctx, repo, fakeProvider{answer: answer}, "s1", Request{Personality: g}, RunMeta{Kind: queries.AIRunRerun, UserID: "u1"}); err != nil {
+		t.Fatal(err)
+	}
+	subs := []*models.UserPromptSubmission{{ID: "s1"}}
+	if err := queries.AttachAIReviews(repo, ctx, subs); err != nil {
+		t.Fatal(err)
+	}
+	if r := subs[0].AIReview; r == nil || *r.Score != 0 {
+		t.Fatalf("the Grinch's review = %+v; want a 0", r)
+	}
+	// It counts as a 0 everywhere (no perfect ten), and as the secret achievement's goal
+	if best, _ := queries.CalculateAIBestScore(repo, ctx, "u1"); best != 0 {
+		t.Errorf("best judge score = %d; want 0", best)
+	}
+	if zeros, err := queries.CalculateGrinchZeroCount(repo, ctx, "u1"); err != nil || zeros != 1 {
+		t.Errorf("Grinch zeros = %d, %v; want 1", zeros, err)
+	}
+	var hidden bool
+	if err := repo.QueryRow(`SELECT hidden FROM achievements WHERE id = 'grinch-zero' AND achievement_field = 'GRINCH_ZERO_TOTAL'`).Scan(&hidden); err != nil || !hidden {
+		t.Errorf("the Grinch achievement should be secret: hidden %v, %v", hidden, err)
+	}
+}
+
+func TestGrinchScoresEarnByFury(t *testing.T) {
+	repo := dbtest.NewEventsDB(t)
+	ctx := context.Background()
+	dbtest.Exec(t, repo, `INSERT INTO users (id, username, email) VALUES ('u1', 'u1', 'u1@example.com')`)
+	dbtest.Exec(t, repo, `INSERT INTO user_submissions (id, user_id, day) VALUES ('lazy', 'u1', '2026-11-29'), ('nice', 'u1', '2026-11-30')`)
+	// A lazy scribble the Grinch loved, and a decent doodle Santa liked
+	dbtest.Exec(t, repo, `INSERT INTO ai_reviews (submission_id, personality_id, status, score) VALUES
+		('lazy', 'ai-grinch', 'done', 10), ('nice', 'ai-santa', 'done', 6.5)`)
+
+	if best, _ := queries.CalculateAIBestScore(repo, ctx, "u1"); best != 6 {
+		t.Errorf("best judge score = %d; want Santa's 6, not the Grinch's 10", best)
+	}
+	if great, _ := queries.CalculateAIGreatCount(repo, ctx, "u1"); great != 0 {
+		t.Errorf("great doodles = %d; want none", great)
+	}
+	if reviewed, _ := queries.CalculateAIReviewCount(repo, ctx, "u1"); reviewed != 2 {
+		t.Errorf("reviews = %d; his still counts as a review", reviewed)
+	}
+	events, err := queries.GetXPEventsSince(repo, ctx, "u1", time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, e := range events {
+		if e.Kind == "judge100" {
+			t.Errorf("the Grinch's 10 earned a judge bonus: %+v", e)
+		}
+	}
+	// A lazy 10 makes him an accomplice, once
+	if side, _ := queries.CalculateGrinchSideCount(repo, ctx, "u1"); side != 1 {
+		t.Errorf("accomplice doodles = %d; want 1", side)
+	}
+
+	// Making him furious is what pays: his 1 is worth a 9 in XP
+	dbtest.Exec(t, repo, `UPDATE ai_reviews SET score = 1 WHERE submission_id = 'lazy'`)
+	events, err = queries.GetXPEventsSince(repo, ctx, "u1", time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC))
+	if err != nil {
+		t.Fatal(err)
+	}
+	kinds := []string{}
+	for _, e := range events {
+		if strings.HasPrefix(e.Kind, "judge") {
+			kinds = append(kinds, e.Kind)
+		}
+	}
+	if !slices.Contains(kinds, "judge90") {
+		t.Errorf("judge XP events = %v; want the Grinch's 1 worth a 9 (judge90)", kinds)
+	}
+	if best, _ := queries.CalculateAIBestScore(repo, ctx, "u1"); best != 6 {
+		t.Errorf("best judge score = %d; his scores still don't count toward score achievements", best)
+	}
+
+	// His 0 doesn't count as a low score either: it has its own achievement
+	dbtest.Exec(t, repo, `UPDATE ai_reviews SET score = 0 WHERE submission_id = 'lazy'`)
+	if low, _ := queries.CalculateAILowCount(repo, ctx, "u1"); low != 0 {
+		t.Errorf("low scores = %d; want none", low)
+	}
+}
+
+func TestTheGrinchMixesUpHisAngles(t *testing.T) {
+	defer func(old func(int) int) { pickAngle = old }(pickAngle)
+	seen := map[string]bool{}
+	for i := range defierAngles {
+		pickAngle = func(int) int { return i }
+		seen[backwardsMood(1)] = true
+	}
+	if len(seen) != len(defierAngles) || len(defierAngles) < 5 {
+		t.Errorf("got %d different defier moods from %d angles; want them all, and plenty", len(seen), len(defierAngles))
+	}
+	for _, pool := range [][]string{accompliceAngles, defierAngles, undecidedAngles} {
+		if len(pool) < 3 {
+			t.Errorf("an angle pool is too small for variety: %v", pool)
+		}
+	}
+}
+
+func TestTheGrinchStealsDoodlemasInHisIntro(t *testing.T) {
+	system := IntroSystemPrompt(grinch(), "a penguin", "2026-12-06")
+	for _, want := range []string{"STOLEN today's Doodlemas", "draw it BADLY", `"a penguin"`, `"traitor"`, `"secretFan"`} {
+		if !strings.Contains(system, want) {
+			t.Errorf("the Grinch's intro rules should say %q:\n%s", want, system)
+		}
+	}
+	if strings.Contains(IntroSystemPrompt(santa(), "a penguin", "2026-12-06"), "STOLEN") {
+		t.Errorf("only the Grinch steals the day")
+	}
+
+	// The model writes the opening once, and an ask per history
+	answer := `{"lines": ["Doodlemas is mine!", "Draw me a penguin, badly."], "asks": {
+		"first": "Will you join me?", "loyal": "Stay loyal?", "traitor": "Come back, traitor?",
+		"rebel": "Switch sides?", "secretFan": "Admit it?"}, "replies": {
+		"first": {"yes": "first yes", "no": "first no"}, "loyal": {"yes": "loyal yes", "no": "loyal no"},
+		"traitor": {"yes": "traitor yes", "no": "traitor no"}, "rebel": {"yes": "rebel yes", "no": "rebel no"},
+		"secretFan": {"yes": "secretFan yes", "no": "secretFan no"}}}`
+	kept, err := ParseIntroFor(answer, grinch(), "A penguin")
+	if err != nil || len(kept) != 17 {
+		t.Fatalf("kept intro = %v, %v; want 2 lines, 5 asks and 10 replies", kept, err)
+	}
+	for history, want := range map[IntroHistory]string{
+		HistoryFirst: "Will you join me?", HistoryLoyal: "Stay loyal?", HistoryTraitor: "Come back, traitor?",
+		HistoryRebel: "Switch sides?", HistorySecretFan: "Admit it?",
+	} {
+		lines, replies := StolenIntro(kept, history)
+		if len(lines) != 3 || lines[0] != "Doodlemas is mine!" || lines[2] != want {
+			t.Errorf("%s hears %v; want the opening and %q", history, lines, want)
+		}
+		// and his reply to their answer fits who they are
+		if replies == nil || replies.Yes != string(history)+" yes" || replies.No != string(history)+" no" {
+			t.Errorf("%s gets replies %+v", history, replies)
+		}
+	}
+	// Every ask has to ask
+	if _, err := ParseIntroFor(strings.Replace(answer, "Switch sides?", "Switch sides.", 1), grinch(), "A penguin"); err == nil {
+		t.Error("an ask that doesn't ask should be refused")
+	}
+	if _, err := ParseIntroFor(strings.Replace(answer, `"rebel": "Switch sides?",`, "", 1), grinch(), "A penguin"); err == nil {
+		t.Error("a missing ask should be refused")
+	}
+	if _, err := ParseIntroFor(strings.Replace(answer, `"no": "rebel no"`, `"no": ""`, 1), grinch(), "A penguin"); err == nil {
+		t.Error("a missing reply should be refused")
+	}
+
+	// The stock intro is kept the same way, and reads well for every history
+	stock := StockIntroFor(grinch(), "A penguin", "2026-12-06")
+	for _, h := range introAsks {
+		lines, replies := StolenIntro(stock, h)
+		if len(lines) != 3 || !strings.Contains(lines[2], "?") || !strings.Contains(lines[0], "stole") || replies == nil || replies.Yes == "" || replies.No == "" {
+			t.Errorf("stock intro for %s = %v, %+v", h, lines, replies)
+		}
+	}
+}
+
+func TestTheGrinchRemembersYourLastVisit(t *testing.T) {
+	yes, no := true, false
+	bad, good := 8.0, 1.0
+	cases := []struct {
+		joined *bool
+		score  *float64
+		want   IntroHistory
+	}{
+		{nil, nil, HistoryFirst},
+		{&yes, &bad, HistoryLoyal},
+		{&yes, nil, HistoryLoyal},
+		{&yes, &good, HistoryTraitor},
+		{&no, &good, HistoryRebel},
+		{&no, nil, HistoryRebel},
+		{&no, &bad, HistorySecretFan},
+	}
+	for _, c := range cases {
+		if got := HistoryFor(c.joined, c.score); got != c.want {
+			t.Errorf("HistoryFor(%v, %v) = %s; want %s", c.joined, c.score, got, c.want)
+		}
+	}
+
+	repo := dbtest.NewEventsDB(t)
+	ctx := context.Background()
+	dbtest.Exec(t, repo, `INSERT INTO users (id, username, email) VALUES ('u1', 'u1', 'u1@example.com'), ('new', 'new', 'new@example.com')`)
+	// Week one: joined, then drew it well. Week two: refused, didn't draw.
+	dbtest.Exec(t, repo, `INSERT INTO judge_pledges (user_id, day, personality_id, joined) VALUES
+		('u1', '2026-11-29', 'ai-grinch', 1), ('u1', '2026-12-06', 'ai-grinch', 0)`)
+	dbtest.Exec(t, repo, `INSERT INTO user_submissions (id, user_id, day) VALUES ('w1', 'u1', '2026-11-29')`)
+	dbtest.Exec(t, repo, `INSERT INTO ai_reviews (submission_id, personality_id, status, score) VALUES ('w1', 'ai-grinch', 'done', 1.5)`)
+
+	history := func(user, day string) IntroHistory {
+		joined, score, err := queries.GetLastJudgePledge(repo, ctx, user, day)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return HistoryFor(joined, score)
+	}
+	if h := history("u1", "2026-12-06"); h != HistoryTraitor {
+		t.Errorf("week two remembers %s; want traitor (joined, then drew well)", h)
+	}
+	if h := history("u1", "2026-12-13"); h != HistoryRebel {
+		t.Errorf("week three remembers %s; want rebel (refused last)", h)
+	}
+	// Someone's first Grinch day can be any of them
+	if h := history("new", "2026-12-13"); h != HistoryFirst {
+		t.Errorf("a newcomer in week three is remembered as %s; want first", h)
+	}
+	if h := history("u1", "2026-11-29"); h != HistoryFirst {
+		t.Errorf("week one remembers %s; want first (only earlier days count)", h)
+	}
+}
+
+func mustJSON(t *testing.T, v any) string {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(b)
+}
+
+func TestPledgesAreSavedUntilYouDraw(t *testing.T) {
+	repo := dbtest.NewEventsDB(t)
+	ctx := context.Background()
+	dbtest.Exec(t, repo, `INSERT INTO users (id, username, email) VALUES ('u1', 'u1', 'u1@example.com')`)
+	event, _ := queries.GetEventBySlug(repo, ctx, "christmas-2026")
+
+	if got, err := queries.GetJudgePledge(repo, ctx, "u1", "2026-11-29"); err != nil || got != nil {
+		t.Fatalf("pledge before answering = %v, %v; want none", got, err)
+	}
+	// They can change their mind before drawing
+	for _, joined := range []bool{true, false, true} {
+		if err := queries.SaveJudgePledge(repo, ctx, "u1", "2026-11-29", "ai-grinch", event.ID, joined); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, err := queries.GetJudgePledge(repo, ctx, "u1", "2026-11-29")
+	if err != nil || got == nil || !*got {
+		t.Fatalf("pledge = %v, %v; want joined", got, err)
+	}
+	// Kept with the event, so we can find who joined him during Doodlemas
+	var joiners int
+	if err := repo.QueryRow(`SELECT COUNT(*) FROM judge_pledges WHERE event_id = ? AND joined = 1`, event.ID).Scan(&joiners); err != nil || joiners != 1 {
+		t.Errorf("joiners during the event = %d, %v; want 1", joiners, err)
+	}
+
+	// Once they've drawn, it's locked
+	dbtest.Exec(t, repo, `INSERT INTO user_submissions (id, user_id, day) VALUES ('s1', 'u1', '2026-11-29')`)
+	if err := queries.SaveJudgePledge(repo, ctx, "u1", "2026-11-29", "ai-grinch", event.ID, false); !errors.Is(err, queries.ErrPledgeAfterDrawing) {
+		t.Errorf("changing sides after drawing: err = %v; want ErrPledgeAfterDrawing", err)
+	}
+
+	// The review hears it
+	g, _ := queries.GetAIPersonality(repo, ctx, "ai-grinch")
+	if pledge, err := PledgeFor(repo, ctx, g, "u1", "2026-11-29"); err != nil || pledge == nil || !*pledge {
+		t.Errorf("the Grinch's review hears pledge %v, %v; want joined", pledge, err)
+	}
+	santa, _ := queries.GetAIPersonality(repo, ctx, "ai-santa")
+	if pledge, _ := PledgeFor(repo, ctx, santa, "u1", "2026-11-29"); pledge != nil {
+		t.Errorf("Santa shouldn't hear about pledges: %v", *pledge)
+	}
+}
+
+func TestTheGrinchCallsOutBrokenPromises(t *testing.T) {
+	yes, no := true, false
+	cases := []struct {
+		pledge *bool
+		score  float64
+		want   string
+	}{
+		{&yes, 9, "kept their word"},
+		{&yes, 1, "TRAITOR"},
+		{&yes, 5, "Hold them to their promise"},
+		{&no, 1, "Call out their defiance"},
+		{&no, 9, "secret accomplice"},
+		{&no, 5, "couldn't commit"},
+	}
+	for _, c := range cases {
+		msg := CommentMessage("a cat", Verdict{Backwards: true, Score: c.score, Pledge: c.pledge})
+		if !strings.Contains(msg, c.want) {
+			t.Errorf("pledged %v, scored %v: want %q in\n%s", *c.pledge, c.score, c.want, msg)
+		}
+	}
+	if msg := CommentMessage("a cat", Verdict{Backwards: true, Score: 1}); strings.Contains(msg, "Before drawing") {
+		t.Errorf("no answer, no twist: %s", msg)
+	}
+
+	// Run hands the pledge on to the comment call
+	var commentMsg string
+	provider := fakeProvider{ask: func(call Call) (string, error) {
+		if call.Step == StepComment {
+			commentMsg = call.User
+			return `{"comment": "Traitor!"}`, nil
+		}
+		return `{"criteria": [{"id": "humbug", "score": 0}, {"id": "mess", "score": 0}], "score": 0}`, nil
+	}}
+	if _, err := Run(context.Background(), provider, Request{Personality: grinch(), Prompt: "a cat", Pledge: &yes}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(commentMsg, "TRAITOR") {
+		t.Errorf("the comment call didn't hear about the broken promise:\n%s", commentMsg)
+	}
+}
+
+func TestTheGrinchMakesABigDealOfChristmasEve(t *testing.T) {
+	eve := IntroSystemPrompt(grinch(), "a penguin", "2026-12-24")
+	if !strings.Contains(eve, "Christmas Eve") || !strings.Contains(eve, "last, best chance") {
+		t.Errorf("his Christmas Eve intro rules should make a big deal of it:\n%s", eve)
+	}
+	if strings.Contains(IntroSystemPrompt(grinch(), "a penguin", "2026-12-20"), "Christmas Eve") {
+		t.Error("only Christmas Eve is Christmas Eve")
+	}
+	// It's a fresh intro, not the one written for an ordinary day
+	if introSourceHash(grinch(), "a penguin", "2026-12-24") == introSourceHash(grinch(), "a penguin", "2026-12-20") {
+		t.Error("Christmas Eve should get its own intro")
+	}
+	lines, _ := StolenIntro(StockIntroFor(grinch(), "A penguin", "2026-12-24"), HistoryFirst)
+	if !strings.Contains(lines[0], "Christmas Eve") {
+		t.Errorf("his stock Christmas Eve opening = %q", lines[0])
+	}
+
+	// His reviews that day hear it too
+	msg := CommentMessage("a cat", Verdict{Backwards: true, Score: 1, Day: "2026-12-24"})
+	if !strings.Contains(msg, "Christmas Eve") || !strings.Contains(msg, "last chance") {
+		t.Errorf("his Christmas Eve review should mention it:\n%s", msg)
+	}
+	if strings.Contains(CommentMessage("a cat", Verdict{Backwards: true, Score: 1, Day: "2026-12-20"}), "Christmas Eve") {
+		t.Error("only Christmas Eve reviews mention it")
+	}
+	var commentMsg string
+	provider := fakeProvider{ask: func(call Call) (string, error) {
+		if call.Step == StepComment {
+			commentMsg = call.User
+			return `{"comment": "Bah."}`, nil
+		}
+		return `{"criteria": [{"id": "humbug", "score": 0}, {"id": "mess", "score": 0}], "score": 0}`, nil
+	}}
+	if _, err := Run(context.Background(), provider, Request{Personality: grinch(), Prompt: "a cat", Day: "2026-12-24"}); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(commentMsg, "Christmas Eve") {
+		t.Errorf("Run should pass the day on to the comment call:\n%s", commentMsg)
 	}
 }

@@ -5,7 +5,7 @@ import { cn } from '@/utils';
 type Panel = {
   label: string;
   /** Shown beside the tabs while this panel is open */
-  aside: ReactNode;
+  aside?: ReactNode;
   content: ReactNode;
 };
 

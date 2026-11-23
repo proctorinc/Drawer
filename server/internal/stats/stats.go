@@ -46,11 +46,16 @@ var (
 	AI_GREAT_TOTAL  StatsField = "AI_GREAT_TOTAL"
 	AI_LOW_TOTAL    StatsField = "AI_LOW_TOTAL"
 	AI_JUDGES_MET   StatsField = "AI_JUDGES_MET"
+	// Doodles the Grinch scored a flat 0, his rarest verdict (a secret achievement)
+	GRINCH_ZERO_TOTAL StatsField = "GRINCH_ZERO_TOTAL"
+	// Doodles bad enough that the Grinch took you as his accomplice (a secret achievement)
+	GRINCH_SIDE_TOTAL StatsField = "GRINCH_SIDE_TOTAL"
 )
 
 // AI_FIELDS are the achievement fields a finished AI review can move
 var AI_FIELDS = []string{
 	string(AI_REVIEW_TOTAL), string(AI_BEST_SCORE), string(AI_GREAT_TOTAL), string(AI_LOW_TOTAL), string(AI_JUDGES_MET),
+	string(GRINCH_ZERO_TOTAL), string(GRINCH_SIDE_TOTAL),
 }
 
 // countQueries are the fields that are a single count for the user
@@ -63,6 +68,8 @@ var countQueries = map[StatsField]func(*sql.DB, context.Context, string) (int, e
 	AI_GREAT_TOTAL:      queries.CalculateAIGreatCount,
 	AI_LOW_TOTAL:        queries.CalculateAILowCount,
 	AI_JUDGES_MET:       queries.CalculateAIJudgesMet,
+	GRINCH_ZERO_TOTAL:   queries.CalculateGrinchZeroCount,
+	GRINCH_SIDE_TOTAL:   queries.CalculateGrinchSideCount,
 }
 
 type StatsService struct {
@@ -73,6 +80,7 @@ type StatsService struct {
 	// achievements shares them)
 	counts   map[StatsField]int
 	lifetime *queries.ActivityCounts
+	grinch   *queries.GrinchSundays
 }
 
 type UserStats struct {
@@ -209,6 +217,13 @@ func (ss *StatsService) CheckStatCompletion(userId string, achievement models.Ac
 			count = xp.LevelFor(xp.For(lifetime)).Level
 		}
 	default:
+		if val, ok, err := ss.doodlemasCount(userId, achievement); ok {
+			if err != nil {
+				return 0, false, err
+			}
+			count = val
+			break
+		}
 		field := StatsField(achievement.AchievementField)
 		calculate, ok := countQueries[field]
 		if !ok {

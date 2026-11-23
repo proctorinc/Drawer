@@ -10,6 +10,8 @@ import useUser from '@/auth/hooks/useUser';
 import { SantaHat } from '@/events/christmas/Decorations';
 import { AvatarDecoration } from '@/decorations/decorations';
 import { useChristmas } from '@/events/useChristmas';
+import { useGrinchSide } from '@/events/christmas/useGrinchPledges';
+import { GrinchHat } from '@/decorations/GrinchHat';
 import { LevelBadge } from '@/levels/LevelBadge';
 import { useUserLevel } from '@/levels/useUserLevel';
 
@@ -40,6 +42,11 @@ type Props = {
   onClick?: () => void;
   /** Off where a badge would get in the way, like decoration previews */
   showLevel?: boolean;
+  /**
+   * Showing off a decoration (a picker, a reward): it's drawn as given, with no
+   * Grinch-day hat or heart over it
+   */
+  decorationPreview?: boolean;
 } & VariantProps<typeof userProfileIconVariants>;
 
 export const UserProfileIcon: FC<Props> = ({
@@ -48,11 +55,15 @@ export const UserProfileIcon: FC<Props> = ({
   size,
   onClick,
   showLevel = true,
+  decorationPreview = false,
 }) => {
   const navigate = useNavigate();
   const currentUser = useUser();
   const christmas = useChristmas();
   const { data: level } = useUserLevel(showLevel ? user?.id : undefined);
+  const grinchSide = useGrinchSide(
+    christmas && !decorationPreview ? user?.id : undefined,
+  );
 
   if (!user) {
     return (
@@ -76,9 +87,12 @@ export const UserProfileIcon: FC<Props> = ({
     }
   };
 
-  // A worn decoration replaces the red hat everyone gets during Christmas
+  // A worn decoration replaces the red hat everyone gets during Christmas, and
+  // on a Grinch day, joining him swaps either for his hat till the day's out
   let decoration = null;
-  if (user.decoration) decoration = <AvatarDecoration id={user.decoration} />;
+  if (grinchSide === 'joined') decoration = <GrinchHat />;
+  else if (user.decoration)
+    decoration = <AvatarDecoration id={user.decoration} />;
   else if (christmas) decoration = <SantaHat />;
 
   const badgeSize = BADGE_SIZES[size ?? 'lg'];
@@ -91,7 +105,30 @@ export const UserProfileIcon: FC<Props> = ({
         style={{ right: -badgeSize * 0.22, bottom: -badgeSize * 0.22 }}
       />
     ) : null;
-  const wrapped = !!decoration || !!badge;
+  // Turning him down earns a little heart, pinned on the other side from the level
+  const heart =
+    grinchSide === 'refused' && size !== 'xs' ? (
+      <svg
+        viewBox="0 0 24 22"
+        aria-label="turned the grinch down today"
+        role="img"
+        className="absolute z-30"
+        style={{
+          width: badgeSize,
+          left: -badgeSize * 0.22,
+          bottom: -badgeSize * 0.22,
+        }}
+      >
+        <path
+          d="M12 20C2 13 2 4 7.5 4C10 4 12 6 12 8C12 6 14 4 16.5 4C22 4 22 13 12 20Z"
+          fill="var(--color-xmas-red)"
+          stroke="var(--color-ink)"
+          strokeWidth={2}
+          strokeLinejoin="round"
+        />
+      </svg>
+    ) : null;
+  const wrapped = !!decoration || !!badge || !!heart;
 
   // When wrapped, the wrapper takes the caller's classes (position, ring,
   // tilt) so the decoration and badge move and turn with the avatar
@@ -127,6 +164,7 @@ export const UserProfileIcon: FC<Props> = ({
         </span>
       )}
       {badge}
+      {heart}
     </span>
   );
 };

@@ -69,6 +69,8 @@ export type DecorationId =
   | 'APPLE_HAT'
   | 'GILDED_FRAME'
   | 'HALO'
+  | 'GRINCH_HEART'
+  | 'GRINCH_HAT'
   | 'PALETTE'
   | 'LAUREL_WREATH'
   | 'BALLOONS'
@@ -175,6 +177,11 @@ export interface AIJudge {
   avatarUrl: string;
   /** An AI-only decoration id (see src/ai/decorations.tsx), or '' */
   decoration: string;
+  /**
+   * Scores faults (the Grinch), so the lower the better and its scores earn
+   * nothing: no XP bonus, gold frame or score achievements
+   */
+  scoresBackwards?: boolean;
 }
 
 /** One thing a judge scored separately, as it was when it judged */

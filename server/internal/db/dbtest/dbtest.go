@@ -36,6 +36,10 @@ var eventMigrations = []string{
 	"1795132300_ai_model_gpt41.up.sql",
 	"1795132400_ai_run_applied.up.sql",
 	"1795132500_prompt_pencils.up.sql",
+	"1795132600_ai_scores_backwards.up.sql",
+	"1795132610_seed_grinch.up.sql",
+	// Left out of the dump by the filter above (it has an event_id column)
+	"1795132620_judge_pledges.up.sql",
 }
 
 // NewEventsDB returns an in-memory database with the schema from migrations/schema.sql, where

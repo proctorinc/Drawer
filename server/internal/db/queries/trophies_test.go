@@ -247,6 +247,46 @@ func TestQuestsBeforeLaunchDontCount(t *testing.T) {
 	}
 }
 
+// While an event with its own reactions runs, the react quest wants those reactions:
+// the event page shows its festive version in place of the everyday one
+func TestReactQuestWantsEventReactionsDuringEvent(t *testing.T) {
+	db := newTestDB(t)
+	_, err := db.Exec(`
+		INSERT INTO users (id, username, email) VALUES ('me', 'me', 'me@x'), ('pal', 'pal', 'pal@x');
+		INSERT INTO events (id, slug, name, theme, starts_at, ends_at) VALUES
+			('xmas', 'christmas-2026', 'Doodlemas', 'christmas', '2026-11-27T00:00:00Z', '2027-01-01T00:00:00Z');
+		INSERT INTO event_reactions (event_id, reaction_id) VALUES ('xmas', 'snowflake');
+		INSERT INTO user_submissions (id, user_id, day, created_at) VALUES
+			('a', 'pal', '2026-11-14', '2026-11-14 09:00:00'),
+			('b', 'pal', '2026-11-15', '2026-11-15 09:00:00'),
+			('c', 'pal', '2026-11-16', '2026-11-16 09:00:00');
+		INSERT INTO reactions (user_id, content_type, content_id, reaction_id, created_at) VALUES
+			-- before the event, everyday reactions finish it
+			('me', 'submission', 'a', 'heart', '2026-11-17 10:00:00'),
+			('me', 'submission', 'b', 'heart', '2026-11-17 10:00:00'),
+			('me', 'submission', 'c', 'heart', '2026-11-17 10:00:00'),
+			-- during it, they don't
+			('me', 'submission', 'a', 'star', '2026-12-01 10:00:00'),
+			('me', 'submission', 'b', 'star', '2026-12-01 10:00:00'),
+			('me', 'submission', 'c', 'star', '2026-12-01 10:00:00'),
+			-- but festive ones do
+			('me', 'submission', 'a', 'snowflake', '2026-12-08 10:00:00'),
+			('me', 'submission', 'b', 'snowflake', '2026-12-08 10:00:00'),
+			('me', 'submission', 'c', 'snowflake', '2026-12-08 10:00:00');
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	counts, err := GetActivityCounts(db, context.Background(), []string{"me"}, BeginningOfTime, EndOfTime)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := counts["me"].QuestsCompleted; got != [len(WeeklyQuests)]int{1: 2} {
+		t.Errorf("quests completed = %v, want react-3 twice (before the event, and with festive reactions)", got)
+	}
+}
+
 // Only the first ReactionsGivenXPPerDay reactions of a day earn XP, however the day is
 // split between counts and XP events
 func TestReactionsGivenForXPCapsEachDay(t *testing.T) {

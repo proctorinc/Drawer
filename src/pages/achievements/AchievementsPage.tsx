@@ -119,6 +119,7 @@ const RewardPanel: FC<{ reward: AchievementReward; earned: boolean }> = ({
         {decoration ? (
           <UserProfileIcon
             user={{ ...me, decoration }}
+            decorationPreview
             size="lg"
             showLevel={false}
             onClick={ignoreClick}

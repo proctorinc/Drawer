@@ -4,6 +4,7 @@ import { useChristmas } from '../useChristmas';
 import { SantaHatIcon, TreeIcon } from './Decorations';
 import Lights from './Lights';
 import StickerReward from './StickerReward';
+import { splitEventAchievements } from './eventAchievements';
 import type { FC, ReactNode } from 'react';
 import type { ActiveEvent } from '@/api/events';
 import { useGetAchievements } from '@/api/Api';
@@ -50,8 +51,10 @@ type SheetProps = {
 /** Everything the Christmas event is: how it works, what you can win, how long it runs */
 const ChristmasIntroSheet: FC<SheetProps> = ({ event, open, onClose }) => {
   const { data: achievements } = useGetAchievements();
-  const stickers =
-    achievements?.achievements.filter((a) => a.eventSlug === event.slug) ?? [];
+  const { main: stickers, extras } = splitEventAchievements(
+    achievements?.achievements ?? [],
+    event.slug,
+  );
   const days = event.countdownDays;
 
   return (
@@ -110,6 +113,19 @@ const ChristmasIntroSheet: FC<SheetProps> = ({ event, open, onClose }) => {
         >
           everything you earn while it runs is tallied on the event page
         </Point>
+        <Point
+          icon={
+            <img
+              src="/ai/grinch.svg"
+              alt=""
+              className="size-full rounded-sketch-alt"
+            />
+          }
+          title="don't feed the grinch"
+        >
+          a grumpy green fella's been spotted skulking around the doodles.
+          he'll be very persuasive. don't take the deal
+        </Point>
       </ul>
 
       {stickers.length > 0 && (
@@ -125,6 +141,12 @@ const ChristmasIntroSheet: FC<SheetProps> = ({ event, open, onClose }) => {
               <StickerReward key={sticker.id} sticker={sticker} />
             ))}
           </div>
+          {extras.length > 0 && (
+            <p className="text-center text-pencil">
+              plus {extras.length} more to find on the event page, a few of
+              them the grinch's
+            </p>
+          )}
         </section>
       )}
 

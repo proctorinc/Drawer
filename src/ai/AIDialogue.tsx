@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { AIJudgeAvatar } from './AIJudgeAvatar';
-import { CriterionChip, ScoreSticker } from './AIReviewComment';
+import { CriterionChip, ScoreSticker, judgeFace } from './AIReviewComment';
 import { GoldTrim, goldFrameClass, isMasterpiece } from './Masterpiece';
 import type { FC, ReactNode } from 'react';
 import type { AIReview, ActivityFeedResponse } from '@/api/Api';
@@ -224,6 +224,7 @@ export const AIDialogue: FC<DialogueProps> = ({ review, doodle, onClose }) => {
                 <ScoreSticker
                   score={review.score}
                   mine
+                  face={judgeFace(review.judge)}
                   className="animate-pop"
                 />
               )}
