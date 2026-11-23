@@ -327,6 +327,10 @@ export interface AIVerdict {
   model: string;
   /** What the judge thought the drawing showed, before reading it as the prompt */
   seen: string;
+  /** What the judge thought the artist was going for, and how it reads as the prompt */
+  idea: string;
+  /** The concrete things the evaluation passed on for the comment to joke about */
+  notable: string;
   /** How hard the artist clearly tried */
   effort: 'real' | 'low' | 'none';
   /** Share taken off the score for little or no effort (hidden from players), already applied */
@@ -347,11 +351,84 @@ export interface AISwing {
   /** '' for no swing (most reviews), 'boost', or the much rarer 'super' */
   kind: '' | 'boost' | 'super';
   points: number;
+  /** How it was rolled; unset on runs from before the dice were kept */
+  roll?: AISwingRoll | null;
+}
+
+/** The dice behind a swing */
+export interface AISwingRoll {
+  /** 0..1, walked through the tiers rarest first: under a tier's chance lands it, else
+   * that chance is taken off and the next tier is tried */
+  roll: number;
+  /** Each tier's odds and point range when it was rolled */
+  tiers: Array<{
+    kind: 'boost' | 'super';
+    chance: number;
+    min: number;
+    max: number;
+  }>;
+  /** Only for a swing: 0..1, where in the tier's range the points landed */
+  size: number;
+  /** Only for a swing: the coin flip, hated (points off) or loved */
+  hates: boolean;
+}
+
+/** One request to the model in a judge run, exactly as sent and answered. Runs make two:
+ * 'evaluate' reads and scores the doodle, then 'comment' writes the comment in character */
+export interface AICall {
+  step: 'evaluate' | 'comment';
+  system: string;
+  /** The user message sent with it */
+  message: string;
+  /** The doodle went along with the message */
+  image: boolean;
+  /** How closely the model looked at it */
+  detail?: 'low' | 'high';
+  /** How much the answer was let vary; unset for the model's default */
+  temperature?: number;
+  /** The JSON schema the answer had to fit */
+  schema?: unknown;
+  /** The raw answer, as it came back */
+  answer: string;
+  /** Why this call failed, when it did */
+  error?: string;
+  durationMs: number;
+}
+
+/** How the judge's answer became its scores, step by step */
+export interface AIScoreBreakdown {
+  /** What the judge was told, and its answer: only runs from before judging took two calls */
+  message?: string;
+  answer?: string;
+  /** The overall score the judge gave, then fitted to 1..10; with criteria it's replaced by their average */
+  givenScore: number;
+  fittedScore: number;
+  criteria?: Array<{
+    id: string;
+    name: string;
+    given: number;
+    /** The judge left it out, so it got half marks */
+    skipped?: boolean;
+    /** Rounded to one decimal and kept to 1..10 */
+    fitted: number;
+    /** After the prompt bonus and swing */
+    score: number;
+    /** What the judge said would have raised it */
+    improve?: string;
+  }>;
+  /** The overall score after the prompt bonus and swing, before any effort penalty */
+  beforeEffort: number;
+  /** What the judge said would have raised the overall score (judges without criteria only) */
+  improve?: string;
 }
 
 /** How a run's scores were adjusted in code after the judge answered; empty for older runs */
 export interface AIRunMetadata {
   seen?: string;
+  /** What the judge thought the artist was going for */
+  idea?: string;
+  /** What it passed on for the comment to joke about */
+  notable?: string;
   effort?: 'real' | 'low' | 'none';
   /** Share taken off the overall score */
   effortPenalty?: number;
@@ -362,6 +439,12 @@ export interface AIRunMetadata {
   swing?: 'boost' | 'super';
   /** Added to every score; negative when the judge hated it */
   swingPoints?: number;
+  /** The dice behind the swing (kept on failed runs too) */
+  swingRoll?: AISwingRoll;
+  /** How the judge's answer became its scores */
+  breakdown?: AIScoreBreakdown;
+  /** Every call to the model, in order, as sent and answered (failed runs too); none on older runs */
+  calls?: Array<AICall>;
 }
 
 /** "super boost +3.4", "boost −1.2" */
@@ -451,6 +534,8 @@ export interface AITestResult {
   verdict: AIVerdict | null;
   error: string;
   durationMs: number;
+  /** The AI log entry the run wrote, shown the same way as on the log page */
+  run: AIRun;
 }
 
 export interface AITestRun {

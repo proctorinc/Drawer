@@ -13,7 +13,8 @@ import {
   th,
 } from '../components/ui';
 import { RerunAIButton } from '../components/RerunAIButton';
-import type { AIRun, AIRunKind, AIRunMetadata } from '../api';
+import { AIRunBreakdown } from '../components/AIRunBreakdown';
+import type { AIRun, AIRunKind } from '../api';
 import type { FC } from 'react';
 import { AIJudgeAvatar } from '@/ai/AIJudgeAvatar';
 import { AI_SCORE_MAX, formatScore } from '@/ai/score';
@@ -57,52 +58,21 @@ const judgeOf = (run: AIRun) => ({
   decoration: run.judgeDecoration,
 });
 
-/** How the run's scores were adjusted in code after the judge answered */
-const Adjustments: FC<{ metadata: AIRunMetadata }> = ({ metadata: m }) => {
-  const parts: Array<string> = [];
-  if (m.seen) parts.push(`saw: ${m.seen}`);
-  if (m.prompt) {
-    let prompt = `prompt: ${m.prompt}`;
-    if (m.promptMissing) prompt += ` (missing ${m.promptMissing})`;
-    if (m.promptBonus)
-      prompt += ` ${m.promptBonus > 0 ? '+' : '−'}${Math.abs(m.promptBonus)} each`;
-    parts.push(prompt);
-  }
-  if (m.effortPenalty) {
-    parts.push(`${m.effort} effort: −${Math.round(m.effortPenalty * 100)}%`);
-  }
-  if (!m.swing && parts.length === 0) return null;
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-sm text-pencil">
-      {m.swing && (
-        <Tag
-          className={
-            m.swingPoints && m.swingPoints > 0 ? 'bg-butter' : 'bg-white'
-          }
-        >
-          <b>{describeSwing(m.swing, m.swingPoints ?? 0)}</b> each
-        </Tag>
-      )}
-      {parts.join(' · ')}
-    </div>
-  );
-};
-
 /** Everything about one run, under its row */
 const RunDetails: FC<{ run: AIRun }> = ({ run }) => (
   <div className="grid grid-cols-1 sm:grid-cols-[12rem_1fr] gap-4 sm:gap-6 p-4 bg-paper">
-    {run.imageUrl ? (
-      <img
-        src={run.imageUrl}
-        alt={run.prompt}
-        className="w-48 aspect-square object-contain border-2 border-ink rounded-sketch-alt bg-white"
-      />
-    ) : (
-      <div className="w-48 aspect-square grid place-items-center text-pencil border-2 border-dashed border-line rounded-sketch-alt">
-        no image
-      </div>
-    )}
-    <div className="flex flex-col gap-3 min-w-0">
+    <div className="flex flex-col gap-3">
+      {run.imageUrl ? (
+        <img
+          src={run.imageUrl}
+          alt={run.prompt}
+          className="w-48 aspect-square object-contain border-2 border-ink rounded-sketch-alt bg-white"
+        />
+      ) : (
+        <div className="w-48 aspect-square grid place-items-center text-pencil border-2 border-dashed border-line rounded-sketch-alt">
+          no image
+        </div>
+      )}
       {run.criteria.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {run.criteria.map((c) => (
@@ -113,28 +83,8 @@ const RunDetails: FC<{ run: AIRun }> = ({ run }) => (
           ))}
         </div>
       )}
-      <Adjustments metadata={run.metadata} />
-      <div className="flex flex-wrap gap-x-4 text-sm text-pencil">
-        <span>model {run.model || '–'}</span>
-        <span>took {seconds(run.durationMs)}</span>
-        {run.batchId && <span>batch {run.batchId.slice(0, 8)}</span>}
-        {run.submissionId && (
-          <Link
-            to="/draw/submission/$submissionId"
-            params={{ submissionId: run.submissionId }}
-            className="underline"
-          >
-            open doodle
-          </Link>
-        )}
-      </div>
-      <div>
-        <div className="font-bold">personality prompt, as it ran</div>
-        <pre className="mt-1 p-3 max-h-48 overflow-auto whitespace-pre-wrap font-mono text-xs bg-white border-[1.5px] border-line rounded">
-          {run.systemPrompt || '–'}
-        </pre>
-      </div>
     </div>
+    <AIRunBreakdown run={run} hideComment />
   </div>
 );
 

@@ -265,6 +265,8 @@ type AdminAIVerdict struct {
 	Model    string                    `json:"model"`
 	// What the judge thought it saw, and the hidden penalty for little effort (already in Score)
 	Seen          string  `json:"seen"`
+	Idea          string  `json:"idea"`    // What it thought the artist was going for
+	Notable       string  `json:"notable"` // What it passed on for the comment to joke about
 	Effort        string  `json:"effort"`
 	EffortPenalty float64 `json:"effortPenalty"`
 	// How well it follows the prompt, what it's missing, and the bonus added to every score
@@ -282,7 +284,7 @@ func newAdminAIVerdict(v ai.Verdict, model string) AdminAIVerdict {
 	}
 	return AdminAIVerdict{
 		Score: v.Score, Criteria: criteria, Comment: v.Comment, Model: model,
-		Seen: v.Seen, Effort: v.Effort, EffortPenalty: v.EffortPenalty,
+		Seen: v.Seen, Idea: v.Idea, Notable: v.Notable, Effort: v.Effort, EffortPenalty: v.EffortPenalty,
 		Prompt: v.Prompt, PromptMissing: v.PromptMissing, PromptBonus: v.PromptBonus, Swing: v.Swing,
 	}
 }
@@ -345,6 +347,7 @@ type AdminAITestResult struct {
 	Verdict       *AdminAIVerdict `json:"verdict"` // Unset when it failed
 	Error         string          `json:"error"`
 	DurationMS    int64           `json:"durationMs"`
+	Run           queries.AIRun   `json:"run"` // The AI log entry it wrote, which the log page shows the same way
 }
 
 // HandleAdminTestAI is the testing ground: one or more judges, unsaved edits and all, review
@@ -426,7 +429,7 @@ func HandleAdminTestAI(c *gin.Context) {
 
 	response := make([]AdminAITestResult, 0, len(results))
 	for _, r := range results {
-		out := AdminAITestResult{PersonalityID: r.PersonalityID, Name: r.Name, Error: r.Error, DurationMS: r.Took.Milliseconds()}
+		out := AdminAITestResult{PersonalityID: r.PersonalityID, Name: r.Name, Error: r.Error, DurationMS: r.Took.Milliseconds(), Run: r.Run}
 		if r.Verdict != nil {
 			v := newAdminAIVerdict(*r.Verdict, provider.Model())
 			out.Verdict = &v

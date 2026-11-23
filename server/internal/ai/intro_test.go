@@ -38,8 +38,8 @@ type talkingProvider struct {
 	calls  *atomic.Int32
 }
 
-func (p talkingProvider) Judge(context.Context, Request) (string, error) { return "", nil }
-func (p talkingProvider) Model() string                                  { return "talking" }
+func (p talkingProvider) Ask(context.Context, Call) (string, error) { return "", nil }
+func (p talkingProvider) Model() string                             { return "talking" }
 func (p talkingProvider) Talk(_ context.Context, system, _, _ string, _ map[string]any) (string, error) {
 	p.calls.Add(1)
 	if !strings.Contains(system, `"a goalie"`) || !strings.Contains(system, "Pompous") {

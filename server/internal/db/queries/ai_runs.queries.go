@@ -47,10 +47,12 @@ type AIRun struct {
 	ArtistID        string                    `json:"-"` // For the image URL of a real doodle
 }
 
-// AIRunMetadata is how a run's scores were adjusted in code after the judge answered.
+// AIRunMetadata is what the judge saw and how its scores were adjusted in code after it answered.
 // Runs logged before it was kept have none.
 type AIRunMetadata struct {
 	Seen          string  `json:"seen,omitempty"`          // What the judge thought the drawing showed
+	Idea          string  `json:"idea,omitempty"`          // What it thought the artist was going for
+	Notable       string  `json:"notable,omitempty"`       // What it passed on to joke about
 	Effort        string  `json:"effort,omitempty"`        // real, low or none
 	EffortPenalty float64 `json:"effortPenalty,omitempty"` // Share taken off the overall score
 	Prompt        string  `json:"prompt,omitempty"`        // nailed, complete, partial or missed
@@ -58,6 +60,13 @@ type AIRunMetadata struct {
 	PromptBonus   float64 `json:"promptBonus,omitempty"`   // Added to every score
 	Swing         string  `json:"swing,omitempty"`         // The random swing: "boost", "super" or none
 	SwingPoints   float64 `json:"swingPoints,omitempty"`   // Added to every score (negative when hated)
+	// How the swing was rolled, and how the judge's answer became its scores. Runs logged
+	// before these were kept have neither.
+	SwingRoll *models.AISwingRoll      `json:"swingRoll,omitempty"`
+	Breakdown *models.AIScoreBreakdown `json:"breakdown,omitempty"`
+	// Every call made to the model, in order, as sent and answered (kept on failed runs too).
+	// Runs from before judging took two calls have none.
+	Calls []models.AICall `json:"calls,omitempty"`
 }
 
 // LogAIRun records a judge call. It never fails the caller: the log is for watching.

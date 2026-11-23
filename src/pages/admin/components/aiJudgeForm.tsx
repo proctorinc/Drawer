@@ -1,5 +1,4 @@
 import { faPlus } from '@fortawesome/free-solid-svg-icons';
-import { describeSwing } from '../api';
 import type { FC, ReactNode } from 'react';
 import type { AICriterion, AIPersonality, AIVerdict } from '../api';
 import { AIReviewComment } from '@/ai/AIReviewComment';
@@ -108,7 +107,7 @@ export const CriteriaEditor: FC<{
   );
 };
 
-/** A judge's answer, drawn the way players would see the comment */
+/** A judge's comment, drawn the way players would see it */
 export const VerdictPreview: FC<{
   verdict: AIVerdict;
   personality: Pick<
@@ -129,31 +128,5 @@ export const VerdictPreview: FC<{
         createdAt: new Date().toISOString(),
       }}
     />
-    <span className="text-xs text-pencil">
-      {verdict.seen && <>saw: {verdict.seen} · </>}
-      prompt: {verdict.prompt}
-      {verdict.promptMissing && <> (missing {verdict.promptMissing})</>}
-      {verdict.promptBonus !== 0 && (
-        <>
-          {' '}
-          {verdict.promptBonus > 0 ? '+' : '−'}
-          {Math.abs(verdict.promptBonus)} each
-        </>
-      )}{' '}
-      ·{' '}
-      {verdict.swing.kind && (
-        <>
-          {verdict.swing.points > 0 ? 'loved it' : 'hated it'}:{' '}
-          {describeSwing(verdict.swing.kind, verdict.swing.points)} each ·{' '}
-        </>
-      )}
-      {verdict.effortPenalty > 0 && (
-        <>
-          {verdict.effort === 'none' ? 'no effort' : 'low effort'}: −
-          {Math.round(verdict.effortPenalty * 100)}% ·{' '}
-        </>
-      )}
-      {verdict.model}
-    </span>
   </div>
 );

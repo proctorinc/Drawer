@@ -13,12 +13,28 @@ import (
 )
 
 // Provider is a model that can judge a doodle. OpenAI is the only one today; another
-// (Anthropic, a local model) only has to turn a Request into the verdict JSON.
+// (Anthropic, a local model) only has to answer a Call with JSON fitting its schema.
 type Provider interface {
-	// Judge returns the model's raw JSON answer, shaped by ResponseSchema.
-	Judge(ctx context.Context, req Request) (string, error)
+	// Ask sends one call and returns the model's raw JSON answer, shaped by call.Schema.
+	Ask(ctx context.Context, call Call) (string, error)
 	// Model names the model doing the judging, for the admin log.
 	Model() string
+}
+
+// Call is one request to the model while judging. The ai package builds every word of it,
+// so the AI log can keep exactly what was sent.
+type Call struct {
+	Step   string // evaluate or comment; also names the schema
+	System string
+	User   string
+	Image  []byte // The doodle as a PNG, sent with the user message; nil for none
+	// How closely the model looks at the image: "high" keeps fine detail (thin lines carved
+	// with the eraser), "low" is cheaper and enough to recognize it. "" means low.
+	Detail string
+	// How much the answer varies from run to run: 0 is the same every time. nil is the
+	// model's default.
+	Temperature *float64
+	Schema      map[string]any
 }
 
 // Talker is a model that can also just talk, without a doodle to look at: a judge
@@ -28,8 +44,14 @@ type Talker interface {
 	Talk(ctx context.Context, system, user, schemaName string, schema map[string]any) (string, error)
 }
 
+// How closely the model looks at a doodle.
+const (
+	DetailLow  = "low"
+	DetailHigh = "high"
+)
+
 // DefaultOpenAIModel is used when no model is set. It needs image input and structured outputs.
-const DefaultOpenAIModel = "gpt-4.1-mini"
+const DefaultOpenAIModel = "gpt-4.1"
 
 const openAIBaseURL = "https://api.openai.com/v1"
 
@@ -84,29 +106,36 @@ type openAIResponse struct {
 	} `json:"error"`
 }
 
-func (o *OpenAI) Judge(ctx context.Context, req Request) (string, error) {
-	return o.complete(ctx, []openAIMessage{
-		{Role: "system", Content: SystemPrompt(req.Personality)},
-		{Role: "user", Content: []openAIContentPart{
-			{Type: "text", Text: UserPrompt(req.Prompt, req.Swing)},
-			// Low detail is plenty for a phone doodle, and the cheapest
+func (o *OpenAI) Ask(ctx context.Context, call Call) (string, error) {
+	var user any = call.User
+	if call.Image != nil {
+		detail := call.Detail
+		if detail == "" {
+			detail = DetailLow
+		}
+		user = []openAIContentPart{
+			{Type: "text", Text: call.User},
 			{Type: "image_url", ImageURL: &openAIImageURL{
-				URL:    "data:image/png;base64," + base64.StdEncoding.EncodeToString(req.Image),
-				Detail: "low",
+				URL:    "data:image/png;base64," + base64.StdEncoding.EncodeToString(call.Image),
+				Detail: detail,
 			}},
-		}},
-	}, "doodle_review", ResponseSchema(req.Personality))
+		}
+	}
+	return o.complete(ctx, []openAIMessage{
+		{Role: "system", Content: call.System},
+		{Role: "user", Content: user},
+	}, "doodle_"+call.Step, call.Schema, call.Temperature)
 }
 
 func (o *OpenAI) Talk(ctx context.Context, system, user, schemaName string, schema map[string]any) (string, error) {
 	return o.complete(ctx, []openAIMessage{
 		{Role: "system", Content: system},
 		{Role: "user", Content: user},
-	}, schemaName, schema)
+	}, schemaName, schema, nil)
 }
 
 // complete asks for an answer shaped by the schema and returns its raw JSON.
-func (o *OpenAI) complete(ctx context.Context, messages []openAIMessage, schemaName string, schema map[string]any) (string, error) {
+func (o *OpenAI) complete(ctx context.Context, messages []openAIMessage, schemaName string, schema map[string]any, temperature *float64) (string, error) {
 	if o.APIKey == "" {
 		return "", errors.New("no OpenAI API key is set")
 	}
@@ -122,6 +151,9 @@ func (o *OpenAI) complete(ctx context.Context, messages []openAIMessage, schemaN
 				"schema": schema,
 			},
 		},
+	}
+	if temperature != nil {
+		body["temperature"] = *temperature
 	}
 	payload, err := json.Marshal(body)
 	if err != nil {

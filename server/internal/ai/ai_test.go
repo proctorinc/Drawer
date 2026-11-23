@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -42,15 +43,18 @@ func critic() models.AIPersonality {
 }
 
 func TestParseVerdictOverallOnly(t *testing.T) {
-	v, err := ParseVerdict(`{"score": 14, "comment": "  A  triumph.  "}`, critic(), Swing{})
+	v, err := ParseEvaluation(`{"seen": " a cat ", "idea": " a cat napping ", "notable": " the tail ", "score": 14}`, critic(), Swing{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if v.Score != 10 {
 		t.Errorf("score = %v, want clamped to 10", v.Score)
 	}
-	if v.Comment != "A triumph." {
-		t.Errorf("comment = %q", v.Comment)
+	if v.Seen != "a cat" || v.Idea != "a cat napping" || v.Notable != "the tail" {
+		t.Errorf("seen %q, idea %q, notable %q", v.Seen, v.Idea, v.Notable)
+	}
+	if comment, err := ParseComment(`{"comment": "  A  triumph.  "}`); err != nil || comment != "A triumph." {
+		t.Errorf("comment = %q, %v", comment, err)
 	}
 	if len(v.Criteria) != 0 {
 		t.Errorf("criteria = %v, want none", v.Criteria)
@@ -59,7 +63,7 @@ func TestParseVerdictOverallOnly(t *testing.T) {
 
 func TestParseVerdictAveragesCriteria(t *testing.T) {
 	// 8 and 10 (clamped from 12) average to 9, whatever overall score the model gave
-	v, err := ParseVerdict(`{"criteria": [{"id": "spirit", "score": 12}, {"id": "nice", "score": 8}], "score": 2, "comment": "Ho ho ho!"}`, santa(), Swing{})
+	v, err := ParseEvaluation(`{"criteria": [{"id": "spirit", "score": 12}, {"id": "nice", "score": 8}], "score": 2, "comment": "Ho ho ho!"}`, santa(), Swing{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +79,7 @@ func TestParseVerdictAveragesCriteria(t *testing.T) {
 }
 
 func TestParseVerdictFillsSkippedCriteria(t *testing.T) {
-	v, err := ParseVerdict(`{"criteria": [{"id": "nice", "score": 0}], "score": 5, "comment": "Hmm."}`, santa(), Swing{})
+	v, err := ParseEvaluation(`{"criteria": [{"id": "nice", "score": 0}], "score": 5, "comment": "Hmm."}`, santa(), Swing{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +94,7 @@ func TestParseVerdictFillsSkippedCriteria(t *testing.T) {
 func TestParseVerdictRoundsToOneDecimal(t *testing.T) {
 	three := santa()
 	three.Criteria = append(three.Criteria, models.AICriterion{ID: "craft", Name: "craft"})
-	v, err := ParseVerdict(`{"criteria": [{"id": "nice", "score": 8}, {"id": "spirit", "score": 7}, {"id": "craft", "score": 7}], "score": 1, "comment": "Hm."}`, three, Swing{})
+	v, err := ParseEvaluation(`{"criteria": [{"id": "nice", "score": 8}, {"id": "spirit", "score": 7}, {"id": "craft", "score": 7}], "score": 1, "comment": "Hm."}`, three, Swing{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,9 +104,12 @@ func TestParseVerdictRoundsToOneDecimal(t *testing.T) {
 }
 
 func TestParseVerdictRejectsBadAnswers(t *testing.T) {
-	for _, raw := range []string{`not json`, `{"score": 5, "comment": "   "}`} {
-		if _, err := ParseVerdict(raw, critic(), Swing{}); err == nil {
-			t.Errorf("ParseVerdict(%q) should fail", raw)
+	if _, err := ParseEvaluation(`not json`, critic(), Swing{}); err == nil {
+		t.Error("ParseEvaluation should fail on bad JSON")
+	}
+	for _, raw := range []string{`not json`, `{"comment": "   "}`} {
+		if _, err := ParseComment(raw); err == nil {
+			t.Errorf("ParseComment(%q) should fail", raw)
 		}
 	}
 }
@@ -115,25 +122,54 @@ func TestTrimCommentCutsRambling(t *testing.T) {
 	}
 }
 
-func TestSystemPromptListsCriteria(t *testing.T) {
-	prompt := SystemPrompt(santa())
-	for _, want := range []string{"You are Santa.", `nice: "nice list". Effort.`, `spirit: "christmas spirit". Festive.`, "from 1 (dreadful) to 10", "Stay fully in character", "never mention any of it in your comment", "Find one specific, concrete thing in this drawing", "Roast or tease the artist"} {
-		if !strings.Contains(prompt, want) {
-			t.Errorf("system prompt is missing %q:\n%s", want, prompt)
+func TestSystemPromptsSplitTheJobs(t *testing.T) {
+	evaluate := EvaluateSystemPrompt(santa())
+	if strings.Contains(evaluate, "You are Santa.") {
+		t.Error("the evaluation shouldn't get the judge's character, which sways how it reads the drawing")
+	}
+	for _, want := range []string{`nice: "nice list". Effort.`, `spirit: "christmas spirit". Festive.`, "from 1 (dreadful) to 10", "what the artist was going for", "benefit of the doubt", "Ground every reading in something actually drawn", "not funny", "finer than the brush", "erasing back to the background", "plus a fixed background color", "Composition (for any score", "a backpack for going back to school", "\"improve\""} {
+		if !strings.Contains(evaluate, want) {
+			t.Errorf("evaluate prompt is missing %q:\n%s", want, evaluate)
 		}
 	}
-	if strings.Contains(SystemPrompt(critic()), "by id") {
+	if strings.Contains(EvaluateSystemPrompt(critic()), "by id") {
 		t.Error("a judge without criteria shouldn't be asked to score criteria")
+	}
+
+	comment := CommentSystemPrompt(santa())
+	for _, want := range []string{"You are Santa.", "Stay fully in character", "Find one specific, concrete thing in this drawing", "Roast or tease the artist", "Play along with the artist's idea", "at most 30 words"} {
+		if !strings.Contains(comment, want) {
+			t.Errorf("comment prompt is missing %q:\n%s", want, comment)
+		}
+	}
+	if strings.Contains(comment, "nice list") {
+		t.Error("the comment call doesn't score, so it shouldn't get the criteria")
+	}
+}
+
+func TestCommentMessageHandsOverTheEvaluation(t *testing.T) {
+	v, err := ParseEvaluation(`{"seen": "a sleeping sloth, a ringing clock", "idea": "the clock says it overslept", "missing": "", "prompt": "nailed", "effort": "real", "criteria": [{"id": "nice", "score": 7}, {"id": "spirit", "score": 8}], "score": 1, "notable": "the clock's wobbly legs"}`, santa(), Swing{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := CommentMessage("a sloth running late", v)
+	for _, want := range []string{`"a sloth running late"`, "a ringing clock", "the clock says it overslept", "Missing from the prompt: nothing", "Score: 8 out of 10 (nice list 7.5, christmas spirit 8.5)", "the clock's wobbly legs"} {
+		if !strings.Contains(got, want) {
+			t.Errorf("comment message is missing %q:\n%s", want, got)
+		}
 	}
 }
 
 func TestResponseSchema(t *testing.T) {
-	schema := ResponseSchema(critic())
-	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,missing,prompt,effort,score,comment" {
+	if got := CommentSchema()["required"]; strings.Join(got.([]string), ",") != "comment" {
+		t.Errorf("comment required = %v", got)
+	}
+	schema := EvaluateSchema(critic())
+	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,idea,missing,prompt,effort,improve,score,notable" {
 		t.Errorf("required = %v", got)
 	}
-	schema = ResponseSchema(santa())
-	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,missing,prompt,effort,criteria,score,comment" {
+	schema = EvaluateSchema(santa())
+	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,idea,missing,prompt,effort,criteria,improve,score,notable" {
 		t.Errorf("required = %v", got)
 	}
 
@@ -142,7 +178,7 @@ func TestResponseSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	order := []string{`"seen"`, `"missing"`, `"prompt"`, `"effort"`, `"criteria"`, `"score"`, `"comment"`}
+	order := []string{`"seen"`, `"idea"`, `"missing"`, `"prompt"`, `"effort"`, `"criteria"`, `"score"`, `"notable"`}
 	at := -1
 	for _, key := range order {
 		i := strings.Index(string(raw), key)
@@ -184,7 +220,7 @@ func TestParseVerdictEffortPenalty(t *testing.T) {
 		{"nonsense", 8, 0}, // Unknown answers count as a real attempt
 	}
 	for _, c := range cases {
-		v, err := ParseVerdict(`{"seen": " a cat ", "effort": "`+c.text+`", "criteria": [{"id": "nice", "score": 7}, {"id": "spirit", "score": 9}], "score": 1, "comment": "Hm."}`, santa(), Swing{})
+		v, err := ParseEvaluation(`{"seen": " a cat ", "effort": "`+c.text+`", "criteria": [{"id": "nice", "score": 7}, {"id": "spirit", "score": 9}], "score": 1, "comment": "Hm."}`, santa(), Swing{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -201,7 +237,7 @@ func TestParseVerdictEffortPenalty(t *testing.T) {
 	}
 
 	// Never below 1
-	v, _ := ParseVerdict(`{"effort": "none", "score": 1, "comment": "Blank."}`, critic(), Swing{})
+	v, _ := ParseEvaluation(`{"effort": "none", "score": 1, "comment": "Blank."}`, critic(), Swing{})
 	if v.Score != 0.5 {
 		t.Errorf("score = %v, want half of 1", v.Score)
 	}
@@ -223,7 +259,7 @@ func TestParseVerdictPromptBonus(t *testing.T) {
 		{"nonsense", 7.2, 9, 8.1, PromptComplete, 0}, // Unknown answers count as complete
 	}
 	for _, c := range cases {
-		v, err := ParseVerdict(`{"missing": " the hat ", "prompt": "`+c.prompt+`", "effort": "real", "criteria": [{"id": "nice", "score": 7.24}, {"id": "spirit", "score": 9}], "score": 1, "comment": "Hm."}`, santa(), Swing{})
+		v, err := ParseEvaluation(`{"missing": " the hat ", "prompt": "`+c.prompt+`", "effort": "real", "criteria": [{"id": "nice", "score": 7.24}, {"id": "spirit", "score": 9}], "score": 1, "comment": "Hm."}`, santa(), Swing{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -236,30 +272,30 @@ func TestParseVerdictPromptBonus(t *testing.T) {
 	}
 
 	// Without criteria the overall score moves, and scores stay within 1..10
-	if v, _ := ParseVerdict(`{"prompt": "partial", "score": 6.66, "comment": "Hm."}`, critic(), Swing{}); v.Score != 5.2 {
+	if v, _ := ParseEvaluation(`{"prompt": "partial", "score": 6.66, "comment": "Hm."}`, critic(), Swing{}); v.Score != 5.2 {
 		t.Errorf("score = %v, want 6.7 - 1.5 = 5.2", v.Score)
 	}
-	if v, _ := ParseVerdict(`{"prompt": "nailed", "score": 9.8, "comment": "Wow."}`, critic(), Swing{}); v.Score != 10 {
+	if v, _ := ParseEvaluation(`{"prompt": "nailed", "score": 9.8, "comment": "Wow."}`, critic(), Swing{}); v.Score != 10 {
 		t.Errorf("score = %v, want capped at 10", v.Score)
 	}
-	if v, _ := ParseVerdict(`{"prompt": "missed", "score": 2, "comment": "Eh."}`, critic(), Swing{}); v.Score != 0 {
+	if v, _ := ParseEvaluation(`{"prompt": "missed", "score": 2, "comment": "Eh."}`, critic(), Swing{}); v.Score != 0 {
 		t.Errorf("score = %v, want 2 - 3 floored at 0, never negative", v.Score)
 	}
 }
 
 func TestParseVerdictSwing(t *testing.T) {
 	// A loved doodle can reach the top; a hated one with a missed prompt bottoms out at 0
-	v, _ := ParseVerdict(`{"prompt": "complete", "criteria": [{"id": "nice", "score": 8.5}, {"id": "spirit", "score": 9.2}], "score": 1, "comment": "Wow."}`, santa(), Swing{Kind: SwingBoost, Points: 1.8})
+	v, _ := ParseEvaluation(`{"prompt": "complete", "criteria": [{"id": "nice", "score": 8.5}, {"id": "spirit", "score": 9.2}], "score": 1, "comment": "Wow."}`, santa(), Swing{Kind: SwingBoost, Points: 1.8})
 	if v.Criteria[0].Score != 10 || v.Criteria[1].Score != 10 || v.Score != 10 || v.Swing.Points != 1.8 {
 		t.Errorf("loved: criteria %+v, score %v, swing %v; want 10, 10 and 10", v.Criteria, v.Score, v.Swing)
 	}
-	v, _ = ParseVerdict(`{"prompt": "missed", "criteria": [{"id": "nice", "score": 4}, {"id": "spirit", "score": 6}], "score": 1, "comment": "Ugh."}`, santa(), Swing{Kind: SwingBoost, Points: -2})
+	v, _ = ParseEvaluation(`{"prompt": "missed", "criteria": [{"id": "nice", "score": 4}, {"id": "spirit", "score": 6}], "score": 1, "comment": "Ugh."}`, santa(), Swing{Kind: SwingBoost, Points: -2})
 	if v.Criteria[0].Score != 0 || v.Criteria[1].Score != 1 || v.Score != 0.5 {
 		t.Errorf("hated: criteria %v, %v and score %v; want 0, 1 and 0.5", v.Criteria[0].Score, v.Criteria[1].Score, v.Score)
 	}
 }
 
-func TestUserPromptTellsTheJudgeAboutASwing(t *testing.T) {
+func TestOnlyTheCommentHearsAboutASwing(t *testing.T) {
 	cases := []struct {
 		swing Swing
 		want  string
@@ -271,14 +307,20 @@ func TestUserPromptTellsTheJudgeAboutASwing(t *testing.T) {
 		{Swing{Kind: SwingSuper, Points: -3.5}, "WORST"},
 	}
 	for _, c := range cases {
-		got := UserPrompt("a cat", c.swing)
+		got := swingFeeling(c.swing)
 		for _, feeling := range []string{"LOVE", "HATE", "OBSESSED", "WORST"} {
 			if strings.Contains(got, feeling) != (feeling == c.want) {
 				t.Errorf("swing %+v: %q", c.swing, got)
 			}
+			if strings.Contains(EvaluateMessage("a cat"), feeling) {
+				t.Errorf("the evaluation shouldn't hear about the swing")
+			}
 		}
 		if strings.Contains(strings.ToLower(got), "score") || strings.Contains(got, "point") {
-			t.Errorf("the judge should only hear how it feels, not about scores: %q", got)
+			t.Errorf("the judge should only hear how it feels, not about the swing's points: %q", got)
+		}
+		if c.want != "" && !strings.Contains(CommentMessage("a cat", Verdict{Swing: c.swing}), c.want) {
+			t.Errorf("swing %+v: the comment call wasn't told how it feels", c.swing)
 		}
 	}
 }
@@ -316,17 +358,26 @@ func TestRunLogsTheSwing(t *testing.T) {
 	rollSwing = func() Swing { return Swing{Kind: SwingSuper, Points: -3.4} }
 	t.Cleanup(func() { rollSwing = func() Swing { return Swing{} } })
 
-	var asked Request
-	provider := fakeProvider{judge: func(req Request) (string, error) {
-		asked = req
-		return `{"prompt": "partial", "missing": "the hat", "effort": "real", "score": 8, "comment": "Hm."}`, nil
+	var asked []Call
+	provider := fakeProvider{ask: func(call Call) (string, error) {
+		asked = append(asked, call)
+		if call.Step == StepEvaluate {
+			return `{"seen": "a cat", "idea": "a cat, no hat", "prompt": "partial", "missing": "the hat", "effort": "real", "score": 8, "notable": "the whiskers"}`, nil
+		}
+		return `{"comment": "Hm."}`, nil
 	}}
-	verdict, _, err := RunAndLog(context.Background(), repo, provider, Request{Personality: critic(), Prompt: "a cat in a hat"}, RunMeta{Kind: queries.AIRunTest})
+	verdict, _, err := RunAndLog(context.Background(), repo, provider, Request{Personality: critic(), Prompt: "a cat in a hat", Image: []byte("png")}, RunMeta{Kind: queries.AIRunTest})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if asked.Swing.Kind != SwingSuper || !strings.Contains(UserPrompt(asked.Prompt, asked.Swing), "WORST") {
-		t.Errorf("the judge wasn't told it hates it: %+v", asked.Swing)
+	if len(asked) != 2 || asked[0].Step != StepEvaluate || asked[1].Step != StepComment {
+		t.Fatalf("calls = %+v; want evaluate then comment", asked)
+	}
+	if strings.Contains(asked[0].User, "WORST") || !strings.Contains(asked[1].User, "WORST") {
+		t.Errorf("only the comment should be told it hates it: %q / %q", asked[0].User, asked[1].User)
+	}
+	if !strings.Contains(asked[1].User, "Score: 3.1 out of 10") || !strings.Contains(asked[1].User, "the whiskers") {
+		t.Errorf("the comment wasn't given the final score and notes:\n%s", asked[1].User)
 	}
 	if verdict.Score != 3.1 { // 8 - 1.5 for the prompt - 3.4 for the swing
 		t.Errorf("score = %v, want 3.1", verdict.Score)
@@ -335,9 +386,54 @@ func TestRunLogsTheSwing(t *testing.T) {
 	if err != nil || len(runs) != 1 {
 		t.Fatalf("runs = %v, %v", runs, err)
 	}
-	want := queries.AIRunMetadata{Effort: "real", Prompt: "partial", PromptMissing: "the hat", PromptBonus: -1.5, Swing: "super", SwingPoints: -3.4}
-	if runs[0].Metadata != want {
-		t.Errorf("metadata = %+v, want %+v", runs[0].Metadata, want)
+	got := runs[0].Metadata
+	breakdown, calls := got.Breakdown, got.Calls
+	got.Breakdown, got.SwingRoll, got.Calls = nil, nil, nil
+	want := queries.AIRunMetadata{Seen: "a cat", Idea: "a cat, no hat", Notable: "the whiskers", Effort: "real", Prompt: "partial", PromptMissing: "the hat", PromptBonus: -1.5, Swing: "super", SwingPoints: -3.4}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("metadata = %+v, want %+v", got, want)
+	}
+	if breakdown == nil || breakdown.GivenScore != 8 || breakdown.BeforeEffort != 3.1 {
+		t.Errorf("breakdown = %+v", breakdown)
+	}
+	// Every call, in full
+	if len(calls) != 2 {
+		t.Fatalf("logged calls = %+v", calls)
+	}
+	eval, comment := calls[0], calls[1]
+	if eval.Step != StepEvaluate || eval.System != EvaluateSystemPrompt(critic()) || eval.Message != EvaluateMessage("a cat in a hat") ||
+		!eval.Image || eval.Detail != DetailHigh || eval.Temperature == nil || *eval.Temperature != evaluateTemperature || !strings.Contains(string(eval.Schema), `"idea"`) || !strings.Contains(eval.Answer, `"the hat"`) || eval.Error != "" {
+		t.Errorf("evaluate call = %+v", eval)
+	}
+	if comment.Step != StepComment || comment.System != CommentSystemPrompt(critic()) || !strings.Contains(comment.Message, "WORST") ||
+		!comment.Image || comment.Detail != DetailLow || comment.Temperature != nil || comment.Answer != `{"comment": "Hm."}` {
+		t.Errorf("comment call = %+v", comment)
+	}
+}
+
+func TestAFailedCommentKeepsTheEvaluation(t *testing.T) {
+	repo := dbtest.NewEventsDB(t)
+	provider := fakeProvider{ask: func(call Call) (string, error) {
+		if call.Step == StepEvaluate {
+			return `{"seen": "a cat", "idea": "a cat", "prompt": "complete", "effort": "real", "score": 6, "notable": "ears"}`, nil
+		}
+		return `{"comment": ""}`, nil
+	}}
+	_, run, err := RunAndLog(context.Background(), repo, provider, Request{Personality: critic(), Prompt: "a cat"}, RunMeta{Kind: queries.AIRunTest})
+	if err == nil || run.Status != "failed" {
+		t.Fatalf("err %v, status %q; want a failed run", err, run.Status)
+	}
+	m := run.Metadata
+	if m.Seen != "a cat" || m.Breakdown.GivenScore != 6 || len(m.Calls) != 2 || m.Calls[1].Error == "" || m.Calls[0].Error != "" {
+		t.Errorf("metadata = %+v", m)
+	}
+
+	// A failed evaluation never asks for a comment
+	asked := 0
+	failing := fakeProvider{ask: func(Call) (string, error) { asked++; return "", errors.New("down") }}
+	_, run, _ = RunAndLog(context.Background(), repo, failing, Request{Personality: critic()}, RunMeta{Kind: queries.AIRunTest})
+	if asked != 1 || len(run.Metadata.Calls) != 1 || run.Metadata.Calls[0].Error != "down" {
+		t.Errorf("asked %d times; calls = %+v", asked, run.Metadata.Calls)
 	}
 }
 
@@ -355,7 +451,7 @@ func TestOpenAIJudge(t *testing.T) {
 
 	client := NewOpenAI("sk-test", "")
 	client.BaseURL = server.URL
-	raw, err := client.Judge(context.Background(), Request{Personality: critic(), Prompt: "a banana", Image: []byte("png")})
+	raw, err := client.Ask(context.Background(), Call{Step: StepEvaluate, System: "sys", User: EvaluateMessage("a banana"), Image: []byte("png"), Schema: EvaluateSchema(critic())})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,7 +462,10 @@ func TestOpenAIJudge(t *testing.T) {
 		t.Errorf("model = %v", got["model"])
 	}
 	format := got["response_format"].(map[string]any)
-	if format["type"] != "json_schema" {
+	if got["temperature"] != nil {
+		t.Errorf("temperature = %v, want the model's default when unset", got["temperature"])
+	}
+	if format["type"] != "json_schema" || format["json_schema"].(map[string]any)["name"] != "doodle_evaluate" {
 		t.Errorf("response_format = %v", format)
 	}
 	user := got["messages"].([]any)[1].(map[string]any)["content"].([]any)
@@ -388,25 +487,27 @@ func TestOpenAIJudgeErrors(t *testing.T) {
 
 	client := NewOpenAI("sk-bad", "gpt-test")
 	client.BaseURL = server.URL
-	_, err := client.Judge(context.Background(), Request{Personality: critic()})
+	_, err := client.Ask(context.Background(), Call{Step: StepEvaluate, Schema: EvaluateSchema(critic())})
 	if err == nil || !strings.Contains(err.Error(), "Incorrect API key") {
 		t.Errorf("err = %v", err)
 	}
 
-	if _, err := NewOpenAI("", "").Judge(context.Background(), Request{}); err == nil {
+	if _, err := NewOpenAI("", "").Ask(context.Background(), Call{}); err == nil {
 		t.Error("judging without a key should fail")
 	}
 }
 
+// fakeProvider gives the same answer to every call; one JSON object with both the
+// evaluation's fields and the comment does for both.
 type fakeProvider struct {
 	answer string
 	err    error
-	judge  func(Request) (string, error) // Answers instead, when set
+	ask    func(Call) (string, error) // Answers instead, when set
 }
 
-func (f fakeProvider) Judge(_ context.Context, req Request) (string, error) {
-	if f.judge != nil {
-		return f.judge(req)
+func (f fakeProvider) Ask(_ context.Context, call Call) (string, error) {
+	if f.ask != nil {
+		return f.ask(call)
 	}
 	return f.answer, f.err
 }
@@ -422,6 +523,9 @@ func TestPickAIPersonality(t *testing.T) {
 	}
 	if len(p.Criteria) != 3 || p.Criteria[0].Name != "skill" || p.Criteria[1].Name != "recognizability" || p.Criteria[2].Name != "composition" {
 		t.Errorf("Sir Doodleton's criteria = %+v; want skill, recognizability and composition", p.Criteria)
+	} else if !strings.Contains(p.Criteria[0].Description, "thick brush") || !strings.Contains(p.Criteria[2].Description, "background put to work") ||
+		!strings.Contains(p.Criteria[1].Description, "clever readings") {
+		t.Errorf("Sir Doodleton's skill and composition should be described for this medium: %+v", p.Criteria)
 	}
 	if !strings.HasSuffix(p.SystemPrompt, "like a critic who has suffered greatly for this.") {
 		t.Errorf("Sir Doodleton should roast in his comments:\n%s", p.SystemPrompt)
@@ -600,7 +704,7 @@ func TestNewSubmissionReviewOnlyWhenSwitchedOn(t *testing.T) {
 	if !ok || got.Status != models.AIReviewDone || *got.Score != 3 || got.Judge.Name != "Sir Doodleton" {
 		t.Fatalf("review = %+v", got)
 	}
-	if gotPrompt != "a banana" || gotJudge != "Sir Doodleton" {
+	if !strings.Contains(gotPrompt, `"a banana"`) || !strings.Contains(gotJudge, "Sir Doodleton") {
 		t.Errorf("provider got prompt %q from %q", gotPrompt, gotJudge)
 	}
 
@@ -618,8 +722,12 @@ type recordingProvider struct {
 	prompt, judge *string
 }
 
-func (r recordingProvider) Judge(_ context.Context, req Request) (string, error) {
-	*r.prompt, *r.judge = req.Prompt, req.Personality.Name
+func (r recordingProvider) Ask(_ context.Context, call Call) (string, error) {
+	if call.Step == StepEvaluate {
+		*r.prompt = call.User
+	} else {
+		*r.judge = call.System
+	}
 	return r.answer, nil
 }
 func (r recordingProvider) Model() string { return "recording" }
@@ -730,5 +838,87 @@ func TestRerunReplacesWhatThePlayerSeesButKeepsTheLog(t *testing.T) {
 	}
 	if comments["A tragedy in three blobs."] != queries.AIRunSubmission || comments["On reflection, the blobs are genius."] != queries.AIRunRerun {
 		t.Errorf("the log should keep both runs: %+v", comments)
+	}
+}
+
+func TestVerdictKeepsItsBreakdown(t *testing.T) {
+	answer := `{"prompt": "partial", "effort": "low", "criteria": [{"id": "nice", "score": 14}], "score": 3, "comment": "Hm."}`
+	v, err := ParseEvaluation(answer, santa(), Swing{Kind: SwingBoost, Points: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := v.Breakdown
+	if b.GivenScore != 3 || b.FittedScore != 3 || len(b.Criteria) != 2 {
+		t.Fatalf("breakdown = %+v", b)
+	}
+	// Each criterion: given, fitted to 1..10, then -1.5 for the prompt and +1 for the swing
+	var nice, spirit models.AICriterionStep
+	for _, c := range b.Criteria {
+		if c.ID == "nice" {
+			nice = c
+		} else {
+			spirit = c
+		}
+	}
+	if nice.Given != 14 || nice.Fitted != 10 || nice.Score != 9.5 || nice.Skipped {
+		t.Errorf("nice = %+v", nice)
+	}
+	if !spirit.Skipped || spirit.Fitted != 5 || spirit.Score != 4.5 {
+		t.Errorf("spirit = %+v", spirit)
+	}
+	if b.BeforeEffort != 7 || v.Score != 5.3 { // 7, less a quarter for low effort
+		t.Errorf("before effort %v, score %v", b.BeforeEffort, v.Score)
+	}
+}
+
+func TestVerdictKeepsWhatWouldImproveIt(t *testing.T) {
+	v, err := ParseEvaluation(`{"criteria": [{"id": "nice", "improve": " fill the hat ", "score": 6}, {"id": "spirit", "improve": "add snow", "score": 7}], "improve": "ignored", "score": 6}`, santa(), Swing{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b := v.Breakdown; b.Criteria[0].Improve != "fill the hat" || b.Criteria[1].Improve != "add snow" {
+		t.Errorf("criteria steps = %+v", b.Criteria)
+	}
+	v, _ = ParseEvaluation(`{"improve": " bigger cat ", "score": 6}`, critic(), Swing{})
+	if v.Breakdown.Improve != "bigger cat" {
+		t.Errorf("improve = %q", v.Breakdown.Improve)
+	}
+	// Players never see it: it isn't on the scores they're shown
+	raw, _ := json.Marshal(v.Criteria)
+	if strings.Contains(string(raw), "improve") {
+		t.Errorf("criteria shown to players carry improvements: %s", raw)
+	}
+}
+
+func TestJudgesMoveToGPT41(t *testing.T) {
+	repo := dbtest.NewEventsDB(t)
+	ctx := context.Background()
+	cfg := &config.Config{}
+	if s, err := LoadSettings(repo, ctx, cfg); err != nil || s.Model != "gpt-4.1" {
+		t.Fatalf("with no model saved, model = %q, %v; want gpt-4.1", s.Model, err)
+	}
+	// The admin screen saved the old default: the migration moves it along
+	dbtest.Exec(t, repo, `INSERT INTO ai_settings (key, value) VALUES ('openai_model', 'gpt-4.1-mini')`)
+	dbtest.ApplyMigration(t, repo, "1795132300_ai_model_gpt41.up.sql")
+	if s, _ := LoadSettings(repo, ctx, cfg); s.Model != "gpt-4.1" {
+		t.Errorf("saved gpt-4.1-mini became %q; want gpt-4.1", s.Model)
+	}
+	// Any other choice stays
+	dbtest.Exec(t, repo, `UPDATE ai_settings SET value = 'gpt-4o' WHERE key = 'openai_model'`)
+	dbtest.ApplyMigration(t, repo, "1795132300_ai_model_gpt41.up.sql")
+	if s, _ := LoadSettings(repo, ctx, cfg); s.Model != "gpt-4o" {
+		t.Errorf("a deliberate choice became %q; want gpt-4o", s.Model)
+	}
+}
+
+func TestRollSwingKeepsTheDice(t *testing.T) {
+	for range 2000 {
+		s := realRollSwing()
+		if s.Roll == nil || s.Roll.Roll < 0 || s.Roll.Roll >= 1 || len(s.Roll.Tiers) != len(SwingTiers) {
+			t.Fatalf("roll = %+v", s.Roll)
+		}
+		if s.Kind != SwingNone && s.Roll.Hates != (s.Points < 0) {
+			t.Fatalf("hates %v but %v points", s.Roll.Hates, s.Points)
+		}
 	}
 }

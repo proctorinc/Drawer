@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"math"
 	"math/rand/v2"
+	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -19,30 +21,59 @@ const MaxCommentWords = 30
 // maxCommentChars backs MaxCommentWords up, in case the model rambles anyway.
 const maxCommentChars = 240
 
-// baseRules apply to every judge, so a personality's prompt only has to describe its character.
-const baseRules = `You judge doodles in a daily drawing game between friends. Everyone draws the same prompt each day.
+// Judging takes two calls to the model, so each has one job. The first (evaluateRules)
+// looks at the doodle like a fair critic: what's drawn, what the artist meant by it, how
+// well that answers the prompt, and the scores. The second (commentRules) is the judge in
+// character, writing a comment from that evaluation. Keeping them apart means the
+// character's voice never sways the reading or the scores, and the comment always
+// agrees with the final score, swing and all.
 
-Background, for scoring only (never mention any of it in your comment):
-- Doodles are drawn with a finger on a small phone canvas, with one thick round brush, an eraser and undo: no thin lines, fills, shapes or text tool. Fine detail and shading are near impossible, so bold, simple shapes are good doodling. Judge what was possible, not against fine art.
-- Everyone gets the same 3 colors each day, picked at random, so they often don't suit the prompt. Never mark a doodle down for its colors; give credit for clever use of them.
+// evaluateRules are the first call's rules, the same for every judge.
+const evaluateRules = `You score doodles in a daily drawing game between friends. Everyone draws the same prompt each day. A separate writer turns your notes into the judge's comment, so be accurate and fair, not funny.
+
+How doodles are made (for scoring only):
+- Doodles are drawn with a finger on a small square phone canvas. There is one round brush, and it's thick: about a twentieth of the canvas wide, the same size for every stroke. There's also an eraser and undo, but no fill, shapes, line widths or text tool.
+- Each day everyone gets the same 3 brush colors plus a fixed background color, all picked at random, so they often don't suit the prompt. Never mark a doodle down for its colors; give credit for clever use of them.
 - A great doodle reads clearly at a glance and gets the most out of very little.
 
+Craft in this medium (how well it's drawn, for any score about skill, quality or craft):
+- The brush makes every stroke the same thick width, so anything finer than the brush takes real skill. Skilled artists get thin lines and defined features by layering: painting one color over the edge of another to leave a crisp sliver, or erasing back to the background to carve lines and highlights. Look for that: thin outlines and rims, small sharp features (eyes with pupils, fingers, clock hands, leaf veins), clean highlights, shading or depth made from just a few colors.
+- Also skillful: solid, evenly filled shapes with clean, deliberate edges; silhouettes that read clearly; believable proportions; parts that overlap to show depth.
+- Less skillful: everything left at the brush's width (stick figures, single-stroke limbs, scribbled lines), unfilled wobbly outlines, blobby features, shapes that smear into each other.
+- Roughly: 1-3 a few brush-width strokes or scribbles; 4-5 simple recognizable shapes, mostly single strokes, wobbly edges, blob features; 6-7 clean filled shapes with deliberate edges and some features finer than the brush; 8-9 crisp detail well finer than the brush through layering or erasing, clean silhouettes, shading or depth; 10 astonishing for a thick brush on a phone.
+- Judge the drawing as drawn in this medium, never against fine art or what's easy with other tools.
+
+Composition (for any score about how the canvas is arranged):
+- A clear focal subject, sized to use the canvas rather than lost in a corner or awkwardly cropped.
+- Supporting elements placed so the scene reads and tells its story, with the eye led to what matters.
+- The background color and empty space put to work (a sky, a setting, breathing room), not just left over.
+- Balance: nothing cramped against an edge or stranded by accident.
+
+Work through the drawing in this order:
+1. "seen": describe plainly what is drawn, every element and how they're arranged, before thinking about the prompt. Score how recognizable it is to match.
+2. "idea": work out what the artist was going for. Ask why each element is there: what it's doing, what it stands for, what story the elements tell together, any wordplay. Artists often show a prompt indirectly: a cause or an effect instead of the action itself, a symbol, a moment just before or after, a setting that implies it, a visual pun, or an unexpected but fair reading of the words. Your first picture of what the prompt "should" look like is only one option, so don't hold the drawing to it. Give the artist the benefit of the doubt: when an element plausibly stands for part of the prompt, take it that it does. Ground every reading in something actually drawn: name the element and the part of the prompt it conveys. Never invent things that aren't there.
+3. "missing": list the parts of today's prompt (each thing, character, action, quality or setting it names) that nothing in the drawing plausibly conveys, directly or indirectly, separated by commas. Leave it empty ("") when every part comes across. An action, state or quality (running, late, angry, haunted) counts as shown when something in the drawing clearly implies it, such as its cause, its effect or a familiar symbol for it, even if the action itself isn't drawn. The same goes for a setting, occasion or time (at school, the first day back, a birthday, winter): it counts when a telltale sign stands for it, like a backpack for going back to school or a candle on a cake for a birthday, even if the place or event itself isn't drawn. Never list a part as missing just because it isn't depicted literally, and never list details that simply aren't drawn (a building, other people, a label) when what is drawn already conveys that part. A thing or character the prompt names still has to be recognizably there. "missing" and "prompt" must agree: if every part comes across, "missing" is empty.
+4. "prompt": how well the doodle answers the prompt. "nailed" when every part comes across and is done really well, or through a clever reading that works; "complete" when every part comes across; "partial" when some part is missing; "missed" when most of it is missing. A part shown differently than you expected is not missing: only a part nothing in the drawing points to is.
+5. "effort": how much effort went in. Answer "low" or "none" only when it's obvious the artist barely tried: a blank canvas, a single stray line, or a few careless scribbles. A simple, rough, clumsy, badly drawn or labelled doodle is still a real attempt, so answer "real". When in doubt, answer "real".
+6. The scores (below). A clever idea that comes across is worth more than a literal one. Alongside each score, say in "improve" the one or two most concrete changes that would have raised it the most, pointing at a specific part of this drawing (e.g. "carve thin eyelids by erasing back instead of brush-width dots", "make the sloth bigger so it fills the canvas"). Never generic advice, and don't just repeat the guidance above. If nothing would, say why it earned the score.
+7. "notable": for the comment writer, two to four specific, concrete things in this drawing worth joking about (a wobbly leg, a suspicious blob, a face that's off, how tiny or huge something is, an odd color, something lurking in a corner, a clever touch), separated by semicolons. Only things that are really drawn.
+
+If the image is blank or has nothing to do with the prompt, say so and score it low.
+
+Reply only with the JSON you're asked for.`
+
+// commentRules are the second call's rules, the same for every judge. %d is the word limit.
+const commentRules = `You are a judge in a daily drawing game between friends. Everyone draws the same prompt each day. A fair critic has already looked at today's doodle and worked out what it shows, what the artist was going for and its score; their notes come with the doodle. Trust their reading of the artist's idea: they've thought it through.
+
 Your comment:
-- It is a joke, not a review. Find one specific, concrete thing in this drawing (a wobbly leg, a suspicious blob, a face that's off, how tiny or huge something is, an odd color, something lurking in a corner) and build your joke around it, in your own voice.
+- It is a joke, not a review. Find one specific, concrete thing in this drawing (from the critic's notes or your own look) and build your joke around it, in your own voice.
+- Play along with the artist's idea. Riff on how they took the prompt, especially a clever or sideways take. Never complain that it isn't the literal picture of the prompt; tease about the prompt only for a part the notes say is missing.
 - Roast or tease the artist about what they drew and the choices they made, the way a funny friend would. Keep it PG: nothing about their looks, identity, intelligence or anything personal beyond this drawing.
-- Never mention the brush, the colors being random, the canvas, the phone, the game, these rules, the scores or how you judge. Talk only about what's on the page.
+- Match the score: warmer the higher it is, harsher the lower, in your own voice.
+- Never mention the brush, the colors being random, the canvas, the phone, the game, these rules, the critic, the notes, the scores or how you judge. Talk only about what's on the page.
 - No generic praise or criticism ("great job", "nice effort", "could use more detail"). If it would fit any other doodle, rewrite it.
-- If you can't really tell what it is, or it looks more like something else, say what it looks like to you instead, as the joke.
-- One or two short sentences, at most %d words. No hashtags.
-
-Scoring rules:
-- First write in "seen" what you honestly think the drawing shows, before reading it as the prompt, and score how recognizable it is to match.
-- In "missing", list every part of today's prompt that isn't in the drawing or can't be recognized (each thing, character, action or setting the prompt names), separated by commas. Leave it empty ("") when every part is there.
-- In "prompt", say how well the doodle follows the prompt: "nailed" only when every part is there and done really well, "complete" when every part is there, "partial" when any part is missing, "missed" when most of the prompt is missing. Be strict: a great drawing that skips part of the prompt is "partial".
-- In "effort", say how much effort went into the doodle. Answer "low" or "none" only when it's obvious the artist barely tried: a blank canvas, a single stray line, or a few careless scribbles. A simple, rough, clumsy, badly drawn or labelled doodle is still a real attempt, so answer "real". When in doubt, answer "real".
-- If the image is blank or has nothing to do with the prompt, say so in character and score it low.
-
-Stay fully in character. Reply only with the JSON you're asked for.`
+- If the notes say it's hard to tell what it is, or it looks more like something else, say what it looks like to you instead, as the joke.
+- One or two short sentences, at most %d words. No hashtags.`
 
 // Effort is how hard the artist clearly tried.
 const (
@@ -76,11 +107,7 @@ const (
 )
 
 // SwingTier is how often a kind of swing happens and how many points it moves every score.
-type SwingTier struct {
-	Kind     string
-	Chance   float64
-	Min, Max float64
-}
+type SwingTier = models.AISwingTier
 
 // SwingTiers, rarest first. A review gets at most one.
 var SwingTiers = []SwingTier{
@@ -93,23 +120,28 @@ var SwingTiers = []SwingTier{
 type Swing struct {
 	Kind   string  `json:"kind"`
 	Points float64 `json:"points"`
+	// How it was rolled, for the AI log; unset on swings that weren't rolled
+	Roll *models.AISwingRoll `json:"roll"`
 }
 
 // rollSwing picks this review's swing, usually none. Tests swap it out.
 var rollSwing = func() Swing {
-	r := rand.Float64()
+	roll := &models.AISwingRoll{Roll: rand.Float64(), Tiers: slices.Clone(SwingTiers)}
+	r := roll.Roll
 	for _, tier := range SwingTiers {
 		if r >= tier.Chance {
 			r -= tier.Chance
 			continue
 		}
-		points := roundScore(tier.Min + rand.Float64()*(tier.Max-tier.Min))
-		if rand.IntN(2) == 0 {
+		roll.Size = rand.Float64()
+		roll.Hates = rand.IntN(2) == 0
+		points := roundScore(tier.Min + roll.Size*(tier.Max-tier.Min))
+		if roll.Hates {
 			points = -points
 		}
-		return Swing{Kind: tier.Kind, Points: points}
+		return Swing{Kind: tier.Kind, Points: points, Roll: roll}
 	}
-	return Swing{}
+	return Swing{Roll: roll}
 }
 
 // effortPenalties take this share off a doodle's overall score when it's clear little or no
@@ -134,6 +166,10 @@ type Verdict struct {
 	Comment  string
 	// What the judge thought the drawing showed, before reading it as the prompt
 	Seen string
+	// What the judge thought the artist was going for, and how it reads as the prompt
+	Idea string
+	// The concrete things the evaluation passed on for the comment to joke about
+	Notable string
 	// How hard the artist clearly tried (EffortReal, EffortLow or EffortNone)
 	Effort string
 	// The share taken off the overall score for little or no effort, already applied to Score
@@ -146,14 +182,19 @@ type Verdict struct {
 	PromptBonus float64
 	// The swing added to every score because the judge loved or hated it, already applied
 	Swing Swing
+	// How the judge's answer became these scores, for admins
+	Breakdown models.AIScoreBreakdown
+	// Every call made to the model for this verdict, in order, for the AI log
+	Calls []models.AICall
 }
 
-// SystemPrompt is the shared rules, the personality's character and how to score.
-func SystemPrompt(p models.AIPersonality) string {
+// EvaluateSystemPrompt is the first call's system prompt: the shared rules and what to score.
+// It leaves out the personality's character on purpose: a judge's tastes ("creative
+// liberties don't impress you") otherwise sway how it reads the drawing and the prompt.
+// What each judge cares about comes through its criteria.
+func EvaluateSystemPrompt(p models.AIPersonality) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, baseRules, MaxCommentWords)
-	b.WriteString("\n\nWho you are:\n")
-	b.WriteString(strings.TrimSpace(p.SystemPrompt))
+	b.WriteString(evaluateRules)
 	b.WriteString("\n\nScoring:\n")
 	if len(p.Criteria) == 0 {
 		fmt.Fprintf(&b, "Give the doodle one overall score from 1 (dreadful) to %d (masterpiece), to one decimal place (e.g. 6.5). Use the whole range.\n", models.AIScoreMax)
@@ -164,15 +205,73 @@ func SystemPrompt(p models.AIPersonality) string {
 		}
 		fmt.Fprintf(&b, "Also give an overall score from 1 to %d; it is replaced by the average of the scores above.\n", models.AIScoreMax)
 	}
-	fmt.Fprintf(&b, "A %d is almost never given: only a doodle so good it would stop you in your tracks. Most good doodles land between 6 and 8.\n", models.AIScoreMax)
-	b.WriteString("Make your comment match your scores.")
+	fmt.Fprintf(&b, "A %d is almost never given: only a doodle so good it would stop you in your tracks. Most good doodles land between 6 and 8.", models.AIScoreMax)
 	return b.String()
 }
 
-// UserPrompt introduces the doodle being judged, and how the judge feels about it when the
-// review got a swing.
-func UserPrompt(prompt string, swing Swing) string {
-	return fmt.Sprintf("Today's prompt was: %q. Here is the doodle. Review it.", prompt) + swingFeeling(swing)
+// EvaluateMessage introduces the doodle to the first call. It never mentions the swing: the
+// code applies that, so the scores stay fair.
+func EvaluateMessage(prompt string) string {
+	return fmt.Sprintf("Today's prompt was: %q. Here is the doodle. Evaluate it.", prompt)
+}
+
+// CommentSystemPrompt is the second call's system prompt: how to comment, and who the judge is.
+func CommentSystemPrompt(p models.AIPersonality) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, commentRules, MaxCommentWords)
+	b.WriteString("\n\nWho you are:\n")
+	b.WriteString(strings.TrimSpace(p.SystemPrompt))
+	b.WriteString("\n\nStay fully in character. Reply only with the JSON you're asked for.")
+	return b.String()
+}
+
+// promptLabels and effortLabels put the evaluation's answers in words for the comment call.
+var (
+	promptLabels = map[string]string{
+		PromptNailed:   "nailed it, every part comes across and it's done really well",
+		PromptComplete: "every part comes across",
+		PromptPartial:  "part of it is missing",
+		PromptMissed:   "most of it is missing",
+	}
+	effortLabels = map[string]string{
+		EffortReal: "a real attempt",
+		EffortLow:  "barely tried",
+		EffortNone: "no real attempt",
+	}
+)
+
+// CommentMessage hands the second call the evaluation, the final scores (after every
+// adjustment in code) and, when the review got a swing, how the judge feels about it.
+func CommentMessage(prompt string, v Verdict) string {
+	orNothing := func(s string) string {
+		if s == "" {
+			return "nothing"
+		}
+		return s
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "Today's prompt was: %q. Here is the doodle, and the critic's notes.\n\n", prompt)
+	fmt.Fprintf(&b, "What's drawn: %s\n", orNothing(v.Seen))
+	fmt.Fprintf(&b, "What the artist was going for: %s\n", orNothing(v.Idea))
+	fmt.Fprintf(&b, "Missing from the prompt: %s\n", orNothing(v.PromptMissing))
+	fmt.Fprintf(&b, "The prompt: %s\n", promptLabels[v.Prompt])
+	fmt.Fprintf(&b, "Effort: %s\n", effortLabels[v.Effort])
+	fmt.Fprintf(&b, "Score: %s out of %d", formatScore(v.Score), models.AIScoreMax)
+	if len(v.Criteria) > 0 {
+		parts := make([]string, len(v.Criteria))
+		for i, c := range v.Criteria {
+			parts[i] = fmt.Sprintf("%s %s", c.Name, formatScore(c.Score))
+		}
+		fmt.Fprintf(&b, " (%s)", strings.Join(parts, ", "))
+	}
+	fmt.Fprintf(&b, "\nWorth joking about: %s\n\nWrite your comment.", orNothing(v.Notable))
+	b.WriteString(swingFeeling(v.Swing))
+	return b.String()
+}
+
+// formatScore writes a score without a trailing ".0".
+func formatScore(score float64) string {
+	return strconv.FormatFloat(score, 'f', -1, 64)
 }
 
 // swingFeeling tells the judge how it feels about a doodle that got a swing. It never says
@@ -192,12 +291,14 @@ func swingFeeling(swing Swing) string {
 	return ""
 }
 
-// ResponseSchema is the JSON schema the model must answer with (OpenAI structured outputs,
-// strict mode: every property required, no extras). The model answers in the order the
-// properties are listed, so it says what it sees before scoring, and scores before commenting.
-func ResponseSchema(p models.AIPersonality) map[string]any {
+// EvaluateSchema is the JSON schema the first call must answer with (OpenAI structured
+// outputs, strict mode: every property required, no extras). The model answers in the order
+// the properties are listed, so it says what it sees and what the artist meant before it
+// decides what's missing, and decides that before scoring.
+func EvaluateSchema(p models.AIPersonality) map[string]any {
 	properties := orderedObject{
 		{"seen", map[string]any{"type": "string"}},
+		{"idea", map[string]any{"type": "string"}},
 		{"missing", map[string]any{"type": "string"}},
 		{"prompt", map[string]any{"type": "string", "enum": []string{PromptNailed, PromptComplete, PromptPartial, PromptMissed}}},
 		{"effort", map[string]any{"type": "string", "enum": []string{EffortReal, EffortLow, EffortNone}}},
@@ -213,18 +314,29 @@ func ResponseSchema(p models.AIPersonality) map[string]any {
 				"type": "object",
 				"properties": orderedObject{
 					{"id", map[string]any{"type": "string", "enum": ids}},
+					{"improve", map[string]any{"type": "string"}},
 					{"score", map[string]any{"type": "number"}},
 				},
-				"required":             []string{"id", "score"},
+				"required":             []string{"id", "improve", "score"},
 				"additionalProperties": false,
 			},
 		}})
 	}
 	properties = append(properties,
+		field{"improve", map[string]any{"type": "string"}},
 		field{"score", map[string]any{"type": "number"}},
-		field{"comment", map[string]any{"type": "string"}},
+		field{"notable", map[string]any{"type": "string"}},
 	)
+	return strictObject(properties)
+}
 
+// CommentSchema is the JSON schema the second call must answer with.
+func CommentSchema() map[string]any {
+	return strictObject(orderedObject{{"comment", map[string]any{"type": "string"}}})
+}
+
+// strictObject is a strict-mode schema for an object with exactly these properties.
+func strictObject(properties orderedObject) map[string]any {
 	required := make([]string, len(properties))
 	for i, f := range properties {
 		required[i] = f.Key
@@ -269,39 +381,39 @@ func (o orderedObject) MarshalJSON() ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-type rawVerdict struct {
+type rawEvaluation struct {
 	Seen     string `json:"seen"`
+	Idea     string `json:"idea"`
 	Missing  string `json:"missing"`
 	Prompt   string `json:"prompt"`
 	Effort   string `json:"effort"`
 	Criteria []struct {
-		ID    string  `json:"id"`
-		Score float64 `json:"score"`
+		ID      string  `json:"id"`
+		Improve string  `json:"improve"`
+		Score   float64 `json:"score"`
 	} `json:"criteria"`
+	Improve string  `json:"improve"`
 	Score   float64 `json:"score"`
-	Comment string  `json:"comment"`
+	Notable string  `json:"notable"`
 }
 
-// ParseVerdict reads the model's JSON answer and fits it to the personality. Every score the
-// judge gives is rounded to one decimal and clamped to 1..10, and a criterion it skipped gets 5.
-// Each score then moves by the bonus (or penalty) for how well the doodle follows the prompt,
-// and by the swing, staying within 0..10. With criteria, the overall score is their average to
-// one decimal place (so it can't disagree with them). Doodles that clearly took little or no
-// effort then lose a share of the overall score.
-func ParseVerdict(raw string, p models.AIPersonality, swing Swing) (Verdict, error) {
-	var rv rawVerdict
+// ParseEvaluation reads the first call's JSON answer and fits it to the personality. Every
+// score the judge gives is rounded to one decimal and clamped to 1..10, and a criterion it
+// skipped gets 5. Each score then moves by the bonus (or penalty) for how well the doodle
+// follows the prompt, and by the swing, staying within 0..10. With criteria, the overall
+// score is their average to one decimal place (so it can't disagree with them). Doodles that
+// clearly took little or no effort then lose a share of the overall score. The verdict has
+// no comment yet: the second call writes it.
+func ParseEvaluation(raw string, p models.AIPersonality, swing Swing) (Verdict, error) {
+	var rv rawEvaluation
 	if err := json.Unmarshal([]byte(raw), &rv); err != nil {
-		return Verdict{}, fmt.Errorf("judge's answer isn't valid JSON: %w", err)
-	}
-
-	comment := trimComment(rv.Comment)
-	if comment == "" {
-		return Verdict{}, fmt.Errorf("judge left an empty comment")
+		return Verdict{}, fmt.Errorf("judge's evaluation isn't valid JSON: %w", err)
 	}
 
 	verdict := Verdict{
-		Comment: comment, Seen: strings.TrimSpace(rv.Seen), Effort: EffortReal,
-		Prompt: PromptComplete, PromptMissing: strings.TrimSpace(rv.Missing), Swing: swing,
+		Seen: strings.TrimSpace(rv.Seen), Idea: strings.TrimSpace(rv.Idea), Notable: strings.TrimSpace(rv.Notable),
+		Effort: EffortReal, Prompt: PromptComplete, PromptMissing: strings.TrimSpace(rv.Missing), Swing: swing,
+		Breakdown: models.AIScoreBreakdown{GivenScore: rv.Score, FittedScore: fitScore(rv.Score), Improve: strings.TrimSpace(rv.Improve)},
 	}
 	if _, ok := effortPenalties[rv.Effort]; ok {
 		verdict.Effort = rv.Effort
@@ -312,42 +424,68 @@ func ParseVerdict(raw string, p models.AIPersonality, swing Swing) (Verdict, err
 	}
 	verdict.PromptBonus = promptBonuses[verdict.Prompt]
 	if len(p.Criteria) > 0 {
-		verdict.Criteria, verdict.Score = scoreCriteria(rv, p, verdict.PromptBonus+swing.Points)
+		verdict.Criteria, verdict.Breakdown.Criteria, verdict.Score = scoreCriteria(rv, p, verdict.PromptBonus+swing.Points)
 	} else {
 		verdict.Score = adjustScore(rv.Score, verdict.PromptBonus+swing.Points)
 	}
+	verdict.Breakdown.BeforeEffort = verdict.Score
 	if verdict.EffortPenalty > 0 {
 		verdict.Score = math.Round(verdict.Score*(1-verdict.EffortPenalty)*10) / 10
 	}
 	return verdict, nil
 }
 
-// scoreCriteria fits the judge's criteria scores to the personality, moves each by the
-// adjustment (prompt bonus plus swing), and averages them.
-func scoreCriteria(rv rawVerdict, p models.AIPersonality, adjustment float64) ([]models.AICriterionScore, float64) {
-	given := map[string]float64{}
-	for _, c := range rv.Criteria {
-		given[c.ID] = c.Score
+// ParseComment reads the second call's JSON answer: the comment, tidied.
+func ParseComment(raw string) (string, error) {
+	var rc struct {
+		Comment string `json:"comment"`
 	}
-	var criteria []models.AICriterionScore
+	if err := json.Unmarshal([]byte(raw), &rc); err != nil {
+		return "", fmt.Errorf("judge's comment isn't valid JSON: %w", err)
+	}
+	comment := trimComment(rc.Comment)
+	if comment == "" {
+		return "", fmt.Errorf("judge left an empty comment")
+	}
+	return comment, nil
+}
+
+// scoreCriteria fits the judge's criteria scores to the personality, moves each by the
+// adjustment (prompt bonus plus swing), and averages them. It also returns each one's steps.
+func scoreCriteria(rv rawEvaluation, p models.AIPersonality, adjustment float64) ([]models.AICriterionScore, []models.AICriterionStep, float64) {
+	given, improve := map[string]float64{}, map[string]string{}
+	for _, c := range rv.Criteria {
+		given[c.ID], improve[c.ID] = c.Score, strings.TrimSpace(c.Improve)
+	}
+	var (
+		criteria []models.AICriterionScore
+		steps    []models.AICriterionStep
+	)
 	total := 0.0
 	for _, c := range p.Criteria {
 		score, ok := given[c.ID]
 		if !ok {
 			score = models.AIScoreMax / 2
 		}
-		score = adjustScore(score, adjustment)
-		criteria = append(criteria, models.AICriterionScore{AICriterion: c, Score: score})
-		total += score
+		final := adjustScore(score, adjustment)
+		criteria = append(criteria, models.AICriterionScore{AICriterion: c, Score: final})
+		steps = append(steps, models.AICriterionStep{
+			ID: c.ID, Name: c.Name, Given: score, Skipped: !ok, Fitted: fitScore(score), Score: final, Improve: improve[c.ID],
+		})
+		total += final
 	}
-	return criteria, math.Round(total/float64(len(p.Criteria))*10) / 10
+	return criteria, steps, math.Round(total/float64(len(p.Criteria))*10) / 10
 }
 
 // adjustScore fits a score the judge gave to 1..AIScoreMax at one decimal, then moves it by
 // the adjustment, never past 0..AIScoreMax.
 func adjustScore(given, adjustment float64) float64 {
-	given = min(max(roundScore(given), 1), models.AIScoreMax)
-	return min(max(roundScore(given+adjustment), 0), models.AIScoreMax)
+	return min(max(roundScore(fitScore(given)+adjustment), 0), models.AIScoreMax)
+}
+
+// fitScore rounds a score the judge gave to one decimal and keeps it to 1..AIScoreMax.
+func fitScore(given float64) float64 {
+	return min(max(roundScore(given), 1), models.AIScoreMax)
 }
 
 func roundScore(score float64) float64 {

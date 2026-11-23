@@ -20,6 +20,7 @@ import {
   VerdictPreview,
   inputClass,
 } from '../components/aiJudgeForm';
+import { AIRunBreakdown } from '../components/AIRunBreakdown';
 import type { AIPersonality, AITestResult, AITestSource } from '../api';
 import type { FC } from 'react';
 import { AIJudgeAvatar } from '@/ai/AIJudgeAvatar';
@@ -283,28 +284,30 @@ const BatchResults: FC<{ batch: Batch }> = ({ batch }) => (
         </div>
       </div>
     </div>
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
       {batch.results.map((r) => (
         <div
           key={r.judge.id || r.name}
-          className="flex flex-col gap-2 p-3 border-2 border-line rounded-sketch-alt bg-paper"
+          className="flex flex-col gap-4 p-3 border-2 border-line rounded-sketch-alt bg-paper min-w-0"
         >
-          {r.verdict ? (
-            <VerdictPreview
-              verdict={r.verdict}
-              personality={r.judge}
-              submissionId={batch.id}
-            />
-          ) : (
-            <div className="flex items-center gap-3">
-              <AIJudgeAvatar judge={r.judge} />
-              <span className="text-coral">{r.error}</span>
-            </div>
-          )}
-          <div className="flex gap-2 text-xs text-pencil">
-            {r.edited && <Tag className="bg-butter">edited prompt</Tag>}
-            <span>{(r.durationMs / 1000).toFixed(1)}s</span>
+          <div className="flex flex-col gap-2">
+            {r.verdict ? (
+              <VerdictPreview
+                verdict={r.verdict}
+                personality={r.judge}
+                submissionId={batch.id}
+              />
+            ) : (
+              <div className="flex items-center gap-3">
+                <AIJudgeAvatar judge={r.judge} />
+                <b className="font-accent text-xl">{r.judge.name}</b>
+              </div>
+            )}
+            {r.edited && (
+              <Tag className="self-start bg-butter">edited prompt</Tag>
+            )}
           </div>
+          <AIRunBreakdown run={r.run} hideComment />
         </div>
       ))}
     </div>

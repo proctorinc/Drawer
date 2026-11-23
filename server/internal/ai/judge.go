@@ -8,6 +8,7 @@ import (
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/events"
 	"drawer-service-backend/internal/utils"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -75,15 +76,76 @@ var NewProvider = func(s Settings) Provider {
 // How long a review may take before it's given up on
 const reviewTimeout = 90 * time.Second
 
+// The two calls a judge run makes, in order.
+const (
+	StepEvaluate = "evaluate" // Reads the doodle and the artist's idea, and scores it
+	StepComment  = "comment"  // Writes the comment in character, from the evaluation
+)
+
+// evaluateTemperature keeps the evaluation steady from run to run, so the same doodle gets
+// the same reading and much the same scores. The comment keeps the model's default, so the
+// jokes stay fresh.
+var evaluateTemperature = 0.2
+
 // Run asks the provider for a verdict, without saving anything (admin previews use this).
-// It rolls the rare love-or-hate swing first, so the judge knows how it feels.
+// It rolls the rare love-or-hate swing first, then makes two calls: one evaluates and scores
+// the doodle, then (once the code has applied the prompt bonus, swing and effort penalty)
+// one writes the comment in character, so it matches the final score. Whether it works or
+// not, the verdict keeps the swing and every call as sent and answered, for the AI log, and
+// a failed comment call still keeps the evaluation.
 func Run(ctx context.Context, provider Provider, req Request) (Verdict, error) {
 	req.Swing = rollSwing()
-	raw, err := provider.Judge(ctx, req)
-	if err != nil {
-		return Verdict{}, err
+	attempt := Verdict{Swing: req.Swing}
+
+	raw, call, err := ask(ctx, provider, Call{
+		Step: StepEvaluate, System: EvaluateSystemPrompt(req.Personality), User: EvaluateMessage(req.Prompt),
+		// High detail, so craft finer than the brush (carved lines, thin rims) can be seen
+		Image: req.Image, Detail: DetailHigh, Temperature: &evaluateTemperature, Schema: EvaluateSchema(req.Personality),
+	})
+	if err == nil {
+		var verdict Verdict
+		if verdict, err = ParseEvaluation(raw, req.Personality, req.Swing); err == nil {
+			attempt = verdict
+		} else {
+			call.Error = err.Error()
+		}
 	}
-	return ParseVerdict(raw, req.Personality, req.Swing)
+	attempt.Calls = append(attempt.Calls, call)
+	if err != nil {
+		return attempt, err
+	}
+
+	raw, call, err = ask(ctx, provider, Call{
+		Step: StepComment, System: CommentSystemPrompt(req.Personality), User: CommentMessage(req.Prompt, attempt),
+		Image: req.Image, Detail: DetailLow, Schema: CommentSchema(),
+	})
+	if err == nil {
+		if attempt.Comment, err = ParseComment(raw); err != nil {
+			call.Error = err.Error()
+		}
+	}
+	attempt.Calls = append(attempt.Calls, call)
+	return attempt, err
+}
+
+// ask makes one call and records it for the log, as sent and answered.
+func ask(ctx context.Context, provider Provider, call Call) (string, models.AICall, error) {
+	logged := models.AICall{Step: call.Step, System: call.System, Message: call.User, Image: call.Image != nil}
+	if logged.Image {
+		logged.Detail = call.Detail
+	}
+	logged.Temperature = call.Temperature
+	if schema, err := json.Marshal(call.Schema); err == nil {
+		logged.Schema = schema
+	}
+	start := time.Now()
+	raw, err := provider.Ask(ctx, call)
+	logged.DurationMS = time.Since(start).Milliseconds()
+	logged.Answer = raw
+	if err != nil {
+		logged.Error = err.Error()
+	}
+	return raw, logged, err
 }
 
 // RunMeta says why a judge is being run, for the AI log.
@@ -96,8 +158,8 @@ type RunMeta struct {
 }
 
 // RunAndLog asks for a verdict and writes the attempt to the AI log, whether it worked or
-// not. Nothing is saved to the doodle itself. Returns how long the judge took.
-func RunAndLog(ctx context.Context, repo *sql.DB, provider Provider, req Request, meta RunMeta) (Verdict, time.Duration, error) {
+// not. Nothing is saved to the doodle itself. Returns the log entry too, as it was written.
+func RunAndLog(ctx context.Context, repo *sql.DB, provider Provider, req Request, meta RunMeta) (Verdict, queries.AIRun, error) {
 	start := time.Now()
 	verdict, err := Run(ctx, provider, req)
 	took := time.Since(start)
@@ -115,6 +177,15 @@ func RunAndLog(ctx context.Context, repo *sql.DB, provider Provider, req Request
 		ImageData:       meta.ImageData,
 		Model:           provider.Model(),
 		DurationMS:      took.Milliseconds(),
+		Metadata: queries.AIRunMetadata{
+			Seen: verdict.Seen, Idea: verdict.Idea, Notable: verdict.Notable,
+			Effort: verdict.Effort, EffortPenalty: verdict.EffortPenalty,
+			Prompt: verdict.Prompt, PromptMissing: verdict.PromptMissing, PromptBonus: verdict.PromptBonus,
+			Swing: verdict.Swing.Kind, SwingPoints: verdict.Swing.Points,
+			SwingRoll: verdict.Swing.Roll, Breakdown: &verdict.Breakdown, Calls: verdict.Calls,
+		},
+		Criteria:  []models.AICriterionScore{},
+		CreatedAt: time.Now().UTC(),
 	}
 	if meta.SubmissionID != "" {
 		run.SubmissionID = &meta.SubmissionID
@@ -130,20 +201,17 @@ func RunAndLog(ctx context.Context, repo *sql.DB, provider Provider, req Request
 		run.Score = &verdict.Score
 		run.Criteria = verdict.Criteria
 		run.Comment = verdict.Comment
-		run.Metadata = queries.AIRunMetadata{
-			Seen: verdict.Seen, Effort: verdict.Effort, EffortPenalty: verdict.EffortPenalty,
-			Prompt: verdict.Prompt, PromptMissing: verdict.PromptMissing, PromptBonus: verdict.PromptBonus,
-			Swing: verdict.Swing.Kind, SwingPoints: verdict.Swing.Points,
-		}
 		if verdict.Swing.Kind != SwingNone {
 			log.Printf("AI judge: %s got a %s swing of %+.1f on %q", p.Name, verdict.Swing.Kind, verdict.Swing.Points, req.Prompt)
 		}
 	}
 	// A fresh context: ctx may be why it failed, and the attempt is still worth logging
-	if _, logErr := queries.LogAIRun(repo, context.Background(), run); logErr != nil {
+	id, logErr := queries.LogAIRun(repo, context.Background(), run)
+	if logErr != nil {
 		log.Printf("AI judge: couldn't log a run of %s: %v", p.Name, logErr)
 	}
-	return verdict, took, err
+	run.ID = id
+	return verdict, run, err
 }
 
 // Review has the personality judge a doodle and saves the result, replacing any earlier
@@ -285,6 +353,7 @@ type TestResult struct {
 	Verdict       *Verdict
 	Error         string
 	Took          time.Duration
+	Run           queries.AIRun // The AI log entry, as it was written
 }
 
 // RunTests has each personality judge the same doodle, side by side, logging each run as a
@@ -297,8 +366,8 @@ func RunTests(ctx context.Context, repo *sql.DB, provider Provider, personalitie
 	for i, p := range personalities {
 		go func() {
 			defer func() { done <- struct{}{} }()
-			verdict, took, err := RunAndLog(ctx, repo, provider, Request{Personality: p, Prompt: prompt, Image: image}, meta)
-			results[i] = TestResult{PersonalityID: p.ID, Name: p.Name, Took: took}
+			verdict, run, err := RunAndLog(ctx, repo, provider, Request{Personality: p, Prompt: prompt, Image: image}, meta)
+			results[i] = TestResult{PersonalityID: p.ID, Name: p.Name, Took: time.Duration(run.DurationMS) * time.Millisecond, Run: run}
 			if err != nil {
 				results[i].Error = err.Error()
 			} else {

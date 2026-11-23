@@ -121,7 +121,7 @@ This project uses [TanStack Router](https://tanstack.com/router). The initial se
 
 ## AI judges
 
-Each new doodle can get a score and a short in-character comment from an AI judge (OpenAI). Set it up in **Admin → AI judges**: paste an OpenAI API key, pick a model (default `gpt-4.1-mini`; it needs image input and structured outputs) and switch judging on. The key is stored server-side and never sent back to the browser; `OPENAI_API_KEY` on the backend works as a fallback.
+Each new doodle can get a score and a short in-character comment from an AI judge (OpenAI). Set it up in **Admin → AI judges**: paste an OpenAI API key, pick a model (default `gpt-4.1`; it needs image input and structured outputs) and switch judging on. The key is stored server-side and never sent back to the browser; `OPENAI_API_KEY` on the backend works as a fallback.
 
 - One judge is the **default**; a judge tied to an **event** takes over while that event runs.
 - Every score is **out of 10**. A judge can score up to **3 criteria** (the overall score is then their average, to one decimal), or just one overall score.
