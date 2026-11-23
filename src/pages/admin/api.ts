@@ -596,7 +596,21 @@ export interface AIRun {
   durationMs: number;
   metadata: AIRunMetadata;
   createdAt: string;
+  /**
+   * When it was made its doodle's review: straight away for a real doodle, by
+   * an admin for a re-run or test. Null when it never was.
+   */
+  appliedAt: string | null;
+  /** Whether it's the review players see on its doodle now */
+  current: boolean;
 }
+
+/** Whether an admin can make this run its doodle's review */
+export const canApplyAIRun = (run: AIRun) =>
+  !!run.submissionId &&
+  run.status === 'done' &&
+  !!run.personalityId &&
+  !run.current;
 
 /** Counts of every run ever, not just the ones listed */
 export interface AIRunStats {
@@ -620,9 +634,17 @@ export function useAIRuns() {
   });
 }
 
-/** Re-judges a doodle and replaces the review players see */
+/** A fresh run on a doodle, logged but not applied */
+export interface AIRerun {
+  verdict: AIVerdict;
+  run: AIRun;
+}
+
+/**
+ * Has a judge look at a doodle again, logged as a re-run. Players see nothing
+ * new until the run is applied with useApplyAIRun.
+ */
 export function useRerunAIReview() {
-  const onSuccess = useRefreshAfter();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: {
@@ -635,8 +657,23 @@ export function useRerunAIReview() {
         json({ personalityId: body.personalityId ?? '' }),
       );
       await ensureOk(response);
-      return (await response.json()) as AIVerdict;
+      return (await response.json()) as AIRerun;
     },
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ai', 'runs'] }),
+  });
+}
+
+/**
+ * Makes a logged re-run or testing-ground run its doodle's review, replacing
+ * the one players see (the old run stays in the AI log).
+ */
+export function useApplyAIRun() {
+  const onSuccess = useRefreshAfter();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (run: { id: string; submissionId: string }) =>
+      ensureOk(await fetchAPI('POST', `/admin/ai/runs/${run.id}/apply`)),
     onSuccess: (_, { submissionId }) => {
       onSuccess();
       // The doodle's page, the wall and the bell, if this admin is looking

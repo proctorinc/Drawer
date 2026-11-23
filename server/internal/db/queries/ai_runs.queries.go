@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,8 +17,8 @@ type AIRunKind string
 
 const (
 	AIRunSubmission AIRunKind = "submission" // A player drew it; the review is shown to players
-	AIRunRerun      AIRunKind = "rerun"      // An admin re-judged a doodle; replaces its review
-	AIRunTest       AIRunKind = "test"       // The admin testing ground; shown to no one
+	AIRunRerun      AIRunKind = "rerun"      // An admin re-judged a doodle; players see it only once applied
+	AIRunTest       AIRunKind = "test"       // The admin testing ground; players see it only once applied
 )
 
 // AIRun is one call to a judge, as the admin AI log shows it.
@@ -44,7 +45,12 @@ type AIRun struct {
 	DurationMS      int64                     `json:"durationMs"`
 	Metadata        AIRunMetadata             `json:"metadata"`
 	CreatedAt       time.Time                 `json:"createdAt"`
-	ArtistID        string                    `json:"-"` // For the image URL of a real doodle
+	// When it was made its doodle's review: straight away for a real doodle, by an admin for
+	// a re-run or test. Unset when it never was.
+	AppliedAt *time.Time `json:"appliedAt"`
+	// Whether it's the review players see on its doodle now
+	Current  bool   `json:"current"`
+	ArtistID string `json:"-"` // For the image URL of a real doodle
 }
 
 // AIRunMetadata is what the judge saw and how its scores were adjusted in code after it answered.
@@ -113,9 +119,11 @@ func ListAIRuns(repo *sql.DB, ctx context.Context, limit int) ([]AIRun, error) {
 		SELECT r.id, r.kind, r.batch_id, r.personality_id, r.judge_name, r.judge_avatar_url, r.judge_decoration, r.system_prompt,
 			r.submission_id, r.prompt, r.image_data, r.status, r.score, r.criteria_scores, r.comment, r.model, r.error,
 			r.duration_ms, r.metadata, r.created_at, COALESCE(s.user_id, ''),
-			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration
+			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
+			r.applied_at, COALESCE(rv.run_id = r.id AND rv.status = 'done', 0)
 		FROM ai_runs r
 		LEFT JOIN user_submissions s ON s.id = r.submission_id
+		LEFT JOIN ai_reviews rv ON rv.submission_id = r.submission_id
 		LEFT JOIN users u ON u.id = r.user_id
 		ORDER BY datetime(r.created_at) DESC, r.rowid DESC
 		LIMIT ?`, limit)
@@ -132,12 +140,12 @@ func ListAIRuns(repo *sql.DB, ctx context.Context, limit int) ([]AIRun, error) {
 			score                                               sql.NullFloat64
 			criteriaJSON, metadataJSON                          string
 			userID, username, avatarType, avatarURL, decoration sql.NullString
-			userCreatedAt                                       sql.NullTime
+			userCreatedAt, appliedAt                            sql.NullTime
 		)
 		err := rows.Scan(&run.ID, &run.Kind, &run.BatchID, &run.PersonalityID, &run.JudgeName, &run.JudgeAvatarURL,
 			&run.JudgeDecoration, &run.SystemPrompt, &submissionID, &run.Prompt, &run.ImageData, &run.Status, &score,
 			&criteriaJSON, &run.Comment, &run.Model, &run.Error, &run.DurationMS, &metadataJSON, &run.CreatedAt, &run.ArtistID,
-			&userID, &username, &userCreatedAt, &avatarType, &avatarURL, &decoration)
+			&userID, &username, &userCreatedAt, &avatarType, &avatarURL, &decoration, &appliedAt, &run.Current)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning AI run: %w", err)
 		}
@@ -147,6 +155,10 @@ func ListAIRuns(repo *sql.DB, ctx context.Context, limit int) ([]AIRun, error) {
 		if score.Valid {
 			s := score.Float64
 			run.Score = &s
+		}
+		if appliedAt.Valid {
+			at := appliedAt.Time
+			run.AppliedAt = &at
 		}
 		run.Criteria = []models.AICriterionScore{}
 		_ = json.Unmarshal([]byte(criteriaJSON), &run.Criteria)
@@ -160,6 +172,60 @@ func ListAIRuns(repo *sql.DB, ctx context.Context, limit int) ([]AIRun, error) {
 		runs = append(runs, run)
 	}
 	return runs, rows.Err()
+}
+
+// Why a run can't become its doodle's review.
+var (
+	ErrAIRunNoDoodle  = errors.New("this run judged a custom drawing, not a player's doodle")
+	ErrAIRunFailed    = errors.New("this run failed, so there's no review to apply")
+	ErrAIRunJudgeGone = errors.New("this run's judge isn't saved anymore, so it can't review a doodle")
+)
+
+// ApplyAIRun makes a logged run its doodle's review, replacing whatever players saw before
+// (the bell shows it as new, and the judge's dialogue plays for the artist once more). The run
+// is marked applied in the AI log. Returns sql.ErrNoRows for no such run.
+func ApplyAIRun(repo *sql.DB, ctx context.Context, runID string) error {
+	return withEventTx(repo, ctx, func(tx *sql.Tx) error {
+		var (
+			submissionID                                 sql.NullString
+			personalityID, status, criteria, comment, md string
+			score                                        sql.NullFloat64
+		)
+		err := tx.QueryRowContext(ctx, `
+			SELECT submission_id, personality_id, status, score, criteria_scores, comment, model
+			FROM ai_runs WHERE id = ?`, runID).Scan(&submissionID, &personalityID, &status, &score, &criteria, &comment, &md)
+		if err != nil {
+			return err
+		}
+		switch {
+		case !submissionID.Valid || submissionID.String == "":
+			return ErrAIRunNoDoodle
+		case status != "done" || !score.Valid:
+			return ErrAIRunFailed
+		}
+		var judgeSaved bool
+		if err := tx.QueryRowContext(ctx, `SELECT EXISTS (SELECT 1 FROM ai_personalities WHERE id = ?)`, personalityID).Scan(&judgeSaved); err != nil {
+			return err
+		}
+		if !judgeSaved {
+			return ErrAIRunJudgeGone
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO ai_reviews (submission_id, personality_id, status, score, criteria_scores, comment, model, run_id)
+			VALUES (?, ?, 'done', ?, ?, ?, ?, ?)
+			ON CONFLICT (submission_id) DO UPDATE SET
+				personality_id = excluded.personality_id, status = 'done', score = excluded.score,
+				criteria_scores = excluded.criteria_scores, comment = excluded.comment, model = excluded.model,
+				run_id = excluded.run_id, error = '', created_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP,
+				heard_at = NULL`,
+			submissionID.String, personalityID, score.Float64, criteria, comment, md, runID)
+		if err != nil {
+			return fmt.Errorf("error applying AI run %s: %w", runID, err)
+		}
+		_, err = tx.ExecContext(ctx, `UPDATE ai_runs SET applied_at = CURRENT_TIMESTAMP WHERE id = ?`, runID)
+		return err
+	})
 }
 
 // AIRunStats counts every run ever logged, not just the ones listed.

@@ -1,6 +1,8 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRotate } from '@fortawesome/free-solid-svg-icons';
-import { useRerunAIReview } from '../api';
+import { useApplyAIRun, useRerunAIReview } from '../api';
+import { ApplyAIRunButton, RunSummary } from './ApplyAIRunButton';
+import type { ApplicableRun } from './ApplyAIRunButton';
 import type { FC } from 'react';
 import { formatScore } from '@/ai/score';
 import { cn } from '@/utils';
@@ -8,7 +10,7 @@ import { useConfirm } from '@/components/Confirm';
 
 type Props = {
   submissionId: string;
-  /** The judge to ask; leave it out for whoever judges a doodle drawn now */
+  /** The judge to ask; leave it out for whoever reviewed it (or judges today) */
   personalityId?: string;
   /** Named in the confirmation, e.g. "Sir Doodleton" */
   judgeName?: string;
@@ -20,9 +22,9 @@ type Props = {
 };
 
 /**
- * Has a judge look at a doodle again and replaces the review its artist sees
- * (the bell shows it as new, and the judge's dialogue plays for them once more).
- * The earlier run stays in the AI log; this one is logged as an admin re-run.
+ * Has a judge look at a doodle again, then asks whether to apply the new
+ * review. Nothing changes for the player unless it's applied; either way the
+ * run is in the AI log as an admin re-run, where it can be applied later.
  */
 export const RerunAIButton: FC<Props> = ({
   submissionId,
@@ -33,20 +35,38 @@ export const RerunAIButton: FC<Props> = ({
   className,
 }) => {
   const rerun = useRerunAIReview();
+  const apply = useApplyAIRun();
   const confirm = useConfirm();
 
   async function run() {
-    const who = judgeName ?? "today's judge";
+    const who = judgeName ?? 'its judge';
     const whose = artist ? `${artist}'s` : 'this';
     const ok = await confirm({
       title: `have ${who} judge ${whose} doodle again?`,
       message:
-        'the new review replaces the one the player sees; the old run stays in the AI log.',
+        "you'll see the new review and choose whether to apply it. Until then the player keeps the old one.",
       confirmLabel: 're-run',
     });
     if (!ok) return;
-    rerun.mutate({ submissionId, personalityId });
+    rerun.mutate(
+      { submissionId, personalityId },
+      {
+        onSuccess: async ({ run: fresh }) => {
+          const summary: ApplicableRun = { ...fresh, submissionId };
+          const yes = await confirm({
+            title: `apply ${fresh.judgeName}'s new review?`,
+            message: <RunSummary run={summary} />,
+            confirmLabel: 'apply',
+            cancelLabel: 'keep the old one',
+          });
+          if (yes) apply.mutate({ id: fresh.id, submissionId });
+        },
+      },
+    );
   }
+
+  const fresh = rerun.data?.run;
+  const busy = rerun.isPending || apply.isPending;
 
   return (
     <span
@@ -56,8 +76,8 @@ export const RerunAIButton: FC<Props> = ({
     >
       <button
         type="button"
-        disabled={rerun.isPending}
-        title="judge it again and replace the review the player sees"
+        disabled={busy}
+        title="judge it again, then choose whether to apply it"
         aria-label={showLabel ? undefined : 're-run'}
         className="inline-flex items-center gap-1.5 text-pencil hover:text-ink disabled:opacity-40 cursor-pointer whitespace-nowrap"
         onClick={run}
@@ -68,13 +88,22 @@ export const RerunAIButton: FC<Props> = ({
         />
         {showLabel && (rerun.isPending ? 'judging…' : 're-run')}
       </button>
-      {rerun.isSuccess && (
-        <span className="text-xs text-pencil whitespace-nowrap">
-          replaced: {formatScore(rerun.data.score)}/10
+      {fresh && fresh.score !== null && (
+        <span className="flex items-center gap-1.5 text-xs text-pencil whitespace-nowrap">
+          {apply.isSuccess ? 'applied' : 'new'}: {formatScore(fresh.score)}/10
+          {!apply.isSuccess && !apply.isPending && (
+            <ApplyAIRunButton
+              key={fresh.id}
+              run={{ ...fresh, submissionId }}
+              showLabel
+            />
+          )}
         </span>
       )}
-      {rerun.error && (
-        <span className="text-xs text-coral">{rerun.error.message}</span>
+      {(rerun.error ?? apply.error) && (
+        <span className="text-xs text-coral">
+          {(rerun.error ?? apply.error)?.message}
+        </span>
       )}
     </span>
   );

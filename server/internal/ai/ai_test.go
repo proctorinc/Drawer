@@ -794,7 +794,7 @@ func TestEveryRunIsLogged(t *testing.T) {
 	}
 }
 
-func TestRerunReplacesWhatThePlayerSeesButKeepsTheLog(t *testing.T) {
+func TestRerunChangesNothingUntilApplied(t *testing.T) {
 	repo := dbtest.NewEventsDB(t)
 	ctx := context.Background()
 	dbtest.Exec(t, repo, `INSERT INTO users (id, username, email) VALUES ('u1', 'u1', 'u1@example.com'), ('admin', 'admin', 'a@example.com')`)
@@ -811,33 +811,106 @@ func TestRerunReplacesWhatThePlayerSeesButKeepsTheLog(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	second := `{"criteria": [], "score": 9, "comment": "On reflection, the blobs are genius."}`
-	if _, err := Review(ctx, repo, fakeProvider{answer: second}, "s1", Request{Personality: p}, RunMeta{Kind: queries.AIRunRerun, UserID: "admin"}); err != nil {
-		t.Fatal(err)
+	seen := func() string {
+		t.Helper()
+		subs := []*models.UserPromptSubmission{{ID: "s1"}}
+		if err := queries.AttachAIReviews(repo, ctx, subs); err != nil {
+			t.Fatal(err)
+		}
+		if subs[0].AIReview == nil {
+			return ""
+		}
+		return subs[0].AIReview.Comment
+	}
+	runsByComment := func() map[string]queries.AIRun {
+		t.Helper()
+		runs, err := queries.ListAIRuns(repo, ctx, 10)
+		if err != nil {
+			t.Fatal(err)
+		}
+		byComment := map[string]queries.AIRun{}
+		for _, r := range runs {
+			byComment[r.Comment] = r
+		}
+		return byComment
 	}
 
+	if r := runsByComment()["A tragedy in three blobs."]; !r.Current || r.AppliedAt == nil {
+		t.Errorf("a real doodle's run should be applied and current: %+v", r)
+	}
+
+	second := `{"criteria": [], "score": 9, "comment": "On reflection, the blobs are genius."}`
+	_, rerun, err := RunAndLog(ctx, repo, fakeProvider{answer: second}, Request{Personality: p}, RunMeta{Kind: queries.AIRunRerun, SubmissionID: "s1", UserID: "admin"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := seen(); got != "A tragedy in three blobs." {
+		t.Fatalf("before applying, player sees %q; want the first review", got)
+	}
+	if r := runsByComment()["On reflection, the blobs are genius."]; r.Kind != queries.AIRunRerun || r.Current || r.AppliedAt != nil {
+		t.Errorf("an unapplied re-run should be logged but not applied: %+v", r)
+	}
+
+	if err := queries.ApplyAIRun(repo, ctx, rerun.ID); err != nil {
+		t.Fatal(err)
+	}
+	if got := seen(); got != "On reflection, the blobs are genius." {
+		t.Fatalf("after applying, player sees %q; want the re-run's comment", got)
+	}
+	activity, _ := queries.GetAIReviewActivity(repo, ctx, "u1", &config.Config{})
+	if len(activity) != 1 || activity[0].AIReview.Heard {
+		t.Errorf("an applied re-run should be new to the player again: %+v", activity)
+	}
+	runs := runsByComment()
+	if r := runs["On reflection, the blobs are genius."]; !r.Current || r.AppliedAt == nil {
+		t.Errorf("the applied re-run should be current: %+v", r)
+	}
+	if r := runs["A tragedy in three blobs."]; r.Current || r.AppliedAt == nil {
+		t.Errorf("the first run should stay applied but no longer be current: %+v", r)
+	}
+}
+
+func TestApplyTestRun(t *testing.T) {
+	repo := dbtest.NewEventsDB(t)
+	ctx := context.Background()
+	dbtest.Exec(t, repo, `INSERT INTO users (id, username, email) VALUES ('u1', 'u1', 'u1@example.com'), ('admin', 'admin', 'a@example.com')`)
+	dbtest.Exec(t, repo, `INSERT INTO user_submissions (id, user_id, day) VALUES ('s1', 'u1', '2026-12-01')`)
+	p, err := queries.GetAIPersonality(repo, ctx, "ai-sir-doodleton")
+	if err != nil {
+		t.Fatal(err)
+	}
+	answer := `{"criteria": [], "score": 6, "comment": "Tested and true."}`
+	results := RunTests(ctx, repo, fakeProvider{answer: answer}, []models.AIPersonality{p}, "a cat", nil, RunMeta{SubmissionID: "s1", UserID: "admin"})
+	custom := RunTests(ctx, repo, fakeProvider{answer: answer}, []models.AIPersonality{p}, "a cat", nil, RunMeta{UserID: "admin", ImageData: "data:image/png;base64,"})
+	failed := RunTests(ctx, repo, fakeProvider{err: errors.New("boom")}, []models.AIPersonality{p}, "a cat", nil, RunMeta{SubmissionID: "s1", UserID: "admin"})
+	unsaved := p
+	unsaved.ID = ""
+	gone := RunTests(ctx, repo, fakeProvider{answer: answer}, []models.AIPersonality{unsaved}, "a cat", nil, RunMeta{SubmissionID: "s1", UserID: "admin"})
+
+	// A doodle that was never reviewed (judging was off) gets one
+	if err := queries.ApplyAIRun(repo, ctx, results[0].Run.ID); err != nil {
+		t.Fatal(err)
+	}
 	subs := []*models.UserPromptSubmission{{ID: "s1"}}
 	if err := queries.AttachAIReviews(repo, ctx, subs); err != nil {
 		t.Fatal(err)
 	}
-	if got := subs[0].AIReview; got == nil || got.Comment != "On reflection, the blobs are genius." {
-		t.Fatalf("player sees %+v; want the re-run's comment", got)
-	}
-	activity, _ := queries.GetAIReviewActivity(repo, ctx, "u1", &config.Config{})
-	if len(activity) != 1 || activity[0].AIReview.Heard {
-		t.Errorf("a re-run should be new to the player again: %+v", activity)
+	if got := subs[0].AIReview; got == nil || got.Comment != "Tested and true." || got.Judge.ID != p.ID {
+		t.Fatalf("player sees %+v; want the test run's review", got)
 	}
 
-	runs, err := queries.ListAIRuns(repo, ctx, 10)
-	if err != nil {
-		t.Fatal(err)
-	}
-	comments := map[string]queries.AIRunKind{}
-	for _, r := range runs {
-		comments[r.Comment] = r.Kind
-	}
-	if comments["A tragedy in three blobs."] != queries.AIRunSubmission || comments["On reflection, the blobs are genius."] != queries.AIRunRerun {
-		t.Errorf("the log should keep both runs: %+v", comments)
+	for name, c := range map[string]struct {
+		id   string
+		want error
+	}{
+		"custom drawing": {custom[0].Run.ID, queries.ErrAIRunNoDoodle},
+		"failed run":     {failed[0].Run.ID, queries.ErrAIRunFailed},
+		"unsaved judge":  {gone[0].Run.ID, queries.ErrAIRunJudgeGone},
+		"no such run":    {"nope", sql.ErrNoRows},
+	} {
+		if err := queries.ApplyAIRun(repo, ctx, c.id); !errors.Is(err, c.want) {
+			t.Errorf("%s: err = %v; want %v", name, err, c.want)
+		}
 	}
 }
 

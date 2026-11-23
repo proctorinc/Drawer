@@ -214,8 +214,9 @@ func RunAndLog(ctx context.Context, repo *sql.DB, provider Provider, req Request
 	return verdict, run, err
 }
 
-// Review has the personality judge a doodle and saves the result, replacing any earlier
-// review. While it runs, the review shows as pending; if it fails, players see nothing.
+// Review has the personality judge a doodle and saves the result straight away, replacing any
+// earlier review. While it runs, the review shows as pending; if it fails, players see
+// nothing. (Admin re-runs don't use this: they log a run and apply it only if asked.)
 func Review(ctx context.Context, repo *sql.DB, provider Provider, submissionID string, req Request, meta RunMeta) (Verdict, error) {
 	if err := queries.StartAIReview(repo, ctx, submissionID, req.Personality); err != nil {
 		return Verdict{}, err
@@ -226,7 +227,7 @@ func Review(ctx context.Context, repo *sql.DB, provider Provider, submissionID s
 // finishReview runs a review that's already marked pending and saves how it went.
 func finishReview(ctx context.Context, repo *sql.DB, provider Provider, submissionID string, req Request, meta RunMeta) (Verdict, error) {
 	meta.SubmissionID = submissionID
-	verdict, _, err := RunAndLog(ctx, repo, provider, req, meta)
+	verdict, run, err := RunAndLog(ctx, repo, provider, req, meta)
 	if err != nil {
 		// Saved with a fresh context: ctx may be why it failed
 		if saveErr := queries.FailAIReview(repo, context.Background(), submissionID, err.Error()); saveErr != nil {
@@ -235,7 +236,7 @@ func finishReview(ctx context.Context, repo *sql.DB, provider Provider, submissi
 		return Verdict{}, err
 	}
 
-	err = queries.FinishAIReview(repo, ctx, submissionID, verdict.Score, verdict.Criteria, verdict.Comment, provider.Model())
+	err = queries.FinishAIReview(repo, ctx, submissionID, run.ID, verdict.Score, verdict.Criteria, verdict.Comment, provider.Model())
 	return verdict, err
 }
 

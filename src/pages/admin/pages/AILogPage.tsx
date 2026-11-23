@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { describeSwing, useAIRuns } from '../api';
+import { canApplyAIRun, describeSwing, useAIRuns } from '../api';
 import {
   AdminPage,
   Loaded,
@@ -13,6 +13,7 @@ import {
   th,
 } from '../components/ui';
 import { RerunAIButton } from '../components/RerunAIButton';
+import { ApplyAIRunButton } from '../components/ApplyAIRunButton';
 import { AIRunBreakdown } from '../components/AIRunBreakdown';
 import type { AIRun, AIRunKind } from '../api';
 import type { FC } from 'react';
@@ -96,6 +97,7 @@ const AILogPage = () => {
   const query = useAIRuns();
   const [hidden, setHidden] = useState<Set<AIRunKind>>(new Set());
   const [failedOnly, setFailedOnly] = useState(false);
+  const [appliedOnly, setAppliedOnly] = useState(false);
   const [judge, setJudge] = useState('');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('newest');
@@ -126,6 +128,7 @@ const AILogPage = () => {
           const shown = runs
             .filter((r) => !hidden.has(r.kind))
             .filter((r) => !failedOnly || r.status === 'failed')
+            .filter((r) => !appliedOnly || r.appliedAt !== null)
             .filter((r) => !judge || r.judgeName === judge)
             .filter(
               (r) =>
@@ -174,6 +177,14 @@ const AILogPage = () => {
                 >
                   <Tag className={failedOnly ? 'bg-coral' : 'bg-white'}>
                     failed only
+                  </Tag>
+                </button>
+                <button
+                  onClick={() => setAppliedOnly(!appliedOnly)}
+                  className="cursor-pointer"
+                >
+                  <Tag className={appliedOnly ? 'bg-gold-light' : 'bg-white'}>
+                    applied only
                   </Tag>
                 </button>
                 <select
@@ -226,7 +237,7 @@ const AILogPage = () => {
                       <th className={th}>comment</th>
                       <th className={th}>when</th>
                       <th className={th}>
-                        <span className="sr-only">re-run</span>
+                        <span className="sr-only">re-run or apply</span>
                       </th>
                     </>
                   }
@@ -260,6 +271,18 @@ const AILogPage = () => {
                             {run.kind === 'submission' ? 'by ' : 'run by '}
                             {run.user?.username ?? 'someone'}
                           </div>
+                          {run.current ? (
+                            <Tag className="mt-1 bg-gold-light">
+                              players see this
+                            </Tag>
+                          ) : (
+                            run.appliedAt &&
+                            run.kind !== 'submission' && (
+                              <div className="text-xs text-pencil mt-1 whitespace-nowrap">
+                                applied {formatDateTime(run.appliedAt)}
+                              </div>
+                            )
+                          )}
                         </td>
                         <td className={cn(td, 'max-w-48')}>“{run.prompt}”</td>
                         <td
@@ -295,16 +318,27 @@ const AILogPage = () => {
                         </td>
                         <td className={td}>
                           {run.submissionId && (
-                            <RerunAIButton
-                              submissionId={run.submissionId}
-                              personalityId={run.personalityId}
-                              judgeName={run.judgeName}
-                              artist={
-                                run.kind === 'submission'
-                                  ? run.user?.username
-                                  : undefined
-                              }
-                            />
+                            <span className="flex flex-col items-start gap-2">
+                              <RerunAIButton
+                                submissionId={run.submissionId}
+                                personalityId={run.personalityId || undefined}
+                                judgeName={run.judgeName}
+                                artist={
+                                  run.kind === 'submission'
+                                    ? run.user?.username
+                                    : undefined
+                                }
+                              />
+                              {canApplyAIRun(run) && (
+                                <ApplyAIRunButton
+                                  key={run.id}
+                                  run={{
+                                    ...run,
+                                    submissionId: run.submissionId,
+                                  }}
+                                />
+                              )}
+                            </span>
                           )}
                         </td>
                       </tr>

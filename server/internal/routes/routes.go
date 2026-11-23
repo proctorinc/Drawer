@@ -260,6 +260,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				adminGroup.DELETE("/ai/personalities/:id", handlers.HandleAdminDeleteAIPersonality)
 				adminGroup.POST("/ai/test", handlers.HandleAdminTestAI)
 				adminGroup.GET("/ai/runs", handlers.HandleAdminListAIRuns)
+				adminGroup.POST("/ai/runs/:id/apply", handlers.HandleAdminApplyAIRun)
 				adminGroup.GET("/ai/reviews", handlers.HandleAdminListAIReviews)
 				adminGroup.POST("/ai/reviews/:submissionId/rerun", handlers.HandleAdminRerunAIReview)
 				adminGroup.GET("/announcements", handlers.HandleAdminListAnnouncements)

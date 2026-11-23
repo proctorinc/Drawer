@@ -353,7 +353,7 @@ type AdminAITestResult struct {
 // HandleAdminTestAI is the testing ground: one or more judges, unsaved edits and all, review
 // the same doodle side by side. The doodle is a past one (submissionId) or a custom prompt
 // and drawing (prompt + imageData, a data:image/png;base64 URL). Every run is logged as a
-// test; nothing is saved to any doodle or shown to players.
+// test; nothing is saved to any doodle or shown to players until an admin applies a run.
 func HandleAdminTestAI(c *gin.Context) {
 	appCtx := requestContext.GetCtx(c)
 	ctx := c.Request.Context()
@@ -482,8 +482,15 @@ func HandleAdminListAIRuns(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"runs": runs, "stats": stats})
 }
 
-// HandleAdminRerunAIReview re-judges a doodle and saves it over its old review, shown to
-// players. The body may pick the judge; otherwise it's whoever would judge it today.
+// AdminAIRerun is a fresh run on a doodle, logged but not yet applied.
+type AdminAIRerun struct {
+	Verdict AdminAIVerdict `json:"verdict"`
+	Run     queries.AIRun  `json:"run"`
+}
+
+// HandleAdminRerunAIReview has a judge look at a doodle again and logs it as a re-run. Players
+// see nothing new until an admin applies the run (HandleAdminApplyAIRun). The body may pick the
+// judge; otherwise it's whoever reviewed the doodle, or whoever would judge it today.
 func HandleAdminRerunAIReview(c *gin.Context) {
 	appCtx := requestContext.GetCtx(c)
 	ctx := c.Request.Context()
@@ -499,12 +506,22 @@ func HandleAdminRerunAIReview(c *gin.Context) {
 		return
 	}
 
+	judgeID := body.PersonalityID
+	if judgeID == "" {
+		id, err := queries.GetAIReviewJudgeID(appCtx.DB, ctx, submissionID)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			log.Printf("Error loading the judge of %s: %v", submissionID, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to pick an AI judge"))
+			return
+		}
+		judgeID = id
+	}
 	var (
 		p   models.AIPersonality
 		err error
 	)
-	if body.PersonalityID != "" {
-		p, err = queries.GetAIPersonality(appCtx.DB, ctx, body.PersonalityID)
+	if judgeID != "" {
+		p, err = queries.GetAIPersonality(appCtx.DB, ctx, judgeID)
 	} else {
 		p, err = ai.PickPersonalityForDay(appCtx.DB, ctx, appCtx.Config, sub.Day)
 	}
@@ -519,13 +536,31 @@ func HandleAdminRerunAIReview(c *gin.Context) {
 	}
 
 	provider := ai.NewProvider(settings)
-	meta := ai.RunMeta{Kind: queries.AIRunRerun, UserID: middleware.GetUser(c).ID}
-	verdict, err := ai.Review(ctx, appCtx.DB, provider, submissionID, ai.Request{Personality: p, Prompt: sub.Prompt, Image: image}, meta)
+	meta := ai.RunMeta{Kind: queries.AIRunRerun, SubmissionID: submissionID, UserID: middleware.GetUser(c).ID}
+	verdict, run, err := ai.RunAndLog(ctx, appCtx.DB, provider, ai.Request{Personality: p, Prompt: sub.Prompt, Image: image}, meta)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadGateway, Error(err.Error()))
 		return
 	}
-	c.JSON(http.StatusOK, newAdminAIVerdict(verdict, provider.Model()))
+	c.JSON(http.StatusOK, AdminAIRerun{Verdict: newAdminAIVerdict(verdict, provider.Model()), Run: run})
+}
+
+// HandleAdminApplyAIRun makes a logged re-run or testing-ground run its doodle's review, the
+// one players see, replacing the old one (which stays in the AI log).
+func HandleAdminApplyAIRun(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	err := queries.ApplyAIRun(appCtx.DB, c.Request.Context(), c.Param("id"))
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		c.AbortWithStatusJSON(http.StatusNotFound, Error("No such AI run"))
+	case errors.Is(err, queries.ErrAIRunNoDoodle), errors.Is(err, queries.ErrAIRunFailed), errors.Is(err, queries.ErrAIRunJudgeGone):
+		c.AbortWithStatusJSON(http.StatusBadRequest, Error(err.Error()))
+	case err != nil:
+		log.Printf("Error applying AI run %s: %v", c.Param("id"), err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to apply the review"))
+	default:
+		c.Status(http.StatusNoContent)
+	}
 }
 
 func HandleAdminListAIReviews(c *gin.Context) {

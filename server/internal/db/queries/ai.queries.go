@@ -268,8 +268,9 @@ func StartAIReview(repo *sql.DB, ctx context.Context, submissionID string, p mod
 	return nil
 }
 
-// FinishAIReview saves a judge's verdict on a doodle.
-func FinishAIReview(repo *sql.DB, ctx context.Context, submissionID string, score float64, criteria []models.AICriterionScore, comment, model string) error {
+// FinishAIReview saves a judge's verdict on a doodle, from the logged run runID ("" when it
+// wasn't logged), and marks that run applied.
+func FinishAIReview(repo *sql.DB, ctx context.Context, submissionID, runID string, score float64, criteria []models.AICriterionScore, comment, model string) error {
 	if criteria == nil {
 		criteria = []models.AICriterionScore{}
 	}
@@ -278,13 +279,26 @@ func FinishAIReview(repo *sql.DB, ctx context.Context, submissionID string, scor
 		return err
 	}
 	_, err = repo.ExecContext(ctx, `
-		UPDATE ai_reviews SET status = 'done', score = ?, criteria_scores = ?, comment = ?, model = ?, error = '', updated_at = CURRENT_TIMESTAMP
+		UPDATE ai_reviews SET status = 'done', score = ?, criteria_scores = ?, comment = ?, model = ?, error = '',
+			run_id = NULLIF(?, ''), updated_at = CURRENT_TIMESTAMP
 		WHERE submission_id = ?`,
-		score, string(criteriaJSON), comment, model, submissionID)
+		score, string(criteriaJSON), comment, model, runID, submissionID)
 	if err != nil {
 		return fmt.Errorf("error saving AI review of %s: %w", submissionID, err)
 	}
+	if runID != "" {
+		if _, err = repo.ExecContext(ctx, `UPDATE ai_runs SET applied_at = CURRENT_TIMESTAMP WHERE id = ?`, runID); err != nil {
+			return fmt.Errorf("error marking AI run %s applied: %w", runID, err)
+		}
+	}
 	return nil
+}
+
+// GetAIReviewJudgeID returns who judged a doodle's review, or sql.ErrNoRows when it has none.
+func GetAIReviewJudgeID(repo *sql.DB, ctx context.Context, submissionID string) (string, error) {
+	var id string
+	err := repo.QueryRowContext(ctx, `SELECT personality_id FROM ai_reviews WHERE submission_id = ?`, submissionID).Scan(&id)
+	return id, err
 }
 
 // FailAIReview records why a doodle couldn't be judged; players never see a failed review.

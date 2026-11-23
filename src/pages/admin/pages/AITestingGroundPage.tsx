@@ -21,6 +21,7 @@ import {
   inputClass,
 } from '../components/aiJudgeForm';
 import { AIRunBreakdown } from '../components/AIRunBreakdown';
+import { ApplyAIRunButton } from '../components/ApplyAIRunButton';
 import type { AIPersonality, AITestResult, AITestSource } from '../api';
 import type { FC } from 'react';
 import { AIJudgeAvatar } from '@/ai/AIJudgeAvatar';
@@ -61,6 +62,8 @@ type Batch = {
   id: string;
   prompt: string;
   imageUrl: string;
+  /** The past doodle it judged, which a run can be applied to; null for a custom drawing */
+  submissionId: string | null;
   at: Date;
   results: Array<AITestResult & { judge: AIPersonality; edited: boolean }>;
 };
@@ -303,9 +306,19 @@ const BatchResults: FC<{ batch: Batch }> = ({ batch }) => (
                 <b className="font-accent text-xl">{r.judge.name}</b>
               </div>
             )}
-            {r.edited && (
-              <Tag className="self-start bg-butter">edited prompt</Tag>
-            )}
+            <div className="flex flex-wrap items-center gap-3">
+              {r.edited && <Tag className="bg-butter">edited prompt</Tag>}
+              {batch.submissionId && r.verdict && r.run.id && (
+                <ApplyAIRunButton
+                  run={{ ...r.run, submissionId: batch.submissionId }}
+                  note={
+                    r.edited &&
+                    "this run used an edited prompt that isn't saved; the judge keeps its saved prompt for other doodles."
+                  }
+                  showLabel
+                />
+              )}
+            </div>
           </div>
           <AIRunBreakdown run={r.run} hideComment />
         </div>
@@ -318,8 +331,8 @@ const BatchResults: FC<{ batch: Batch }> = ({ batch }) => (
 
 /**
  * Run judges on a past doodle or your own drawing, tweak them, and compare.
- * Admin only: nothing here is saved to a doodle or shown to players, but every
- * run lands in the AI log.
+ * Admin only: nothing here reaches players unless you apply a run to a past
+ * doodle, and every run lands in the AI log.
  */
 const AITestingGroundPage = () => {
   const settings = useAISettings();
@@ -373,6 +386,7 @@ const AITestingGroundPage = () => {
               id: data.batchId,
               prompt: data.prompt,
               imageUrl,
+              submissionId: source.kind === 'past' ? source.submissionId : null,
               at: new Date(),
               results: data.results.map((r, i) => ({
                 ...r,
@@ -389,7 +403,7 @@ const AITestingGroundPage = () => {
   return (
     <AdminPage
       title="ai testing ground"
-      subtitle="run judges on any doodle, tweak them, compare. Nothing here reaches players."
+      subtitle="run judges on any doodle, tweak them, compare. Nothing reaches players unless you apply it."
       actions={
         <Link to="/draw/admin/ai/log" className="underline text-pencil">
           see every run in the AI log

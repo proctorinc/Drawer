@@ -34,6 +34,7 @@ var eventMigrations = []string{
 	"1795131900_add_ai_run_metadata.up.sql",
 	"1795132200_doodleton_craft_criteria.up.sql",
 	"1795132300_ai_model_gpt41.up.sql",
+	"1795132400_ai_run_applied.up.sql",
 }
 
 // NewEventsDB returns an in-memory database with the schema from migrations/schema.sql, where

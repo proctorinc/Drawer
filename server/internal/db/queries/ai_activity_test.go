@@ -74,7 +74,7 @@ func TestMarkAIReviewHeard(t *testing.T) {
 	if err := StartAIReview(db, ctx, "mine", judge); err != nil {
 		t.Fatal(err)
 	}
-	if err := FinishAIReview(db, ctx, "mine", 7, nil, "Better.", "test"); err != nil {
+	if err := FinishAIReview(db, ctx, "mine", "", 7, nil, "Better.", "test"); err != nil {
 		t.Fatal(err)
 	}
 	if heard() {
