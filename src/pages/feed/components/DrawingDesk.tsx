@@ -14,6 +14,7 @@ import { ClockIcon, PinIcon, TrophyIcon } from '@/components/icons';
 import { CanvasSettingsButton } from '@/drawing/CanvasSettings';
 import { useDrawing } from '@/drawing/DrawingContext';
 import { Toolbar } from '@/drawing/Toolbar';
+import { pencilsFor } from '@/drawing/pencils';
 import ZoomableCanvas from '@/drawing/ZoomableCanvas';
 import useUser from '@/auth/hooks/useUser';
 import { TreeIcon } from '@/events/christmas/Decorations';
@@ -199,7 +200,7 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
 
   const backgroundColor =
     dailyPrompt.colors.length === 4 ? dailyPrompt.colors[3] : undefined;
-  const colors = dailyPrompt.colors.slice(0, 3);
+  const pencils = pencilsFor(dailyPrompt);
 
   async function handleSubmit() {
     // The pin flies from where the canvas sits, so show all of it first
@@ -298,12 +299,12 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
 
             {compact ? (
               <div className="flex items-center gap-3">
-                <Toolbar colors={colors} compact className="flex-1 min-w-0" />
+                <Toolbar pencils={pencils} compact className="flex-1 min-w-0" />
                 {submit}
               </div>
             ) : (
               <>
-                <Toolbar colors={colors} />
+                <Toolbar pencils={pencils} />
                 <div className="mt-1">{submit}</div>
               </>
             )}

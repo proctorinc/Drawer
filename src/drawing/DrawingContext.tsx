@@ -13,6 +13,7 @@ import { getEventPoint } from './shapes/Point';
 import { strokeFeedback } from './feedback';
 import type { FC, PointerEvent as ReactPointerEvent } from 'react';
 import type { SerializedPath } from './shapes/Path';
+import type { Pencil } from './pencils';
 import { usePencilSoundSync } from '@/api/appSettings';
 import { Config } from '@/config/Config';
 
@@ -31,7 +32,9 @@ type CanvasBindings = {
 type DrawingContextType = {
   /** null while the eraser is in hand */
   selectedColor: string | null;
-  setSelectedColor: (color: string) => void;
+  /** How thick the pencil (or eraser) in hand draws */
+  selectedSize: number;
+  selectPencil: (pencil: Pencil) => void;
   selectEraser: () => void;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   canvasBindings: CanvasBindings;
@@ -109,7 +112,10 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
   localStorageKey,
 }) => {
   usePencilSoundSync();
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [pencil, setPencil] = useState<Pencil | null>(null);
+  const selectedColor = pencil?.color ?? null;
+  // The eraser stays the size it's always been
+  const selectedSize = pencil?.size ?? Config.CURSOR_SIZE;
   const [paths, setPaths] = useState<Array<Path>>(() =>
     loadPaths(localStorageKey),
   );
@@ -125,8 +131,8 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
     pointerType: string;
   } | null>(null);
   const frameRef = useRef(0);
-  const selectedColorRef = useRef(selectedColor);
-  selectedColorRef.current = selectedColor;
+  const pencilRef = useRef(pencil);
+  pencilRef.current = pencil;
 
   const paint = useCallback(() => {
     frameRef.current = 0;
@@ -232,14 +238,15 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
         } catch {
           // The pointer's already gone; its release will still end the stroke
         }
-        const color = selectedColorRef.current;
+        const inHand = pencilRef.current;
+        const color = inHand?.color ?? null;
         currentRef.current = {
           pointerId: event.pointerId,
           pointerType: event.pointerType,
           path: new Path(
             [getEventPoint(event, event.currentTarget)],
             color ?? '#000',
-            Config.CURSOR_SIZE,
+            inHand?.size ?? Config.CURSOR_SIZE,
             color === null,
           ),
         };
@@ -299,7 +306,17 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
     setPaths((prev) => prev.slice(0, -1));
   }, []);
 
-  const selectEraser = useCallback(() => setSelectedColor(null), []);
+  const selectEraser = useCallback(() => setPencil(null), []);
+  // A new object each time, so keep the old one if it's the same pencil
+  const selectPencil = useCallback(
+    (next: Pencil) =>
+      setPencil((prev) =>
+        prev && prev.color === next.color && prev.size === next.size
+          ? prev
+          : next,
+      ),
+    [],
+  );
 
   const getPng = useCallback(
     async (backgroundColor?: string): Promise<Blob> => {
@@ -326,7 +343,8 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
     <DrawingContext.Provider
       value={{
         selectedColor,
-        setSelectedColor,
+        selectedSize,
+        selectPencil,
         selectEraser,
         canvasRef,
         canvasBindings,

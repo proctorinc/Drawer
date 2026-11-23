@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './apiClient';
+import type { Pencil } from '@/drawing/pencils';
 
 export interface DailyPrompt {
   day: string;
   colors: Array<string>;
+  /** The day's own pencils; left out for the usual three (see pencilsFor) */
+  pencils?: Array<Pencil>;
   prompt: string;
   isCompleted: boolean;
   createdBy: User | null;

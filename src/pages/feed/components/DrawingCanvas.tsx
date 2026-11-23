@@ -6,6 +6,7 @@ import Button from '@/components/Button';
 import ZoomableCanvas from '@/drawing/ZoomableCanvas';
 import { useDrawing } from '@/drawing/DrawingContext';
 import { Toolbar } from '@/drawing/Toolbar';
+import { defaultPencils } from '@/drawing/pencils';
 import { cn } from '@/utils';
 import { PinIcon } from '@/components/icons';
 
@@ -122,7 +123,7 @@ const DrawingCanvas: FC<Props> = ({
           )}
         </div>
       </div>
-      {colors && <Toolbar colors={colors} />}
+      {colors && <Toolbar pencils={defaultPencils(colors)} />}
       <div className="flex gap-2 w-full">
         <Button
           className="flex-1"

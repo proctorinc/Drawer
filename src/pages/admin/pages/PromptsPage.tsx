@@ -37,11 +37,18 @@ import type { User } from '@/api/Api';
 import { useCreatePrompt } from '@/api/Api';
 import Button from '@/components/Button';
 import EventIcon from '@/events/EventIcon';
+import { pencilsFor } from '@/drawing/pencils';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { cn } from '@/utils';
 
 /** How far ahead the schedule shows empty days */
 const SCHEDULE_DAYS = 30;
+
+/** A day's pencils then its paper, so added pencils show up in the list too */
+const swatchColors = (prompt: AdminPrompt) => [
+  ...pencilsFor(prompt).map((pencil) => pencil.color),
+  ...prompt.colors.slice(3, 4),
+];
 
 type Editing = { day: string; prompt?: AdminPrompt };
 
@@ -233,7 +240,7 @@ const PromptsPage = () => {
                         </span>
                       </td>
                       <td className={td}>
-                        <Swatches colors={p.colors} />
+                        <Swatches colors={swatchColors(p)} />
                       </td>
                       <td className={td}>
                         <Author user={p.createdBy} />
@@ -292,6 +299,7 @@ const EditPrompt = ({
         fixedDay={day}
         initialPrompt={prompt?.prompt}
         initialColors={prompt?.colors}
+        initialPencils={prompt?.pencils}
         initialJudgeId={prompt?.judgeId ?? null}
         suggester={prompt?.createdBy ?? undefined}
         scheduleLabel={prompt ? 'save' : 'add'}
@@ -401,7 +409,7 @@ const ScheduleDay = ({
             {prompt.prompt}
           </span>
           <span className="flex items-center gap-2">
-            <Swatches colors={prompt.colors} />
+            <Swatches colors={swatchColors(prompt)} />
             {prompt.createdBy && (
               <span className="text-sm text-pencil">
                 by {prompt.createdBy.username}

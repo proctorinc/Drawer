@@ -118,10 +118,12 @@ func HandleImpersonateUser(c *gin.Context) {
 
 // CreatePromptRequest represents the request body for creating/updating a prompt
 type CreatePromptRequest struct {
-	Day       string   `json:"day" binding:"required"`
-	Prompt    string   `json:"prompt" binding:"required"`
-	Colors    []string `json:"colors" binding:"required"`
-	CreatedBy string   `json:"createdBy"`
+	Day    string   `json:"day" binding:"required"`
+	Prompt string   `json:"prompt" binding:"required"`
+	Colors []string `json:"colors" binding:"required"`
+	// Leave out for the usual three pencils
+	Pencils   []models.Pencil `json:"pencils"`
+	CreatedBy string          `json:"createdBy"`
 	// The AI judge for the day: nil leaves it as it is, "" hands it back to the event's or
 	// default judge
 	JudgeID *string `json:"judgeId"`
@@ -151,6 +153,10 @@ func HandleCreatePrompt(c *gin.Context) {
 			return
 		}
 	}
+	if msg := validatePencils(req.Pencils); msg != "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
 
 	// Hands the day to the requested AI judge, if one was sent. Reports false after aborting.
 	setJudge := func() bool {
@@ -173,7 +179,7 @@ func HandleCreatePrompt(c *gin.Context) {
 	_, err := queries.GetDailyPrompt(appCtx.DB, c.Request.Context(), req.Day)
 	if err == nil {
 		// Prompt exists, update it instead
-		err = queries.UpdateDailyPrompt(appCtx.DB, c.Request.Context(), req.Day, req.Prompt, req.Colors, &req.CreatedBy)
+		err = queries.UpdateDailyPrompt(appCtx.DB, c.Request.Context(), req.Day, req.Prompt, req.Colors, req.Pencils, &req.CreatedBy)
 		if err != nil {
 			log.Printf("Error updating prompt for day %s: %v", req.Day, err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update prompt"})
@@ -192,7 +198,7 @@ func HandleCreatePrompt(c *gin.Context) {
 	}
 
 	// Prompt doesn't exist, create new one
-	err = queries.CreateDailyPrompt(appCtx.DB, c.Request.Context(), req.Day, req.Prompt, req.Colors)
+	err = queries.CreateDailyPrompt(appCtx.DB, c.Request.Context(), req.Day, req.Prompt, req.Colors, req.Pencils)
 	if err != nil {
 		log.Printf("Error creating prompt for day %s: %v", req.Day, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to create prompt"})

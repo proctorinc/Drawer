@@ -13,6 +13,7 @@ import type {
   User,
   UserPromptSubmission,
 } from './Api';
+import type { Pencil } from '@/drawing/pencils';
 import { Config } from '@/config/Config';
 
 let getAuthToken: () => Promise<string | null> = () => Promise.resolve(null);
@@ -589,6 +590,8 @@ export const apiClient = {
     day: string;
     prompt: string;
     colors: Array<string>;
+    /** The day's own pencils, or null for the usual three */
+    pencils?: Array<Pencil> | null;
     createdBy?: string;
     /** The day's AI judge: "" for auto; leave it out to keep the current one */
     judgeId?: string;

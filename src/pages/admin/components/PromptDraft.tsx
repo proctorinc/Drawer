@@ -3,6 +3,7 @@ import {
   faCalendarPlus,
   faCheck,
   faDice,
+  faPlus,
   faTimes,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons';
@@ -14,6 +15,14 @@ import { Panel, formatDay } from './ui';
 import type { AIPersonality, AdminEvent } from '../api';
 import type { FC, ReactNode } from 'react';
 import type { User } from '@/api/Api';
+import type { Pencil } from '@/drawing/pencils';
+import {
+  DEFAULT_PENCIL_SIZE,
+  PENCIL_SIZES,
+  isDefaultPencils,
+  pencilButtonScale,
+  pencilsFor,
+} from '@/drawing/pencils';
 import { useCreatePrompt } from '@/api/Api';
 import { AIJudgeAvatar } from '@/ai/AIJudgeAvatar';
 import Button from '@/components/Button';
@@ -36,9 +45,34 @@ export type Draft = {
   day: string;
   prompt: string;
   colors: Array<string>;
+  /** The day's own pencils, or null for the usual three */
+  pencils: Array<Pencil> | null;
   /** The AI judge picked for the day, or null for the event's or default judge */
   judgeId: string | null;
 };
+
+// Room on the toolbar; the server allows no more
+const MAX_PENCILS = 6;
+
+/**
+ * What a prompt stores for its pencils and paper: its colors are the first three
+ * pencils' (topped up from the old colors if there are fewer) then the paper, and
+ * its pencils only when they aren't just the usual three.
+ */
+export function promptColors(
+  pencils: Array<Pencil>,
+  paper: string | undefined,
+  fallback: Array<string>,
+) {
+  const base = [0, 1, 2].map(
+    (i) => pencils.at(i)?.color ?? fallback.at(i) ?? pencils[0].color,
+  );
+  const colors = paper ? [...base, paper] : base;
+  return {
+    colors,
+    pencils: isDefaultPencils(pencils, colors) ? null : pencils,
+  };
+}
 
 const inputClass =
   'px-3 py-2 bg-white border-2 border-ink rounded-sketch-alt focus:outline-none focus:ring-2 focus:ring-butter';
@@ -57,44 +91,125 @@ export function autoJudgeFor(
   );
 }
 
-/** One swatch per color, each opening a color picker */
-export const ColorPicker: FC<{
-  colors: Array<string>;
-  onChange: (colors: Array<string>) => void;
-}> = ({ colors, onChange }) => (
-  <div className="flex items-center gap-2">
-    {colors.map((color, i) => (
-      <label
-        key={i}
-        title={i === 3 ? `paper ${color}` : `color ${i + 1} ${color}`}
-        className={cn(
-          'relative size-9 border-2 border-ink cursor-pointer overflow-hidden hover:scale-110 transition-[scale]',
-          // The fourth color is the paper, drawn square to tell it apart
-          i === 3 ? 'rounded-md' : 'rounded-full',
-        )}
-        style={{ backgroundColor: color }}
-      >
-        <input
-          type="color"
-          value={color}
-          onChange={(e) =>
-            onChange(colors.map((c, j) => (j === i ? e.target.value : c)))
+/**
+ * The day's pencils, each a dab sized like its toolbar button that opens a color
+ * picker, with a size under it; then the paper, drawn square
+ */
+export const PencilPicker: FC<{
+  pencils: Array<Pencil>;
+  paper: string | undefined;
+  onChange: (pencils: Array<Pencil>, paper: string | undefined) => void;
+}> = ({ pencils, paper, onChange }) => {
+  const setPencil = (i: number, change: Partial<Pencil>) =>
+    onChange(
+      pencils.map((p, j) => (j === i ? { ...p, ...change } : p)),
+      paper,
+    );
+  const swatch =
+    'relative border-2 border-ink cursor-pointer overflow-hidden hover:scale-110 transition-[scale]';
+  return (
+    <div className="flex flex-wrap items-start gap-2">
+      {pencils.map((pencil, i) => (
+        <div
+          key={i}
+          className="group relative flex flex-col items-center gap-1"
+        >
+          <span className="grid place-items-center size-11">
+            <label
+              title={`pencil ${i + 1} ${pencil.color}`}
+              className={cn(swatch, 'rounded-full')}
+              style={{
+                backgroundColor: pencil.color,
+                width: `${36 * pencilButtonScale(pencil.size)}px`,
+                height: `${36 * pencilButtonScale(pencil.size)}px`,
+              }}
+            >
+              <input
+                type="color"
+                value={pencil.color}
+                onChange={(e) => setPencil(i, { color: e.target.value })}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+              />
+            </label>
+          </span>
+          <select
+            value={pencil.size}
+            onChange={(e) => setPencil(i, { size: Number(e.target.value) })}
+            aria-label={`Pencil ${i + 1} size`}
+            className="text-xs bg-white border border-ink rounded px-0.5"
+          >
+            {PENCIL_SIZES.map(({ label, size }) => (
+              <option key={size} value={size}>
+                {label}
+              </option>
+            ))}
+          </select>
+          {pencils.length > 1 && (
+            <button
+              type="button"
+              onClick={() =>
+                onChange(
+                  pencils.filter((_, j) => j !== i),
+                  paper,
+                )
+              }
+              className="absolute -top-1 -right-1 hidden group-hover:grid place-items-center size-4 text-[10px] bg-white border border-ink rounded-full cursor-pointer"
+              aria-label={`Remove pencil ${i + 1}`}
+            >
+              <FontAwesomeIcon icon={faTimes} />
+            </button>
+          )}
+        </div>
+      ))}
+      {pencils.length < MAX_PENCILS && (
+        <button
+          type="button"
+          onClick={() =>
+            onChange(
+              [...pencils, { color: '#2b2a33', size: DEFAULT_PENCIL_SIZE }],
+              paper,
+            )
           }
-          className="absolute inset-0 opacity-0 cursor-pointer"
-        />
-      </label>
-    ))}
-    <button
-      type="button"
-      onClick={() => onChange(generateRandomColors())}
-      className="grid place-items-center size-9 text-lg border-2 border-dashed border-ink rounded-full cursor-pointer hover:bg-butter"
-      title="random colors"
-      aria-label="Random colors"
-    >
-      <FontAwesomeIcon icon={faDice} />
-    </button>
-  </div>
-);
+          className="grid place-items-center size-11 border-2 border-dashed border-ink rounded-full cursor-pointer hover:bg-butter"
+          title="add a pencil"
+          aria-label="Add a pencil"
+        >
+          <FontAwesomeIcon icon={faPlus} />
+        </button>
+      )}
+      {paper && (
+        <label
+          title={`paper ${paper}`}
+          className={cn(swatch, 'size-11 rounded-md')}
+          style={{ backgroundColor: paper }}
+        >
+          <input
+            type="color"
+            value={paper}
+            onChange={(e) => onChange(pencils, e.target.value)}
+            className="absolute inset-0 opacity-0 cursor-pointer"
+          />
+        </label>
+      )}
+      <button
+        type="button"
+        onClick={() => {
+          // New colors for the usual three and the paper; added pencils keep theirs
+          const random = generateRandomColors();
+          onChange(
+            pencils.map((p, i) => (i < 3 ? { ...p, color: random[i] } : p)),
+            paper ? random[3] : undefined,
+          );
+        }}
+        className="grid place-items-center size-11 text-lg border-2 border-dashed border-ink rounded-full cursor-pointer hover:bg-butter"
+        title="random colors"
+        aria-label="Random colors"
+      >
+        <FontAwesomeIcon icon={faDice} />
+      </button>
+    </div>
+  );
+};
 
 const openModals: Array<symbol> = [];
 
@@ -271,6 +386,7 @@ export const PromptDraft: FC<{
   calendar: Calendar;
   initialPrompt?: string;
   initialColors?: Array<string>;
+  initialPencils?: Array<Pencil> | null;
   initialJudgeId?: string | null;
   /** Editing this day's prompt: no picking where it goes */
   fixedDay?: string;
@@ -283,6 +399,7 @@ export const PromptDraft: FC<{
   calendar,
   initialPrompt = '',
   initialColors,
+  initialPencils,
   initialJudgeId = null,
   fixedDay,
   suggester,
@@ -294,9 +411,14 @@ export const PromptDraft: FC<{
   const { taken, events, firstDay } = calendar;
   const judges = useAIPersonalities().data ?? [];
   const [prompt, setPrompt] = useState(initialPrompt);
-  const [colors, setColors] = useState(() =>
+  // The colors it started with, for topping up if pencils are taken away
+  const [startColors] = useState(() =>
     initialColors?.length ? initialColors : generateRandomColors(),
   );
+  const [pencils, setPencils] = useState(() =>
+    pencilsFor({ colors: startColors, pencils: initialPencils }),
+  );
+  const [paper, setPaper] = useState(startColors.at(3));
   const [judgeId, setJudgeId] = useState(initialJudgeId);
   const [pickingJudge, setPickingJudge] = useState(false);
   const [when, setWhen] = useState<When>('next');
@@ -330,7 +452,12 @@ export const PromptDraft: FC<{
     setSaving(true);
     setError('');
     try {
-      await onSchedule({ day, prompt: prompt.trim(), colors, judgeId });
+      await onSchedule({
+        day,
+        prompt: prompt.trim(),
+        ...promptColors(pencils, paper, startColors),
+        judgeId,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to schedule');
       setSaving(false);
@@ -358,7 +485,14 @@ export const PromptDraft: FC<{
           aria-label="Prompt"
           className={cn(inputClass, 'font-accent font-bold text-2xl')}
         />
-        <ColorPicker colors={colors} onChange={setColors} />
+        <PencilPicker
+          pencils={pencils}
+          paper={paper}
+          onChange={(nextPencils, nextPaper) => {
+            setPencils(nextPencils);
+            setPaper(nextPaper);
+          }}
+        />
         {judges.length > 0 && (
           <span className="flex items-center gap-2 min-w-0">
             <span className="text-pencil">judged by</span>

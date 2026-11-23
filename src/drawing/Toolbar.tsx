@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useDrawing } from './DrawingContext';
 import { toolFeedback } from './feedback';
-import type { FC, ReactNode } from 'react';
+import { pencilButtonScale } from './pencils';
+import type { Pencil } from './pencils';
+import type { CSSProperties, FC, ReactNode } from 'react';
 import { cn, dabShapes } from '@/utils';
 import { EraserIcon, UndoIcon } from '@/components/icons';
 
 type Props = {
-  colors: Array<string>;
+  pencils: Array<Pencil>;
   /** Smaller tools, for sharing a row with the submit button on short screens */
   compact?: boolean;
   className?: string;
@@ -45,10 +47,11 @@ const ToolButton: FC<ToolButtonProps> = ({
   </button>
 );
 
-export const Toolbar: FC<Props> = ({ colors, compact = false, className }) => {
+export const Toolbar: FC<Props> = ({ pencils, compact = false, className }) => {
   const {
     selectedColor,
-    setSelectedColor,
+    selectedSize,
+    selectPencil,
     selectEraser,
     undo,
     canUndo,
@@ -56,19 +59,23 @@ export const Toolbar: FC<Props> = ({ colors, compact = false, className }) => {
   } = useDrawing();
   // Bumped on each undo so the arrow spins again
   const [undoSpin, setUndoSpin] = useState(0);
-  const firstColor = colors.at(0);
+  // Primitives, so a fresh but identical list doesn't take the pencil away
+  const firstColor = pencils.at(0)?.color;
+  const firstSize = pencils.at(0)?.size;
 
-  // Start with a color in hand rather than the eraser
+  // Start with a pencil in hand rather than the eraser
   useEffect(() => {
-    if (firstColor) setSelectedColor(firstColor);
-  }, [firstColor, setSelectedColor]);
-
-  // Nothing left to erase: hand back a color, so the next stroke shows
-  useEffect(() => {
-    if (!hasInk && selectedColor === null && firstColor) {
-      setSelectedColor(firstColor);
+    if (firstColor && firstSize) {
+      selectPencil({ color: firstColor, size: firstSize });
     }
-  }, [hasInk, selectedColor, firstColor, setSelectedColor]);
+  }, [firstColor, firstSize, selectPencil]);
+
+  // Nothing left to erase: hand back a pencil, so the next stroke shows
+  useEffect(() => {
+    if (!hasInk && selectedColor === null && firstColor && firstSize) {
+      selectPencil({ color: firstColor, size: firstSize });
+    }
+  }, [hasInk, selectedColor, firstColor, firstSize, selectPencil]);
 
   return (
     <div
@@ -84,8 +91,9 @@ export const Toolbar: FC<Props> = ({ colors, compact = false, className }) => {
           compact ? 'gap-2 max-[359px]:gap-1.5' : 'gap-3',
         )}
       >
-        {colors.map((color, index) => {
-          const isSelected = selectedColor === color;
+        {pencils.map((pencil, index) => {
+          const { color, size } = pencil;
+          const isSelected = selectedColor === color && selectedSize === size;
           return (
             <button
               key={`toolbar-color-${index}`}
@@ -93,24 +101,28 @@ export const Toolbar: FC<Props> = ({ colors, compact = false, className }) => {
               aria-label={`Color ${index + 1}`}
               aria-pressed={isSelected}
               className={cn(
+                // A thinner pencil gets a smaller dab (not to scale)
                 compact
-                  ? 'size-10 max-[359px]:size-9'
-                  : colors.length > 3
-                    ? 'size-[42px]'
-                    : 'size-[50px]',
+                  ? 'size-[calc(40px*var(--dab))] max-[359px]:size-[calc(36px*var(--dab))]'
+                  : pencils.length > 4
+                    ? 'size-[calc(42px*var(--dab))]'
+                    : 'size-[calc(50px*var(--dab))]',
                 'border-2 border-ink cursor-pointer transition-[scale,rotate,box-shadow] duration-300 ease-[var(--ease-spring)] active:scale-90 animate-in zoom-in-0 fill-mode-both',
                 dabShapes[index % dabShapes.length],
                 isSelected
                   ? 'scale-[1.12] -rotate-6 shadow-[0_0_0_3px_var(--color-paper),0_0_0_5px_var(--color-ink)]'
                   : 'hover:scale-105 hover:rotate-3',
               )}
-              style={{
-                backgroundColor: color,
-                animationDelay: `${150 + index * 70}ms`,
-              }}
+              style={
+                {
+                  '--dab': pencilButtonScale(size),
+                  backgroundColor: color,
+                  animationDelay: `${150 + index * 70}ms`,
+                } as CSSProperties
+              }
               onClick={() => {
                 if (!isSelected) toolFeedback.color(index);
-                setSelectedColor(color);
+                selectPencil(pencil);
               }}
             />
           );

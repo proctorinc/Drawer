@@ -10,7 +10,7 @@ const Canvas: FC<HTMLAttributes<HTMLCanvasElement>> = ({
   style,
   ...props
 }) => {
-  const { selectedColor, canvasBindings } = useDrawing();
+  const { selectedColor, selectedSize, canvasBindings } = useDrawing();
 
   return (
     <canvas
@@ -26,7 +26,7 @@ const Canvas: FC<HTMLAttributes<HTMLCanvasElement>> = ({
         {
           '--canvas-w': `${Config.CANVAS_WIDTH}px`,
           '--canvas-h': `${Config.CANVAS_HEIGHT}px`,
-          cursor: createCursor(selectedColor),
+          cursor: createCursor(selectedColor, selectedSize),
           touchAction: 'none',
           ...style,
         } as CSSProperties

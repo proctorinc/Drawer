@@ -67,7 +67,7 @@ type AdminPrompt struct {
 
 func GetAllPrompts(repo *sql.DB, ctx context.Context) ([]AdminPrompt, error) {
 	rows, err := repo.QueryContext(ctx, `
-		SELECT dp.day, dp.colors, dp.prompt,
+		SELECT dp.day, dp.colors, dp.pencils, dp.prompt,
 			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
 			(SELECT COUNT(*) FROM user_submissions s WHERE s.day = dp.day), dp.judge_id
 		FROM daily_prompts dp
@@ -82,14 +82,16 @@ func GetAllPrompts(repo *sql.DB, ctx context.Context) ([]AdminPrompt, error) {
 	for rows.Next() {
 		var p AdminPrompt
 		var colors string
+		var pencils sql.NullString
 		var by nullableUser
-		dest := append([]any{&p.Day, &colors, &p.Prompt}, by.dest()...)
+		dest := append([]any{&p.Day, &colors, &pencils, &p.Prompt}, by.dest()...)
 		if err := rows.Scan(append(dest, &p.Submissions, &p.JudgeID)...); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal([]byte(colors), &p.Colors); err != nil {
 			p.Colors = []string{}
 		}
+		p.Pencils = parsePencils(pencils)
 		p.CreatedBy = by.user()
 		prompts = append(prompts, p)
 	}
@@ -422,7 +424,7 @@ var ErrDayTaken = errors.New("that day already has a prompt")
 // AcceptPromptSuggestion schedules a suggestion as day's prompt, credited to whoever
 // suggested it, and takes it off the list. It never replaces a prompt: if day already
 // has one it returns ErrDayTaken, and if the suggestion is gone, sql.ErrNoRows.
-func AcceptPromptSuggestion(repo *sql.DB, ctx context.Context, suggestionID, day, prompt string, colors []string) error {
+func AcceptPromptSuggestion(repo *sql.DB, ctx context.Context, suggestionID, day, prompt string, colors []string, pencils []models.Pencil) error {
 	colorsJSON, err := json.Marshal(colors)
 	if err != nil {
 		return err
@@ -439,8 +441,8 @@ func AcceptPromptSuggestion(repo *sql.DB, ctx context.Context, suggestionID, day
 	}
 
 	result, err := tx.ExecContext(ctx, `
-		INSERT INTO daily_prompts (day, colors, prompt, created_by) VALUES (?, ?, ?, ?)
-		ON CONFLICT (day) DO NOTHING`, day, string(colorsJSON), prompt, suggester)
+		INSERT INTO daily_prompts (day, colors, pencils, prompt, created_by) VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT (day) DO NOTHING`, day, string(colorsJSON), pencilsValue(pencils), prompt, suggester)
 	if err != nil {
 		return err
 	}

@@ -7,6 +7,7 @@ import type {
   User,
 } from '@/api/Api';
 import type { Level, Quest } from '@/api/trophies';
+import type { Pencil } from '@/drawing/pencils';
 import type { Announcement } from '@/announcements/api';
 import { queryKeys } from '@/api/Api';
 import { fetchAPI } from '@/api/apiClient';
@@ -222,6 +223,8 @@ export interface AcceptSuggestion {
   day: string;
   prompt: string;
   colors: Array<string>;
+  /** The day's own pencils, or null for the usual three */
+  pencils?: Array<Pencil> | null;
   /** The AI judge for the day, or null for the event's or default judge */
   judgeId?: string | null;
 }

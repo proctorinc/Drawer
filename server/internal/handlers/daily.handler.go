@@ -21,11 +21,12 @@ import (
 )
 
 type DailyPromptResponse struct {
-	Day         string       `json:"day"`
-	Colors      []string     `json:"colors"`
-	Prompt      string       `json:"prompt"`
-	IsCompleted bool         `json:"isCompleted"`
-	CreatedBy   *models.User `json:"createdBy"`
+	Day         string          `json:"day"`
+	Colors      []string        `json:"colors"`
+	Pencils     []models.Pencil `json:"pencils,omitempty"`
+	Prompt      string          `json:"prompt"`
+	IsCompleted bool            `json:"isCompleted"`
+	CreatedBy   *models.User    `json:"createdBy"`
 }
 
 func HandleGetDailyPrompt(c *gin.Context) {
@@ -62,6 +63,7 @@ func HandleGetDailyPrompt(c *gin.Context) {
 		IsCompleted: hasSubmittedToday,
 		Day:         prompt.Day,
 		Colors:      prompt.Colors,
+		Pencils:     prompt.Pencils,
 		Prompt:      prompt.Prompt,
 		CreatedBy:   prompt.CreatedBy,
 	}

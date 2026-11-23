@@ -34,7 +34,7 @@ func CheckUserSubmittedToday(repo *sql.DB, ctx context.Context, userID string) (
 }
 
 func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.DailyPrompt, error) {
-	query := `SELECT dp.day, dp.colors, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration
+	query := `SELECT dp.day, dp.colors, dp.pencils, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration
 		FROM daily_prompts dp
 		LEFT JOIN users u ON dp.created_by = u.id
 		WHERE day = ?`
@@ -43,6 +43,7 @@ func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.D
 	var (
 		prompt        models.DailyPrompt
 		colorsJSON    string
+		pencilsJSON   sql.NullString
 		userID        sql.NullString
 		username      sql.NullString
 		email         sql.NullString
@@ -52,7 +53,7 @@ func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.D
 		decoration    sql.NullString
 	)
 
-	err := row.Scan(&prompt.Day, &colorsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL, &decoration)
+	err := row.Scan(&prompt.Day, &colorsJSON, &pencilsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL, &decoration)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.DailyPrompt{}, sql.ErrNoRows
@@ -65,6 +66,7 @@ func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.D
 	if err != nil {
 		return models.DailyPrompt{}, fmt.Errorf("error parsing colors JSON: %w", err)
 	}
+	prompt.Pencils = parsePencils(pencilsJSON)
 
 	if userID.Valid {
 		prompt.CreatedBy = &models.User{
@@ -157,7 +159,7 @@ func GenerateAndInsertDailyPrompt(repo *sql.DB, ctx context.Context, dateStr str
 func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, error) {
 	today := utils.GetFormattedDate(time.Now())
 
-	query := `SELECT dp.day, dp.colors, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration
+	query := `SELECT dp.day, dp.colors, dp.pencils, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration
 	FROM daily_prompts dp
 	LEFT JOIN users u ON dp.created_by = u.id
 	WHERE day >= ? ORDER BY day ASC`
@@ -172,6 +174,7 @@ func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, 
 		var (
 			prompt        models.DailyPrompt
 			colorsJSON    string
+			pencilsJSON   sql.NullString
 			userID        sql.NullString
 			username      sql.NullString
 			email         sql.NullString
@@ -181,7 +184,7 @@ func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, 
 			decoration    sql.NullString
 		)
 
-		err := rows.Scan(&prompt.Day, &colorsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL, &decoration)
+		err := rows.Scan(&prompt.Day, &colorsJSON, &pencilsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL, &decoration)
 		if err != nil {
 			log.Printf("Error scanning future prompt row AAA: %v", err)
 			continue
@@ -193,6 +196,7 @@ func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, 
 			log.Printf("Error parsing colors JSON for day %s: %v", prompt.Day, err)
 			continue
 		}
+		prompt.Pencils = parsePencils(pencilsJSON)
 
 		if userID.Valid {
 			prompt.CreatedBy = &models.User{
@@ -217,14 +221,14 @@ func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, 
 }
 
 // CreateDailyPrompt creates a new daily prompt for a specific day
-func CreateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt string, colors []string) error {
+func CreateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt string, colors []string, pencils []models.Pencil) error {
 	colorsJSON, err := json.Marshal(colors)
 	if err != nil {
 		return fmt.Errorf("error marshaling colors to JSON: %w", err)
 	}
 
-	query := `INSERT INTO daily_prompts (day, colors, prompt) VALUES (?, ?, ?)`
-	_, err = repo.ExecContext(ctx, query, day, string(colorsJSON), prompt)
+	query := `INSERT INTO daily_prompts (day, colors, pencils, prompt) VALUES (?, ?, ?, ?)`
+	_, err = repo.ExecContext(ctx, query, day, string(colorsJSON), pencilsValue(pencils), prompt)
 	if err != nil {
 		return fmt.Errorf("error creating daily prompt for %s: %w", day, err)
 	}
@@ -233,14 +237,14 @@ func CreateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt str
 }
 
 // UpdateDailyPrompt updates an existing daily prompt for a specific day
-func UpdateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt string, colors []string, createdById *string) error {
+func UpdateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt string, colors []string, pencils []models.Pencil, createdById *string) error {
 	colorsJSON, err := json.Marshal(colors)
 	if err != nil {
 		return fmt.Errorf("error marshaling colors to JSON: %w", err)
 	}
 
-	query := `UPDATE daily_prompts SET colors = ?, prompt = ?, created_by = ? WHERE day = ?`
-	result, err := repo.ExecContext(ctx, query, string(colorsJSON), prompt, createdById, day)
+	query := `UPDATE daily_prompts SET colors = ?, pencils = ?, prompt = ?, created_by = ? WHERE day = ?`
+	result, err := repo.ExecContext(ctx, query, string(colorsJSON), pencilsValue(pencils), prompt, createdById, day)
 	if err != nil {
 		return fmt.Errorf("error updating daily prompt for %s: %w", day, err)
 	}
@@ -281,4 +285,29 @@ func HideTodaysDrawings(repo *sql.DB, ctx context.Context, viewerID string, subm
 		submission.ImageUrl = ""
 	}
 	return err
+}
+
+// parsePencils reads a prompt's pencils column; NULL or unreadable means the usual three
+func parsePencils(raw sql.NullString) []models.Pencil {
+	if !raw.Valid || raw.String == "" {
+		return nil
+	}
+	var pencils []models.Pencil
+	if err := json.Unmarshal([]byte(raw.String), &pencils); err != nil {
+		log.Printf("Error parsing pencils JSON %q: %v", raw.String, err)
+		return nil
+	}
+	return pencils
+}
+
+// pencilsValue is what goes in the pencils column: NULL for the usual three
+func pencilsValue(pencils []models.Pencil) any {
+	if len(pencils) == 0 {
+		return nil
+	}
+	b, err := json.Marshal(pencils)
+	if err != nil {
+		return nil
+	}
+	return string(b)
 }

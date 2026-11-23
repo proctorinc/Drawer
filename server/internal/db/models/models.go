@@ -6,10 +6,20 @@ import (
 
 // DailyPrompt represents the data returned for the daily challenge.
 type DailyPrompt struct {
-	Day       string   `json:"day"` // Format: YYYY-MM-DD
-	Colors    []string `json:"colors"`
+	Day    string   `json:"day"` // Format: YYYY-MM-DD
+	Colors []string `json:"colors"`
+	// The pencils handed out for the day; empty means the usual three: the first three
+	// colors at the default size
+	Pencils   []Pencil `json:"pencils,omitempty"`
 	Prompt    string   `json:"prompt"`
 	CreatedBy *User    `json:"createdBy"`
+}
+
+// Pencil is one color a prompt hands out, and how thick it draws (in canvas units;
+// the default pencil is 20)
+type Pencil struct {
+	Color string  `json:"color"`
+	Size  float64 `json:"size"`
 }
 
 type PromptSuggestion struct {

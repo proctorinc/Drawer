@@ -7,6 +7,7 @@ import (
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/utils"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
@@ -222,10 +223,36 @@ func HandleAdminActivityLog(c *gin.Context) {
 
 var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
+// Room on the toolbar, and pencils from a hairline to a marker
+const (
+	maxPencils    = 6
+	minPencilSize = 2
+	maxPencilSize = 60
+)
+
+// validatePencils reports what's wrong with a prompt's pencils, or "" if they're fine
+// (none at all means the usual three)
+func validatePencils(pencils []models.Pencil) string {
+	if len(pencils) > maxPencils {
+		return fmt.Sprintf("At most %d pencils", maxPencils)
+	}
+	for _, p := range pencils {
+		if !hexColor.MatchString(p.Color) {
+			return "Pencil colors must be hex, like #ff0000"
+		}
+		if p.Size < minPencilSize || p.Size > maxPencilSize {
+			return fmt.Sprintf("Pencil sizes must be %d to %d", minPencilSize, maxPencilSize)
+		}
+	}
+	return ""
+}
+
 type AcceptSuggestionRequest struct {
 	Day    string   `json:"day" binding:"required"`
 	Prompt string   `json:"prompt" binding:"required"`
 	Colors []string `json:"colors" binding:"required,min=1"`
+	// Leave out for the usual three pencils
+	Pencils []models.Pencil `json:"pencils"`
 	// The AI judge for the day, or "" for the event's or default judge
 	JudgeID string `json:"judgeId"`
 }
@@ -251,8 +278,12 @@ func HandleAcceptPromptSuggestion(c *gin.Context) {
 			return
 		}
 	}
+	if msg := validatePencils(req.Pencils); msg != "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, Error(msg))
+		return
+	}
 
-	err := queries.AcceptPromptSuggestion(appCtx.DB, c.Request.Context(), id, req.Day, req.Prompt, req.Colors)
+	err := queries.AcceptPromptSuggestion(appCtx.DB, c.Request.Context(), id, req.Day, req.Prompt, req.Colors, req.Pencils)
 	switch {
 	case errors.Is(err, sql.ErrNoRows):
 		c.AbortWithStatusJSON(http.StatusNotFound, Error("Suggestion not found"))

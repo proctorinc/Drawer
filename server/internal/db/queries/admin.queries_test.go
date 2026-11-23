@@ -116,11 +116,11 @@ func TestAcceptPromptSuggestion(t *testing.T) {
 	colors := []string{"#000000"}
 
 	// A taken day is never replaced, and the suggestion stays on the list
-	if err := AcceptPromptSuggestion(repo, ctx, "s2", "2030-01-02", "a duck", colors); !errors.Is(err, ErrDayTaken) {
+	if err := AcceptPromptSuggestion(repo, ctx, "s2", "2030-01-02", "a duck", colors, nil); !errors.Is(err, ErrDayTaken) {
 		t.Errorf("accepting onto a taken day = %v, want ErrDayTaken", err)
 	}
 
-	if err := AcceptPromptSuggestion(repo, ctx, "s1", "2030-01-01", "a honking goose", colors); err != nil {
+	if err := AcceptPromptSuggestion(repo, ctx, "s1", "2030-01-01", "a honking goose", colors, nil); err != nil {
 		t.Fatal(err)
 	}
 	prompt, err := GetDailyPrompt(repo, ctx, "2030-01-01")
@@ -133,7 +133,7 @@ func TestAcceptPromptSuggestion(t *testing.T) {
 	if left != 1 {
 		t.Errorf("%d suggestions left, want 1 (s2)", left)
 	}
-	if err := AcceptPromptSuggestion(repo, ctx, "s1", "2030-01-03", "again", colors); !errors.Is(err, sql.ErrNoRows) {
+	if err := AcceptPromptSuggestion(repo, ctx, "s1", "2030-01-03", "again", colors, nil); !errors.Is(err, sql.ErrNoRows) {
 		t.Errorf("accepting a used suggestion = %v, want sql.ErrNoRows", err)
 	}
 }
