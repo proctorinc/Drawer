@@ -35,7 +35,7 @@ var eventMigrations = []string{
 	"1795132200_doodleton_craft_criteria.up.sql",
 	"1795132300_ai_model_gpt41.up.sql",
 	"1795132400_ai_run_applied.up.sql",
-	"1795132500_prompt_pencils.up.sql",
+	// 1795132500_prompt_pencils: its column is already in the schema dump
 	"1795132600_ai_scores_backwards.up.sql",
 	"1795132610_seed_grinch.up.sql",
 	// Left out of the dump by the filter above (it has an event_id column)
@@ -56,17 +56,18 @@ func NewEventsDB(t *testing.T) *sql.DB {
 	t.Cleanup(func() { repo.Close() })
 
 	schema := readMigration(t, "schema.sql")
+	// Filter whole statements, not lines: the dump writes some tables across several lines.
 	var baseSchema []string
-	for _, line := range strings.Split(schema, "\n") {
+	for _, stmt := range strings.Split(schema, ";") {
 		// SQLite makes sqlite_sequence itself; a dump that lists it can't be replayed
-		if strings.Contains(line, "sqlite_sequence") {
+		if strings.Contains(stmt, "sqlite_sequence") {
 			continue
 		}
-		if !strings.Contains(line, " events ") && !strings.Contains(line, "idx_events_") && !strings.Contains(line, " event_") && !strings.Contains(line, " ai_") {
-			baseSchema = append(baseSchema, line)
+		if !strings.Contains(stmt, " events ") && !strings.Contains(stmt, "idx_events_") && !strings.Contains(stmt, " event_") && !strings.Contains(stmt, " ai_") {
+			baseSchema = append(baseSchema, stmt)
 		}
 	}
-	exec(t, repo, "schema.sql (without event tables)", strings.Join(baseSchema, "\n"))
+	exec(t, repo, "schema.sql (without event tables)", strings.Join(baseSchema, ";"))
 
 	for _, name := range eventMigrations {
 		ApplyMigration(t, repo, name)

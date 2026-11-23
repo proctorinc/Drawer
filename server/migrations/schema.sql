@@ -87,7 +87,7 @@ CREATE INDEX idx_user_stat_calculations_user_id ON user_stat_calculations (user_
 CREATE INDEX idx_user_stat_calculations_stat_type ON user_stat_calculations (stat_type);
 CREATE INDEX idx_user_stat_updates_user_id ON user_stat_calculations (user_id);
 CREATE INDEX idx_user_stat_updates_stat_type ON user_stat_calculations (stat_type);
-CREATE TABLE "daily_prompts" (day TEXT PRIMARY KEY, colors TEXT NOT NULL, prompt TEXT NOT NULL, created_by TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, judge_id TEXT, FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE CASCADE);
+CREATE TABLE "daily_prompts" (day TEXT PRIMARY KEY, colors TEXT NOT NULL, prompt TEXT NOT NULL, created_by TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, judge_id TEXT, pencils TEXT, FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE CASCADE);
 CREATE INDEX idx_daily_prompts_created_by ON daily_prompts (created_by);
 CREATE TABLE prompt_suggestions (id STRING PRIMARY KEY, prompt TEXT NOT NULL, user_id TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
 CREATE UNIQUE INDEX idx_users_clerk_id ON users (clerk_id);
@@ -117,7 +117,6 @@ CREATE INDEX idx_ai_reviews_personality_id ON ai_reviews (personality_id);
 CREATE INDEX idx_ai_reviews_created_at ON ai_reviews (created_at);
 CREATE TABLE ai_runs (id TEXT PRIMARY KEY, kind TEXT NOT NULL CHECK (kind IN ('submission', 'rerun', 'test')), batch_id TEXT NOT NULL DEFAULT '', personality_id TEXT NOT NULL, judge_name TEXT NOT NULL, judge_avatar_url TEXT NOT NULL DEFAULT '', judge_decoration TEXT NOT NULL DEFAULT '', system_prompt TEXT NOT NULL DEFAULT '', submission_id TEXT, prompt TEXT NOT NULL DEFAULT '', image_data TEXT NOT NULL DEFAULT '', user_id TEXT, status TEXT NOT NULL CHECK (status IN ('done', 'failed')), score REAL, criteria_scores TEXT NOT NULL DEFAULT '[]', comment TEXT NOT NULL DEFAULT '', model TEXT NOT NULL DEFAULT '', error TEXT NOT NULL DEFAULT '', duration_ms INTEGER NOT NULL DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, metadata TEXT NOT NULL DEFAULT '{}', applied_at TIMESTAMP);
 CREATE INDEX idx_ai_runs_created_at ON ai_runs (created_at);
-CREATE TABLE judge_pledges (user_id TEXT NOT NULL, day TEXT NOT NULL, personality_id TEXT NOT NULL, event_id TEXT, joined INTEGER NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (user_id, day), FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
 CREATE INDEX idx_ai_runs_kind ON ai_runs (kind);
 CREATE TABLE user_avatars (user_id TEXT NOT NULL, slot INTEGER NOT NULL CHECK (slot BETWEEN 0 AND 2), url TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (user_id, slot), FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
 CREATE TABLE announcements (id TEXT PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL DEFAULT '', art TEXT NOT NULL DEFAULT 'none', image_url TEXT NOT NULL DEFAULT '', cta_label TEXT NOT NULL DEFAULT '', cta_url TEXT NOT NULL DEFAULT '', position INTEGER NOT NULL DEFAULT 0, active INTEGER NOT NULL DEFAULT 0, starts_at TIMESTAMP NOT NULL, expires_at TIMESTAMP NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
@@ -146,3 +145,14 @@ CREATE TABLE app_settings (
 );
 CREATE TABLE user_achievements_archive (achievement_id TEXT NOT NULL, user_id TEXT NOT NULL, created_at TIMESTAMP, celebrated_at TIMESTAMP, archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 CREATE INDEX idx_achievements_path ON achievements (path, path_step);
+CREATE TABLE judge_pledges (
+    user_id TEXT NOT NULL,
+    day TEXT NOT NULL,
+    personality_id TEXT NOT NULL,
+    event_id TEXT,
+    joined INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, day),
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+);
