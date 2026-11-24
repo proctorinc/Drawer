@@ -223,14 +223,14 @@ func GetFuturePrompts(repo *sql.DB, ctx context.Context) ([]models.DailyPrompt, 
 }
 
 // CreateDailyPrompt creates a new daily prompt for a specific day
-func CreateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt string, colors []string, pencils []models.Pencil) error {
+func CreateDailyPrompt(repo *sql.DB, ctx context.Context, day string, prompt string, colors []string, pencils []models.Pencil, createdById *string) error {
 	colorsJSON, err := json.Marshal(colors)
 	if err != nil {
 		return fmt.Errorf("error marshaling colors to JSON: %w", err)
 	}
 
-	query := `INSERT INTO daily_prompts (day, colors, pencils, prompt) VALUES (?, ?, ?, ?)`
-	_, err = repo.ExecContext(ctx, query, day, string(colorsJSON), pencilsValue(pencils), prompt)
+	query := `INSERT INTO daily_prompts (day, colors, pencils, prompt, created_by) VALUES (?, ?, ?, ?, ?)`
+	_, err = repo.ExecContext(ctx, query, day, string(colorsJSON), pencilsValue(pencils), prompt, createdById)
 	if err != nil {
 		return fmt.Errorf("error creating daily prompt for %s: %w", day, err)
 	}

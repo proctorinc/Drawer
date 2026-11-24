@@ -9,6 +9,7 @@ import type { PinchZoomHandle } from '@/drawing/usePinchZoom';
 import { JudgeIntroReplayButton } from '@/ai/JudgeIntro';
 import { TodaysJudgeChip, useTodaysJudge } from '@/ai/TodaysJudge';
 import Button from '@/components/Button';
+import { useConfirm } from '@/components/Confirm';
 import { useFullscreenPage } from '@/components/AppShell';
 import {
   ArrowLeftIcon,
@@ -241,8 +242,11 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
   const christmas = useChristmas();
   const { data: todaysJudge } = useTodaysJudge();
   const judge = past ? undefined : todaysJudge;
-  const { canvasRef, hasInk, getPng } = useDrawing();
+  const { canvasRef, hasInk, barelyDrawn, getPng } = useDrawing();
+  const confirm = useConfirm();
   const zoomRef = useRef<PinchZoomHandle>(null);
+  // A pinch anywhere on the desk zooms the canvas, never the page
+  const deskRef = useRef<HTMLDivElement>(null);
   const { areaRef, contentRef, fit, size } = useDeskFit();
   const compact = fit === 'compact';
   // Just the canvas: the shell's masthead and navbar step aside
@@ -255,6 +259,19 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
   const pencils = pencilsFor(dailyPrompt);
 
   async function handleSubmit() {
+    // A stray tap on the button shouldn't pin a near-blank page for good
+    if (
+      barelyDrawn &&
+      !(await confirm({
+        title: christmas ? 'hang it already?' : 'pin it already?',
+        message:
+          "there's barely anything on your page yet, and you can't change it once it's up.",
+        confirmLabel: christmas ? 'hang it anyway' : 'pin it anyway',
+        cancelLabel: 'keep drawing',
+      }))
+    ) {
+      return;
+    }
     // The pin flies from where the canvas sits, so show all of it first
     zoomRef.current?.reset(false);
     const png = await getPng(backgroundColor);
@@ -263,9 +280,7 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
 
   const submit = (
     <Button
-      className={cn(
-        compact ? 'flex-none px-4 max-[359px]:px-3 text-xl' : 'w-full',
-      )}
+      className={cn(compact ? 'grow px-4 max-[359px]:px-3 text-xl' : 'w-full')}
       onClick={handleSubmit}
       disabled={!hasInk}
     >
@@ -292,7 +307,10 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
   );
 
   return (
-    <div className="flex justify-center h-dvh overflow-hidden overscroll-none">
+    <div
+      ref={deskRef}
+      className="flex justify-center h-dvh overflow-hidden overscroll-none touch-none"
+    >
       <main
         className={cn(
           'relative flex flex-col w-full max-w-md px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(16px,env(safe-area-inset-bottom))] animate-rise transition-opacity duration-300',
@@ -342,6 +360,7 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
 
             <ZoomableCanvas
               zoomRef={zoomRef}
+              pinchAreaRef={deskRef}
               size={size}
               backgroundColor={backgroundColor}
               // Hidden until it's been measured, so it never flashes the wrong size
@@ -363,8 +382,16 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
             )}
 
             {compact ? (
-              <div className="flex items-center gap-3">
-                <Toolbar pencils={pencils} compact className="flex-1 min-w-0" />
+              // The pin wraps under the tools when both won't fit (e.g. a
+              // day with extra pencils), rather than sitting on top of them.
+              // On a shared row the toolbar takes nearly all the spare room;
+              // a wrapped pin grows to the full width.
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <Toolbar
+                  pencils={pencils}
+                  compact
+                  className="w-auto grow-[999]"
+                />
                 {submit}
               </div>
             ) : (

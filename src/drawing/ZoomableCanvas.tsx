@@ -1,7 +1,7 @@
 import { useImperativeHandle } from 'react';
 import Canvas from './Canvas';
 import { usePinchZoom } from './usePinchZoom';
-import type { CSSProperties, FC, HTMLAttributes, Ref } from 'react';
+import type { CSSProperties, FC, HTMLAttributes, Ref, RefObject } from 'react';
 import type { PinchZoomHandle } from './usePinchZoom';
 import { ZoomOutIcon } from '@/components/icons';
 import { cn } from '@/utils';
@@ -15,6 +15,8 @@ type Props = {
   canvasProps?: HTMLAttributes<HTMLCanvasElement>;
   /** Lets the page undo the zoom, e.g. before measuring the canvas for an animation */
   zoomRef?: Ref<PinchZoomHandle>;
+  /** Where a pinch zooms the canvas from (the whole page, say); the frame if not given */
+  pinchAreaRef?: RefObject<HTMLElement | null>;
   className?: string;
 };
 
@@ -26,16 +28,16 @@ const ZoomableCanvas: FC<Props> = ({
   canvasClassName,
   canvasProps,
   zoomRef,
+  pinchAreaRef,
   className,
 }) => {
-  const { frameRef, bindings, zoomed, reset } = usePinchZoom();
+  const { frameRef, zoomed, reset } = usePinchZoom(pinchAreaRef);
   useImperativeHandle(zoomRef, () => ({ reset }), [reset]);
 
   return (
     <div className={cn('relative', className)}>
       <div
         ref={frameRef}
-        {...bindings}
         className={cn(
           'overflow-hidden bg-white border-2 border-ink shadow-pencil touch-none',
           variant === 'round'

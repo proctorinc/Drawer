@@ -11,6 +11,7 @@ import {
 import { Path } from './shapes/Path';
 import { getEventPoint } from './shapes/Point';
 import { strokeFeedback } from './feedback';
+import { BARELY_DRAWN, inkLength } from './ink';
 import type { FC, PointerEvent as ReactPointerEvent } from 'react';
 import type { SerializedPath } from './shapes/Path';
 import type { Pencil } from './pencils';
@@ -43,6 +44,8 @@ type DrawingContextType = {
   canUndo: boolean;
   /** Something's actually showing, not just strokes that were all erased */
   hasInk: boolean;
+  /** So little drawn it may have been an accident, e.g. one stray tap */
+  barelyDrawn: boolean;
   getPng: (backgroundColor?: string) => Promise<Blob>;
 };
 
@@ -228,8 +231,13 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
           }
           return;
         }
-        // Already drawing (say, a palm landing while the pencil's down)
-        if (current) return;
+        if (current) {
+          // Already drawing (say, a palm landing while the pencil's down)
+          if (current.pointerType !== event.pointerType) return;
+          // A new first finger means the old one is gone, even if its lift
+          // never arrived (iOS can drop it), so keep that stroke and go on
+          commitStroke();
+        }
         if (event.pointerType === 'mouse' && event.button !== 0) return;
         event.preventDefault();
         // Keep getting this pointer's moves and release even off the canvas
@@ -352,6 +360,7 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
         undo,
         canUndo: paths.length > 0,
         hasInk,
+        barelyDrawn: inkLength(paths) < BARELY_DRAWN,
         getPng,
       }}
     >

@@ -78,10 +78,12 @@ export const Toolbar: FC<Props> = ({ pencils, compact = false, className }) => {
   }, [hasInk, selectedColor, firstColor, firstSize, selectPencil]);
 
   return (
+    // On a narrow screen with extra pencils, the eraser and undo wrap to a
+    // line of their own rather than running off the edge
     <div
       className={cn(
-        'flex items-center justify-between w-full',
-        compact && 'gap-2',
+        'flex flex-wrap items-center justify-between gap-y-2 w-full',
+        compact && 'gap-x-2',
         className,
       )}
     >
@@ -128,7 +130,7 @@ export const Toolbar: FC<Props> = ({ pencils, compact = false, className }) => {
           );
         })}
       </div>
-      <div className={cn('flex', compact ? 'gap-1.5' : 'gap-2')}>
+      <div className={cn('flex ml-auto', compact ? 'gap-1.5' : 'gap-2')}>
         <ToolButton
           label="Eraser"
           compact={compact}

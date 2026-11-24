@@ -640,7 +640,10 @@ export const apiClient = {
       body: JSON.stringify(data),
     });
     if (!response.ok) {
-      throw new Error(`Error creating prompt: ${response.statusText}`);
+      const body = await response.json().catch(() => ({}));
+      throw new Error(
+        body.error || `Error saving prompt: ${response.statusText}`,
+      );
     }
     return response.json();
   },

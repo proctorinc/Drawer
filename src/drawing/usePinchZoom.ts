@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RefObject } from 'react';
 
 /** How far two fingers can blow the canvas up */
 export const MAX_ZOOM = 3;
@@ -23,8 +23,11 @@ export type PinchZoomHandle = {
 /**
  * Two fingers zoom and pan whatever sits in the frame, one finger is left to
  * draw. The content is transformed directly, so a pinch never re-renders.
+ *
+ * Fingers are heard anywhere in `areaRef` (the frame itself if not given), so
+ * a pinch beside the canvas still zooms the canvas rather than the page.
  */
-export function usePinchZoom() {
+export function usePinchZoom(areaRef?: RefObject<HTMLElement | null>) {
   const frameRef = useRef<HTMLDivElement | null>(null);
   const view = useRef<View>({ scale: 1, x: 0, y: 0 });
   const touches = useRef(new Map<number, { x: number; y: number }>());
@@ -85,20 +88,6 @@ export function usePinchZoom() {
     return () => observer.disconnect();
   }, [reset]);
 
-  // iOS Safari zooms the whole page on its own gesture events, even with
-  // touch-action: none, so the frame swallows them
-  useEffect(() => {
-    const frame = frameRef.current;
-    if (!frame) return;
-    const stop = (event: Event) => event.preventDefault();
-    frame.addEventListener('gesturestart', stop);
-    frame.addEventListener('gesturechange', stop);
-    return () => {
-      frame.removeEventListener('gesturestart', stop);
-      frame.removeEventListener('gesturechange', stop);
-    };
-  }, []);
-
   const startPinch = useCallback(() => {
     const [a, b] = [...touches.current.entries()];
     const box = origin();
@@ -144,7 +133,7 @@ export function usePinchZoom() {
   }, [apply, origin]);
 
   const release = useCallback(
-    (event: ReactPointerEvent<HTMLElement>) => {
+    (event: PointerEvent) => {
       if (!touches.current.delete(event.pointerId)) return;
       const current = pinch.current;
       if (!current || current.ids.includes(event.pointerId) === false) return;
@@ -156,36 +145,59 @@ export function usePinchZoom() {
     [reset, startPinch],
   );
 
-  const bindings = useMemo(
-    () => ({
-      onPointerDown: (event: ReactPointerEvent<HTMLElement>) => {
-        if (event.pointerType !== 'touch') return;
-        touches.current.set(event.pointerId, {
-          x: event.clientX,
-          y: event.clientY,
-        });
-        if (touches.current.size === 2) {
-          // Keep hearing this finger even once it slides off the canvas
-          try {
-            frameRef.current?.setPointerCapture(event.pointerId);
-          } catch {
-            // Already gone; its release still arrives
-          }
-          startPinch();
-        }
-      },
-      onPointerMove: (event: ReactPointerEvent<HTMLElement>) => {
-        const touch = touches.current.get(event.pointerId);
-        if (!touch) return;
-        touch.x = event.clientX;
-        touch.y = event.clientY;
-        if (pinch.current) movePinch();
-      },
-      onPointerUp: release,
-      onPointerCancel: release,
-    }),
-    [movePinch, release, startPinch],
-  );
+  useEffect(() => {
+    const area = areaRef?.current ?? frameRef.current;
+    if (!area) return;
 
-  return { frameRef, bindings, zoomed, reset };
+    const down = (event: PointerEvent) => {
+      if (event.pointerType !== 'touch') return;
+      // The first finger down means no others are: forget any whose lift
+      // never arrived (iOS can drop it when the system takes a touch), or
+      // that ghost plus every one-finger stroke would pinch
+      if (event.isPrimary) {
+        touches.current.clear();
+        pinch.current = null;
+      }
+      touches.current.set(event.pointerId, {
+        x: event.clientX,
+        y: event.clientY,
+      });
+      if (touches.current.size === 2) {
+        // Keep hearing this finger wherever it slides
+        try {
+          area.setPointerCapture(event.pointerId);
+        } catch {
+          // Already gone; its release still arrives
+        }
+        startPinch();
+      }
+    };
+    const move = (event: PointerEvent) => {
+      const touch = touches.current.get(event.pointerId);
+      if (!touch) return;
+      touch.x = event.clientX;
+      touch.y = event.clientY;
+      if (pinch.current) movePinch();
+    };
+    // iOS Safari zooms the whole page on its own gesture events, even with
+    // touch-action: none, so the area swallows them
+    const stopPageZoom = (event: Event) => event.preventDefault();
+
+    area.addEventListener('pointerdown', down);
+    area.addEventListener('pointermove', move);
+    area.addEventListener('pointerup', release);
+    area.addEventListener('pointercancel', release);
+    area.addEventListener('gesturestart', stopPageZoom);
+    area.addEventListener('gesturechange', stopPageZoom);
+    return () => {
+      area.removeEventListener('pointerdown', down);
+      area.removeEventListener('pointermove', move);
+      area.removeEventListener('pointerup', release);
+      area.removeEventListener('pointercancel', release);
+      area.removeEventListener('gesturestart', stopPageZoom);
+      area.removeEventListener('gesturechange', stopPageZoom);
+    };
+  }, [areaRef, movePinch, release, startPinch]);
+
+  return { frameRef, zoomed, reset };
 }
