@@ -4,7 +4,8 @@ import { AIJudgeDrawer } from './AIJudgeDrawer';
 import { AI_SCORE_MAX, formatScore } from './score';
 import type { FC } from 'react';
 import type { AICriterionScore, AIJudge, AIReview } from '@/api/Api';
-import { cn, timeAgo } from '@/utils';
+import { SpeechBox } from '@/components/SpeechBox';
+import { cn } from '@/utils';
 
 /** The overall score, as a little sticker slapped on the comment. Your own
  * doodle's score wears your profile color; everyone else's stays butter.
@@ -67,9 +68,8 @@ export const CriterionChip: FC<{ criterion: AICriterionScore }> = ({
 type Props = { review: AIReview; mine?: boolean; className?: string };
 
 /**
- * The judge's comment, laid out like a friend's but signed with its name,
- * and carrying its score. Its face (or name) opens a drawer
- * about the judge.
+ * The judge's comment, in a speech box like a friend's, carrying its
+ * criteria and score. Its face opens a drawer about the judge.
  */
 export const AIReviewComment: FC<Props> = ({
   review,
@@ -85,7 +85,7 @@ export const AIReviewComment: FC<Props> = ({
       aria-haspopup="dialog"
       aria-label={`About ${judge.name}, the judge`}
       onClick={() => setAboutOpen(true)}
-      className="flex-none mt-0.5 cursor-pointer transition-[scale,rotate] duration-300 ease-[var(--ease-spring)] hover:scale-110 hover:-rotate-6"
+      className="block cursor-pointer transition-[scale,rotate] duration-300 ease-[var(--ease-spring)] hover:scale-110 hover:-rotate-6"
     >
       <AIJudgeAvatar judge={judge} />
     </button>
@@ -101,59 +101,36 @@ export const AIReviewComment: FC<Props> = ({
 
   if (review.status === 'pending') {
     return (
-      <div
-        className={cn('flex gap-4 items-center font-semibold', className)}
-        aria-live="polite"
-      >
-        {face}
-        <span className="text-secondary italic">
+      <SpeechBox portrait={face} name={judge.name} className={className}>
+        <p className="text-secondary italic leading-snug" aria-live="polite">
           {judge.name} is squinting at this doodle
           <span className="inline-block animate-pulse">…</span>
-        </span>
+        </p>
         {drawer}
-      </div>
+      </SpeechBox>
     );
   }
 
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
-      <div className="flex justify-between items-start gap-2 font-semibold">
-        <div className="flex gap-4 items-start min-w-0">
-          {face}
-          <div className="flex flex-col min-w-0">
-            <span className="flex flex-wrap items-center gap-x-1.5 text-sm leading-tight">
-              <button
-                type="button"
-                className="font-bold cursor-pointer hover:underline"
-                onClick={() => setAboutOpen(true)}
-              >
-                {judge.name}
-              </button>
-            </span>
-            <p>{review.comment}</p>
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 items-end flex-none">
-          <span className="text-xs text-secondary whitespace-nowrap">
-            {timeAgo(review.createdAt)}
-          </span>
-          {review.score !== null && (
-            <ScoreSticker
-              score={review.score}
-              mine={mine}
-              face={judgeFace(review.judge)}
-            />
-          )}
-        </div>
-      </div>
+    <SpeechBox portrait={face} name={judge.name} className={className}>
+      {/* Slapped on the box's top corner, above the words */}
+      {review.score !== null && (
+        <ScoreSticker
+          score={review.score}
+          mine={mine}
+          face={judgeFace(review.judge)}
+          className="absolute z-10 -top-6 -right-3 rotate-6"
+        />
+      )}
+      <p className="font-semibold leading-snug break-words">{review.comment}</p>
       {review.criteria.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 pl-13">
+        <div className="flex flex-wrap gap-1.5 pt-0.5">
           {review.criteria.map((criterion) => (
             <CriterionChip key={criterion.id} criterion={criterion} />
           ))}
         </div>
       )}
       {drawer}
-    </div>
+    </SpeechBox>
   );
 };

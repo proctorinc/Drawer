@@ -1,29 +1,26 @@
 import { useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import { commentRuns } from '../commentRuns';
+import { CommentComposer } from './CommentComposer';
+import { CommentReactions } from './CommentReactions';
 import { PinButton } from './PinButton';
-import { XPNote } from './XPNote';
 import type { FC } from 'react';
 import type { Comment, ReactionId, UserPromptSubmission } from '@/api/Api';
+import { SpeechBox } from '@/components/SpeechBox';
 import { refreshProgress } from '@/animations/useProgressWatcher';
-import { AIReviewComment, ScoreSticker, judgeFace } from '@/ai/AIReviewComment';
+import { AIReviewComment } from '@/ai/AIReviewComment';
 import {
   queryKeys,
-  useAddComment,
   useDeleteComment,
   usePromptSubmission,
   useToggleCommentReaction,
 } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
-import Button from '@/components/Button';
 import { useAlert, useConfirm } from '@/components/Confirm';
 import { HeartIcon, TrashIcon } from '@/components/icons';
 import { ReactionDrawer } from '@/reactions/ReactionDrawer';
-import { ReactionPile } from '@/reactions/ReactionPile';
 import { ReactionSticker } from '@/reactions/ReactionSticker';
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
-import { Card, CardContent } from '@/components/Card';
 import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 import { parseDay } from '@/days';
 import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
@@ -49,7 +46,6 @@ type Props = {
 
 /** One doodle's whole page: the pinned polaroid, its prompt and the comments */
 const SubmissionSheet: FC<Props> = ({ doodle }) => {
-  const navigate = useNavigate();
   const currentUser = useUser();
   const queryClient = useQueryClient();
   const toggleReaction = useToggleCommentReaction();
@@ -57,11 +53,9 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
   const { data: submission = doodle } = usePromptSubmission(doodle.id, doodle);
   // A perfect 10 is framed in gold, once you can see it
   const golden = !isDrawingLocked(submission) && isMasterpiece(submission);
-  const addComment = useAddComment();
   const deleteComment = useDeleteComment();
   const confirm = useConfirm();
   const alert = useAlert();
-  const [newComment, setNewComment] = useState('');
 
   // The comment whose reaction drawer is open, if any
   const [reactingTo, setReactingTo] = useState<Comment | null>(null);
@@ -139,16 +133,6 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
               showAvatar={false}
               className="border-0 rounded-none shadow-none"
             />
-            {/* The AI judge's score, slapped on the photo's top-left corner */}
-            {!isDrawingLocked(submission) &&
-              submission.aiReview?.score != null && (
-                <ScoreSticker
-                  score={submission.aiReview.score}
-                  mine={submission.user.id === currentUser.id}
-                  face={judgeFace(submission.aiReview.judge)}
-                  className="absolute z-10 -top-6 -left-6 pointer-events-none"
-                />
-              )}
             {/* As on the wall, starring your own sits on the photo's corner */}
             {submission.user.id === currentUser.id && (
               <PinButton submission={submission} variant="corner" />
@@ -185,9 +169,6 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
             />
           </div>
         </div>
-        {submission.user.id === currentUser.id && (
-          <XPNote submission={submission} className="mt-4" />
-        )}
       </div>
       {/* Just the reactions, each with its reactor's face on the corner */}
       <ReactionBar submission={submission} className="w-full px-2" />
@@ -199,136 +180,80 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
         counts={reactingTo?.counts ?? []}
         onToggle={(id) => reactingTo && reactToComment(reactingTo, id)}
       />
-      <div className="flex flex-col w-full gap-4">
-        <Card>
-          <CardContent className="gap-2">
-            {/* The AI judge's verdict leads the comments */}
-            {submission.aiReview && (
-              <AIReviewComment
-                review={submission.aiReview}
-                mine={submission.user.id === currentUser.id}
-              />
-            )}
-            {submission.comments.length === 0 && !submission.aiReview && (
-              <span className="font-bold text-center text-secondary">
-                Be the first to comment!
-              </span>
-            )}
-            {submission.comments.length > 0 &&
-              submission.comments.map((comment) => {
-                const mine = myReaction(comment);
+      <div className="flex flex-col w-full gap-2.5">
+        {/* The AI judge's verdict leads the comments */}
+        {submission.aiReview && (
+          <AIReviewComment
+            review={submission.aiReview}
+            mine={submission.user.id === currentUser.id}
+            className="mt-3"
+          />
+        )}
+        {commentRuns(submission.comments).map((run) => (
+          <SpeechBox
+            key={run.comments[0].id}
+            portrait={<UserProfileIcon size="sm" user={run.user} />}
+            name={run.user.username}
+            mine={run.user.id === currentUser.id}
+          >
+            {run.comments.map((comment) => {
+              const mine = myReaction(comment);
 
-                return (
-                  <div key={comment.id} className="flex flex-col gap-1">
-                    <div className="flex justify-between items-center font-semibold">
-                      <div className="flex gap-4 items-center">
-                        <UserProfileIcon
-                          size="sm"
-                          user={comment.user}
-                          onClick={() =>
-                            navigate({
-                              to: `/draw/profile/${comment.user.id}`,
-                            })
-                          }
-                        />{' '}
-                        <CleanText text={comment.text} />
-                      </div>
-                      <div className="flex flex-col gap-2 items-end">
-                        <span className="text-xs text-secondary ml-2 whitespace-nowrap">
-                          {timeAgo(comment.createdAt)}
-                        </span>
-                        {comment.user.id === currentUser.id && (
-                          <button
-                            type="button"
-                            aria-label="Delete your comment"
-                            disabled={deleteComment.isPending}
-                            onClick={() => removeComment(comment)}
-                            className="grid place-items-center size-7 cursor-pointer text-pencil transition-[scale,color] duration-300 ease-[var(--ease-spring)] hover:scale-110 hover:text-ink active:scale-90 disabled:opacity-50"
-                          >
-                            <TrashIcon size={18} />
-                          </button>
+              return (
+                <div key={comment.id} className="flex flex-col gap-1">
+                  <div className="flex items-start gap-2 font-semibold leading-snug">
+                    <p className="flex-1 min-w-0 break-words">
+                      <CleanText text={comment.text} />
+                    </p>
+                    <span className="text-xs leading-5 text-secondary whitespace-nowrap">
+                      {timeAgo(comment.createdAt)}
+                    </span>
+                    {comment.user.id === currentUser.id ? (
+                      <button
+                        type="button"
+                        aria-label="Delete your comment"
+                        disabled={deleteComment.isPending}
+                        onClick={() => removeComment(comment)}
+                        className="grid place-items-center size-5 cursor-pointer text-pencil transition-[scale,color] duration-300 ease-[var(--ease-spring)] hover:scale-110 hover:text-ink active:scale-90 disabled:opacity-50"
+                      >
+                        <TrashIcon size={16} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        aria-haspopup="dialog"
+                        aria-label={
+                          mine ? 'Change your reaction' : 'React to comment'
+                        }
+                        onClick={() => setReactingTo(comment)}
+                        className="grid place-items-center size-5 cursor-pointer transition-[scale] duration-300 ease-[var(--ease-spring)] hover:scale-110 active:scale-90"
+                      >
+                        {mine ? (
+                          <ReactionSticker reactionId={mine} size={20} />
+                        ) : (
+                          <HeartIcon size={15} strokeWidth={2.2} />
                         )}
-                        {comment.user.id !== currentUser.id && (
-                          <button
-                            type="button"
-                            aria-haspopup="dialog"
-                            aria-label={
-                              mine ? 'Change your reaction' : 'React to comment'
-                            }
-                            onClick={() => setReactingTo(comment)}
-                            className="grid place-items-center size-7 cursor-pointer transition-[scale] duration-300 ease-[var(--ease-spring)] hover:scale-110 active:scale-90"
-                          >
-                            {mine ? (
-                              <ReactionSticker reactionId={mine} size={22} />
-                            ) : (
-                              <HeartIcon size={16} strokeWidth={2.2} />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {comment.counts.length > 0 && (
-                      <ReactionPile
-                        counts={comment.counts}
-                        size={20}
-                        className="self-end pr-1"
-                      />
+                      </button>
                     )}
                   </div>
-                );
-              })}
-            <form
-              className="flex gap-2 pt-4 items-center"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                if (!newComment.trim()) return;
-                try {
-                  await addComment.mutateAsync(
-                    {
-                      submissionId: submission.id,
-                      text: newComment,
-                    },
-                    {
-                      onSuccess: () => {
-                        queryClient.invalidateQueries({
-                          queryKey: queryKeys.myProfile,
-                        });
-                        queryClient.invalidateQueries({
-                          queryKey: queryKeys.promptSubmission(submission.id),
-                        });
-                        queryClient.invalidateQueries({
-                          queryKey: queryKeys.activityFeed,
-                        });
-                        refreshProgress(queryClient);
-                      },
-                    },
-                  );
-                  setNewComment('');
-                } catch (err) {
-                  // Optionally show error
-                }
-              }}
-            >
-              <input
-                className="w-full h-12 px-3 bg-white border-2 border-ink rounded-sketch-alt text-lg placeholder:text-pencil/70 focus:outline-none focus:-rotate-1 transition-[rotate] duration-300"
-                placeholder="Add a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-              />
-              <Button
-                className="h-full"
-                size="sm"
-                icon={faArrowRight}
-                type="submit"
-                disabled={!newComment.trim()}
-              ></Button>
-            </form>
-          </CardContent>
-        </Card>
+                  {comment.reactions.length > 0 && (
+                    <CommentReactions reactions={comment.reactions} />
+                  )}
+                </div>
+              );
+            })}
+          </SpeechBox>
+        ))}
+        {submission.comments.length === 0 && !submission.aiReview && (
+          <span className="font-bold text-center text-secondary">
+            Be the first to comment!
+          </span>
+        )}
+        <CommentComposer submissionId={submission.id} />
       </div>
       <div className="text-left w-full -mt-4">
         <span className="text-xs font-semibold text-secondary pl-2">
-          Drawn by {submission.user.username} at{' '}
+          Drawn at{' '}
           {new Date(submission.createdAt).toLocaleTimeString('en-US', {
             hour: 'numeric',
             minute: '2-digit',

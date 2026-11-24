@@ -1,9 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from '@tanstack/react-router';
-import { faShareAlt } from '@fortawesome/free-solid-svg-icons';
+import {
+  faCheck,
+  faShareAlt,
+  faXmark,
+} from '@fortawesome/free-solid-svg-icons';
 import type { FC, ReactNode } from 'react';
 import Button from '@/components/Button';
 import { cn } from '@/utils';
+
+/** Stands in for the share icon for a moment afterwards, instead of words */
+const RESULT_ICONS = { shared: faCheck, failed: faXmark };
 
 type Props = {
   text: string;
@@ -50,20 +57,23 @@ export const ShareButton: FC<Props> = ({
 }) => {
   const location = useLocation();
   const imageFile = useImageFile(imageUrl);
-  const [note, setNote] = useState<string | null>(null);
+  const [result, setResult] = useState<keyof typeof RESULT_ICONS | null>(null);
+  const resultTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(resultTimer.current), []);
 
-  function flash(message: string) {
-    setNote(message);
-    setTimeout(() => setNote(null), 2000);
+  function flash(outcome: keyof typeof RESULT_ICONS) {
+    setResult(outcome);
+    clearTimeout(resultTimer.current);
+    resultTimer.current = setTimeout(() => setResult(null), 2000);
   }
 
   async function copyLink(url: string) {
     try {
       await navigator.clipboard.writeText(`${text} ${url}`);
-      flash('link copied!');
+      flash('shared');
     } catch {
       // No clipboard either, e.g. plain http or permission denied
-      flash("couldn't share");
+      flash('failed');
     }
   }
 
@@ -84,6 +94,7 @@ export const ShareButton: FC<Props> = ({
         : undefined;
     try {
       await navigator.share({ text, url, files });
+      flash('shared');
     } catch (error) {
       // Dismissing the sheet is fine; anything else falls back to copying
       if (error instanceof DOMException && error.name === 'AbortError') return;
@@ -95,11 +106,14 @@ export const ShareButton: FC<Props> = ({
     <Button
       size="sm"
       className={cn('h-fit', className)}
-      icon={faShareAlt}
+      icon={result ? RESULT_ICONS[result] : faShareAlt}
+      aria-label={
+        result === 'failed' ? "Couldn't share" : result ? 'Shared' : undefined
+      }
       disableLoad
       onClick={handleShare}
     >
-      {note ?? children}
+      {!result && children}
     </Button>
   );
 };

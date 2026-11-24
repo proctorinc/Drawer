@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { FC } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
 import { queryKeys, useToggleSubmissionFavorite } from '@/api/Api';
+import { useConfirm } from '@/components/Confirm';
 import { StarIcon } from '@/components/icons';
 import { cn } from '@/utils';
 
@@ -20,15 +21,28 @@ type Props = {
   variant?: 'pill' | 'corner';
 };
 
-/** The star pill that pins your own doodle to your book */
+/** The star that puts your own doodle in your hall of fame (asking first) */
 export const PinButton: FC<Props> = ({ submission, variant = 'pill' }) => {
   const queryClient = useQueryClient();
   const toggleFavorite = useToggleSubmissionFavorite();
+  const confirm = useConfirm();
   // Bumped on tap to replay the pop on the star
   const [popKey, setPopKey] = useState(0);
   const isPinned = !!submission.isFavorite;
 
-  function handleClick() {
+  async function handleClick() {
+    // A star alone doesn't say what it does, so adding asks first
+    if (
+      !isPinned &&
+      !(await confirm({
+        title: 'add to your hall of fame?',
+        message: 'it shows on your profile with your best doodles.',
+        confirmLabel: 'yes',
+        cancelLabel: 'no',
+      }))
+    ) {
+      return;
+    }
     setPopKey((key) => key + 1);
     toggleFavorite.mutate(submission.id, {
       onSuccess: () => {
@@ -48,7 +62,9 @@ export const PinButton: FC<Props> = ({ submission, variant = 'pill' }) => {
     <button
       onClick={handleClick}
       aria-pressed={isPinned}
-      aria-label={isPinned ? 'Unpin from your book' : 'Pin to your book'}
+      aria-label={
+        isPinned ? 'Remove from your hall of fame' : 'Add to your hall of fame'
+      }
       className={cn(
         variant === 'corner' ? cornerButtonClass : pillClass,
         isPinned ? 'bg-me' : 'bg-white',

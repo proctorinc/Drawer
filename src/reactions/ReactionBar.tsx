@@ -7,7 +7,7 @@ import type { FC } from 'react';
 import type { Reaction, ReactionId, UserPromptSubmission } from '@/api/Api';
 import { queryKeys, useToggleSubmissionReaction } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
-import { PlusIcon } from '@/components/icons';
+import { HeartIcon } from '@/components/icons';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { cn } from '@/utils';
 import { refreshProgress } from '@/animations/useProgressWatcher';
@@ -38,7 +38,7 @@ type Props = {
 
 /**
  * Every reaction a doodle has, one sticker each with its reactor's face on
- * the corner. Tap one of yours to take it back; the plus adds another (you
+ * the corner. Tap one of yours to take it back; the heart adds another (you
  * can't react to your own)
  */
 export const ReactionBar: FC<Props> = ({ submission, className }) => {
@@ -132,7 +132,7 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
             pressableClass,
           )}
         >
-          <PlusIcon size={18} strokeWidth={2.4} />
+          <HeartIcon size={18} strokeWidth={2.2} />
         </button>
       )}
       {canReact && (

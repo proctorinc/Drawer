@@ -28,7 +28,7 @@ function useScrolled() {
   return scrolled;
 }
 
-/** Floats over the strip's edge and bounces toward the doodles you can swipe to */
+/** Floats at the screen's edge and bounces toward the doodles you can swipe to */
 const SwipeHint: FC<{
   dir: -1 | 1;
   onClick: () => void;
@@ -38,9 +38,12 @@ const SwipeHint: FC<{
     tabIndex={-1}
     onClick={onClick}
     className={cn(
-      // Halfway down the photo, whose width tracks the page's
-      'absolute z-20 top-[calc(min(100vw,28rem)/2)] cursor-pointer animate-in fade-in zoom-in-75 duration-300',
-      dir < 0 ? 'left-1' : 'right-1',
+      // Pinned halfway down the screen, at the page column's edge, so they
+      // stay put while you scroll the comments
+      'fixed z-20 top-1/2 -translate-y-1/2 cursor-pointer animate-in fade-in zoom-in-75 duration-300',
+      dir < 0
+        ? 'left-[calc(50vw-min(50vw,14rem)+0.25rem)]'
+        : 'right-[calc(50vw-min(50vw,14rem)+0.25rem)]',
     )}
   >
     <span
