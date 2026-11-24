@@ -10,6 +10,7 @@ import type {
   InvitationResponse,
   PromptSuggestion,
   ReactionResponse,
+  Redos,
   User,
   UserPromptSubmission,
 } from './Api';
@@ -53,6 +54,35 @@ export const apiClient = {
     const response = await fetchAPI('GET', '/submission/daily');
     if (!response.ok) {
       throw new Error(`Error fetching daily prompt: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  /** Notes the first stroke on today's prompt, so it can be finished late */
+  startDailyDrawing: async (): Promise<void> => {
+    const response = await fetchAPI('POST', '/submission/daily/start');
+    if (!response.ok) {
+      throw new Error(`Error noting drawing start: ${response.statusText}`);
+    }
+  },
+
+  /** Yesterday's prompt, if you started it and can still finish it */
+  getUnfinishedPrompt: async (): Promise<DailyPrompt | null> => {
+    const response = await fetchAPI('GET', '/submission/daily/unfinished');
+    if (!response.ok) {
+      throw new Error(
+        `Error fetching unfinished prompt: ${response.statusText}`,
+      );
+    }
+    const body: { prompt: DailyPrompt | null } = await response.json();
+    return body.prompt;
+  },
+
+  /** Your unused redos and the missed prompts they cover */
+  getRedos: async (): Promise<Redos> => {
+    const response = await fetchAPI('GET', '/submission/redos');
+    if (!response.ok) {
+      throw new Error(`Error fetching redos: ${response.statusText}`);
     }
     return response.json();
   },
@@ -225,12 +255,21 @@ export const apiClient = {
   },
 
   // Submissions
-  submitDailyPrompt: async (
-    drawingImage: Blob,
-  ): Promise<UserPromptSubmission> => {
+  /**
+   * Pins a drawing for day's prompt: today's, or yesterday's if the rollover
+   * interrupted it (the server checks it was started in time)
+   */
+  submitDailyPrompt: async ({
+    png,
+    day,
+  }: {
+    png: Blob;
+    day?: string;
+  }): Promise<UserPromptSubmission> => {
     // Create form data
     const formData = new FormData();
-    formData.append('image', drawingImage, 'drawing.png');
+    formData.append('image', png, 'drawing.png');
+    if (day) formData.append('day', day.slice(0, 10));
 
     const response = await fetchAPI('POST', '/submission/daily', {
       body: formData,

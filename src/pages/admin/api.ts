@@ -172,6 +172,56 @@ export const useReactionUsage = () =>
   useAdminList<Array<ReactionUsage>>('reactions', 'usage');
 export const useAdminEvents = () =>
   useAdminList<Array<AdminEvent>>('events', 'events');
+/** A redo given to a player: for one day, or any missed day (day null) */
+export interface AdminRedoGrant {
+  id: string;
+  userId: string;
+  username: string;
+  day: string | null;
+  note: string;
+  createdAt: string;
+  /** Who gave it, if they're still around */
+  grantedBy: string | null;
+  usedAt: string | null;
+  usedDay: string | null;
+}
+
+export const useAdminRedos = () =>
+  useAdminList<Array<AdminRedoGrant>>('redos', 'grants');
+
+export interface GrantRedos {
+  userId: string;
+  /** YYYY-MM-DD, or null for any day they missed */
+  day: string | null;
+  note: string;
+  count: number;
+}
+
+export function useGrantRedos() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (grant: GrantRedos) =>
+      ensureOk(
+        await fetchAPI('POST', '/admin/redos', {
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(grant),
+        }),
+      ),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['admin', 'redos'] }),
+  });
+}
+
+export function useRevokeRedo() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      ensureOk(await fetchAPI('DELETE', `/admin/redos/${id}`)),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['admin', 'redos'] }),
+  });
+}
+
 export const useActivityLog = () =>
   useAdminList<Array<LogEntry>>('activity', 'entries');
 

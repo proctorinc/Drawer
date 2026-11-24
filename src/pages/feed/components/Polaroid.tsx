@@ -107,11 +107,21 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
             size="sm"
             className="flex-none"
           />
+          {/* Pinned the next day: the prompt rolled over mid-doodle */}
+          {(submission.late || submission.redo) && (
+            <span className="ml-auto text-xs leading-none text-pencil">
+              {submission.redo ? 'redo' : 'late'}
+            </span>
+          )}
           <Link
             to="/draw/submission/$submissionId"
             params={{ submissionId: submission.id }}
             aria-label={`${commentCount} comments`}
-            className={cn(pillClass, 'ml-auto flex-none bg-white')}
+            className={cn(
+              pillClass,
+              'flex-none bg-white',
+              !submission.late && !submission.redo && 'ml-auto',
+            )}
           >
             <CommentIcon size={14} strokeWidth={2.2} />
             {commentCount > 0 && commentCount}

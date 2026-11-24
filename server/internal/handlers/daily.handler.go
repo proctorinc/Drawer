@@ -74,21 +74,47 @@ func HandleGetDailyPrompt(c *gin.Context) {
 func HandleSubmitDailyPrompt(c *gin.Context) {
 	appCtx := requestContext.GetCtx(c)
 	ctx := c.Request.Context()
-	today := utils.GetFormattedDate(time.Now())
+	now := time.Now()
+	today := utils.GetFormattedDate(now)
 	requester := middleware.GetUser(c)
 
-	alreadySubmittedToday, err := queries.CheckUserSubmittedToday(appCtx.DB, ctx, requester.ID)
+	// The app says which prompt the drawing is for. Today's, or (older apps) none, is the
+	// usual daily doodle. Yesterday's may be one the rollover interrupted, which can be
+	// finished if it was started while its prompt was live. Any other past day needs a redo.
+	day := today
+	late, redo := false, false
+	if asked := c.PostForm("day"); asked != "" && asked != today {
+		lateDay, err := queries.LateDay(appCtx.DB, ctx, requester.ID, now)
+		if err != nil {
+			log.Printf("Error checking late drawing for user %s: %v", utils.MaskEmail(requester.Email), err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Server error checking submission status"))
+			return
+		}
+		switch {
+		case asked == lateDay:
+			day, late = lateDay, true
+		case isPastDay(asked, today):
+			// Checked against their redos when it's recorded
+			day, redo = asked, true
+		default:
+			log.Printf("Submit for %s refused for user %s on %s", asked, utils.MaskEmail(requester.Email), today)
+			c.AbortWithStatusJSON(http.StatusConflict, Error("That prompt has closed"))
+			return
+		}
+	}
+
+	alreadySubmitted, err := queries.CheckUserSubmittedOn(appCtx.DB, ctx, requester.ID, day)
 	if err != nil {
 		log.Printf("Error checking existing submission for user %s, day %s: %v",
-			utils.MaskEmail(requester.Email), today, err)
+			utils.MaskEmail(requester.Email), day, err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Server error checking submission status"))
 		return
 	}
 
-	if alreadySubmittedToday {
+	if alreadySubmitted {
 		log.Printf("Additional submit attempt for user %s (email: %s), day %s",
-			requester.ID, utils.MaskEmail(requester.Email), today)
-		c.AbortWithStatusJSON(http.StatusServiceUnavailable, Error("You have already submitted a drawing today"))
+			requester.ID, utils.MaskEmail(requester.Email), day)
+		c.AbortWithStatusJSON(http.StatusServiceUnavailable, Error("You have already submitted a drawing for that day"))
 		return
 	}
 
@@ -108,10 +134,22 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 		return
 	}
 
-	submissionID, err := queries.InsertSubmissionRecord(appCtx.DB, ctx, queries.InsertSubmissionRecordParams{
-		UserID: requester.ID,
-		Day:    today,
-	})
+	var submissionID string
+	if redo {
+		// Uses up one of their redos, or refuses if none covers the day
+		submissionID, err = queries.InsertRedoSubmission(appCtx.DB, ctx, requester.ID, day, today)
+		if errors.Is(err, queries.ErrNoRedo) {
+			log.Printf("Redo for %s refused for user %s: no redo covers it", day, utils.MaskEmail(requester.Email))
+			c.AbortWithStatusJSON(http.StatusConflict, Error("That prompt has closed"))
+			return
+		}
+	} else {
+		submissionID, err = queries.InsertSubmissionRecord(appCtx.DB, ctx, queries.InsertSubmissionRecordParams{
+			UserID: requester.ID,
+			Day:    day,
+			Late:   late,
+		})
+	}
 
 	if err != nil {
 		log.Printf("Failed to insert submission record for user %s, day %s: %v",
@@ -138,12 +176,15 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 		imageURL = "/example.png"
 	}
 
-	log.Printf("User %s successfully submitted drawing for %s", utils.MaskEmail(requester.Email), today)
+	log.Printf("User %s successfully submitted drawing for %s (late: %t, redo: %t)", utils.MaskEmail(requester.Email), day, late, redo)
 
 	// Sent before responding: Cloud Run throttles CPU once the response is out, so a
-	// push left in a goroutine waits for the next request to this instance.
-	if err := notifications.NotifyFriendsOfSubmission(appCtx.DB, requester.ID, requester.Username, submissionID, appCtx.Config); err != nil {
-		log.Printf("Failed to send friend notifications for user %s: %v", utils.MaskEmail(requester.Email), err)
+	// push left in a goroutine waits for the next request to this instance. Friends aren't
+	// pinged about an old prompt's doodle: "just posted their daily drawing" would be wrong.
+	if !late && !redo {
+		if err := notifications.NotifyFriendsOfSubmission(appCtx.DB, requester.ID, requester.Username, submissionID, appCtx.Config); err != nil {
+			log.Printf("Failed to send friend notifications for user %s: %v", utils.MaskEmail(requester.Email), err)
+		}
 	}
 
 	// The AI judge scores it and leaves a comment, if the judges are switched on. It's marked
@@ -174,8 +215,117 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message":  "Drawing submitted successfully",
-		"day":      today,
+		"day":      day,
+		"late":     late,
+		"redo":     redo,
 		"imageUrl": imageURL,
 		"id":       submissionID,
 	})
+}
+
+// HandleStartDailyDrawing notes the first stroke on today's prompt, so a doodle the rollover
+// interrupts can still be finished tomorrow (see queries.LateDay). The drawing stays on the device.
+func HandleStartDailyDrawing(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	user := middleware.GetUser(c)
+	today := utils.GetFormattedDate(time.Now())
+	if err := queries.RecordDrawingStart(appCtx.DB, c.Request.Context(), user.ID, today); err != nil {
+		log.Printf("HandleStartDailyDrawing: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Couldn't note your start"))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// HandleGetUnfinishedPrompt returns yesterday's prompt if the user can still finish it, or
+// {"prompt": null}. Whether there's a drawing to finish is up to the device that started it.
+func HandleGetUnfinishedPrompt(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	ctx := c.Request.Context()
+	user := middleware.GetUser(c)
+
+	day, err := queries.LateDay(appCtx.DB, ctx, user.ID, time.Now())
+	if err != nil {
+		log.Printf("HandleGetUnfinishedPrompt: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Couldn't check for unfinished drawings"))
+		return
+	}
+	if day == "" {
+		c.JSON(http.StatusOK, gin.H{"prompt": nil})
+		return
+	}
+	prompt, err := queries.GetDailyPrompt(appCtx.DB, ctx, day)
+	if err != nil {
+		log.Printf("HandleGetUnfinishedPrompt: prompt for %s: %v", day, err)
+		c.JSON(http.StatusOK, gin.H{"prompt": nil})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"prompt": DailyPromptResponse{
+		Day:       prompt.Day,
+		Colors:    prompt.Colors,
+		Pencils:   prompt.Pencils,
+		Prompt:    prompt.Prompt,
+		CreatedBy: prompt.CreatedBy,
+	}})
+}
+
+// isPastDay reports whether day is a real YYYY-MM-DD date before today.
+func isPastDay(day, today string) bool {
+	_, err := time.Parse(utils.DateFormat, day)
+	return err == nil && day < today
+}
+
+// RedosResponse is what a player can redo: how many redos they hold, what each is for, and
+// the missed prompts those cover, newest first.
+type RedosResponse struct {
+	Grants  []queries.RedoGrant   `json:"grants"`
+	Prompts []DailyPromptResponse `json:"prompts"`
+}
+
+// HandleGetRedos lists the player's unused redos and the missed prompts they can spend them on.
+func HandleGetRedos(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	ctx := c.Request.Context()
+	user := middleware.GetUser(c)
+	now := time.Now()
+	today := utils.GetFormattedDate(now)
+
+	grants, err := queries.UnusedRedoGrants(appCtx.DB, ctx, user.ID)
+	if err != nil {
+		log.Printf("HandleGetRedos: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Couldn't load your redos"))
+		return
+	}
+	response := RedosResponse{Grants: grants, Prompts: []DailyPromptResponse{}}
+	if len(grants) == 0 {
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	// Yesterday's, while it can still be finished late, doesn't need a redo
+	lateDay, err := queries.LateDay(appCtx.DB, ctx, user.ID, now)
+	if err != nil {
+		log.Printf("HandleGetRedos: %v", err)
+	}
+	days, err := queries.RedoableDays(appCtx.DB, ctx, user.ID, today, lateDay)
+	if err != nil {
+		log.Printf("HandleGetRedos: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Couldn't load your redos"))
+		return
+	}
+	for _, day := range days {
+		prompt, err := queries.GetDailyPrompt(appCtx.DB, ctx, day)
+		if err != nil {
+			log.Printf("HandleGetRedos: prompt for %s: %v", day, err)
+			continue
+		}
+		response.Prompts = append(response.Prompts, DailyPromptResponse{
+			Day:       prompt.Day,
+			Colors:    prompt.Colors,
+			Pencils:   prompt.Pencils,
+			Prompt:    prompt.Prompt,
+			CreatedBy: prompt.CreatedBy,
+		})
+	}
+	c.JSON(http.StatusOK, response)
 }

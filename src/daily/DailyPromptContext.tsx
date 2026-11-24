@@ -2,24 +2,22 @@ import { createContext, useContext } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { FC } from 'react';
 import type { ReactNode } from '@tanstack/react-router';
-import type { DailyPrompt } from '@/api/Api';
+import type { DailyPrompt, UserPromptSubmission } from '@/api/Api';
 import { queryKeys, useGetDailyPrompt, useSubmitDailyPrompt } from '@/api/Api';
 import { useAIDialogue } from '@/ai/AIDialogue';
 import { refreshProgress } from '@/animations/useProgressWatcher';
 
 type DailyPromptContextType = {
   dailyPrompt: DailyPrompt | undefined;
-  submitPrompt: (
-    png: Blob,
-    {
-      onSuccess,
-      onError,
-    }: {
-      onSuccess: () => void;
-      onError: () => void;
-    },
-  ) => void;
+  submitPrompt: (png: Blob, options: SubmitOptions) => void;
   isLoading: boolean;
+};
+
+type SubmitOptions = {
+  /** The prompt it's for; yesterday's when finishing a doodle late */
+  day?: string;
+  onSuccess: (submission: UserPromptSubmission) => void;
+  onError: () => void;
 };
 
 const DailyPromptContext = createContext<DailyPromptContextType | undefined>(
@@ -38,28 +36,30 @@ export const DailyPromptProvider: FC<Props> = ({ children }) => {
 
   const submitPrompt = (
     png: Blob,
-    {
-      onSuccess,
-      onError,
-    }: {
-      onSuccess: () => void;
-      onError: () => void;
-    },
+    { day, onSuccess, onError }: SubmitOptions,
   ) => {
-    return submitPromptMutation.mutate(png, {
-      onSuccess: (submission) => {
-        onSuccess();
-        // The AI judge (if on) pops up to say its piece as soon as it's done
-        if (submission.id) watchReview(submission.id);
-        queryClient.invalidateQueries({ queryKey: queryKeys.daily });
-        queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
-        // You're now on today's roll call, and new trophies may have unlocked
-        queryClient.invalidateQueries({ queryKey: queryKeys.activityFeed });
-        // XP, stickers and quests, which the progress watcher celebrates
-        refreshProgress(queryClient);
+    return submitPromptMutation.mutate(
+      { png, day },
+      {
+        onSuccess: (submission) => {
+          onSuccess(submission);
+          // The AI judge (if on) pops up to say its piece as soon as it's done
+          if (submission.id) watchReview(submission.id);
+          queryClient.invalidateQueries({ queryKey: queryKeys.daily });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.unfinishedPrompt,
+          });
+          // A redo used up
+          queryClient.invalidateQueries({ queryKey: queryKeys.redos });
+          queryClient.invalidateQueries({ queryKey: queryKeys.myProfile });
+          // You're now on today's roll call, and new trophies may have unlocked
+          queryClient.invalidateQueries({ queryKey: queryKeys.activityFeed });
+          // XP, stickers and quests, which the progress watcher celebrates
+          refreshProgress(queryClient);
+        },
+        onError: onError,
       },
-      onError: onError,
-    });
+    );
   };
 
   const contextData = {

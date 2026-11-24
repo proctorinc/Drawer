@@ -19,6 +19,7 @@ import {
   faMedal,
   faPalette,
   faRobot,
+  faRotateLeft,
   faScroll,
   faSliders,
   faStairs,
@@ -53,6 +54,7 @@ const NAV: Array<{ group: string; items: Array<NavItem> }> = [
         label: 'suggestions',
         icon: faLightbulb,
       },
+      { to: '/draw/admin/redos', label: 'redos', icon: faRotateLeft },
     ],
   },
   {

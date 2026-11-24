@@ -30,6 +30,8 @@ import LoginPage from './pages/auth/LoginPage.tsx';
 import { LoggingProvider } from './lib/posthog.tsx';
 import UserProfilePage from './pages/profile/UserProfilePage.tsx';
 import PromptSubmissionPage from './pages/feed/PromptSubmissionPage';
+import FinishDoodlePage from './pages/feed/FinishDoodlePage.tsx';
+import { RedoDeskPage, RedoListPage } from './pages/feed/RedoPages.tsx';
 import { BrandProvider } from './components/logo/BrandProvider.tsx';
 import EventPage from './pages/event/EventPage.tsx';
 import TrophiesPage from './pages/trophies/TrophiesPage.tsx';
@@ -62,6 +64,7 @@ import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
 import BetaZonePage from './pages/admin/pages/BetaZonePage.tsx';
 import MintedPage from './pages/admin/pages/MintedPage.tsx';
+import RedosPage from './pages/admin/pages/RedosPage.tsx';
 import AppSettingsPage from './pages/admin/pages/AppSettingsPage.tsx';
 import DuelsPage from './beta/duel/DuelsPage.tsx';
 import DuelPage from './beta/duel/DuelPage.tsx';
@@ -151,6 +154,45 @@ const indexRoute = createRoute({
       </MyProfilePageProvider>
     </AuthRoute>
   ),
+});
+
+// Yesterday's doodle, if the rollover interrupted it (see useUnfinishedDoodle)
+const finishDoodleRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/draw/finish',
+  component: () => (
+    <AuthRoute>
+      <MyProfilePageProvider>
+        <FinishDoodlePage />
+      </MyProfilePageProvider>
+    </AuthRoute>
+  ),
+});
+
+// Missed prompts you can draw with a redo an admin gave you
+const redoListRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/draw/redo',
+  component: () => (
+    <AuthRoute>
+      <RedoListPage />
+    </AuthRoute>
+  ),
+});
+
+const redoDeskRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: '/draw/redo/$day',
+  component: () => {
+    const { day } = redoDeskRoute.useParams();
+    return (
+      <AuthRoute>
+        <MyProfilePageProvider>
+          <RedoDeskPage day={day} />
+        </MyProfilePageProvider>
+      </AuthRoute>
+    );
+  },
 });
 
 const userProfileRoute = createRoute({
@@ -363,6 +405,15 @@ const adminPages = [
     component: PromptsPage,
   }),
   adminPage('suggestions', SuggestionsPage),
+  createRoute({
+    getParentRoute: () => adminRoute,
+    path: 'redos',
+    // ?user=<id> picks who the next redo is for, from the users page
+    validateSearch: (search: Record<string, unknown>): { user?: string } => ({
+      user: typeof search.user === 'string' ? search.user : undefined,
+    }),
+    component: RedosPage,
+  }),
   adminPage('achievements', AchievementsPage),
   adminPage('decorations', DecorationsPage),
   adminPage('reactions', ReactionsPage),
@@ -404,6 +455,9 @@ const routeTree = rootRoute.addChildren([
   appRoute.addChildren([
     rootRedirectRoute,
     indexRoute,
+    finishDoodleRoute,
+    redoListRoute,
+    redoDeskRoute,
     userProfileRoute,
     drawProfilePicRoute,
     friendProfileRoute,

@@ -179,6 +179,9 @@ func HandleGetSubmissionByID(c *gin.Context) {
 		log.Printf("Error fetching AI review for submission %s: %v", subID, err)
 	}
 
+	if err := queries.AttachSubmissionFlags(appCtx.DB, c.Request.Context(), []*models.UserPromptSubmission{&resp}); err != nil {
+		log.Printf("Error checking how %s was pinned: %v", subID, err)
+	}
 	if err := queries.HideTodaysDrawings(appCtx.DB, c.Request.Context(), requester.ID, []*models.UserPromptSubmission{&resp}); err != nil {
 		log.Printf("Error checking whether user %s drew today: %v", requester.ID, err)
 	}

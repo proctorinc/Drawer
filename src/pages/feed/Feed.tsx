@@ -13,6 +13,8 @@ import { useSubmitPromptSuggestion } from '@/api/Api';
 import EventPreviewRow from '@/events/EventPreviewRow';
 import { PushPin } from '@/components/PushPin';
 import { useAnimationQueue } from '@/animations/AnimationQueue';
+import { UnfinishedDoodleButton } from '@/daily/UnfinishedDoodleButton';
+import { RedoButton } from '@/daily/RedoButton';
 
 /** When tomorrow's prompt drops; fixed-width digits so it never jiggles */
 const NextPromptCountdown = ({ compact = false }: { compact?: boolean }) =>
@@ -149,6 +151,9 @@ const Feed = () => {
       });
     }
     submitPrompt(png, {
+      // The prompt on the desk: if it rolled over mid-pin, this still files
+      // the drawing under the prompt it was drawn for
+      day: dailyPrompt?.day,
       onSuccess: () => setIsUploaded(true),
       onError: () => {
         if (pinId) dismiss(pinId);
@@ -185,6 +190,8 @@ const Feed = () => {
 
   return (
     <Layout>
+      <UnfinishedDoodleButton className="self-center" />
+      <RedoButton className="self-center" />
       <EventPreviewRow
         aside={(compact) => <NextPromptCountdown compact={compact} />}
       />

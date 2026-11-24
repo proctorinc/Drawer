@@ -5,6 +5,7 @@ import (
 	"drawer-service-backend/internal/db/queries"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,6 +18,8 @@ var PencilSounds = []string{"pencil", "musical"}
 // AppSettings are the app-wide choices admins make for everyone.
 type AppSettings struct {
 	PencilSound string `json:"pencilSound"`
+	// Whether drawings made with a redo count toward streaks (off by default)
+	RedosCountForStreaks bool `json:"redosCountForStreaks"`
 }
 
 func newAppSettings(values map[string]string) AppSettings {
@@ -24,7 +27,10 @@ func newAppSettings(values map[string]string) AppSettings {
 	if !isPencilSound(sound) {
 		sound = PencilSounds[0]
 	}
-	return AppSettings{PencilSound: sound}
+	return AppSettings{
+		PencilSound:          sound,
+		RedosCountForStreaks: values[queries.SettingRedosCountForStreaks] == "true",
+	}
 }
 
 func isPencilSound(sound string) bool {
@@ -59,7 +65,8 @@ func HandleAdminUpdateAppSettings(c *gin.Context) {
 	appCtx := requestContext.GetCtx(c)
 
 	var body struct {
-		PencilSound *string `json:"pencilSound"`
+		PencilSound          *string `json:"pencilSound"`
+		RedosCountForStreaks *bool   `json:"redosCountForStreaks"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, Error("Invalid settings"))
@@ -73,6 +80,9 @@ func HandleAdminUpdateAppSettings(c *gin.Context) {
 			return
 		}
 		values[settingPencilSound] = *body.PencilSound
+	}
+	if body.RedosCountForStreaks != nil {
+		values[queries.SettingRedosCountForStreaks] = strconv.FormatBool(*body.RedosCountForStreaks)
 	}
 
 	if err := queries.SetAppSettings(appCtx.DB, c.Request.Context(), values); err != nil {

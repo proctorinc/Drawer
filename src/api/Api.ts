@@ -167,6 +167,24 @@ export interface UserPromptSubmission extends DailyPrompt {
   createdAt: Date;
   /** The AI judge's score and comment; null until it has one */
   aiReview?: AIReview | null;
+  /** Pinned the day after its prompt: a doodle the rollover interrupted */
+  late?: boolean;
+  /** Drawn with a redo, after its prompt had closed */
+  redo?: boolean;
+}
+
+/** A redo an admin gave you: for one missed day, or any (day null) */
+export interface RedoGrant {
+  id: string;
+  day: string | null;
+  note: string;
+  createdAt: string;
+}
+
+/** Your unused redos, and the missed prompts they cover, newest first */
+export interface Redos {
+  grants: Array<RedoGrant>;
+  prompts: Array<Omit<DailyPrompt, 'isCompleted'>>;
 }
 
 /** An AI judge as players see it: never a real user, so it has no profile */
@@ -339,6 +357,8 @@ export type DailyActionStat = {
 export const queryKeys = {
   me: ['me'] as const,
   daily: ['daily'] as const,
+  unfinishedPrompt: ['unfinishedPrompt'] as const,
+  redos: ['redos'] as const,
   myProfile: ['myProfile'] as const,
   myAvatars: ['myAvatars'] as const,
   userProfile: (id: string) => ['userProfile', id] as const,
@@ -424,6 +444,31 @@ export function usePromptSubmission(
       return false;
     },
     enabled: !!submissionId,
+  });
+}
+
+/** Yesterday's prompt, while you can still finish a doodle you started on it */
+export function useGetUnfinishedPrompt(enabled = true) {
+  return useQuery({
+    queryKey: queryKeys.unfinishedPrompt,
+    queryFn: apiClient.getUnfinishedPrompt,
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+/** Your redos and the prompts you can spend them on */
+export function useGetRedos() {
+  return useQuery({
+    queryKey: queryKeys.redos,
+    queryFn: apiClient.getRedos,
+    staleTime: 60_000,
+  });
+}
+
+export function useStartDailyDrawing() {
+  return useMutation({
+    mutationFn: apiClient.startDailyDrawing,
   });
 }
 

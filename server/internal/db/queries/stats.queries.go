@@ -358,7 +358,7 @@ func InsertUserAchievement(repo *sql.DB, ctx context.Context, userID, achievemen
 func CalculateSubmissionActiveStreak(repo *sql.DB, ctx context.Context, userID string) (int, error) {
 	rows, err := repo.QueryContext(ctx, `
 		SELECT day FROM user_submissions
-		WHERE user_id = ? AND `+countedDay("user_id", "day")+`
+		WHERE user_id = ? AND `+countedDay("user_id", "day")+` AND `+streakDay()+`
 		ORDER BY day DESC
 	`, userID)
 	if err != nil {
@@ -408,7 +408,7 @@ func CalculateSubmissionMaxStreak(repo *sql.DB, ctx context.Context, userID stri
 	// and 'user_id' for filtering.
 	rows, err := repo.QueryContext(ctx, `
 		SELECT day FROM user_submissions
-		WHERE user_id = ? AND `+countedDay("user_id", "day")+`
+		WHERE user_id = ? AND `+countedDay("user_id", "day")+` AND `+streakDay()+`
 		ORDER BY day ASC
 	`, userID)
 	if err != nil {

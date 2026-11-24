@@ -13,7 +13,7 @@ CREATE TABLE user_submissions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     day TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, late INTEGER NOT NULL DEFAULT 0, redo INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(user_id, day)
 );
@@ -156,3 +156,6 @@ CREATE TABLE judge_pledges (
     PRIMARY KEY (user_id, day),
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
+CREATE TABLE drawing_starts (user_id TEXT NOT NULL, day TEXT NOT NULL, started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (user_id, day), FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
+CREATE TABLE redo_grants (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, day TEXT, note TEXT NOT NULL DEFAULT '', granted_by TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, used_at TIMESTAMP, used_day TEXT, FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE, FOREIGN KEY (granted_by) REFERENCES users (id) ON DELETE SET NULL);
+CREATE INDEX idx_redo_grants_user ON redo_grants (user_id, used_at);

@@ -171,6 +171,9 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
                   day: 'numeric',
                   year: 'numeric',
                 })}
+                {/* Pinned the next day: the prompt rolled over mid-doodle */}
+                {submission.late && ' · finished late'}
+                {submission.redo && ' · redo'}
               </p>
             </div>
             <ShareButton

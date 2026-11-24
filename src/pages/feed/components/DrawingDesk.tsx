@@ -3,14 +3,19 @@ import { Link } from '@tanstack/react-router';
 import { CountDownTimer } from '../../../daily/CountdownTimer';
 import { PromptTitle } from './PromptTitle';
 import { useLeaveGuard } from './useLeaveGuard';
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 import type { DailyPrompt, User } from '@/api/Api';
 import type { PinchZoomHandle } from '@/drawing/usePinchZoom';
 import { JudgeIntroReplayButton } from '@/ai/JudgeIntro';
 import { TodaysJudgeChip, useTodaysJudge } from '@/ai/TodaysJudge';
 import Button from '@/components/Button';
 import { useFullscreenPage } from '@/components/AppShell';
-import { ClockIcon, PinIcon, TrophyIcon } from '@/components/icons';
+import {
+  ArrowLeftIcon,
+  ClockIcon,
+  PinIcon,
+  TrophyIcon,
+} from '@/components/icons';
 import { CanvasSettingsButton } from '@/drawing/CanvasSettings';
 import { useDrawing } from '@/drawing/DrawingContext';
 import { Toolbar } from '@/drawing/Toolbar';
@@ -20,6 +25,8 @@ import useUser from '@/auth/hooks/useUser';
 import { TreeIcon } from '@/events/christmas/Decorations';
 import OrnamentTally from '@/events/christmas/OrnamentTally';
 import { useChristmas } from '@/events/useChristmas';
+import { UnfinishedDoodleButton } from '@/daily/UnfinishedDoodleButton';
+import { RedoButton } from '@/daily/RedoButton';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { cn } from '@/utils';
 
@@ -93,6 +100,36 @@ const DeskByline: FC<{ createdBy: User | null; fit: Fit }> = ({
     </div>
   );
 };
+
+/** A prompt that isn't today's (finishing late, or a redo) */
+export type PastDesk = {
+  title: string;
+  /** Under the title: how long is left, or which day it was */
+  detail: ReactNode;
+  /** Where the back button goes */
+  backTo: '/draw' | '/draw/redo';
+};
+
+/** Drawing an earlier prompt: the way back, and what it is */
+const PastByline: FC<PastDesk> = ({ title, detail, backTo }) => (
+  <div className="flex items-center gap-2.5 min-w-0">
+    <Link
+      to={backTo}
+      aria-label="Back"
+      className="press flex flex-none items-center justify-center size-10 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil-sm hover:-rotate-6"
+    >
+      <ArrowLeftIcon size={20} />
+    </Link>
+    <span className="flex flex-col gap-1 min-w-0">
+      <span className="font-accent font-bold text-xl leading-none truncate">
+        {title}
+      </span>
+      <span className="flex items-center gap-1 text-sm leading-none text-pencil whitespace-nowrap">
+        {detail}
+      </span>
+    </span>
+  </div>
+);
 
 /** Your own corners of the app; everyone else's drawings wait until you've drawn */
 const DeskLinks = () => {
@@ -186,6 +223,11 @@ type DrawingDeskProps = {
   onSubmit: (png: Blob, canvas: HTMLCanvasElement | null) => void;
   /** Set while the drawing is being pinned: the tools fade while it animates */
   pinning: Pinning | null;
+  /**
+   * An earlier prompt (finished late, or a redo): today's judge and the event
+   * tally don't apply, and the header leads back
+   */
+  past?: PastDesk;
 };
 
 /** Nothing but the prompt and the canvas, sized to fit any screen without scrolling */
@@ -194,9 +236,11 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
   error,
   onSubmit,
   pinning,
+  past,
 }) => {
   const christmas = useChristmas();
-  const { data: judge } = useTodaysJudge();
+  const { data: todaysJudge } = useTodaysJudge();
+  const judge = past ? undefined : todaysJudge;
   const { canvasRef, hasInk, getPng } = useDrawing();
   const zoomRef = useRef<PinchZoomHandle>(null);
   const { areaRef, contentRef, fit, size } = useDeskFit();
@@ -258,8 +302,17 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
         )}
       >
         <header className="flex flex-none items-center justify-between gap-3 min-h-10">
-          <DeskByline createdBy={dailyPrompt.createdBy} fit={fit} />
-          <DeskLinks />
+          {past ? (
+            <>
+              <PastByline {...past} />
+              <CanvasSettingsButton />
+            </>
+          ) : (
+            <>
+              <DeskByline createdBy={dailyPrompt.createdBy} fit={fit} />
+              <DeskLinks />
+            </>
+          )}
         </header>
 
         {/* Whatever height is left; the column inside sits in its middle */}
@@ -273,7 +326,11 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
             style={{ gap: GAP[fit] }}
           >
             <div className="flex flex-col gap-2">
-              {christmas?.countdownDays && <OrnamentTally event={christmas} />}
+              {!past && <UnfinishedDoodleButton className="self-start" />}
+              {!past && <RedoButton className="self-start" />}
+              {!past && christmas?.countdownDays && (
+                <OrnamentTally event={christmas} />
+              )}
               <PromptTitle
                 prompt={dailyPrompt.prompt}
                 colors={dailyPrompt.colors}

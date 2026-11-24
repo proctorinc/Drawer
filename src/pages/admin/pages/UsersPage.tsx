@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { faUserSecret } from '@fortawesome/free-solid-svg-icons';
+import { faRotateLeft, faUserSecret } from '@fortawesome/free-solid-svg-icons';
 import { useAdminUsers } from '../api';
 import {
   AdminPage,
@@ -103,15 +103,31 @@ const UsersPage = () => {
                     </div>
                   </td>
                   <td className={td}>
-                    <Button
-                      size="sm"
-                      variant="base"
-                      icon={faUserSecret}
-                      disabled={impersonate.isPending}
-                      onClick={() => becomeUser(user.id)}
-                    >
-                      be them
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="base"
+                        disableLoad
+                        icon={faRotateLeft}
+                        onClick={() =>
+                          navigate({
+                            to: '/draw/admin/redos',
+                            search: { user: user.id },
+                          })
+                        }
+                      >
+                        redo
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="base"
+                        icon={faUserSecret}
+                        disabled={impersonate.isPending}
+                        onClick={() => becomeUser(user.id)}
+                      >
+                        be them
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

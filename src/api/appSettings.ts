@@ -7,6 +7,8 @@ import { setPencilSound } from '@/drawing/feedback';
 /** App-wide choices admins make for everyone */
 export interface AppSettings {
   pencilSound: PencilSound;
+  /** Whether drawings made with a redo count toward streaks */
+  redosCountForStreaks: boolean;
 }
 
 export const appSettingsKey = ['appSettings'] as const;

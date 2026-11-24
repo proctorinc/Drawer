@@ -40,6 +40,7 @@ var eventMigrations = []string{
 	"1795132610_seed_grinch.up.sql",
 	// Left out of the dump by the filter above (it has an event_id column)
 	"1795132620_judge_pledges.up.sql",
+	// 1795132730_drawing_starts, 1795132740_redos: already in the schema dump
 }
 
 // NewEventsDB returns an in-memory database with the schema from migrations/schema.sql, where

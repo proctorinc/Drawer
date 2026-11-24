@@ -96,13 +96,15 @@ func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.D
 type InsertSubmissionRecordParams struct {
 	UserID string
 	Day    string
+	// Pinned after its prompt rolled over (see LateDay)
+	Late bool
 }
 
 func InsertSubmissionRecord(repo *sql.DB, ctx context.Context, params InsertSubmissionRecordParams) (string, error) {
 	submissionId := uuid.New().String()
 
-	insertQuery := `INSERT INTO user_submissions (id, user_id, day) VALUES (?, ?, ?) returning id`
-	_, err := repo.ExecContext(ctx, insertQuery, submissionId, params.UserID, params.Day)
+	insertQuery := `INSERT INTO user_submissions (id, user_id, day, late) VALUES (?, ?, ?, ?)`
+	_, err := repo.ExecContext(ctx, insertQuery, submissionId, params.UserID, params.Day, params.Late)
 
 	return submissionId, err
 }
