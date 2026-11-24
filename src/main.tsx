@@ -61,6 +61,7 @@ import AILogPage from './pages/admin/pages/AILogPage.tsx';
 import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
 import BetaZonePage from './pages/admin/pages/BetaZonePage.tsx';
+import MintedPage from './pages/admin/pages/MintedPage.tsx';
 import AppSettingsPage from './pages/admin/pages/AppSettingsPage.tsx';
 import DuelsPage from './beta/duel/DuelsPage.tsx';
 import DuelPage from './beta/duel/DuelPage.tsx';
@@ -372,6 +373,7 @@ const adminPages = [
   adminPage('ai', AIJudgesPage),
   adminPage('ai/test', AITestingGroundPage),
   adminPage('ai/log', AILogPage),
+  adminPage('minted', MintedPage),
   createRoute({
     getParentRoute: () => adminRoute,
     path: 'drawing',

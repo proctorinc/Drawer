@@ -22,6 +22,7 @@ import {
   faScroll,
   faSliders,
   faStairs,
+  faStamp,
   faUsers,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
@@ -93,7 +94,10 @@ const NAV: Array<{ group: string; items: Array<NavItem> }> = [
   },
   {
     group: 'beta zone',
-    items: [{ to: '/draw/admin/beta', label: 'sketch duel', icon: faFlask }],
+    items: [
+      { to: '/draw/admin/beta', label: 'sketch duel', icon: faFlask },
+      { to: '/draw/admin/minted', label: 'minted polaroids', icon: faStamp },
+    ],
   },
   {
     group: 'app',

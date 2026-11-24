@@ -1,0 +1,607 @@
+/*
+ * A minted polaroid you can turn over in 3D (src/mint/MintedPolaroid3D.tsx).
+ * The one place the app uses depth and light on a polaroid, by request: the
+ * wall's polaroids stay flat. Proportions match the big polaroid on a doodle's
+ * page: a 12px border and a 60px caption at 320px wide.
+ */
+.mint-stage {
+  --m-mint: #c8f0d8;
+  --m-lilac: #e6dcff;
+  --m-silver: #d9e2ee;
+  --m-silver-deep: #66789a;
+  --m-bands: repeating-linear-gradient(
+    115deg,
+    var(--color-blush) 0 16px,
+    var(--color-butter) 16px 32px,
+    var(--m-mint) 32px 48px,
+    var(--color-sky) 48px 64px,
+    var(--m-lilac) 64px 80px
+  );
+  --m-hatch: repeating-linear-gradient(
+    45deg,
+    transparent 0 6px,
+    rgb(52 80 130 / 0.14) 6px 7px
+  );
+  --m-brushed: repeating-linear-gradient(
+    0deg,
+    rgb(255 255 255 / 0.55) 0 1px,
+    transparent 1px 3px
+  );
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding-top: 26px;
+  perspective: 1300px;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+  outline: none;
+}
+.mint-stage:focus-visible .mint-card {
+  outline: 3px dashed var(--color-coral);
+  outline-offset: 10px;
+}
+.mint-dragging {
+  cursor: grabbing;
+}
+.mint-float {
+  transform-style: preserve-3d;
+  animation: mint-bob 4.2s ease-in-out infinite;
+}
+.mint-dragging .mint-float {
+  animation-play-state: paused;
+}
+@keyframes mint-bob {
+  50% {
+    translate: 0 -8px;
+  }
+}
+.mint-card {
+  --rx: 0;
+  --ry: 0;
+  position: relative;
+  width: min(var(--mw, 330px), 80vw);
+  aspect-ratio: 20 / 23;
+  transform-style: preserve-3d;
+  transform: rotateX(calc(var(--rx) * 1deg)) rotateY(calc(var(--ry) * 1deg));
+}
+.mint-snap {
+  transition: transform 0.7s var(--ease-spring);
+}
+.mint-floor {
+  width: min(calc(var(--mw, 330px) * 0.72), 58vw);
+  height: 18px;
+  border-radius: 50%;
+  background: rgb(43 42 51 / 0.16);
+  scale: var(--sx, 1) 1;
+  transition: scale 0.2s;
+}
+
+/* ---------- faces ---------- */
+.mint-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 3.75% 3.75% 0;
+  border: 2px solid var(--color-ink);
+  background: white;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  container-type: inline-size;
+}
+.mint-back {
+  padding: 3.75%;
+  transform: rotateY(180deg);
+}
+.mint-t-uncommon {
+  background: var(--m-mint);
+}
+.mint-t-silver {
+  background-color: var(--m-silver);
+  background-image: var(--m-brushed), var(--m-hatch);
+}
+.mint-t-gold {
+  background: var(--color-gold);
+}
+.mint-t-holo {
+  background-image: var(--m-bands);
+  background-size: 300% 300%;
+  background-position: calc(var(--mx, 50) * 1%) 50%;
+}
+.mint-t-misprint {
+  background: #fbf3dc;
+}
+
+/* ---------- front ---------- */
+.mint-pin {
+  position: absolute;
+  z-index: 9;
+  top: -24px;
+  left: 50%;
+  margin-left: -17px;
+}
+.mint-photo {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1.5px solid var(--color-ink);
+  background: #fff8ec;
+}
+.mint-art {
+  position: absolute;
+  inset: 0;
+}
+.mint-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.mint-t-misprint .mint-photo {
+  background: #2e2a33;
+}
+.mint-t-misprint .mint-art {
+  rotate: 4deg;
+  scale: 1.06;
+  filter: invert(1) hue-rotate(180deg);
+}
+.mint-t-holo .mint-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.3;
+  mix-blend-mode: multiply;
+  background-image: var(--m-bands);
+  background-size: 300% 300%;
+  background-position: calc(100% - var(--mx, 50) * 1%) 50%;
+}
+.mint-fold {
+  position: absolute;
+  z-index: 3;
+  right: -1px;
+  bottom: -1px;
+  width: 9cqw;
+  height: 9cqw;
+}
+.mint-scuffs {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.mint-mark {
+  position: absolute;
+  z-index: 3;
+  left: 2cqw;
+  bottom: 2cqw;
+  padding: 0 2cqw;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 4px;
+  background: white;
+  font-family: var(--font-accent);
+  font-weight: 700;
+  font-size: 3cqw;
+  letter-spacing: 0.08em;
+}
+.mint-stamp {
+  position: absolute;
+  z-index: 4;
+  right: 6cqw;
+  top: 40%;
+  rotate: -14deg;
+  padding: 0 2.4cqw;
+  border: 2.5px solid currentColor;
+  border-radius: 6px;
+  color: var(--color-coral);
+  background: rgb(255 255 255 / 0.7);
+  font-family: var(--font-silly);
+  font-size: 8cqw;
+  letter-spacing: 0.06em;
+}
+.mint-score {
+  position: absolute;
+  z-index: 8;
+  top: 1.5cqw;
+  right: 1.5cqw;
+  width: 15cqw;
+  height: 15cqw;
+  display: grid;
+  place-content: center;
+  rotate: -6deg;
+  border: 2px solid var(--color-ink);
+  border-radius: 50%;
+  background: var(--color-butter);
+  text-align: center;
+  line-height: 0.9;
+}
+.mint-score b {
+  font-family: var(--font-accent);
+  font-size: 6.4cqw;
+}
+.mint-score small {
+  font-family: var(--font-accent);
+  font-size: 3cqw;
+  color: var(--color-pencil);
+}
+.mint-chin {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1cqw;
+  padding: 1cqw 0.2cqw;
+}
+.mint-l1 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2cqw;
+}
+.mint-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-silly);
+  font-size: 5.8cqw;
+  line-height: 1.05;
+}
+.mint-type {
+  white-space: nowrap;
+  font-family: var(--font-accent);
+  font-weight: 700;
+  font-size: 2.7cqw;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mint-l2 {
+  display: flex;
+  align-items: center;
+  gap: 1.8cqw;
+  padding-top: 1cqw;
+  border-top: 1.5px solid var(--color-ink);
+}
+.mint-l2 > :first-child {
+  width: 6.6cqw;
+  height: 6.6cqw;
+}
+.mint-by {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 2.9cqw;
+  line-height: 1.15;
+}
+.mint-by span {
+  display: block;
+  color: var(--color-pencil);
+  font-size: 2.6cqw;
+}
+.mint-vtag {
+  flex: none;
+  padding: 0 1.2cqw;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 4px;
+  background: var(--color-paper);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 2.6cqw;
+  line-height: 1.5;
+}
+
+/* light catching the foil as the card turns */
+.mint-sheen {
+  position: absolute;
+  inset: 0;
+  /* under the photo and caption, so the light plays on the frame, not the drawing */
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background-size: 260% 260%;
+  background-position: calc(var(--mx, 50) * 1%) calc(var(--my, 50) * 1%);
+}
+.mint-t-silver .mint-sheen {
+  opacity: 0.85;
+  background-image: linear-gradient(
+    105deg,
+    transparent 32%,
+    rgb(200 225 255 / 0.75) 42%,
+    rgb(255 255 255 / 0.95) 48%,
+    rgb(180 208 245 / 0.7) 54%,
+    transparent 64%
+  );
+}
+.mint-t-gold .mint-sheen {
+  opacity: 0.8;
+  background-image: linear-gradient(
+    105deg,
+    transparent 36%,
+    rgb(255 249 220 / 0.85) 46%,
+    rgb(255 255 255 / 0.9) 50%,
+    transparent 60%
+  );
+}
+.mint-t-holo .mint-sheen {
+  opacity: 0.55;
+  mix-blend-mode: hard-light;
+  background-image: linear-gradient(
+    115deg,
+    transparent 18%,
+    #ff9ab8 30%,
+    #ffe08a 40%,
+    #8ef0b8 50%,
+    #8cc4ff 60%,
+    #c7a8ff 70%,
+    transparent 82%
+  );
+}
+/* an icy, hard-edged glint for silver (gold uses the Masterpiece trim's own) */
+.mint-glint {
+  position: absolute;
+  inset: 0;
+  /* on the frame only, under the photo and the back's panel */
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.mint-glint::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  bottom: -50%;
+  left: -60%;
+  width: 26%;
+  rotate: 20deg;
+  background: linear-gradient(
+    90deg,
+    rgb(236 246 255 / 0.85) 0 56%,
+    transparent 56% 72%,
+    rgb(186 214 250 / 0.75) 72% 100%
+  );
+  animation: mint-glint 3.2s ease-in-out infinite;
+}
+.mint-t-gold .mint-glint::before {
+  background: linear-gradient(
+    90deg,
+    rgb(255 246 200 / 0.8) 0 56%,
+    transparent 56% 72%,
+    rgb(255 255 255 / 0.65) 72% 100%
+  );
+  animation-duration: 3.8s;
+}
+@keyframes mint-glint {
+  50%,
+  100% {
+    translate: 650% 0;
+  }
+}
+
+/* ---------- back: one inset panel across the whole back, signed by the judge ---------- */
+.mint-bk {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2.4cqw;
+  padding: 3.4cqw 3.8cqw;
+  border: 2px solid var(--color-ink);
+  background-color: white;
+  background-image: radial-gradient(var(--color-line) 1px, transparent 1.2px);
+  background-size: 4.4cqw 4.4cqw;
+}
+.mint-t-misprint .mint-bk {
+  background-color: #fbf3dc;
+}
+.mint-bk-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2cqw;
+  padding-bottom: 1.8cqw;
+  border-bottom: 2px solid var(--color-ink);
+}
+.mint-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 1.6cqw;
+  line-height: 1;
+}
+.mint-lockup > svg {
+  width: 7.5cqw;
+  height: 7.5cqw;
+  rotate: -5deg;
+}
+.mint-lockup span {
+  display: flex;
+  flex-direction: column;
+}
+.mint-lockup small {
+  padding-left: 0.4cqw;
+  font-size: 2cqw;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-pencil);
+}
+.mint-lockup b {
+  font-family: var(--font-cursive);
+  font-size: 6.2cqw;
+  line-height: 0.85;
+}
+.mint-hero {
+  display: grid;
+  gap: 0.8cqw;
+}
+.mint-kicker,
+.mint-label {
+  font-family: var(--font-accent);
+  font-weight: 700;
+  font-size: 2.7cqw;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-pencil);
+}
+.mint-title {
+  font-family: var(--font-silly);
+  font-size: 7.6cqw;
+  line-height: 1;
+  text-wrap: balance;
+}
+.mint-hand {
+  font-family: var(--font-cursive);
+  font-size: 5.2cqw;
+  line-height: 1;
+}
+.mint-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  padding-block: 2cqw;
+  border-block: 1.5px dashed var(--color-ink);
+  text-align: center;
+}
+.mint-stats > div + div {
+  border-left: 1.5px dashed var(--color-line);
+}
+.mint-stats b {
+  display: block;
+  white-space: nowrap;
+  font-family: var(--font-silly);
+  font-weight: 400;
+  font-size: 8.2cqw;
+  line-height: 0.95;
+}
+.mint-stats b small {
+  font-family: var(--font-accent);
+  font-size: 3.4cqw;
+  color: var(--color-pencil);
+}
+.mint-stats span {
+  display: block;
+  margin-top: 0.8cqw;
+  font-family: var(--font-accent);
+  font-weight: 700;
+  font-size: 2.6cqw;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-pencil);
+}
+.mint-pop {
+  display: flex;
+  align-items: center;
+  gap: 1.8cqw;
+  font-size: 3cqw;
+  line-height: 1.2;
+}
+.mint-pop b {
+  font-family: var(--font-accent);
+  font-size: 3.8cqw;
+}
+.mint-live {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 1cqw;
+  padding: 0 1.4cqw;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  color: var(--color-coral);
+  font-family: var(--font-accent);
+  font-weight: 700;
+  font-size: 2.3cqw;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.mint-live i {
+  width: 1.6cqw;
+  height: 1.6cqw;
+  border-radius: 50%;
+  background: currentColor;
+  animation: mint-blink 1.6s ease-in-out infinite;
+}
+@keyframes mint-blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+.mint-note {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+  font-family: var(--font-cursive);
+  font-size: 5cqw;
+  line-height: 1.1;
+}
+.mint-sign {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: end;
+  gap: 3cqw;
+}
+.mint-sig {
+  display: grid;
+  min-width: 0;
+}
+.mint-ink {
+  position: relative;
+  z-index: 1;
+  margin-bottom: -1.6cqw;
+  padding-left: 1.5cqw;
+  white-space: nowrap;
+  rotate: -4deg;
+  transform-origin: left bottom;
+  font-family: var(--sig-font);
+  font-size: calc(var(--sig-scale) * 100cqw);
+  line-height: 1.25;
+  color: var(--sig-ink);
+}
+.mint-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 2cqw;
+  padding-top: 0.8cqw;
+  border-top: 1.5px solid var(--color-ink);
+  white-space: nowrap;
+  font-size: 2.6cqw;
+  color: var(--color-pencil);
+}
+.mint-line span:first-child {
+  color: var(--color-ink);
+}
+.mint-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 2cqw;
+  font-family: var(--font-accent);
+  font-weight: 700;
+  font-size: 2.5cqw;
+  color: var(--color-pencil);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mint-float,
+  .mint-glint::before,
+  .mint-live i {
+    animation: none;
+  }
+  .mint-glint {
+    display: none;
+  }
+  .mint-snap {
+    transition: none;
+  }
+}
