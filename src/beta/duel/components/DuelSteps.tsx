@@ -83,39 +83,40 @@ export const DuelSteps: FC<{ duel: Duel; userId: string }> = ({
       <li
         key={step.key}
         aria-current={step.state === 'now' ? 'step' : undefined}
+        aria-label={`${step.who ? (step.who.id === userId ? 'you' : step.who.username) : ''} ${step.label}`.trim()}
         className={cn(
-          'relative flex flex-col items-center gap-1 px-0.5 pt-2 pb-1.5 text-center border-2 rounded-sketch-alt transition-colors',
+          'relative flex flex-col items-center gap-0.5 px-0.5 pt-1.5 pb-1 text-center border-2 rounded-sketch-alt transition-colors',
           step.state === 'now' && 'bg-butter border-ink -rotate-1',
           step.state === 'done' && 'bg-white border-ink',
           step.state === 'later' && 'border-dashed border-line',
           step.state === 'skipped' && 'border-dashed border-line opacity-50',
         )}
       >
-        <span className="absolute -top-2.5 left-1 px-1 text-xs font-bold bg-paper text-pencil">
+        <span className="absolute -top-2 left-1 px-1 text-[0.65rem] leading-none font-bold bg-paper text-pencil">
           {i + 1}
         </span>
         {step.who ? (
-          <UserProfileIcon user={step.who} size="sm" showLevel={false} />
+          <UserProfileIcon user={step.who} size="xs" showLevel={false} />
         ) : (
-          <span className="grid place-items-center size-9 border-2 border-ink rounded-full bg-white">
+          <span className="grid place-items-center size-6 text-xs border-[1.5px] border-ink rounded-full bg-white">
             <FontAwesomeIcon icon={step.icon} />
           </span>
         )}
-        <span className="flex items-center gap-1 text-sm leading-none">
+        <span className="flex items-center gap-0.5 text-xs leading-none">
           {step.state === 'done' ? (
-            <FontAwesomeIcon icon={faCheck} className="text-xs" />
+            <FontAwesomeIcon icon={faCheck} className="text-[0.6rem]" />
           ) : (
-            step.who && <FontAwesomeIcon icon={step.icon} className="text-xs" />
+            step.who && (
+              <FontAwesomeIcon icon={step.icon} className="text-[0.6rem]" />
+            )
           )}
           {step.label}
         </span>
-        <span className="text-xs leading-none text-pencil truncate max-w-full">
-          {step.score != null
-            ? `${step.score}%`
-            : step.who?.id === userId
-              ? 'you'
-              : (step.who?.username ?? '')}
-        </span>
+        {step.score != null && (
+          <span className="text-[0.65rem] leading-none text-pencil">
+            {step.score}%
+          </span>
+        )}
       </li>
     ))}
   </ol>

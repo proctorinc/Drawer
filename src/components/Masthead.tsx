@@ -8,7 +8,7 @@ import {
 import Logo from './Logo';
 import ActivityBell from './ActivityBell';
 import { ArrowLeftIcon, CheckIcon, FlameIcon } from './icons';
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 import useAuth from '@/auth/hooks/useAuth';
 import { useGetMyProfile } from '@/api/Api';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
@@ -154,53 +154,72 @@ const StreakBadge = () => {
   );
 };
 
-/** The logo with its pencil swapped for a back arrow, so the logo itself goes back */
-const BackLogo = () => {
+/**
+ * The logo with its pencil swapped for a back arrow, so the logo itself goes back.
+ * With a `title`, the title stands in for the logo's wordmark.
+ */
+const BackLogo: FC<{ title?: ReactNode }> = ({ title }) => {
   const router = useRouter();
   const canGoBack = useCanGoBack();
   const navigate = useNavigate();
 
+  const arrow = (
+    <span className="flex flex-none items-center justify-center size-12 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil-sm transition-[translate,box-shadow,rotate] duration-150 group-hover:-rotate-6 group-active:translate-x-[2px] group-active:translate-y-[3px] group-active:shadow-none">
+      <ArrowLeftIcon size={22} />
+    </span>
+  );
+  const goBack = () =>
+    canGoBack ? router.history.back() : navigate({ to: '/draw' });
+
+  if (title) {
+    return (
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          aria-label="Back"
+          onClick={goBack}
+          className="group cursor-pointer"
+        >
+          {arrow}
+        </button>
+        {title}
+      </div>
+    );
+  }
   return (
-    <button
-      aria-label="Back"
-      onClick={() =>
-        canGoBack ? router.history.back() : navigate({ to: '/draw' })
-      }
-      className="group cursor-pointer"
-    >
-      <Logo
-        icon={
-          <span className="flex flex-none items-center justify-center size-12 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil-sm transition-[translate,box-shadow,rotate] duration-150 group-hover:-rotate-6 group-active:translate-x-[2px] group-active:translate-y-[3px] group-active:shadow-none">
-            <ArrowLeftIcon size={22} />
-          </span>
-        }
-      />
+    <button aria-label="Back" onClick={goBack} className="group cursor-pointer">
+      <Logo icon={arrow} />
     </button>
   );
 };
 
 type Props = {
   back?: boolean;
+  /** Stands in for the Daily Doodle wordmark next to the back arrow */
+  title?: ReactNode;
+  /** Replaces the streak and bell on the right; null for nothing */
+  right?: ReactNode;
 };
 
-const Masthead: FC<Props> = ({ back }) => {
+const Masthead: FC<Props> = ({ back, title, right }) => {
   const { isAuthenticated } = useAuth();
 
   return (
     <header className="relative z-30 flex items-center justify-between gap-2 h-14 px-5 mt-4">
       {back ? (
-        <BackLogo />
+        <BackLogo title={title} />
       ) : (
         <Link to="/draw" aria-label="Home">
           <Logo />
         </Link>
       )}
-      {isAuthenticated && (
-        <div className="flex items-center gap-2">
-          <StreakBadge />
-          <ActivityBell />
-        </div>
-      )}
+      {right !== undefined
+        ? right
+        : isAuthenticated && (
+            <div className="flex items-center gap-2">
+              <StreakBadge />
+              <ActivityBell />
+            </div>
+          )}
     </header>
   );
 };

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
 import { currentRound, isYourTurn, sides, useDuel } from './api';
-import { DuelClash } from './components/DuelClash';
+import { ClashBadge, DuelClash } from './components/DuelClash';
 import { DuelSteps } from './components/DuelSteps';
 import { DrawTurn } from './components/DrawTurn';
 import { GuessTurn } from './components/GuessTurn';
@@ -14,6 +14,7 @@ import type { FC } from 'react';
 import type { Duel, DuelRound } from './api';
 import Button from '@/components/Button';
 import Layout from '@/components/Layout';
+import Masthead from '@/components/Masthead';
 import useUser from '@/auth/hooks/useUser';
 
 // Per device: which duels have played their intro, and which finished rounds you've seen
@@ -50,27 +51,20 @@ const unseenGuessedRound = (duel: Duel, userId: string, seen: Array<string>) =>
 const RoundReveal: FC<{
   duel: Duel;
   round: DuelRound;
-  them: string;
   onNext: () => void;
-}> = ({ duel, round, them, onNext }) => {
+}> = ({ duel, round, onNext }) => {
   const best = round.score ?? 0;
   const perfect = round.guesses.some((g) => g.exact);
   const line = perfect
-    ? `Word for word! "${round.prompt}". That's the bonus: a perfect ${best}%.`
-    : `The prompt was "${round.prompt}". Your best guess caught ${best}% of it. ${
-        best >= 80
-          ? 'You two are on the same wavelength.'
-          : best >= 50
-            ? 'Not bad at all!'
-            : `${them}'s drawing kept a few secrets.`
-      }`;
+    ? `Perfect! "${round.prompt}". ${best}%.`
+    : `It was "${round.prompt}". You got ${best}%.`;
   return (
     <div className="flex flex-col items-center gap-5 w-full">
       <HostSays host={duel.host} line={line}>
         <Button className="w-full" onClick={onNext} disableLoad>
           {duel.status === 'active' && round.number === 1
-            ? `your turn to draw for ${them}`
-            : 'see how you did together'}
+            ? 'your turn to draw'
+            : 'see results'}
         </Button>
       </HostSays>
       <RoundCard
@@ -98,7 +92,6 @@ const DuelBody: FC<{ duel: Duel; userId: string }> = ({ duel, userId }) => {
       <RoundReveal
         duel={duel}
         round={unseen}
-        them={them.username}
         onNext={() => {
           addToList(ROUNDS_KEY, `${duel.id}:${unseen.number}`);
           setSeenRounds(readList(ROUNDS_KEY));
@@ -128,21 +121,6 @@ const DuelBody: FC<{ duel: Duel; userId: string }> = ({ duel, userId }) => {
   );
 };
 
-/** Who's up, from your side, for the header */
-const headline = (duel: Duel, userId: string) => {
-  const { playing, them } = sides(duel, userId);
-  if (!playing)
-    return `${duel.challenger.username} & ${duel.opponent.username}`;
-  if (duel.status === 'done') return 'duel complete';
-  if (duel.status === 'expired') return 'duel timed out';
-  if (duel.status === 'cancelled') return 'duel called off';
-  if (isYourTurn(duel, userId))
-    return duel.phase === 'draw' ? 'your turn: draw' : 'your turn: guess';
-  return duel.phase === 'draw'
-    ? `${them.username} is up to draw`
-    : `${them.username} is up to guess`;
-};
-
 const DuelPage = () => {
   const { duelId } = useParams({ from: '/_app/draw/beta/duel/$duelId' });
   const user = useUser();
@@ -157,7 +135,24 @@ const DuelPage = () => {
 
   return (
     <BetaGate>
-      <Layout back>
+      <Layout
+        back
+        noNavbar
+        masthead={
+          <Masthead
+            back
+            title={
+              duel.data ? (
+                <ClashBadge
+                  left={duel.data.challenger}
+                  right={duel.data.opponent}
+                />
+              ) : null
+            }
+            right={null}
+          />
+        }
+      >
         {duel.isPending ? (
           <p className="py-10 text-pencil">loading the duel…</p>
         ) : duel.isError ? (
@@ -176,22 +171,7 @@ const DuelPage = () => {
                 onDone={endIntro}
               />
             )}
-            <header className="flex flex-col items-center gap-3 w-full">
-              <span className="text-sm text-pencil">
-                sketch duel ·{' '}
-                {duel.data.challenger.id === user.id
-                  ? 'you'
-                  : duel.data.challenger.username}{' '}
-                &amp;{' '}
-                {duel.data.opponent.id === user.id
-                  ? 'you'
-                  : duel.data.opponent.username}
-              </span>
-              <h1 className="font-accent font-bold text-4xl leading-none text-center">
-                {headline(duel.data, user.id)}
-              </h1>
-              <DuelSteps duel={duel.data} userId={user.id} />
-            </header>
+            <DuelSteps duel={duel.data} userId={user.id} />
             <DuelBody duel={duel.data} userId={user.id} />
           </>
         )}

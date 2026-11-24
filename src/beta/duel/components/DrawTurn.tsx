@@ -189,11 +189,7 @@ export const DrawTurn: FC<Props> = ({ duel, round, them, lead }) => {
   const start = useStartDrawing(duel.id);
 
   if (!round.drawStartedAt) {
-    const line = [
-      lead,
-      `Your turn to draw for ${them.username}! I'll whisper you a secret prompt, and you get ${DRAW_SECONDS} seconds.`,
-      `Draw every part of it: ${them.username} gets 3 guesses, scored on how much of the prompt they catch.`,
-    ]
+    const line = [lead, `Your turn to draw. You get ${DRAW_SECONDS} seconds.`]
       .filter(Boolean)
       .join(' ');
     return (
@@ -204,10 +200,10 @@ export const DrawTurn: FC<Props> = ({ duel, round, them, lead }) => {
           disabled={start.isPending}
           disableLoad
         >
-          {start.isPending ? 'whispering…' : 'show me the prompt'}
+          {start.isPending ? '…' : 'show prompt'}
         </Button>
         <p className="mt-2 text-sm text-center text-pencil">
-          the clock starts as soon as you see it
+          clock starts right away
         </p>
         {start.isError && (
           <p className="mt-1 text-sm text-center text-coral">

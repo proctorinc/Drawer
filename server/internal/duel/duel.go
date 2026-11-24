@@ -160,6 +160,8 @@ type RoundView struct {
 	Prompt       string   `json:"prompt"`
 	Keywords     []string `json:"keywords"`
 	KeywordCount int      `json:"keywordCount"`
+	// The prompt as a fill-in-the-blank sentence: the small words show, the keywords are blanks
+	Template []Segment `json:"template"`
 	// Set while (and after) the drawer has their minute
 	DrawStartedAt *time.Time `json:"drawStartedAt"`
 	DrawDeadline  *time.Time `json:"drawDeadline"`
@@ -240,7 +242,7 @@ func NewView(d models.Duel, host Host, viewerID string, now time.Time) View {
 			Number: round.Number, DrawerID: round.DrawerID, GuesserID: round.GuesserID,
 			KeywordCount: len(round.Keywords), DrawStartedAt: round.DrawStartedAt, DrawDeadline: DrawDeadline(round),
 			Drawn: round.HasImage, Score: round.Score, Finished: round.FinishedAt != nil, FinishedAt: round.FinishedAt,
-			Guesses: []GuessView{}, Keywords: []string{},
+			Guesses: []GuessView{}, Keywords: []string{}, Template: Template(round.Prompt, round.Keywords),
 		}
 		if showPrompt {
 			rv.Prompt, rv.Keywords = round.Prompt, round.Keywords

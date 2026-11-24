@@ -2,13 +2,16 @@ import { useEffect } from 'react';
 import type { FC } from 'react';
 import type { User } from '@/api/Api';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
+import { cn } from '@/utils';
 import '../duel.css';
 
 /** Ink lines bursting out where the two faces smack together */
-const Burst = () => (
+export const Burst: FC<{ className?: string }> = ({
+  className = 'duel-burst size-44',
+}) => (
   <svg
     viewBox="-50 -50 100 100"
-    className="duel-burst absolute size-44 pointer-events-none"
+    className={cn('absolute pointer-events-none', className)}
     aria-hidden="true"
   >
     {Array.from({ length: 12 }, (_, i) => {
@@ -84,9 +87,33 @@ export const DuelClash: FC<Props> = ({ left, right, onDone }) => {
         </span>
       </div>
       <p className="duel-later max-w-xs text-center text-xl text-pencil">
-        a co-op showdown: you draw for each other, and your scores combine
+        draw for each other, score together
       </p>
       <span className="duel-later text-sm text-pencil">tap to start</span>
     </div>
   );
 };
+
+/**
+ * The clash in miniature, for a header: both faces butting heads over a little ink
+ * burst, beside the "sketch duel" stamp.
+ */
+export const ClashBadge: FC<{ left: User; right: User }> = ({
+  left,
+  right,
+}) => (
+  <div className="flex items-center gap-2" aria-label="sketch duel">
+    <span className="relative flex items-center justify-center">
+      <Burst className="size-[3.25rem]" />
+      <span className="relative z-10 -mr-1 -rotate-12">
+        <UserProfileIcon user={left} size="xs" showLevel={false} />
+      </span>
+      <span className="relative z-10 -ml-1 rotate-12">
+        <UserProfileIcon user={right} size="xs" showLevel={false} />
+      </span>
+    </span>
+    <span className="px-2.5 py-1 font-accent font-bold text-2xl leading-none bg-butter border-2 border-ink rounded-sketch -rotate-3 whitespace-nowrap">
+      sketch duel!
+    </span>
+  </div>
+);

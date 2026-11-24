@@ -10,6 +10,8 @@ type Props = {
   line: string;
   /** Shown under the line once it's finished typing, e.g. the button for the next step */
   children?: ReactNode;
+  /** One slim row, face beside the bubble, for tight phone layouts */
+  compact?: boolean;
   className?: string;
 };
 
@@ -17,8 +19,45 @@ type Props = {
  * The duel's host talking you through it, like a quest-giver: their face bobs
  * while the line types out in a speech bubble. Tap the bubble to skip ahead.
  */
-export const HostSays: FC<Props> = ({ host, line, children, className }) => {
+export const HostSays: FC<Props> = ({
+  host,
+  line,
+  children,
+  compact = false,
+  className,
+}) => {
   const { shown, done, talking, finish } = useTypewriter(line, host.name);
+
+  if (compact) {
+    return (
+      <div className={cn('flex items-end gap-1.5 w-full', className)}>
+        <span
+          className={cn(
+            'inline-flex flex-none origin-bottom',
+            talking && 'animate-talk',
+          )}
+        >
+          <AIJudgeAvatar judge={host} size="lg" />
+        </span>
+        <div
+          className="relative flex-1 min-w-0 px-3 py-1.5 bg-white border-2 border-ink rounded-sketch cursor-pointer"
+          onClick={finish}
+        >
+          <span
+            aria-hidden="true"
+            className="absolute bottom-2.5 -left-[9px] size-4 rotate-45 bg-white border-l-2 border-b-2 border-ink"
+          />
+          <p className="sr-only" aria-live="polite">
+            {done ? line : ''}
+          </p>
+          <div aria-hidden="true" className="grid text-base leading-snug">
+            <span className="invisible [grid-area:1/1]">{line}</span>
+            <span className="[grid-area:1/1]">{shown}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn('flex flex-col w-full', className)}>

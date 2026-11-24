@@ -11,12 +11,34 @@ export interface WordMark {
   note: string;
 }
 
+/** How a close answer relates to the keyword: which way to go from it */
+export type Relation =
+  | 'broader'
+  | 'narrower'
+  | 'similar'
+  | 'related'
+  | 'part'
+  | 'opposite';
+
 export interface KeywordMark {
   /** '' while it's still secret from you */
   keyword: string;
   status: MarkStatus;
   credit: number;
   note: string;
+  /** What you put in this keyword's blank (older guesses don't have it) */
+  answer?: string;
+  /** For a close one */
+  relation?: Relation;
+}
+
+/** A piece of the prompt as a fill-in-the-blank sentence: plain text, or a keyword's blank */
+export interface Segment {
+  text?: string;
+  /** Which keyword this blank is */
+  blank?: number;
+  /** How many words the blank takes */
+  words?: number;
 }
 
 export interface DuelGuess {
@@ -39,6 +61,8 @@ export interface DuelRound {
   prompt: string;
   keywords: Array<string>;
   keywordCount: number;
+  /** The prompt with its keywords as blanks; the small words always show */
+  template: Array<Segment>;
   drawStartedAt: string | null;
   drawDeadline: string | null;
   drawn: boolean;
@@ -173,9 +197,10 @@ export const useSubmitDrawing = (id: string) =>
     call<Duel>('POST', `/beta/duels/${id}/drawing`, { image }),
   );
 
+/** A guess is what goes in each keyword's blank */
 export const useGuess = (id: string) =>
-  useDuelMove(id, (guess: string) =>
-    call<Duel>('POST', `/beta/duels/${id}/guess`, { guess }),
+  useDuelMove(id, (answers: Array<string>) =>
+    call<Duel>('POST', `/beta/duels/${id}/guess`, { answers }),
   );
 
 export const useNudge = (id: string) =>
@@ -271,3 +296,19 @@ export const hitKeywords = (round: DuelRound) => {
   }
   return slots;
 };
+
+/**
+ * Where each blank stands: green once any guess hit it (it stays found), otherwise
+ * how your latest guess did on it. null until you've guessed.
+ */
+export const blankMarks = (round: DuelRound) =>
+  Array.from({ length: round.keywordCount }, (_, i) => {
+    let latest: KeywordMark | null = null;
+    for (const guess of round.guesses) {
+      const mark = guess.feedback.keywords[i] as KeywordMark | undefined;
+      if (!mark) continue;
+      if (mark.status === 'hit') return mark;
+      latest = mark;
+    }
+    return latest;
+  });

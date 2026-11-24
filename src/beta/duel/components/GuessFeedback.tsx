@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import { hitKeywords } from '../api';
 import type { FC } from 'react';
-import type { DuelGuess, DuelRound, KeywordMark, MarkStatus } from '../api';
+import type {
+  DuelGuess,
+  DuelRound,
+  KeywordMark,
+  MarkStatus,
+  Relation,
+  WordMark,
+} from '../api';
 import { cn } from '@/utils';
 import { CleanText } from '@/moderation/CleanText';
 
@@ -10,6 +17,16 @@ export const tileClass: Record<MarkStatus, string> = {
   hit: 'bg-[#b9e6a4] border-ink',
   close: 'bg-butter border-ink',
   miss: 'bg-white border-line text-pencil',
+};
+
+/** Which way a yellow is off, said to the guesser */
+export const relationLine: Record<Relation, string> = {
+  broader: 'be more specific',
+  narrower: 'too specific',
+  similar: 'close, but a different one',
+  related: "goes with it, but isn't it",
+  part: 'only part of it',
+  opposite: 'the opposite',
 };
 
 /** Counts up to a score, so it lands with a bit of drama */
@@ -45,7 +62,8 @@ export const ScoreBadge: FC<{
     <span
       className={cn(
         'grid place-items-center flex-none font-accent font-bold leading-none tabular-nums border-2 border-ink rounded-full rotate-6',
-        score >= 80 ? 'bg-[#b9e6a4]' : score >= 40 ? 'bg-butter' : 'bg-white',
+        // Green only when it's solved, like a green tile; yellow when partly there
+        score >= 100 ? 'bg-[#b9e6a4]' : score >= 40 ? 'bg-butter' : 'bg-white',
         size === 'sm' ? 'size-12 text-lg' : 'size-24 text-4xl border-[3px]',
         className,
       )}
@@ -53,6 +71,22 @@ export const ScoreBadge: FC<{
       {shown}%
     </span>
   );
+};
+
+/**
+ * A guess's tiles: its words, or for a fill-in-the-blank guess, what went in each
+ * blank (with the relation hint on a close one).
+ */
+const guessTiles = (guess: DuelGuess): Array<WordMark> => {
+  if (guess.feedback.words.length) return guess.feedback.words;
+  return guess.feedback.keywords.map((mark) => ({
+    text: mark.answer || '—',
+    status: mark.status,
+    note:
+      mark.status === 'close' && mark.relation
+        ? relationLine[mark.relation]
+        : mark.note,
+  }));
 };
 
 /** One guess: its words as tiles that flip in, each with a tiny note, and its score */
@@ -64,7 +98,7 @@ export const GuessRow: FC<{ guess: DuelGuess; fresh?: boolean }> = ({
     <span className="mt-2 w-5 text-sm text-pencil">{guess.attempt}.</span>
     <div className="flex flex-col gap-1.5 flex-1 min-w-0">
       <div className="flex flex-wrap gap-1.5 [perspective:400px]">
-        {guess.feedback.words.map((word, i) => (
+        {guessTiles(guess).map((word, i) => (
           <span
             key={i}
             className="flex flex-col items-center max-w-[8rem]"

@@ -49,20 +49,17 @@ const waitingLine = (
   const round = currentRound(duel)!;
   const name = them.username;
   if (duel.phase === 'draw') {
-    if (drawing)
-      return `${name} is drawing for you right now! Their clock is ticking…`;
-    if (timeUp)
-      return `${name}'s minute is up. Their drawing lands as soon as their app catches up.`;
-    if (duel.otherHereNow)
-      return `${name} is here, staring at the start button. Any second now…`;
+    if (drawing) return `${name} is drawing…`;
+    if (timeUp) return `${name}'s time is up. Drawing coming…`;
+    if (duel.otherHereNow) return `${name} is about to draw.`;
     return round.number === 1
-      ? `I've told ${name} it's their turn to draw. You'll be up as soon as they're done.`
-      : `${name} owes you a drawing. I've sent them a notification; you'll get one back when it's your turn.`;
+      ? `${name}'s turn to draw.`
+      : `${name}'s turn to draw. We'll ping you.`;
   }
   if (round.guesses.length && duel.otherHereNow)
-    return `${name} is guessing live! Watch their tries come in below.`;
-  if (duel.otherHereNow) return `${name} is looking at your drawing right now…`;
-  return `Your drawing's with ${name}. I'll ping you when they've had their guesses.`;
+    return `${name} is guessing live.`;
+  if (duel.otherHereNow) return `${name} is looking at your drawing.`;
+  return `${name}'s turn to guess. We'll ping you.`;
 };
 
 /** Turn on push, so you find out when it's your turn */
@@ -132,9 +129,8 @@ export const Waiting: FC<{ duel: Duel; them: User }> = ({ duel, them }) => {
         )}
         {duel.expiresAt && (
           <p className="text-sm text-pencil">
-            if {them.username} doesn&apos;t play within{' '}
-            {formatDistanceToNowStrict(new Date(duel.expiresAt))}, the duel ends
-            and you keep whatever you&apos;ve scored so far.
+            ends in {formatDistanceToNowStrict(new Date(duel.expiresAt))} if{' '}
+            {them.username} doesn&apos;t play
           </p>
         )}
       </div>

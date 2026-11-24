@@ -55,10 +55,7 @@ export const Recap: FC<{ duel: Duel; them?: User }> = ({ duel, them }) => {
 
       {early && <p className="text-center">{early}</p>}
 
-      <HostSays
-        host={duel.host}
-        line={duel.summary || 'Hold on, I am tallying it all up…'}
-      />
+      <HostSays host={duel.host} line={duel.summary || 'Adding it up…'} />
 
       {duel.rounds.map((round) => (
         <RoundCard key={round.number} duel={duel} round={round} reveal />

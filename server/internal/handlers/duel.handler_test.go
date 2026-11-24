@@ -10,7 +10,6 @@ import (
 	"drawer-service-backend/internal/db/queries"
 	"drawer-service-backend/internal/middleware"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,7 +24,6 @@ const testPNG = "data:image/png;base64,iVBORw0KGgo="
 func TestDuelThroughTheAPI(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	repo := dbtest.NewEventsDB(t)
-	dbtest.ApplyMigration(t, repo, "1795131200_add_beta_duels.up.sql")
 	dbtest.Exec(t, repo, `INSERT INTO users (id, username, email, role) VALUES
 		('amy', 'amy', 'a@x', 'admin'), ('bo', 'bo', 'b@x', 'user'), ('cy', 'cy', 'c@x', 'user')`)
 	cfg := &config.Config{Env: "development"}
@@ -131,8 +129,34 @@ func TestDuelThroughTheAPI(t *testing.T) {
 
 	as("bo", "POST", path+"/start", nil)
 	as("bo", "POST", path+"/drawing", map[string]string{"image": testPNG})
-	for i := 0; i < 3; i++ {
-		code, d = as("amy", "POST", path+"/guess", map[string]string{"guess": fmt.Sprintf("nothing like it %d", i)})
+	// amy guesses round 2 blank by blank: she sees the sentence, not the keywords
+	_, d = as("amy", "GET", path, nil)
+	if tpl := round(d, 2)["template"].([]any); len(tpl) == 0 || round(d, 2)["prompt"] != "" {
+		t.Fatalf("amy should get the blanks but not the prompt: %v", round(d, 2))
+	}
+	stored, _ := queries.GetDuel(repo, context.Background(), id)
+	keywords := stored.Rounds[1].Keywords
+	if code, _ := as("amy", "POST", path+"/guess", map[string]any{"answers": []string{}}); code != http.StatusBadRequest {
+		t.Errorf("answers that don't match the blanks: %d, want 400", code)
+	}
+	answers := make([]string, len(keywords))
+	answers[0] = keywords[0]
+	for i := 1; i < len(answers); i++ {
+		answers[i] = "zzz"
+	}
+	code, d = as("amy", "POST", path+"/guess", map[string]any{"answers": answers})
+	first := round(d, 2)["guesses"].([]any)[0].(map[string]any)["feedback"].(map[string]any)["keywords"].([]any)
+	if code != http.StatusOK || first[0].(map[string]any)["keyword"] != keywords[0] || first[1].(map[string]any)["keyword"] != "" {
+		t.Fatalf("first blank guess: %d %v", code, first)
+	}
+	// The hit blank stays hit with nothing typed in it
+	answers[0] = ""
+	for i := 0; i < 2; i++ {
+		code, d = as("amy", "POST", path+"/guess", map[string]any{"answers": answers})
+	}
+	last := round(d, 2)["guesses"].([]any)[2].(map[string]any)["feedback"].(map[string]any)["keywords"].([]any)
+	if last[0].(map[string]any)["status"] != "hit" {
+		t.Errorf("the first keyword should stay hit: %v", last[0])
 	}
 	if code != http.StatusOK || d["status"] != "done" || d["complete"] != true {
 		t.Fatalf("after the last guess: %d %v %v", code, d["status"], d["complete"])

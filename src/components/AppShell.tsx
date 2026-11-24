@@ -24,12 +24,15 @@ export type ShellConfig = {
   customMasthead: boolean;
   /** Hide the masthead and navbar (they stay mounted) for full-screen pages */
   fullscreen: boolean;
+  /** Hide just the navbar (it stays mounted), keeping the masthead */
+  noNavbar: boolean;
 };
 
 const DEFAULT_CONFIG: ShellConfig = {
   back: false,
   customMasthead: false,
   fullscreen: false,
+  noNavbar: false,
 };
 
 type ShellContextValue = {
@@ -49,11 +52,14 @@ export const useShell = () => useContext(ShellContext);
  */
 export const useShellConfig = (config: Partial<ShellConfig>) => {
   const shell = useShell();
-  const { back, customMasthead, fullscreen } = { ...DEFAULT_CONFIG, ...config };
+  const { back, customMasthead, fullscreen, noNavbar } = {
+    ...DEFAULT_CONFIG,
+    ...config,
+  };
 
   useLayoutEffect(
-    () => shell?.configure({ back, customMasthead, fullscreen }),
-    [shell, back, customMasthead, fullscreen],
+    () => shell?.configure({ back, customMasthead, fullscreen, noNavbar }),
+    [shell, back, customMasthead, fullscreen, noNavbar],
   );
 };
 
@@ -100,7 +106,7 @@ const AppShell: FC = () => {
           <Outlet />
         </div>
         {isAuthenticated && (
-          <div className={chromeClass}>
+          <div className={config.noNavbar ? 'hidden' : chromeClass}>
             <Navbar />
           </div>
         )}

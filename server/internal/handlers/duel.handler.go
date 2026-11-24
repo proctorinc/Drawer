@@ -288,32 +288,76 @@ func HandleDuelGuess(c *gin.Context) {
 	}
 
 	var body struct {
+		// A free-text guess (older apps)
 		Guess string `json:"guess"`
+		// What goes in each keyword's blank of the prompt's sentence
+		Answers []string `json:"answers"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, Error("Type a guess"))
 		return
 	}
-	guess := strings.Join(strings.Fields(body.Guess), " ")
-	if guess == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, Error("Type a guess"))
-		return
-	}
-	if utf8.RuneCountInString(guess) > duel.MaxGuessChars {
-		c.AbortWithStatusJSON(http.StatusBadRequest, Error(fmt.Sprintf("Keep it under %d letters", duel.MaxGuessChars)))
-		return
-	}
 
+	// Keywords an earlier guess hit stay hit, so they don't need guessing again
+	locked := map[int]duel.KeywordMark{}
 	previous := make([]string, 0, len(r.Guesses))
 	for _, g := range r.Guesses {
 		previous = append(previous, g.Guess)
+		var fb duel.Feedback
+		_ = json.Unmarshal(g.Feedback, &fb)
+		for i, mark := range fb.Keywords {
+			if mark.Status == duel.StatusHit && i < len(r.Keywords) && mark.Credit > locked[i].Credit {
+				locked[i] = mark
+			}
+		}
 	}
+
+	in := duel.GuessInput{Prompt: r.Prompt, Keywords: r.Keywords, Locked: locked, Previous: previous}
+	if body.Answers != nil {
+		if len(body.Answers) != len(r.Keywords) {
+			c.AbortWithStatusJSON(http.StatusBadRequest, Error("Fill in the blanks"))
+			return
+		}
+		in.Answers = make([]string, len(r.Keywords))
+		filled := false
+		for i, answer := range body.Answers {
+			answer = strings.Join(strings.Fields(answer), " ")
+			if mark, ok := locked[i]; ok {
+				answer = mark.Answer
+				if answer == "" {
+					answer = r.Keywords[i]
+				}
+			} else if answer != "" {
+				filled = true
+			}
+			if utf8.RuneCountInString(answer) > duel.MaxAnswerChars {
+				c.AbortWithStatusJSON(http.StatusBadRequest, Error(fmt.Sprintf("Keep each blank under %d letters", duel.MaxAnswerChars)))
+				return
+			}
+			in.Answers[i] = answer
+		}
+		if !filled {
+			c.AbortWithStatusJSON(http.StatusBadRequest, Error("Fill in a blank"))
+			return
+		}
+		in.Guess = duel.FillTemplate(duel.Template(r.Prompt, r.Keywords), in.Answers)
+	} else {
+		in.Guess = strings.Join(strings.Fields(body.Guess), " ")
+		if in.Guess == "" {
+			c.AbortWithStatusJSON(http.StatusBadRequest, Error("Type a guess"))
+			return
+		}
+		if utf8.RuneCountInString(in.Guess) > duel.MaxGuessChars {
+			c.AbortWithStatusJSON(http.StatusBadRequest, Error(fmt.Sprintf("Keep it under %d letters", duel.MaxGuessChars)))
+			return
+		}
+	}
+	guess := in.Guess
+
 	scoreCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	talker := duel.LoadTalker(ctx, appCtx.DB, appCtx.Config)
-	result, err := duel.Score(scoreCtx, talker, duel.GuessInput{
-		Prompt: r.Prompt, Keywords: r.Keywords, Guess: guess, Previous: previous,
-	})
+	result, err := duel.Score(scoreCtx, talker, in)
 	// With the AI off, word matching is the plan, not a failure
 	if err != nil && talker != nil {
 		log.Printf("duel %s: AI couldn't score a guess, used word matching: %v", d.ID, err)

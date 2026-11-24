@@ -18,6 +18,9 @@ const MaxGuesses = 3
 // MaxGuessChars keeps a guess to a short phrase.
 const MaxGuessChars = 80
 
+// MaxAnswerChars keeps one blank's answer to a word or three.
+const MaxAnswerChars = 30
+
 // How well a word of the guess, or a keyword of the prompt, matched. Like Wordle: green, yellow, gray.
 const (
 	StatusHit   = "hit"   // Means the same thing
@@ -26,13 +29,17 @@ const (
 )
 
 // A keyword's credit (0..100) sets its status: the score and the colors always agree.
+// A yellow is worth well under a green, so a round with yellows left in it doesn't
+// score like one that's solved.
 const (
-	hitCredit   = 80
-	closeCredit = 35
+	hitCredit   = 85
+	closeCredit = 20
+	// The most a close answer can earn
+	closeMax = 50
+	// The most an answer that's only part of the keyword can earn: "pirate" or "ship"
+	// for "pirate ship", "snow" for "snowman"
+	partialCredit = 40
 )
-
-// maxNoteChars keeps a note to a few words under a tile.
-const maxNoteChars = 60
 
 // WordMark is how one word of the guess fared.
 type WordMark struct {
@@ -41,6 +48,41 @@ type WordMark struct {
 	Note   string `json:"note"`
 }
 
+// How a close answer relates to the keyword, so a yellow says which way to go.
+const (
+	RelationBroader  = "broader"  // The answer is too general ("animal" for "dog")
+	RelationNarrower = "narrower" // Too specific ("poodle" for "dog")
+	RelationSimilar  = "similar"  // The same kind of thing, but another one ("wolf" for "dog")
+	RelationRelated  = "related"  // Goes with it, but isn't it ("bath" for "sauna")
+	RelationPart     = "part"     // A piece of it ("sail" for "pirate ship")
+	RelationOpposite = "opposite" // The other way round ("freezing" for "melting")
+	RelationNone     = ""
+)
+
+// Where to look in the drawing, the only hint a missed or close keyword gets. The scorer
+// never sees the drawing, and a quick sketch can be rough, so a hint only says where to
+// look, never what's there or what the answer is like.
+var lookLines = map[string]string{
+	"setting": "look at the setting",
+	"action":  "look at what's happening",
+	"shape":   "look at the shape",
+	"around":  "look at what's around it",
+	"details": "look closer at the details",
+	"size":    "look at the size of things",
+	"whole":   "look at the whole picture",
+}
+
+var looks = []string{"setting", "action", "shape", "around", "details", "size", "whole", "none"}
+
+func lookLine(look string) string {
+	if line, ok := lookLines[look]; ok {
+		return line
+	}
+	return lookLines["details"]
+}
+
+var relations = []string{RelationBroader, RelationNarrower, RelationSimilar, RelationRelated, RelationPart, RelationOpposite, "none"}
+
 // KeywordMark is how one keyword of the prompt fared. Keyword is hidden from the guesser
 // (see Feedback.ForGuesser) until they've hit it or the round is over.
 type KeywordMark struct {
@@ -48,6 +90,10 @@ type KeywordMark struct {
 	Status  string `json:"status"`
 	Credit  int    `json:"credit"`
 	Note    string `json:"note"`
+	// What the guesser put in this keyword's blank
+	Answer string `json:"answer,omitempty"`
+	// For a close one, how the answer relates to the keyword
+	Relation string `json:"relation,omitempty"`
 }
 
 // Feedback is the color-coded breakdown of one guess.
@@ -81,26 +127,42 @@ type Result struct {
 type GuessInput struct {
 	Prompt   string
 	Keywords []string
-	Guess    string
+	// The whole guess as a sentence
+	Guess string
+	// What went in each keyword's blank, by keyword. Nil for a free-text guess.
+	Answers []string
+	// Keywords already hit by an earlier guess: they stay hit, as they were
+	Locked map[int]KeywordMark
 	// Earlier guesses this round, so hints move on instead of repeating
 	Previous []string
 }
 
 const scoreRules = `You score guesses in a pictionary-style drawing game between two friends. One drew a secret prompt in one minute; the other is guessing the prompt from the drawing, with three tries.
 
-Score how much of the prompt's MEANING the guess caught, keyword by keyword. The exact words don't matter:
-- Same meaning in other words is a full match: synonyms, plurals, other tenses, a more casual word ("pup" or "doggo" for "dog", "tub" for "bathtub", "melts" for "melting"). Give 90-100 credit and status "hit".
-- Related but not quite it is close: the same kind of thing, the right idea but the wrong detail ("wolf" for "dog", "pool" for "bathtub", "dripping" for "melting", "bird" for "penguin"). Give 35-79 credit and status "close".
-- Missing or unrelated: 0-34 credit and status "miss".
-Each keyword can be matched by any part of the guess. Words of the guess that match nothing are "miss"; small filler words ("a", "the", "on", "in") are "miss" with an empty note.
+The guesser fills in the prompt like a fill-in-the-blank sentence: "answers" has what they put in each keyword's blank (same order as "keywords"). Score each keyword ONLY by its own answer. (With no "answers", the keyword can be matched by any part of "guess".)
 
-Notes are tiny, at most 6 words, playful and helpful:
-- For a hit, cheer it ("nailed it", "yep, that's a shark").
-- For a close one, nudge toward it WITHOUT saying the keyword or an obvious synonym of it ("smaller and in the water", "think bath time").
-- For a missed keyword, hint at what to look for in the drawing without saying it ("what's under them?", "check the background").
-- Never reveal a keyword the guess didn't get, in any note.
+Score how much of each keyword's MEANING the answer caught. The exact words don't matter:
+- "hit": it means the same thing in other words: synonyms, plurals, other tenses, a casual word ("pup" or "doggo" for "dog", "tub" for "bathtub", "melts" for "melting"). Credit 85-100. A hit shows the guesser the keyword, so only call it a hit when they've really got the whole thing; when in doubt, it's "close".
+- "close": related but not it. Credit 20-50. Pick the "relation" that says how the answer is off:
+  - "broader": too general ("animal" for "dog", "boat" for "pirate ship")
+  - "narrower": too specific ("poodle" for "dog")
+  - "similar": the same kind of thing, but a different one ("wolf" for "dog", "pool" for "bathtub", "wasteland" for "desert")
+  - "related": goes with it but isn't it ("bath" for "sauna", "cactus" for "desert")
+  - "part": a piece of it ("sail" for "pirate ship")
+  - "opposite": the other way round ("freezing" for "melting")
+- "miss": missing or unrelated. Credit 0-19, relation "none".
+For a hit or a miss, the relation is "none".
 
-Also write "note": one short line (at most 14 words) to the guesser about this guess, encouraging, never revealing a missed keyword.
+A keyword needs ALL of its meaning to be a hit. An answer that is only some of it is never a hit:
+- Only the general thing is "close", relation "broader": "ship" for "pirate ship", "bear" for "polar bear", "hat" for "top hat".
+- Only the describing part, or a piece of a compound word, is "close", relation "part": "pirate" for "pirate ship", "polar" for "polar bear", "snow" for "snowman", "light" for "lighthouse".
+
+For each keyword that isn't a hit, pick "look": where in the drawing to look again, one of "setting" (where it happens), "action" (what's happening), "shape" (the shape of the thing), "around" (what's around it), "details", "size", or "whole" (the whole picture). For a hit, "look" is "none". You can't see the drawing, so don't guess at what's in it.
+NEVER write a keyword the guesser hasn't hit, or an obvious synonym of it, anywhere.
+
+"words" marks each word of "guessWords" (send [] when there are none): "hit", "close" or "miss", with an empty note; small filler words ("a", "the", "on", "in") are "miss" with an empty note.
+
+Also write "note": a few encouraging words (at most 8), saying nothing about what the answer is.
 Reply only with the JSON you're asked for.`
 
 func scoreSchema(keywords []string) map[string]any {
@@ -126,11 +188,13 @@ func scoreSchema(keywords []string) map[string]any {
 				"items": map[string]any{
 					"type": "object",
 					"properties": map[string]any{
-						"keyword": map[string]any{"type": "string", "enum": keywords},
-						"credit":  map[string]any{"type": "integer"},
-						"note":    map[string]any{"type": "string"},
+						"keyword":  map[string]any{"type": "string", "enum": keywords},
+						"status":   map[string]any{"type": "string", "enum": statuses},
+						"relation": map[string]any{"type": "string", "enum": relations},
+						"credit":   map[string]any{"type": "integer"},
+						"look":     map[string]any{"type": "string", "enum": looks},
 					},
-					"required":             []string{"keyword", "credit", "note"},
+					"required":             []string{"keyword", "status", "relation", "credit", "look"},
 					"additionalProperties": false,
 				},
 			},
@@ -141,35 +205,47 @@ func scoreSchema(keywords []string) map[string]any {
 	}
 }
 
+type rawKeyword struct {
+	Keyword  string `json:"keyword"`
+	Status   string `json:"status"`
+	Relation string `json:"relation"`
+	Credit   int    `json:"credit"`
+	Look     string `json:"look"`
+}
+
 type rawScore struct {
 	Words []struct {
 		Index  int    `json:"index"`
 		Status string `json:"status"`
 		Note   string `json:"note"`
 	} `json:"words"`
-	Keywords []struct {
-		Keyword string `json:"keyword"`
-		Credit  int    `json:"credit"`
-		Note    string `json:"note"`
-	} `json:"keywords"`
-	Note string `json:"note"`
+	Keywords []rawKeyword `json:"keywords"`
+	Note     string       `json:"note"`
 }
 
 // Score has the AI score a guess, falling back to plain word matching when there's no AI
 // to ask (or it fails), so the game always goes on.
 func Score(ctx context.Context, talker ai.Talker, in GuessInput) (Result, error) {
 	words := guessWords(in.Guess)
+	if in.Answers != nil {
+		// The answers are scored blank by blank; the sentence's words aren't marked
+		words = nil
+	}
 	if talker == nil {
 		return fallbackScore(in, words), errors.New("no AI to score with")
 	}
 
-	user, _ := json.Marshal(map[string]any{
+	payload := map[string]any{
 		"prompt":          in.Prompt,
 		"keywords":        in.Keywords,
 		"guess":           in.Guess,
 		"guessWords":      indexed(words),
 		"previousGuesses": in.Previous,
-	})
+	}
+	if in.Answers != nil {
+		payload["answers"] = in.Answers
+	}
+	user, _ := json.Marshal(payload)
 	raw, err := talker.Talk(ctx, scoreRules, string(user), "duel_guess_score", scoreSchema(in.Keywords))
 	if err != nil {
 		return fallbackScore(in, words), err
@@ -203,34 +279,190 @@ func buildResult(in GuessInput, words []string, rs rawScore) Result {
 			continue
 		}
 		res.Feedback.Words[w.Index].Status = validStatus(w.Status)
-		res.Feedback.Words[w.Index].Note = trimNote(w.Note, maxNoteChars)
+		res.Feedback.Words[w.Index].Note = ""
 	}
 
-	given := map[string]struct {
-		credit int
-		note   string
-	}{}
+	given := map[string]rawKeyword{}
 	for _, k := range rs.Keywords {
-		given[k.Keyword] = struct {
-			credit int
-			note   string
-		}{k.Credit, k.Note}
+		given[k.Keyword] = k
 	}
-	credits := make([]int, len(in.Keywords))
 	res.Feedback.Keywords = make([]KeywordMark, len(in.Keywords))
 	for i, kw := range in.Keywords {
-		g := given[kw]
-		credit := min(max(g.credit, 0), 100)
-		credits[i] = credit
-		res.Feedback.Keywords[i] = KeywordMark{Keyword: kw, Credit: credit, Status: statusFor(credit), Note: trimNote(g.note, maxNoteChars)}
+		g, ok := given[kw]
+		status := validStatus(g.Status)
+		if !ok {
+			status = StatusMiss
+		}
+		mark := KeywordMark{Keyword: kw, Status: status, Credit: creditFor(status, g.Credit)}
+		if status != StatusHit {
+			mark.Note = lookLine(g.Look)
+		}
+		if status == StatusClose {
+			mark.Relation = validRelation(g.Relation)
+		}
+		res.Feedback.Keywords[i] = mark
+	}
+	finish(&res, in)
+	return res
+}
+
+// finish applies what every scored guess shares: hits from earlier guesses stay hit, the
+// answers go on their keywords, notes can't name a keyword that's still hidden, and the
+// score is worked out from the credits.
+func finish(res *Result, in GuessInput) {
+	for i := range res.Feedback.Keywords {
+		mark := &res.Feedback.Keywords[i]
+		if in.Answers != nil && i < len(in.Answers) {
+			mark.Answer = in.Answers[i]
+			// Only part of the keyword is never it: "ship" or "pirate" for "pirate ship",
+			// "snow" for "snowman"
+			// It only ever pulls a score down, never lifts a miss: the compound check is
+			// a rough one ("cat" looks like part of "category")
+			if relation, ok := partOf(mark.Answer, in.Keywords[i]); ok && mark.Status != StatusMiss {
+				mark.Status, mark.Relation = StatusClose, relation
+				mark.Credit = min(max(mark.Credit, closeCredit), partialCredit)
+				if mark.Note == "" {
+					mark.Note = lookLine("details")
+				}
+			}
+		}
+		if locked, ok := in.Locked[i]; ok && locked.Credit >= mark.Credit {
+			locked.Keyword, locked.Status, locked.Relation = in.Keywords[i], StatusHit, RelationNone
+			if locked.Answer == "" {
+				locked.Answer = mark.Answer
+			}
+			*mark = locked
+		}
 	}
 
+	var hidden []string
+	for _, mark := range res.Feedback.Keywords {
+		if mark.Status != StatusHit {
+			hidden = append(hidden, mark.Keyword)
+		}
+	}
+	for i := range res.Feedback.Keywords {
+		mark := &res.Feedback.Keywords[i]
+		if mark.Status != StatusHit && names(mark.Note, hidden) {
+			mark.Note = ""
+		}
+	}
+	for i := range res.Feedback.Words {
+		if names(res.Feedback.Words[i].Note, hidden) {
+			res.Feedback.Words[i].Note = ""
+		}
+	}
+	if names(res.Note, hidden) {
+		res.Note = "Keep going!"
+	}
+
+	credits := make([]int, len(res.Feedback.Keywords))
+	allHit := len(credits) > 0
+	for i, mark := range res.Feedback.Keywords {
+		credits[i] = mark.Credit
+		allHit = allHit && mark.Status == StatusHit
+	}
 	res.Score = average(credits)
-	if IsExact(in.Guess, in.Prompt) {
+	if IsExact(in.Guess, in.Prompt) || (in.Answers != nil && answersExact(in.Answers, in.Keywords)) {
 		res.Exact = true
 		res.Score = 100
+	} else if allHit {
+		// Every part found: the round's done, whatever the credits add up to
+		res.Score = 100
 	}
-	return res
+}
+
+func answersExact(answers, keywords []string) bool {
+	for i, kw := range keywords {
+		if i >= len(answers) || strings.Join(normalize(answers[i]), " ") != strings.Join(normalize(kw), " ") {
+			return false
+		}
+	}
+	return len(keywords) > 0
+}
+
+// partOf reports whether the answer is only part of the keyword, and how: the main
+// thing alone is "broader" ("ship" for "pirate ship", "man" for "snowman"), anything
+// else is "part" ("pirate" for "pirate ship", "snow" for "snowman").
+func partOf(answer, keyword string) (string, bool) {
+	kw := normalize(keyword)
+	got := normalize(answer)
+	if len(kw) == 0 || len(got) == 0 {
+		return "", false
+	}
+	head := func(words []string) string { return words[len(words)-1] }
+
+	// Some, but not all, of a multi-word keyword's words
+	if len(got) < len(kw) {
+		want := map[string]bool{}
+		for _, w := range kw {
+			want[w] = true
+		}
+		all := true
+		for _, w := range got {
+			all = all && want[w]
+		}
+		if all {
+			if len(got) == 1 && got[0] == head(kw) {
+				return RelationBroader, true
+			}
+			return RelationPart, true
+		}
+	}
+
+	// A piece of a compound word: "snow" for "snowman", "house" for "lighthouse"
+	whole, piece := strings.Join(kw, ""), strings.Join(got, "")
+	// (both halves real pieces, so "ice" in "rice" doesn't count)
+	if len(piece) >= 3 && len(whole)-len(piece) >= 3 {
+		if strings.HasSuffix(whole, piece) {
+			return RelationBroader, true
+		}
+		if strings.HasPrefix(whole, piece) {
+			return RelationPart, true
+		}
+	}
+	return "", false
+}
+
+// names reports whether a note gives away one of the hidden keywords, by any of its words.
+func names(note string, hidden []string) bool {
+	if note == "" {
+		return false
+	}
+	noteWords := wordsOf(note)
+	for _, kw := range hidden {
+		for _, part := range wordsOf(kw) {
+			if len(part.text) < 3 || fillers[part.text] {
+				continue
+			}
+			for _, w := range noteWords {
+				if sameWord(w.text, part.text) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// creditFor keeps the credit inside its status's band, so the score and colors agree.
+func creditFor(status string, credit int) int {
+	switch status {
+	case StatusHit:
+		return min(max(credit, hitCredit), 100)
+	case StatusClose:
+		return min(max(credit, closeCredit), closeMax)
+	}
+	return min(max(credit, 0), closeCredit-1)
+}
+
+func validRelation(r string) string {
+	for _, known := range relations {
+		if r == known && r != "none" {
+			return r
+		}
+	}
+	return RelationRelated
 }
 
 func validStatus(s string) string {
@@ -299,22 +531,32 @@ func IsExact(guess, prompt string) bool {
 }
 
 // fallbackScore matches words without understanding them: a keyword is hit when all its
-// words are in the guess, close when some are.
+// words are in its answer (or, for a free-text guess, anywhere in the guess), close when
+// some are.
 func fallbackScore(in GuessInput, words []string) Result {
 	guessStems := map[string]bool{}
-	for _, w := range words {
+	for _, w := range guessWords(in.Guess) {
 		guessStems[stem(w)] = true
 	}
 	keywordStems := map[string]bool{}
 
-	res := Result{Note: "the AI's napping, so this is a plain word match"}
-	credits := make([]int, len(in.Keywords))
+	res := Result{Note: "Keep going!"}
+	res.Feedback.Words = []WordMark{}
 	for i, kw := range in.Keywords {
+		have := guessStems
+		if in.Answers != nil {
+			have = map[string]bool{}
+			if i < len(in.Answers) {
+				for _, w := range guessWords(in.Answers[i]) {
+					have[stem(w)] = true
+				}
+			}
+		}
 		parts := normalize(kw)
 		found := 0
 		for _, p := range parts {
 			keywordStems[p] = true
-			if guessStems[p] {
+			if have[p] {
 				found++
 			}
 		}
@@ -323,10 +565,16 @@ func fallbackScore(in GuessInput, words []string) Result {
 			credit = found * 100 / len(parts)
 		}
 		if credit > 0 && credit < 100 {
-			credit = max(credit, closeCredit)
+			credit = min(max(credit, closeCredit), closeMax)
 		}
-		credits[i] = credit
-		res.Feedback.Keywords = append(res.Feedback.Keywords, KeywordMark{Keyword: kw, Credit: credit, Status: statusFor(credit)})
+		mark := KeywordMark{Keyword: kw, Credit: credit, Status: statusFor(credit)}
+		if mark.Status != StatusHit {
+			mark.Note = lookLine("details")
+		}
+		if mark.Status == StatusClose {
+			mark.Relation = RelationBroader
+		}
+		res.Feedback.Keywords = append(res.Feedback.Keywords, mark)
 	}
 	for _, w := range words {
 		status := StatusMiss
@@ -335,16 +583,15 @@ func fallbackScore(in GuessInput, words []string) Result {
 		}
 		res.Feedback.Words = append(res.Feedback.Words, WordMark{Text: w, Status: status})
 	}
-	res.Score = average(credits)
-	if IsExact(in.Guess, in.Prompt) {
-		res.Exact = true
-		res.Score = 100
-	}
+	finish(&res, in)
 	return res
 }
 
+var statusPrefix = regexp.MustCompile(`(?i)^(hit|close|miss)\s*:\s*`)
+
 func trimNote(note string, limit int) string {
 	note = strings.Trim(strings.Join(strings.Fields(note), " "), `"`)
+	note = statusPrefix.ReplaceAllString(note, "")
 	if utf8.RuneCountInString(note) <= limit {
 		return note
 	}
