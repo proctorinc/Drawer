@@ -8,11 +8,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import SubmissionSheet from './SubmissionSheet';
 import type { CSSProperties, FC } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
-import { useGetMyProfile } from '@/api/Api';
+import { useGetMyProfile, useGetUserProfile } from '@/api/Api';
+import useUser from '@/auth/hooks/useUser';
 import Layout from '@/components/Layout';
 import Masthead from '@/components/Masthead';
 import { cn } from '@/utils';
-import { isSameDay } from '@/days';
+import { isSameDay, parseDay } from '@/days';
 
 const arrowClass =
   'press flex items-center justify-center size-7 bg-white border-2 border-ink rounded-blob text-sm text-ink cursor-pointer disabled:invisible';
@@ -67,19 +68,49 @@ export function dayDoodles(
   return day.some((doodle) => doodle.id === opened.id) ? day : [opened, ...day];
 }
 
+/** Every doodle in an artist's book, oldest first, like their calendar */
+export function bookDoodles(
+  prompts: Array<UserPromptSubmission>,
+  opened: UserPromptSubmission,
+): Array<UserPromptSubmission> {
+  const book = prompts.some((doodle) => doodle.id === opened.id)
+    ? prompts
+    : [opened, ...prompts];
+  return [...book].sort(
+    (a, b) => parseDay(a.day).getTime() - parseDay(b.day).getTime(),
+  );
+}
+
+/** That artist's doodles; your own come from the profile you already have */
+function useBook(userId: string | undefined) {
+  const currentUser = useUser();
+  const isMe = userId === currentUser.id;
+  const { data: myProfile } = useGetMyProfile();
+  const { data: theirProfile } = useGetUserProfile(isMe ? '' : (userId ?? ''));
+  return (isMe ? myProfile : theirProfile)?.prompts;
+}
+
 type Props = {
   /** The doodle on show; swiping slides the next one's whole page in */
   submission: UserPromptSubmission;
+  /** Opened from this artist's calendar: swipe through their days instead */
+  book?: string;
 };
 
-/** A doodle's page, side by side with everyone in your circle who drew that day */
-const DayCarousel: FC<Props> = ({ submission }) => {
+/**
+ * A doodle's page, side by side with everyone in your circle who drew that
+ * day, or with the artist's other days when opened from their calendar
+ */
+const DayCarousel: FC<Props> = ({ submission, book }) => {
   const navigate = useNavigate();
   const router = useRouter();
   const { data: profile } = useGetMyProfile();
+  const bookPrompts = useBook(book);
   // Keeps a stranger's doodle in the row after you've swiped past it
   const [opened] = useState(submission);
-  const doodles = dayDoodles(profile?.feed ?? [], opened);
+  const doodles = book
+    ? bookDoodles(bookPrompts ?? [], opened)
+    : dayDoodles(profile?.feed ?? [], opened);
   const index = doodles.findIndex((doodle) => doodle.id === submission.id);
   const stripRef = useRef<HTMLUListElement>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -127,6 +158,7 @@ const DayCarousel: FC<Props> = ({ submission }) => {
         navigate({
           to: '/draw/submission/$submissionId',
           params: { submissionId: landed.id },
+          search: { book },
           replace: true,
           resetScroll: false,
         });
@@ -190,7 +222,7 @@ const DayCarousel: FC<Props> = ({ submission }) => {
         <ul
           ref={stripRef}
           onScroll={handleScroll}
-          aria-label="Doodles from this day"
+          aria-label={book ? 'Doodles from this book' : 'Doodles from this day'}
           className="flex items-start w-[calc(100%+3rem)] -mx-6 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none]"
         >
           {doodles.map((doodle) => (

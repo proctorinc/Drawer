@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from '@tanstack/react-router';
+import { useNavigate, useParams, useSearch } from '@tanstack/react-router';
 import DayCarousel from './components/DayCarousel';
 import { useGetMyProfile, usePromptSubmission } from '@/api/Api';
 import Button from '@/components/Button';
@@ -10,6 +10,7 @@ const PromptSubmissionPage = () => {
   const { submissionId } = useParams({
     from: '/_app/draw/submission/$submissionId',
   });
+  const { book } = useSearch({ from: '/_app/draw/submission/$submissionId' });
   const { data: profile } = useGetMyProfile();
   const {
     data: submission,
@@ -18,7 +19,9 @@ const PromptSubmissionPage = () => {
   } = usePromptSubmission(
     submissionId,
     // Swiping to a friend's doodle shows it straight away
-    profile?.feed.find((doodle) => doodle.id === submissionId),
+    [...(profile?.feed ?? []), ...(profile?.prompts ?? [])].find(
+      (doodle) => doodle.id === submissionId,
+    ),
   );
 
   if (isLoading) {
@@ -36,8 +39,14 @@ const PromptSubmissionPage = () => {
     );
   }
 
-  // Remount per day, so the pages start from whatever you opened
-  return <DayCarousel key={submission.day} submission={submission} />;
+  // Remount per day (or per book), so the pages start from whatever you opened
+  return (
+    <DayCarousel
+      key={book ?? submission.day}
+      submission={submission}
+      book={book}
+    />
+  );
 };
 
 export default PromptSubmissionPage;

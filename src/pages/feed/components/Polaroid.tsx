@@ -8,6 +8,7 @@ import { LockedDrawing } from '@/drawing/components/LockedDrawing';
 import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
 import { CommentIcon } from '@/components/icons';
 import { ReactionScatter } from '@/reactions/ReactionScatter';
+import { SignatureMark } from '@/signature/Signature';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { polaroidFrameClass } from '@/components/polaroid';
@@ -23,9 +24,16 @@ type Props = {
   index: number;
   /** Christmas event: hangs from a clothespin and swings */
   festive?: boolean;
+  /** The artist's signature path, signed in the drawing's bottom corner */
+  signature?: string;
 };
 
-const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
+const Polaroid: FC<Props> = ({
+  submission,
+  index,
+  festive = false,
+  signature,
+}) => {
   const user = useUser();
   const isLocked = useIsDrawingLocked()(submission);
   const isMine = submission.user.id === user.id;
@@ -80,12 +88,23 @@ const Polaroid: FC<Props> = ({ submission, index, festive = false }) => {
             to="/draw/submission/$submissionId"
             params={{ submissionId: submission.id }}
             aria-label={`Open ${isMine ? 'your' : `${submission.user.username}'s`} doodle${reactionCount > 0 ? `, ${reactionCount} ${reactionCount === 1 ? 'reaction' : 'reactions'}` : ''}`}
-            className="block aspect-square bg-[#fff8ec] overflow-hidden"
+            className="relative block aspect-square bg-[#fff8ec] overflow-hidden"
           >
             {isLocked ? (
               <LockedDrawing />
             ) : (
-              <DrawingImage imageUrl={submission.imageUrl} draggable={false} />
+              <>
+                <DrawingImage
+                  imageUrl={submission.imageUrl}
+                  draggable={false}
+                />
+                {signature && (
+                  <SignatureMark
+                    path={signature}
+                    className="absolute bottom-0.5 right-1 w-2/5 -rotate-3 pointer-events-none"
+                  />
+                )}
+              </>
             )}
           </Link>
           {/* The AI judge's score, slapped on the photo's other corner */}

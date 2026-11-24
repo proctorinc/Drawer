@@ -110,6 +110,7 @@ const SubmissionCalendar: FC<Props> = ({ profile }) => {
             navigate({
               to: '/draw/submission/$submissionId',
               params: { submissionId: drawing.id },
+              search: { book: profile.user.id },
             })
           }
         />

@@ -62,6 +62,7 @@ import AITestingGroundPage from './pages/admin/pages/AITestingGroundPage.tsx';
 import AILogPage from './pages/admin/pages/AILogPage.tsx';
 import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
+import SignaturePage from './pages/admin/pages/SignaturePage.tsx';
 import BetaZonePage from './pages/admin/pages/BetaZonePage.tsx';
 import MintedPage from './pages/admin/pages/MintedPage.tsx';
 import RedosPage from './pages/admin/pages/RedosPage.tsx';
@@ -349,6 +350,10 @@ const legacyActivityRoute = createRoute({
 const promptSubmissionRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/draw/submission/$submissionId',
+  // `book`: opened from that artist's calendar, so swipes go day to day
+  validateSearch: (search: Record<string, unknown>): { book?: string } => ({
+    book: typeof search.book === 'string' ? search.book : undefined,
+  }),
   component: () => (
     <AuthRoute>
       <PromptSubmissionPage />
@@ -435,6 +440,7 @@ const adminPages = [
     component: DrawingDemoPage,
   }),
   adminPage('brand', BrandPage),
+  adminPage('signature', SignaturePage),
   adminPage('settings', AppSettingsPage),
   adminPage('beta', BetaZonePage),
 ];

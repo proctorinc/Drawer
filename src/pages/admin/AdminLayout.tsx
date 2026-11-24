@@ -21,6 +21,7 @@ import {
   faRobot,
   faRotateLeft,
   faScroll,
+  faSignature,
   faSliders,
   faStairs,
   faStamp,
@@ -110,6 +111,7 @@ const NAV: Array<{ group: string; items: Array<NavItem> }> = [
     items: [
       { to: '/draw/admin/drawing', label: 'drawing canvas', icon: faBrush },
       { to: '/draw/admin/brand', label: 'brand & ui', icon: faPalette },
+      { to: '/draw/admin/signature', label: 'signature', icon: faSignature },
     ],
   },
 ];

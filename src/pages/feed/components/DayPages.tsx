@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Polaroid from './Polaroid';
 import { FriendsToday } from './FriendsToday';
 import { ColorDabs, PromptCredit, PromptTitle } from './PromptTitle';
@@ -8,9 +8,8 @@ import { useChristmas } from '@/events/useChristmas';
 import Lights from '@/events/christmas/Lights';
 import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
-import { ArrowLeftIcon, PencilIcon } from '@/components/icons';
+import { PencilIcon } from '@/components/icons';
 import { isSameDay, parseDay } from '@/days';
-import { cn } from '@/utils';
 
 type DayGroup = {
   day: string;
@@ -178,18 +177,35 @@ export const TodayWall = () => {
 
 const DAYS_PER_FLIP = 3;
 
-const bookButtonClass =
-  'press inline-flex items-center gap-2 h-11 px-4 bg-white border-2 border-ink rounded-sketch shadow-pencil-sm font-accent font-bold text-xl cursor-pointer';
-
-/** Earlier days stay closed until you flip back to them, a few at a time */
+/** Earlier days flip open a few at a time as you scroll down to them */
 export const PastPages = () => {
   const { profile } = useMyProfilePage();
   const { dailyPrompt } = useDailyPrompt();
   const [daysShown, setDaysShown] = useState(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const pastDays = groupByDay(profile?.feed ?? []).filter(
     (group) => !dailyPrompt || !isSameDay(group.day, dailyPrompt.day),
   );
+  const hasMore = daysShown < pastDays.length;
+
+  // A fresh observer after each flip reports right away if the sentinel is
+  // still in view (short days), so we keep flipping until the page fills
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || !hasMore) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setDaysShown((shown) => shown + DAYS_PER_FLIP);
+        }
+      },
+      { rootMargin: '600px 0px' },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [daysShown, hasMore]);
+
   if (pastDays.length === 0) return null;
 
   return (
@@ -201,28 +217,15 @@ export const PastPages = () => {
           submissions={group.submissions}
         />
       ))}
-      <div className="flex flex-wrap justify-center gap-3">
-        {daysShown < pastDays.length && (
-          <button
-            onClick={() => setDaysShown((shown) => shown + DAYS_PER_FLIP)}
-            className={bookButtonClass}
-          >
-            <ArrowLeftIcon size={18} />
-            {daysShown === 0 ? 'flip back through past pages' : 'keep flipping'}
-          </button>
-        )}
-        {daysShown > 0 && (
-          <button
-            onClick={() => setDaysShown(0)}
-            className={cn(
-              bookButtonClass,
-              'bg-transparent shadow-none border-dashed',
-            )}
-          >
-            close the book
-          </button>
-        )}
-      </div>
+      {hasMore && (
+        <div
+          ref={sentinelRef}
+          className="flex justify-center text-pencil"
+          aria-hidden="true"
+        >
+          <PencilIcon size={28} strokeWidth={1.6} className="animate-nudge" />
+        </div>
+      )}
     </div>
   );
 };
