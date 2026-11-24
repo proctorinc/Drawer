@@ -28,6 +28,26 @@ func HandleAdminListRedos(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"grants": grants})
 }
 
+// HandleAdminPlayerDays lists a player's past prompts since they joined, newest first, each
+// with whether and how they drew it, plus the prompt day it is now on the server's clock.
+func HandleAdminPlayerDays(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	ctx := c.Request.Context()
+	userID := c.Param("id")
+	if _, err := queries.GetUserByID(appCtx.DB, ctx, userID); err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, Error("No such player"))
+		return
+	}
+	today := utils.GetFormattedDate(time.Now())
+	days, err := queries.PlayerDays(appCtx.DB, ctx, userID, today, queries.MaxRedoDays)
+	if err != nil {
+		log.Printf("HandleAdminPlayerDays: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Couldn't load their days"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"today": today, "days": days})
+}
+
 // HandleAdminGrantRedos gives a player redos: for one day, or for any day they missed.
 func HandleAdminGrantRedos(c *gin.Context) {
 	appCtx := requestContext.GetCtx(c)

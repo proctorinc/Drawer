@@ -45,12 +45,7 @@ export const Panel: FC<{ className?: string; children: ReactNode }> = ({
   className,
   children,
 }) => (
-  <div
-    className={cn(
-      'bg-white border-2 border-ink rounded-sketch',
-      className,
-    )}
-  >
+  <div className={cn('bg-white border-2 border-ink rounded-sketch', className)}>
     {children}
   </div>
 );
@@ -165,6 +160,24 @@ export const formatDay = (day: string) =>
     day: 'numeric',
     year: 'numeric',
   });
+
+/**
+ * When a prompt day was live, on this device's clock. Prompts roll over at midnight UTC, so
+ * "Nov 23" runs from 4pm Nov 22 to 4pm Nov 23 in Pacific time.
+ */
+export const promptWindow = (day: string) => {
+  const start = new Date(`${day.slice(0, 10)}T00:00:00Z`);
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  const at = (date: Date, zone?: 'short') =>
+    date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: date.getMinutes() ? '2-digit' : undefined,
+      timeZoneName: zone,
+    });
+  return `${at(start)} – ${at(end, 'short')}`;
+};
 
 export const formatDateTime = (iso: string | Date) =>
   new Date(iso).toLocaleString('en-US', {

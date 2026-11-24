@@ -189,6 +189,36 @@ export interface AdminRedoGrant {
 export const useAdminRedos = () =>
   useAdminList<Array<AdminRedoGrant>>('redos', 'grants');
 
+/** One of a player's past prompts, and what they did with it */
+export interface PlayerDay {
+  day: string;
+  prompt: string;
+  colors: Array<string>;
+  /** late: finished after the rollover; redo: drawn with a redo */
+  status: 'drawn' | 'late' | 'redo' | 'missed';
+}
+
+export interface PlayerDays {
+  /** The prompt day it is now, on the server's clock */
+  today: string;
+  /** Before today and since they joined, newest first */
+  days: Array<PlayerDay>;
+}
+
+/** A player's past prompts; under ['admin', 'redos'] so granting refreshes it */
+export const usePlayerDays = (userId: string | undefined) =>
+  useQuery({
+    queryKey: ['admin', 'redos', 'days', userId],
+    enabled: !!userId,
+    queryFn: async (): Promise<PlayerDays> => {
+      const response = await fetchAPI('GET', `/admin/users/${userId}/days`);
+      if (!response.ok) {
+        throw new Error('Failed to load their days');
+      }
+      return response.json();
+    },
+  });
+
 export interface GrantRedos {
   userId: string;
   /** YYYY-MM-DD, or null for any day they missed */

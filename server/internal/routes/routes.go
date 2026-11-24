@@ -258,6 +258,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				adminGroup.GET("/activity", handlers.HandleAdminActivityLog)
 				adminGroup.PUT("/settings", handlers.HandleAdminUpdateAppSettings)
 				adminGroup.GET("/redos", handlers.HandleAdminListRedos)
+				adminGroup.GET("/users/:id/days", handlers.HandleAdminPlayerDays)
 				adminGroup.POST("/redos", handlers.HandleAdminGrantRedos)
 				adminGroup.DELETE("/redos/:id", handlers.HandleAdminRevokeRedo)
 				adminGroup.GET("/ai/settings", handlers.HandleAdminGetAISettings)

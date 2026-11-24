@@ -65,6 +65,7 @@ func newDailyRig(t *testing.T) *dailyRig {
 	router.GET("/submission/:id", HandleGetSubmissionByID)
 	router.GET("/settings", HandleGetAppSettings)
 	router.GET("/admin/redos", HandleAdminListRedos)
+	router.GET("/admin/users/:id/days", HandleAdminPlayerDays)
 	router.POST("/admin/redos", HandleAdminGrantRedos)
 	router.DELETE("/admin/redos/:id", HandleAdminRevokeRedo)
 	router.PUT("/admin/settings", HandleAdminUpdateAppSettings)

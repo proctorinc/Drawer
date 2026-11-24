@@ -169,3 +169,44 @@ func TestRedosAndStreaks(t *testing.T) {
 		t.Errorf("best streak with redos counting: %d, want 2", n)
 	}
 }
+
+// Admins see a player's past prompts since they joined, and how each went.
+func TestAdminPlayerDays(t *testing.T) {
+	rig := newDailyRig(t)
+	d := rig.days // bo joined on d[14]
+
+	if code, _ := rig.submit(t, "bo", ""); code != http.StatusCreated {
+		t.Fatalf("today's drawing: %d", code)
+	}
+	if code, _ := requestAs(t, rig.router, "admin", "POST", "/admin/redos", map[string]any{"userId": "bo", "day": d[3]}); code != http.StatusCreated {
+		t.Fatalf("granting: %d", code)
+	}
+	if code, _ := rig.submit(t, "bo", d[3]); code != http.StatusCreated {
+		t.Fatalf("redo of d[3]: %d", code)
+	}
+
+	code, body := requestAs(t, rig.router, "admin", "GET", "/admin/users/bo/days", nil)
+	if code != http.StatusOK {
+		t.Fatalf("bo's days: %d %v", code, body)
+	}
+	if body["today"] != d[0] {
+		t.Errorf("today is %v, want %s", body["today"], d[0])
+	}
+	days := body["days"].([]any)
+	// d[1]..d[14]: today is still open, and nothing before bo joined
+	if len(days) != 14 {
+		t.Fatalf("bo has %d days, want 14", len(days))
+	}
+	status := map[string]any{}
+	for _, day := range days {
+		day := day.(map[string]any)
+		status[day["day"].(string)] = day["status"]
+	}
+	if days[0].(map[string]any)["day"] != d[1] || status[d[3]] != "redo" || status[d[2]] != "missed" {
+		t.Errorf("bo's days: newest %v, d[3] %v, d[2] %v", days[0], status[d[3]], status[d[2]])
+	}
+
+	if code, _ := requestAs(t, rig.router, "admin", "GET", "/admin/users/nobody/days", nil); code != http.StatusNotFound {
+		t.Errorf("an unknown player's days: %d, want 404", code)
+	}
+}

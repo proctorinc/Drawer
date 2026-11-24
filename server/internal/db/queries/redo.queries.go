@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"drawer-service-backend/internal/db/models"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -264,4 +265,49 @@ func AttachSubmissionFlags(repo *sql.DB, ctx context.Context, submissions []*mod
 		s.Late, s.Redo = found[s.ID].late, found[s.ID].redo
 	}
 	return rows.Err()
+}
+
+// PlayerDay is one past prompt and what a player did with it, for admins deciding on redos.
+type PlayerDay struct {
+	Day    string   `json:"day"`
+	Prompt string   `json:"prompt"`
+	Colors []string `json:"colors"`
+	// "drawn", "late" (finished after rollover), "redo" (drawn with a redo) or "missed"
+	Status string `json:"status"`
+}
+
+// PlayerDays returns the prompts before today since userID joined, newest first, each with
+// whether and how they drew it.
+func PlayerDays(repo *sql.DB, ctx context.Context, userID, today string, limit int) ([]PlayerDay, error) {
+	rows, err := repo.QueryContext(ctx, `
+		SELECT dp.day, dp.prompt, dp.colors,
+			CASE WHEN s.id IS NULL THEN 'missed'
+				WHEN s.redo = 1 THEN 'redo'
+				WHEN s.late = 1 THEN 'late'
+				ELSE 'drawn' END
+		FROM daily_prompts dp
+		LEFT JOIN user_submissions s ON s.user_id = ? AND s.day = dp.day
+		WHERE dp.day < ? AND dp.day >= (SELECT date(created_at) FROM users WHERE id = ?)
+		ORDER BY dp.day DESC
+		LIMIT ?`, userID, today, userID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("error listing %s's days: %w", userID, err)
+	}
+	defer rows.Close()
+
+	days := []PlayerDay{}
+	for rows.Next() {
+		var (
+			d      PlayerDay
+			colors string
+		)
+		if err := rows.Scan(&d.Day, &d.Prompt, &colors, &d.Status); err != nil {
+			return nil, fmt.Errorf("error scanning %s's days: %w", userID, err)
+		}
+		if err := json.Unmarshal([]byte(colors), &d.Colors); err != nil {
+			return nil, fmt.Errorf("error reading %s's colors: %w", d.Day, err)
+		}
+		days = append(days, d)
+	}
+	return days, rows.Err()
 }
