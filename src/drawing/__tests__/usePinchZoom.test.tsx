@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { usePinchZoom } from '../usePinchZoom';
+import { edgesAt, usePinchZoom } from '../usePinchZoom';
 
 const Frame = () => {
   const { frameRef } = usePinchZoom();
@@ -92,5 +92,33 @@ describe('usePinchZoom', () => {
     touch('pointerMove', { id: 2, x: 200, y: 200, primary: true });
     touch('pointerUp', { id: 2, x: 200, y: 200, primary: true });
     expect(screen.getByTestId('content').style.transform).toBe('');
+  });
+});
+
+describe('edgesAt', () => {
+  const frame = { width: 300, height: 300 };
+  const none = { top: false, right: false, bottom: false, left: false };
+
+  it('marks no side when not zoomed', () => {
+    expect(edgesAt({ scale: 1, x: 0, y: 0 }, frame)).toEqual(none);
+  });
+
+  it('marks no side zoomed into the middle', () => {
+    expect(edgesAt({ scale: 2, x: -150, y: -150 }, frame)).toEqual(none);
+  });
+
+  it('marks the one side panned up against', () => {
+    expect(edgesAt({ scale: 2, x: 0, y: -150 }, frame)).toEqual({
+      ...none,
+      left: true,
+    });
+  });
+
+  it('marks both sides in a corner', () => {
+    expect(edgesAt({ scale: 2, x: -300, y: -300 }, frame)).toEqual({
+      ...none,
+      right: true,
+      bottom: true,
+    });
   });
 });

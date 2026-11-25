@@ -31,7 +31,11 @@ const ZoomableCanvas: FC<Props> = ({
   pinchAreaRef,
   className,
 }) => {
-  const { frameRef, zoomed, reset } = usePinchZoom(pinchAreaRef);
+  const { frameRef, zoomed, edges, reset } = usePinchZoom(pinchAreaRef);
+  const rounded =
+    variant === 'round'
+      ? 'rounded-full'
+      : 'rounded-[6px_14px_8px_12px/12px_6px_14px_8px]';
   useImperativeHandle(zoomRef, () => ({ reset }), [reset]);
 
   return (
@@ -40,9 +44,7 @@ const ZoomableCanvas: FC<Props> = ({
         ref={frameRef}
         className={cn(
           'overflow-hidden bg-white border-2 border-ink shadow-pencil touch-none',
-          variant === 'round'
-            ? 'rounded-full'
-            : 'rounded-[6px_14px_8px_12px/12px_6px_14px_8px]',
+          rounded,
         )}
       >
         <Canvas
@@ -61,6 +63,19 @@ const ZoomableCanvas: FC<Props> = ({
           {...canvasProps}
         />
       </div>
+      {/* Zoomed in on a blank canvas, the frame looks the same wherever you
+          are, so a dashed line marks each side where the canvas really ends */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          'absolute inset-[5px] pointer-events-none border-2 border-dashed border-transparent transition-colors duration-200',
+          rounded,
+          edges.top && 'border-t-ink/40',
+          edges.right && 'border-r-ink/40',
+          edges.bottom && 'border-b-ink/40',
+          edges.left && 'border-l-ink/40',
+        )}
+      />
       {zoomed && (
         <button
           type="button"

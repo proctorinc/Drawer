@@ -15,6 +15,43 @@ type Pinch = {
   scale: number;
 };
 
+/** Which sides of the frame the zoomed-in canvas's own edge is up against */
+export type Edges = {
+  top: boolean;
+  right: boolean;
+  bottom: boolean;
+  left: boolean;
+};
+
+const NO_EDGES: Edges = {
+  top: false,
+  right: false,
+  bottom: false,
+  left: false,
+};
+// Within this many px of the clamp counts as up against it
+const EDGE_SLOP = 0.5;
+
+/** At 1x the whole canvas shows, so no side counts as one you've panned to */
+export function edgesAt(
+  { scale, x, y }: View,
+  frame: { width: number; height: number },
+): Edges {
+  if (scale <= 1) return NO_EDGES;
+  return {
+    top: y >= -EDGE_SLOP,
+    left: x >= -EDGE_SLOP,
+    bottom: y <= frame.height - frame.height * scale + EDGE_SLOP,
+    right: x <= frame.width - frame.width * scale + EDGE_SLOP,
+  };
+}
+
+const sameEdges = (a: Edges, b: Edges) =>
+  a.top === b.top &&
+  a.right === b.right &&
+  a.bottom === b.bottom &&
+  a.left === b.left;
+
 export type PinchZoomHandle = {
   /** Back to fitting the frame; instantly (say, before measuring the canvas) or with a spring */
   reset: (animate?: boolean) => void;
@@ -33,6 +70,7 @@ export function usePinchZoom(areaRef?: RefObject<HTMLElement | null>) {
   const touches = useRef(new Map<number, { x: number; y: number }>());
   const pinch = useRef<Pinch | null>(null);
   const [zoomed, setZoomed] = useState(false);
+  const [edges, setEdges] = useState<Edges>(NO_EDGES);
 
   /** Where the frame's inside starts on screen (inside its border) */
   const origin = useCallback(() => {
@@ -47,22 +85,27 @@ export function usePinchZoom(areaRef?: RefObject<HTMLElement | null>) {
     };
   }, []);
 
-  const apply = useCallback((next: View, animate: boolean) => {
-    view.current = next;
-    // Whatever the frame holds (the canvas) is what zooms
-    const content = frameRef.current?.firstElementChild as HTMLElement | null;
-    if (content) {
-      content.style.transformOrigin = '0 0';
-      content.style.transition = animate
-        ? 'transform 350ms var(--ease-spring)'
-        : 'none';
-      content.style.transform =
-        next.scale === 1
-          ? ''
-          : `translate(${next.x}px, ${next.y}px) scale(${next.scale})`;
-    }
-    setZoomed(next.scale > 1);
-  }, []);
+  const apply = useCallback(
+    (next: View, animate: boolean) => {
+      view.current = next;
+      // Whatever the frame holds (the canvas) is what zooms
+      const content = frameRef.current?.firstElementChild as HTMLElement | null;
+      if (content) {
+        content.style.transformOrigin = '0 0';
+        content.style.transition = animate
+          ? 'transform 350ms var(--ease-spring)'
+          : 'none';
+        content.style.transform =
+          next.scale === 1
+            ? ''
+            : `translate(${next.x}px, ${next.y}px) scale(${next.scale})`;
+      }
+      setZoomed(next.scale > 1);
+      const nextEdges = edgesAt(next, origin());
+      setEdges((prev) => (sameEdges(prev, nextEdges) ? prev : nextEdges));
+    },
+    [origin],
+  );
 
   const reset = useCallback(
     (animate = true) => {
@@ -199,5 +242,5 @@ export function usePinchZoom(areaRef?: RefObject<HTMLElement | null>) {
     };
   }, [areaRef, movePinch, release, startPinch]);
 
-  return { frameRef, zoomed, reset };
+  return { frameRef, zoomed, edges, reset };
 }

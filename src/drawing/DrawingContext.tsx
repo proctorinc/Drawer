@@ -203,6 +203,29 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
     schedulePaint();
   }, [schedulePaint]);
 
+  // A second finger means a pinch, so the finger already down stops drawing,
+  // wherever on the page the second one lands (a pinch beside the canvas
+  // zooms it too). If its stroke had barely started it was the first half of
+  // the pinch and leaves no mark; a real line it drew is kept. (A palm
+  // landing beside a pencil doesn't count.)
+  useEffect(() => {
+    const secondFinger = (event: PointerEvent) => {
+      if (event.isPrimary || event.pointerType !== 'touch') return;
+      const current = currentRef.current;
+      if (current?.pointerType !== 'touch') return;
+      if (current.path.points.length < GESTURE_GRACE_POINTS) {
+        dropStroke();
+      } else {
+        commitStroke();
+      }
+    };
+    window.addEventListener('pointerdown', secondFinger, { capture: true });
+    return () =>
+      window.removeEventListener('pointerdown', secondFinger, {
+        capture: true,
+      });
+  }, [commitStroke, dropStroke]);
+
   const canvasBindings = useMemo<CanvasBindings>(
     () => ({
       ref: (element) => {
@@ -212,25 +235,9 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
       width: PIXEL_WIDTH,
       height: PIXEL_HEIGHT,
       onPointerDown: (event) => {
+        // Never draws: the page-wide second-finger listener ends the stroke
+        if (!event.isPrimary) return;
         const current = currentRef.current;
-        if (!event.isPrimary) {
-          // A second finger means a pinch, so the finger already down stops
-          // drawing. If its stroke had barely started it was the first half
-          // of the pinch and leaves no mark; a real line it drew is kept.
-          // (A palm landing beside a pencil doesn't count.)
-          if (
-            current &&
-            current.pointerType === 'touch' &&
-            event.pointerType === 'touch'
-          ) {
-            if (current.path.points.length < GESTURE_GRACE_POINTS) {
-              dropStroke();
-            } else {
-              commitStroke();
-            }
-          }
-          return;
-        }
         if (current) {
           // Already drawing (say, a palm landing while the pencil's down)
           if (current.pointerType !== event.pointerType) return;
