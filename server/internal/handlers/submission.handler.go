@@ -178,6 +178,9 @@ func HandleGetSubmissionByID(c *gin.Context) {
 	if err := queries.AttachAIReviews(appCtx.DB, c.Request.Context(), []*models.UserPromptSubmission{&resp}); err != nil {
 		log.Printf("Error fetching AI review for submission %s: %v", subID, err)
 	}
+	if resp.AIReplies, err = queries.GetAIReplies(appCtx.DB, c.Request.Context(), subID); err != nil {
+		log.Printf("Error fetching AI replies for submission %s: %v", subID, err)
+	}
 
 	if err := queries.AttachSubmissionFlags(appCtx.DB, c.Request.Context(), []*models.UserPromptSubmission{&resp}); err != nil {
 		log.Printf("Error checking how %s was pinned: %v", subID, err)

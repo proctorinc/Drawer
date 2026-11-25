@@ -41,6 +41,7 @@ var eventMigrations = []string{
 	// Left out of the dump by the filter above (it has an event_id column)
 	"1795132620_judge_pledges.up.sql",
 	// 1795132730_drawing_starts, 1795132740_redos: already in the schema dump
+	"1795132750_ai_replies.up.sql",
 	"1795132800_seed_union_elves.up.sql",
 	"1795132810_santa_nice_list.up.sql",
 	"1795132820_doodlemas_judge_prompts.up.sql",

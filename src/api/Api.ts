@@ -167,6 +167,8 @@ export interface UserPromptSubmission extends DailyPrompt {
   createdAt: Date;
   /** The AI judge's score and comment; null until it has one */
   aiReview?: AIReview | null;
+  /** What the judge has said in the comments since its review, oldest first; only on a single doodle */
+  aiReplies?: Array<AIReply>;
   /** Pinned the day after its prompt: a doodle the rollover interrupted */
   late?: boolean;
   /** Drawn with a redo, after its prompt had closed */
@@ -224,6 +226,14 @@ export interface AIReview {
   createdAt: string;
   /** On activity rows: you've heard it (its dialogue played) */
   heard?: boolean;
+}
+
+/** Something a judge said in a doodle's comments after its review */
+export interface AIReply {
+  id: string;
+  judge: AIJudge;
+  text: string;
+  createdAt: string;
 }
 
 export interface FavoriteSubmission {

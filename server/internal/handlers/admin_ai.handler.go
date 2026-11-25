@@ -757,3 +757,119 @@ func HandleAdminSetPromptJudge(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"day": day, "judgeId": judgeID})
 }
+
+// reviewToFollowUp loads a doodle's finished AI review and its judge, for replies. On failure
+// it has already answered the request.
+func reviewToFollowUp(c *gin.Context, submissionID string) (models.AIReview, models.AIPersonality, bool) {
+	appCtx := requestContext.GetCtx(c)
+	ctx := c.Request.Context()
+
+	reviews, err := queries.GetAIReviews(appCtx.DB, ctx, []string{submissionID})
+	if err != nil {
+		log.Printf("Error loading the AI review of %s: %v", submissionID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load the AI review"))
+		return models.AIReview{}, models.AIPersonality{}, false
+	}
+	review, ok := reviews[submissionID]
+	if !ok || review.Status != models.AIReviewDone {
+		c.AbortWithStatusJSON(http.StatusBadRequest, Error("This doodle has no AI review to follow up on"))
+		return review, models.AIPersonality{}, false
+	}
+	judge, err := queries.GetAIPersonality(appCtx.DB, ctx, review.Judge.ID)
+	if err != nil {
+		log.Printf("Error loading AI judge %s: %v", review.Judge.ID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load the AI judge"))
+		return review, judge, false
+	}
+	return review, judge, true
+}
+
+// HandleAdminDraftAIReplies has a doodle's judge write a reply to each person it answers in
+// the comments, following the admin's direction if given. Nothing is posted: the admin picks
+// which drafts to post with HandleAdminPostAIReplies, or drafts again.
+func HandleAdminDraftAIReplies(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	ctx := c.Request.Context()
+	submissionID := c.Param("submissionId")
+
+	var body struct {
+		Direction string `json:"direction"`
+	}
+	_ = c.ShouldBindJSON(&body)
+
+	review, judge, ok := reviewToFollowUp(c, submissionID)
+	if !ok {
+		return
+	}
+	settings, sub, image, ok := loadJudging(c, submissionID)
+	if !ok {
+		return
+	}
+	thread, err := queries.GetCommentThread(appCtx.DB, ctx, submissionID)
+	if err != nil {
+		log.Printf("Error loading the comments on %s: %v", submissionID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load the comments"))
+		return
+	}
+
+	drafts, err := ai.Replies(ctx, ai.NewProvider(settings), ai.ReplyRequest{
+		Personality: judge, Prompt: sub.Prompt, Day: sub.Day, Artist: sub.Artist, Image: image,
+		Review: review, Thread: thread, Direction: body.Direction,
+	})
+	if err != nil {
+		log.Printf("AI judge: %s couldn't draft replies on %s: %v", judge.Name, submissionID, err)
+		c.AbortWithStatusJSON(http.StatusBadGateway, Error(err.Error()))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"replies": drafts})
+}
+
+// maxAIReplyChars caps a reply an admin posts.
+const maxAIReplyChars = 500
+
+// HandleAdminPostAIReplies posts the drafted replies an admin approved, in the judge's name.
+func HandleAdminPostAIReplies(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	submissionID := c.Param("submissionId")
+
+	var body struct {
+		Texts []string `json:"texts"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil || len(body.Texts) == 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, Error("Pick at least one reply to post"))
+		return
+	}
+	for i, text := range body.Texts {
+		body.Texts[i] = strings.TrimSpace(text)
+		if body.Texts[i] == "" || len(body.Texts[i]) > maxAIReplyChars {
+			c.AbortWithStatusJSON(http.StatusBadRequest, Error("Each reply needs 1 to 500 characters"))
+			return
+		}
+	}
+
+	_, judge, ok := reviewToFollowUp(c, submissionID)
+	if !ok {
+		return
+	}
+	if err := queries.AddAIReplies(appCtx.DB, c.Request.Context(), submissionID, judge, body.Texts); err != nil {
+		log.Printf("Error posting AI replies on %s: %v", submissionID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to post the replies"))
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// HandleAdminDeleteAIReply takes a judge's reply out of a doodle's comments.
+func HandleAdminDeleteAIReply(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	err := queries.DeleteAIReply(appCtx.DB, c.Request.Context(), c.Param("id"))
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		c.AbortWithStatusJSON(http.StatusNotFound, Error("No such reply"))
+	case err != nil:
+		log.Printf("Error deleting AI reply %s: %v", c.Param("id"), err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to delete the reply"))
+	default:
+		c.Status(http.StatusNoContent)
+	}
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { commentRuns } from '../commentRuns';
+import { commentThread } from '../commentRuns';
 import { CommentComposer } from './CommentComposer';
 import { CommentReactions } from './CommentReactions';
 import { PinButton } from './PinButton';
@@ -9,9 +9,12 @@ import type { Comment, ReactionId, UserPromptSubmission } from '@/api/Api';
 import { SpeechBox } from '@/components/SpeechBox';
 import { refreshProgress } from '@/animations/useProgressWatcher';
 import { AIReviewComment } from '@/ai/AIReviewComment';
+import { AIReplyButton } from '@/ai/AIReplyButton';
+import { AIReplyComment } from '@/ai/AIReplyComment';
 import {
   queryKeys,
   useDeleteComment,
+  useGetMyProfile,
   usePromptSubmission,
   useToggleCommentReaction,
 } from '@/api/Api';
@@ -31,6 +34,7 @@ import { bigPolaroidFrameClass } from '@/components/polaroid';
 import { cn, timeAgo } from '@/utils';
 import { GoldTrim, goldFrameClass, isMasterpiece } from '@/ai/Masterpiece';
 import { CleanText } from '@/moderation/CleanText';
+import { mentionables } from '@/mentions/mentions';
 
 /** A pin color that varies page to page but stays put for a given doodle */
 function pinColor(id: string) {
@@ -56,6 +60,17 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
   const deleteComment = useDeleteComment();
   const confirm = useConfirm();
   const alert = useAlert();
+  const { data: me } = useGetMyProfile();
+  // Who typing @ suggests: the judge, the artist, everyone here, your friends
+  const canMention = mentionables(
+    submission.aiReview?.judge,
+    [
+      submission.user,
+      ...submission.comments.map((comment) => comment.user),
+      ...(me?.friends ?? []),
+    ],
+    currentUser.id,
+  );
 
   // The comment whose reaction drawer is open, if any
   const [reactingTo, setReactingTo] = useState<Comment | null>(null);
@@ -189,67 +204,84 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
             className="mt-3"
           />
         )}
-        {commentRuns(submission.comments).map((run) => (
-          <SpeechBox
-            key={run.comments[0].id}
-            portrait={<UserProfileIcon size="sm" user={run.user} />}
-            name={run.user.username}
-            mine={run.user.id === currentUser.id}
-          >
-            {run.comments.map((comment) => {
-              const mine = myReaction(comment);
+        {commentThread(submission.comments, submission.aiReplies).map((run) =>
+          'reply' in run ? (
+            <AIReplyComment
+              key={run.reply.id}
+              reply={run.reply}
+              submissionId={submission.id}
+            />
+          ) : (
+            <SpeechBox
+              key={run.comments[0].id}
+              portrait={<UserProfileIcon size="sm" user={run.user} />}
+              name={run.user.username}
+              mine={run.user.id === currentUser.id}
+            >
+              {run.comments.map((comment) => {
+                const mine = myReaction(comment);
 
-              return (
-                <div key={comment.id} className="flex flex-col gap-1">
-                  <div className="flex items-start gap-2 font-semibold leading-snug">
-                    <p className="flex-1 min-w-0 break-words">
-                      <CleanText text={comment.text} />
-                    </p>
-                    <span className="text-xs leading-5 text-secondary whitespace-nowrap">
-                      {timeAgo(comment.createdAt)}
-                    </span>
-                    {comment.user.id === currentUser.id ? (
-                      <button
-                        type="button"
-                        aria-label="Delete your comment"
-                        disabled={deleteComment.isPending}
-                        onClick={() => removeComment(comment)}
-                        className="grid place-items-center size-5 cursor-pointer text-pencil transition-[scale,color] duration-300 ease-[var(--ease-spring)] hover:scale-110 hover:text-ink active:scale-90 disabled:opacity-50"
-                      >
-                        <TrashIcon size={16} />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        aria-haspopup="dialog"
-                        aria-label={
-                          mine ? 'Change your reaction' : 'React to comment'
-                        }
-                        onClick={() => setReactingTo(comment)}
-                        className="grid place-items-center size-5 cursor-pointer transition-[scale] duration-300 ease-[var(--ease-spring)] hover:scale-110 active:scale-90"
-                      >
-                        {mine ? (
-                          <ReactionSticker reactionId={mine} size={20} />
-                        ) : (
-                          <HeartIcon size={15} strokeWidth={2.2} />
-                        )}
-                      </button>
+                return (
+                  <div key={comment.id} className="flex flex-col gap-1">
+                    <div className="flex items-start gap-2 font-semibold leading-snug">
+                      <p className="flex-1 min-w-0 break-words">
+                        <CleanText text={comment.text} />
+                      </p>
+                      <span className="text-xs leading-5 text-secondary whitespace-nowrap">
+                        {timeAgo(comment.createdAt)}
+                      </span>
+                      {comment.user.id === currentUser.id ? (
+                        <button
+                          type="button"
+                          aria-label="Delete your comment"
+                          disabled={deleteComment.isPending}
+                          onClick={() => removeComment(comment)}
+                          className="grid place-items-center size-5 cursor-pointer text-pencil transition-[scale,color] duration-300 ease-[var(--ease-spring)] hover:scale-110 hover:text-ink active:scale-90 disabled:opacity-50"
+                        >
+                          <TrashIcon size={16} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          aria-haspopup="dialog"
+                          aria-label={
+                            mine ? 'Change your reaction' : 'React to comment'
+                          }
+                          onClick={() => setReactingTo(comment)}
+                          className="grid place-items-center size-5 cursor-pointer transition-[scale] duration-300 ease-[var(--ease-spring)] hover:scale-110 active:scale-90"
+                        >
+                          {mine ? (
+                            <ReactionSticker reactionId={mine} size={20} />
+                          ) : (
+                            <HeartIcon size={15} strokeWidth={2.2} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    {comment.reactions.length > 0 && (
+                      <CommentReactions reactions={comment.reactions} />
                     )}
                   </div>
-                  {comment.reactions.length > 0 && (
-                    <CommentReactions reactions={comment.reactions} />
-                  )}
-                </div>
-              );
-            })}
-          </SpeechBox>
-        ))}
+                );
+              })}
+            </SpeechBox>
+          ),
+        )}
         {submission.comments.length === 0 && !submission.aiReview && (
           <span className="font-bold text-center text-secondary">
             Be the first to comment!
           </span>
         )}
-        <CommentComposer submissionId={submission.id} />
+        <CommentComposer
+          submissionId={submission.id}
+          mentionables={canMention}
+        />
+        {currentUser.isAdmin && submission.aiReview?.status === 'done' && (
+          <AIReplyButton
+            submissionId={submission.id}
+            judge={submission.aiReview.judge}
+          />
+        )}
       </div>
       <div className="text-left w-full -mt-4">
         <span className="text-xs font-semibold text-secondary pl-2">

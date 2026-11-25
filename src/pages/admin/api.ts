@@ -749,6 +749,65 @@ export function useRerunAIReview() {
   });
 }
 
+/** A reply the judge drafted, not yet posted */
+export interface AIReplyDraft {
+  /** The username it answers */
+  to: string;
+  /** As it would be posted, starting with @to */
+  text: string;
+}
+
+/**
+ * Has a doodle's judge draft a reply to each person it answers in the
+ * comments, following the direction if given. Nothing is posted.
+ */
+export function useDraftAIReplies() {
+  return useMutation({
+    mutationFn: async (body: { submissionId: string; direction: string }) => {
+      const response = await fetchAPI(
+        'POST',
+        `/admin/ai/reviews/${body.submissionId}/replies/draft`,
+        json({ direction: body.direction }),
+      );
+      await ensureOk(response);
+      return ((await response.json()) as { replies: Array<AIReplyDraft> })
+        .replies;
+    },
+  });
+}
+
+/** Posts the drafted replies an admin approved, in the judge's name */
+export function usePostAIReplies() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { submissionId: string; texts: Array<string> }) =>
+      ensureOk(
+        await fetchAPI(
+          'POST',
+          `/admin/ai/reviews/${body.submissionId}/replies`,
+          json({ texts: body.texts }),
+        ),
+      ),
+    onSuccess: (_, { submissionId }) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.promptSubmission(submissionId),
+      }),
+  });
+}
+
+/** Takes a judge's reply out of a doodle's comments */
+export function useDeleteAIReply() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (reply: { id: string; submissionId: string }) =>
+      ensureOk(await fetchAPI('DELETE', `/admin/ai/replies/${reply.id}`)),
+    onSuccess: (_, { submissionId }) =>
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.promptSubmission(submissionId),
+      }),
+  });
+}
+
 /**
  * Makes a logged re-run or testing-ground run its doodle's review, replacing
  * the one players see (the old run stays in the AI log).

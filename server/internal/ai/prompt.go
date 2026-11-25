@@ -11,7 +11,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 )
 
 // MaxCommentWords is how long a judge's comment may be. Comments sit in a list of
@@ -631,15 +630,5 @@ func roundScore(score float64) float64 {
 
 // trimComment tidies the comment and cuts a rambling one at a word boundary.
 func trimComment(comment string) string {
-	comment = strings.Join(strings.Fields(comment), " ")
-	comment = strings.Trim(comment, `"`)
-	if utf8.RuneCountInString(comment) <= maxCommentChars {
-		return comment
-	}
-	runes := []rune(comment)[:maxCommentChars]
-	cut := string(runes)
-	if i := strings.LastIndex(cut, " "); i > maxCommentChars/2 {
-		cut = cut[:i]
-	}
-	return strings.TrimRight(cut, ",;:- ") + "…"
+	return cutText(comment, maxCommentChars)
 }

@@ -103,6 +103,8 @@ type UserPromptSubmission struct {
 	CreatedBy  *User           `json:"createdBy"`
 	// The AI judge's score and comment, once it has one (or while it's writing it)
 	AIReview *AIReview `json:"aiReview"`
+	// What the judge has said since, in the comments, oldest first; only on a single doodle
+	AIReplies []AIReply `json:"aiReplies,omitempty"`
 	// Pinned the day after its prompt, finishing a doodle the rollover interrupted
 	Late bool `json:"late,omitempty"`
 	// Drawn with a redo, after its prompt had closed

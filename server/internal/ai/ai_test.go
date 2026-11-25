@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 )
 
 // The real roll, kept for the test that checks it
@@ -1517,5 +1518,42 @@ func TestTheGrinchMakesABigDealOfChristmasEve(t *testing.T) {
 	}
 	if !strings.Contains(commentMsg, "Christmas Eve") {
 		t.Errorf("Run should pass the day on to the comment call:\n%s", commentMsg)
+	}
+}
+
+func TestParseRepliesAtsEachPersonOnce(t *testing.T) {
+	raw := `{"replies": [
+		{"to": "@Bob", "comment": "a goalie does not melt."},
+		{"to": "bob", "comment": "A second word for Bob."},
+		{"to": "ann", "comment": "ann, lovely soup."},
+		{"to": "stranger", "comment": "Who?"},
+		{"to": "cat", "comment": "` + strings.Repeat("meow ", 60) + `"}
+	]}`
+	got, err := ParseReplies(raw, []string{"ann", "bob", "cat"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []ReplyDraft{
+		{To: "bob", Text: "@bob a goalie does not melt."},
+		{To: "ann", Text: "@ann lovely soup."},
+	}
+	if len(got) != 3 || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("drafts = %+v", got)
+	}
+	if !strings.HasPrefix(got[2].Text, "@cat meow") || !strings.HasSuffix(got[2].Text, "…") || utf8.RuneCountInString(got[2].Text) > maxReplyChars+6 {
+		t.Errorf("rambling draft = %q", got[2].Text)
+	}
+
+	if _, err := ParseReplies(`{"replies": [{"to": "stranger", "comment": "hi"}]}`, []string{"ann"}); err == nil {
+		t.Error("replies to nobody in the thread should fail")
+	}
+}
+
+func TestReplyMessageWithoutComments(t *testing.T) {
+	msg := ReplyMessage(ReplyRequest{Prompt: "A pear", Artist: "ann", Review: models.AIReview{Comment: "Pear-shaped."}})
+	for _, want := range []string{"(nobody has commented yet)", `Your review: "Pear-shaped."`, "if nobody did, reply to ann."} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("message lacks %q:\n%s", want, msg)
+		}
 	}
 }

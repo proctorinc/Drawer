@@ -86,6 +86,15 @@ type AIReview struct {
 	Error string `json:"-"`
 }
 
+// AIReply is something a judge said in a doodle's comments after its review, written when an
+// admin asked for it.
+type AIReply struct {
+	ID        string    `json:"id"`
+	Judge     AIJudge   `json:"judge"`
+	Text      string    `json:"text"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 // AISwingTier is how often a kind of swing happens and how many points it moves every score.
 type AISwingTier struct {
 	Kind   string  `json:"kind"`

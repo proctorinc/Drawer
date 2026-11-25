@@ -449,6 +449,7 @@ func ListRecentAIReviews(repo *sql.DB, ctx context.Context, limit int) ([]AdminA
 type SubmissionForAIReview struct {
 	ID     string
 	UserID string
+	Artist string // Their username
 	Day    string
 	Prompt string
 }
@@ -460,9 +461,11 @@ func GetSubmissionForAIReview(repo *sql.DB, ctx context.Context, submissionID st
 		prompt sql.NullString
 	)
 	err := repo.QueryRowContext(ctx, `
-		SELECT s.id, s.user_id, s.day, dp.prompt
-		FROM user_submissions s LEFT JOIN daily_prompts dp ON dp.day = s.day
-		WHERE s.id = ?`, submissionID).Scan(&sub.ID, &sub.UserID, &sub.Day, &prompt)
+		SELECT s.id, s.user_id, u.username, s.day, dp.prompt
+		FROM user_submissions s
+		JOIN users u ON u.id = s.user_id
+		LEFT JOIN daily_prompts dp ON dp.day = s.day
+		WHERE s.id = ?`, submissionID).Scan(&sub.ID, &sub.UserID, &sub.Artist, &sub.Day, &prompt)
 	sub.Prompt = prompt.String
 	return sub, err
 }

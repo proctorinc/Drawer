@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { findProfanity } from './profanity';
 import type { CSSProperties, FC } from 'react';
+import { MentionText } from '@/mentions/MentionText';
 
 // Flat rainbow stripes with hard edges, light enough for ink text to read on every band
 const RAINBOW: CSSProperties = {
@@ -10,7 +11,7 @@ const RAINBOW: CSSProperties = {
 
 /**
  * Renders user text with each swear word swapped for a silly word of the same kind, in a little
- * rainbow tag so it's clear the original was cleaned up.
+ * rainbow tag so it's clear the original was cleaned up, and each @mention highlighted.
  */
 export const CleanText: FC<{ text: string | null | undefined }> = ({
   text,
@@ -30,7 +31,7 @@ export const CleanText: FC<{ text: string | null | undefined }> = ({
             {segment.swap}
           </span>
         ) : (
-          segment.text
+          <MentionText key={i} text={segment.text} />
         ),
       )}
     </span>
