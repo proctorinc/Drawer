@@ -572,6 +572,21 @@ body {
   }
 }
 
+/* A wisp of steam curling up off something hot (the turkey hat) */
+@keyframes deco-steam {
+  from {
+    translate: 0 4px;
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.8;
+  }
+  to {
+    translate: 0 -10px;
+    opacity: 0;
+  }
+}
+
 /* Level badges on avatars (src/levels/LevelBadge.tsx) */
 @property --rank-angle {
   syntax: '<angle>';

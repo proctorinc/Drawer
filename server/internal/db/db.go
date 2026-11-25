@@ -161,6 +161,13 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 			('CHRISTMAS_LIGHTS', 'Christmas Lights', 'A strand of twinkly lights to wear on your face', 'christmas-2026-twelve-days'),
 			('GOLDEN_SANTA_HAT', 'Golden Santa Hat', 'A golden santa hat to wear on your face', 'christmas-2026-doodle-claus');
 
+		-- Thanksgiving sticker and decoration (mirror migrations/1795040200_seed_thanksgiving.up.sql)
+		INSERT OR IGNORE INTO achievements (id, name, description, image_url, achievement_field, achievement_value)
+		VALUES ('thanksgiving-doodle', 'gobble gobble', 'Draw a doodle on Thanksgiving', '/badges/thanksgiving_total-1.svg', 'THANKSGIVING_TOTAL', 1);
+
+		INSERT OR IGNORE INTO reward_unlocks (id, name, description, achievement_id)
+		VALUES ('TURKEY_HAT', 'Turkey Hat', 'A roast turkey to wear on your head', 'thanksgiving-doodle');
+
 		-- Inserted before the relative demo prompts below so these win on overlapping days
 		INSERT OR IGNORE INTO daily_prompts (day, colors, prompt) VALUES
 			('2026-11-27', '["#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"]', 'leftovers in disguise'),
@@ -209,6 +216,7 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 		UPDATE users SET decoration = 'GOLDEN_SANTA_HAT' WHERE id = 'user2';
 		UPDATE users SET decoration = 'CHRISTMAS_LIGHTS' WHERE id = 'user3';
 		UPDATE users SET decoration = 'FIRST_SNOW' WHERE id = 'user4';
+		UPDATE users SET decoration = 'TURKEY_HAT' WHERE id = 'user5';
 
 		-- Insert prompt suggestions
 		INSERT OR IGNORE INTO prompt_suggestions (id, user_id, prompt)

@@ -49,6 +49,7 @@ export const MAX_AVATAR_SLOTS = 3;
 
 /** Decorations are rewards worn on the avatar, one at a time */
 export type DecorationId =
+  | 'TURKEY_HAT'
   | 'FIRST_SNOW'
   | 'CHRISTMAS_LIGHTS'
   | 'GOLDEN_SANTA_HAT'

@@ -187,6 +187,21 @@ func CalculateFriendCount(repo *sql.DB, ctx context.Context, userId string) (int
 	return count, nil
 }
 
+// CalculateThanksgivingCount counts the US Thanksgivings (the fourth Thursday of
+// November, which always falls on the 22nd-28th) the user doodled on
+func CalculateThanksgivingCount(repo *sql.DB, ctx context.Context, userId string) (int, error) {
+	var count int
+	err := repo.QueryRowContext(ctx, `
+		SELECT COUNT(*)
+		FROM user_submissions
+		WHERE user_id = ?
+			AND strftime('%m', day) = '11'
+			AND strftime('%w', day) = '4'
+			AND CAST(strftime('%d', day) AS INTEGER) BETWEEN 22 AND 28
+	`, userId).Scan(&count)
+	return count, err
+}
+
 func CalculateSubmissionCount(repo *sql.DB, ctx context.Context, userId string) (int, error) {
 	query := `
 		SELECT COUNT(*)

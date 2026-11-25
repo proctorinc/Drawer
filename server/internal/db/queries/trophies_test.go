@@ -495,3 +495,27 @@ func TestBackdateAchievementsMigration(t *testing.T) {
 		}
 	}
 }
+
+func TestCalculateThanksgivingCount(t *testing.T) {
+	db := newTestDB(t)
+	_, err := db.Exec(`
+		INSERT INTO users (id, username, email) VALUES ('me', 'me', 'me@x'), ('pal', 'pal', 'pal@x');
+		INSERT INTO user_submissions (id, user_id, day) VALUES
+			('t25', 'me', '2025-11-27'),     -- Thanksgiving 2025
+			('t26', 'me', '2026-11-26'),     -- Thanksgiving 2026
+			('thu', 'me', '2026-11-19'),     -- the Thursday before
+			('fri', 'me', '2026-11-27'),     -- black friday
+			('pal', 'pal', '2024-11-28');    -- someone else's Thanksgiving
+	`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := CalculateThanksgivingCount(db, context.Background(), "me")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != 2 {
+		t.Errorf("CalculateThanksgivingCount = %d, want 2", got)
+	}
+}

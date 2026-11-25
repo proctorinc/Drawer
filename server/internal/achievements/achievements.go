@@ -16,6 +16,8 @@ type RewardUnlockId string
 var (
 	CUSTOM_PROFILE_PIC RewardUnlockId = "CUSTOM_PROFILE_PIC"
 
+	TURKEY_HAT RewardUnlockId = "TURKEY_HAT"
+
 	FIRST_SNOW       RewardUnlockId = "FIRST_SNOW"
 	CHRISTMAS_LIGHTS RewardUnlockId = "CHRISTMAS_LIGHTS"
 	GOLDEN_SANTA_HAT RewardUnlockId = "GOLDEN_SANTA_HAT"
@@ -24,6 +26,8 @@ var (
 // decorations are the rewards worn on the avatar. Each is unlocked by one achievement
 // (see the reward_unlocks seeds) and drawn by src/decorations/decorations.tsx.
 var decorations = map[RewardUnlockId]bool{
+	TURKEY_HAT: true,
+
 	FIRST_SNOW:       true,
 	CHRISTMAS_LIGHTS: true,
 	GOLDEN_SANTA_HAT: true,
@@ -241,6 +245,7 @@ func (as *AchievementService) UpdateSubmissionAchievements(userId string) error 
 		string(stats.SUBMISSION_TOTAL),
 		string(stats.EVENT_SUBMISSION_TOTAL),
 		string(stats.EVENT_COUNTDOWN_TOTAL),
+		string(stats.THANKSGIVING_TOTAL),
 	}, slices.Concat(stats.EVENT_DAY_FIELDS, stats.GRINCH_PLEDGE_FIELDS)...)) // drawing the day's doodle also locks in the answer to the Grinch
 }
 

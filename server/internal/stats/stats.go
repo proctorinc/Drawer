@@ -50,6 +50,8 @@ var (
 	GRINCH_ZERO_TOTAL StatsField = "GRINCH_ZERO_TOTAL"
 	// Doodles bad enough that the Grinch took you as his accomplice (a secret achievement)
 	GRINCH_SIDE_TOTAL StatsField = "GRINCH_SIDE_TOTAL"
+	// Thanksgivings (US: the fourth Thursday of November) the user doodled on
+	THANKSGIVING_TOTAL StatsField = "THANKSGIVING_TOTAL"
 )
 
 // AI_FIELDS are the achievement fields a finished AI review can move
@@ -216,6 +218,12 @@ func (ss *StatsService) CheckStatCompletion(userId string, achievement models.Ac
 		case LEVEL:
 			count = xp.LevelFor(xp.For(lifetime)).Level
 		}
+	case string(THANKSGIVING_TOTAL):
+		val, err := queries.CalculateThanksgivingCount(ss.DB, ss.Ctx, userId)
+		if err != nil {
+			return 0, false, err
+		}
+		count = val
 	default:
 		if val, ok, err := ss.doodlemasCount(userId, achievement); ok {
 			if err != nil {

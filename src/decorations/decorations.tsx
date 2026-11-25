@@ -32,6 +32,7 @@ import {
 } from './Extras';
 import { GrinchHeart } from './GrinchHeart';
 import { GrinchHat } from './GrinchHat';
+import TurkeyHat from './TurkeyHat';
 import type { FC } from 'react';
 import type { DecorationId } from '@/api/Api';
 import { SantaHat } from '@/events/christmas/Decorations';
@@ -47,6 +48,11 @@ const GoldenSantaHat: FC = () => <SantaHat golden />;
 
 /** Every decoration, easiest to earn first. Each one's id is its reward's id. */
 export const DECORATIONS: Record<DecorationId, Decoration> = {
+  TURKEY_HAT: {
+    name: 'turkey hat',
+    group: 'thanksgiving',
+    Art: TurkeyHat,
+  },
   FIRST_SNOW: {
     name: 'first snow',
     group: 'doodlemas',
