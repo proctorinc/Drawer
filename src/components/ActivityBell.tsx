@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { BellIcon, FriendsIcon, MegaphoneIcon, PencilIcon } from './icons';
+import { useDismiss } from './useDismiss';
 import type { FC, ReactNode } from 'react';
 import type {
   Achievement,
@@ -353,6 +354,7 @@ const ActivityBell = () => {
   const { data } = useActivityFeed();
   const markRead = useMarkActivityRead();
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   const activities = data?.activities ?? [];
   const unseen = activities.filter((activity) => !activity.isRead).length;
@@ -391,8 +393,12 @@ const ActivityBell = () => {
     );
   }
 
+  // The navbar sits above the backdrop, so its tabs (and the back button) change pages without tapping it
+  useDismiss(ref, open, close);
+
   return (
     <div
+      ref={ref}
       className="relative"
       onKeyDown={(event) => event.key === 'Escape' && close()}
     >

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { usePokeFriend } from '../api';
 import { collapsedLayout, expandedLayout, rollCall } from '../rollCall';
@@ -8,6 +8,7 @@ import type { FriendSubmissionStatus } from '@/api/Api';
 import { useActivityFeed } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import { CheckIcon, ChevronDownIcon, ClockIcon } from '@/components/icons';
+import { useDismiss } from '@/components/useDismiss';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { cn } from '@/utils';
@@ -20,56 +21,48 @@ const FriendMenu: FC<{
   friend: FriendSubmissionStatus;
   isMe: boolean;
   align: 'left' | 'right';
-  onClose: () => void;
-}> = ({ friend, isMe, align, onClose }) => {
+}> = ({ friend, isMe, align }) => {
   const poke = usePokeFriend();
   const poked = friend.pokedToday || poke.isSuccess;
   const { user, hasSubmittedToday } = friend;
 
   return (
-    <>
-      <div
-        aria-hidden="true"
-        className="fixed inset-0 z-40"
-        onClick={onClose}
-      />
-      <div
-        role="menu"
-        aria-label={user.username}
-        className={cn(
-          'absolute top-full z-50 mt-2 w-44 py-1 bg-white border-2 border-ink rounded-sketch shadow-pencil-sm animate-in fade-in zoom-in-95 duration-150',
-          align === 'left'
-            ? 'left-0 origin-top-left'
-            : 'right-0 origin-top-right',
-        )}
-      >
-        <p className="px-3 pt-1 pb-0.5 font-bold truncate">
-          {isMe ? 'you' : user.username}
-        </p>
-        <p className="px-3 pb-1 text-sm text-pencil">
-          {hasSubmittedToday ? 'drew today' : 'still drawing…'}
-        </p>
-        {!hasSubmittedToday && !isMe && (
-          <button
-            role="menuitem"
-            onClick={() => poke.mutate(user.id)}
-            disabled={poke.isPending || poked}
-            className={cn(menuItemClass, poked && 'animate-wiggle')}
-          >
-            {poked ? 'poked! 👉' : poke.isError ? 'try again' : 'poke 👉'}
-          </button>
-        )}
-        <Link
+    <div
+      role="menu"
+      aria-label={user.username}
+      className={cn(
+        'absolute top-full z-50 mt-2 w-44 py-1 bg-white border-2 border-ink rounded-sketch shadow-pencil-sm animate-in fade-in zoom-in-95 duration-150',
+        align === 'left'
+          ? 'left-0 origin-top-left'
+          : 'right-0 origin-top-right',
+      )}
+    >
+      <p className="px-3 pt-1 pb-0.5 font-bold truncate">
+        {isMe ? 'you' : user.username}
+      </p>
+      <p className="px-3 pb-1 text-sm text-pencil">
+        {hasSubmittedToday ? 'drew today' : 'still drawing…'}
+      </p>
+      {!hasSubmittedToday && !isMe && (
+        <button
           role="menuitem"
-          {...(isMe
-            ? { to: '/draw/profile/me' }
-            : { to: '/draw/profile/$userId', params: { userId: user.id } })}
-          className={menuItemClass}
+          onClick={() => poke.mutate(user.id)}
+          disabled={poke.isPending || poked}
+          className={cn(menuItemClass, poked && 'animate-wiggle')}
         >
-          {isMe ? 'open your book' : 'open their book'}
-        </Link>
-      </div>
-    </>
+          {poked ? 'poked! 👉' : poke.isError ? 'try again' : 'poke 👉'}
+        </button>
+      )}
+      <Link
+        role="menuitem"
+        {...(isMe
+          ? { to: '/draw/profile/me' }
+          : { to: '/draw/profile/$userId', params: { userId: user.id } })}
+        className={menuItemClass}
+      >
+        {isMe ? 'open your book' : 'open their book'}
+      </Link>
+    </div>
   );
 };
 
@@ -83,11 +76,15 @@ const FriendAvatar: FC<{
   expanded: boolean;
 }> = ({ friend, isMe, spot, z, expanded }) => {
   const [menuAlign, setMenuAlign] = useState<'left' | 'right' | null>(null);
+  const ref = useRef<HTMLLIElement>(null);
   const drew = friend.hasSubmittedToday;
+  // Pressing anywhere else, another friend included, closes this one, so only one menu is ever open
+  useDismiss(ref, menuAlign !== null, () => setMenuAlign(null));
   const name = isMe ? 'you' : friend.user.username;
 
   return (
     <li
+      ref={ref}
       className={cn(
         'absolute top-0 left-0 transition-[translate,opacity] duration-500 ease-[var(--ease-spring)]',
         !spot && 'opacity-0 pointer-events-none',
@@ -144,12 +141,7 @@ const FriendAvatar: FC<{
         </span>
       </button>
       {menuAlign && (
-        <FriendMenu
-          friend={friend}
-          isMe={isMe}
-          align={menuAlign}
-          onClose={() => setMenuAlign(null)}
-        />
+        <FriendMenu friend={friend} isMe={isMe} align={menuAlign} />
       )}
     </li>
   );
