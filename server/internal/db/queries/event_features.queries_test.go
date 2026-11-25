@@ -98,7 +98,7 @@ func TestChristmasPromptSchedule(t *testing.T) {
 	}{
 		{"2026-11-27", "leftovers in disguise", []string{"#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"}},
 		{"2026-12-02", "the world's ugliest sweater", []string{"#1F3A5F", "#FFB400", "#9FB6CF", "#F3F6FA"}},
-		{"2026-12-03", "a cat versus the christmas tree", []string{"#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"}},
+		{"2026-12-03", "an elf on strike", []string{"#E5483B", "#2F9E5B", "#FFB400", "#FFF8EC"}},
 		{"2026-12-25", "christmas morning", []string{"#6C3FC4", "#FF8FB1", "#FFD45A", "#FFF6FB"}},
 	}
 	for _, tt := range tests {
@@ -311,7 +311,7 @@ func TestGetUserSubmissionsInDays(t *testing.T) {
 		t.Fatalf("got %+v, want early then late", submissions)
 	}
 	early := submissions[0]
-	if early.Prompt != "a snowman's first day" || len(early.Colors) != 4 || early.User.ID != "me" {
+	if early.Prompt != "a snowman's first day on the job" || len(early.Colors) != 4 || early.User.ID != "me" {
 		t.Errorf("unexpected submission %+v", early)
 	}
 	if len(early.Reactions) != 1 || early.Reactions[0].ReactionID != "snowflake" || len(early.Counts) != 1 {

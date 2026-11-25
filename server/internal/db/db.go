@@ -363,6 +363,16 @@ func initializeDevData(db *sql.DB, devUserEmail string) error {
 	if _, err = db.Exec(string(styles)); err != nil {
 		return fmt.Errorf("failed to add the judges' comment styles: %w", err)
 	}
+	// Doodlemas's judges and the prompts that suit them: the Union Elves, Santa's nice list
+	for _, name := range []string{"1795132800_seed_union_elves", "1795132810_santa_nice_list", "1795132820_doodlemas_judge_prompts"} {
+		migration, err := os.ReadFile("./migrations/" + name + ".up.sql")
+		if err != nil {
+			return fmt.Errorf("failed to read %s: %w", name, err)
+		}
+		if _, err = db.Exec(string(migration)); err != nil {
+			return fmt.Errorf("failed to apply %s: %w", name, err)
+		}
+	}
 
 	// The achievement tabs and the rest of the stickers, from the same seed production gets
 	moreAchievements, err := os.ReadFile("./migrations/1795130710_seed_more_achievements.up.sql")

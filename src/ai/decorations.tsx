@@ -92,6 +92,36 @@ const PartyHat: FC = () => (
 
 const RedSantaHat: FC = () => <SantaHat />;
 
+/** A hand-lettered "ON STRIKE" picket sign, held up off to one side */
+const PicketSign: FC = () => (
+  <Overlay>
+    <g transform="rotate(10 96 22)">
+      <path d="M96 30 V96" fill="none" {...ink} strokeWidth={3} />
+      <rect x="76" y="8" width="40" height="22" rx="1.5" fill="#fff" {...ink} />
+      <text
+        x="96"
+        y="17.5"
+        textAnchor="middle"
+        fontSize="8"
+        fontWeight="800"
+        fill="var(--color-coral)"
+      >
+        ON
+      </text>
+      <text
+        x="96"
+        y="26"
+        textAnchor="middle"
+        fontSize="8"
+        fontWeight="800"
+        fill="var(--color-coral)"
+      >
+        STRIKE
+      </text>
+    </g>
+  </Overlay>
+);
+
 type AIDecoration = { name: string; Art: FC };
 
 export const AI_DECORATIONS = {
@@ -99,6 +129,7 @@ export const AI_DECORATIONS = {
   TOP_HAT: { name: 'top hat', Art: TopHat },
   PARTY_HAT: { name: 'party hat', Art: PartyHat },
   SANTA_HAT: { name: 'santa hat', Art: RedSantaHat },
+  PICKET_SIGN: { name: 'picket sign', Art: PicketSign },
 } satisfies Record<string, AIDecoration>;
 
 export type AIDecorationId = keyof typeof AI_DECORATIONS;

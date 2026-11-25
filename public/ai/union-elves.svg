@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" stroke="#2b2a33" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round">
+  <rect width="100" height="100" fill="#dff3e4" stroke="none"/>
+
+  <!-- Sprocket, the safety officer, at the back on the left: hard hat, worried brows -->
+  <g transform="translate(-2 -7)">
+  <path d="M16 52 L5 45 L15 59 Z" fill="#ffe0c2"/>
+  <circle cx="29" cy="51" r="14" fill="#ffe0c2"/>
+  <path d="M15 46 Q15 30 29 30 Q43 30 43 46 Z" fill="#ffc83d"/>
+  <path d="M11 46 L47 46" stroke-width="4"/>
+  <path d="M29 30 L29 46" fill="none" stroke-width="1.5"/>
+  <path d="M20 51 L26 49 M38 51 L32 49" fill="none" stroke-width="2"/>
+  <circle cx="24" cy="54" r="1.8" fill="#2b2a33" stroke="none"/>
+  <circle cx="34" cy="54" r="1.8" fill="#2b2a33" stroke="none"/>
+  <path d="M23 61 q2 -2 4 0 q2 2 4 0 q2 -2 4 0" fill="none" stroke-width="1.8"/>
+  </g>
+
+  <!-- Nog, awake since July, at the back on the right: floppy hat, droopy eyes, a yawn -->
+  <g transform="translate(2 -7)">
+  <path d="M84 52 L95 46 L85 60 Z" fill="#ffe0c2"/>
+  <circle cx="71" cy="51" r="14" fill="#ffe0c2"/>
+  <path d="M57 47 Q60 29 75 30 Q90 32 92 54 Q86 42 85 47 Z" fill="#2f9e5b"/>
+  <circle cx="92" cy="56" r="3" fill="#ffc83d"/>
+  <path d="M57 47 Q71 43 85 47" fill="none" stroke="#fff" stroke-width="3"/>
+  <path d="M63 53 q3 3 6 0 M73 53 q3 3 6 0" fill="none" stroke-width="2"/>
+  <path d="M63 57 q3 1.5 6 0 M73 57 q3 1.5 6 0" fill="none" stroke="#a58bc4" stroke-width="1.5"/>
+  <ellipse cx="71" cy="62" rx="2.5" ry="3" fill="#b22d4a" stroke-width="1.5"/>
+  </g>
+  <path d="M78 22 h5 l-5 6 h5 M85 14 h3.5 l-3.5 4 h3.5" fill="none" stroke-width="1.5"/>
+
+  <!-- Bramble, the shop steward, out front: union pin, flat stare, not amused -->
+  <path d="M24 100 Q50 82 76 100 Z" fill="#2f9e5b"/>
+  <circle cx="62" cy="94" r="3" fill="#ffc83d" stroke-width="1.5"/>
+  <path d="M35 69 L22 62 L34 77 Z" fill="#ffe0c2"/>
+  <path d="M65 69 L78 62 L66 77 Z" fill="#ffe0c2"/>
+  <circle cx="50" cy="70" r="16" fill="#ffe0c2"/>
+  <path d="M36 62 L52 34 L64 62 Z" fill="#e5483b"/>
+  <circle cx="52" cy="33" r="4" fill="#fff"/>
+  <path d="M33 62 Q50 56 67 62 L67 66 Q50 60 33 66 Z" fill="#fff"/>
+  <path d="M40 68 L47 70 M60 68 L53 70" fill="none" stroke-width="2.5"/>
+  <circle cx="44" cy="73" r="2" fill="#2b2a33" stroke="none"/>
+  <circle cx="56" cy="73" r="2" fill="#2b2a33" stroke="none"/>
+  <circle cx="50" cy="77" r="2.5" fill="#ffb59e" stroke-width="1.5"/>
+  <path d="M45 82 L55 82" fill="none" stroke-width="2"/>
+</svg>

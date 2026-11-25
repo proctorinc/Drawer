@@ -84,6 +84,20 @@ const PERSONAS: Array<{ match: RegExp; voice: Voice }> = [
     },
   },
   {
+    // The Union Elves: a quick, high little "bop" with bells on their hats,
+    // sagging at the end of every sentence because they're so tired
+    match: /elves|union/i,
+    voice: {
+      sound: 'bop',
+      root: 76,
+      range: 5,
+      droop: 2,
+      jingle: true,
+      volume: 1,
+      pace: 0.9,
+    },
+  },
+  {
     // The Grinch: a low, sour grumble on villain's notes, sinking at the end
     // of every sentence, with a growl when he's worked up. Slow and sneering.
     match: /grinch/i,

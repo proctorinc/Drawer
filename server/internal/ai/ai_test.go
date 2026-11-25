@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"maps"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -591,7 +592,7 @@ func TestReviewSavesAndShowsOnlyFinishedReviews(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	answer := `{"criteria": [{"id": "ai-santa-nice-list", "score": 10}, {"id": "ai-santa-christmas-spirit", "score": 9}, {"id": "ai-santa-workshop-quality", "score": 7}], "score": 1, "comment": "That doesn't look like my reindeer!"}`
+	answer := `{"criteria": [{"id": "ai-santa-good-deed", "score": 10}, {"id": "ai-santa-happy-ending", "score": 9}, {"id": "ai-santa-giving", "score": 7}], "score": 1, "comment": "That doesn't look like my reindeer!"}`
 	if _, err := Review(ctx, repo, fakeProvider{answer: answer}, "s1", Request{Personality: p}, RunMeta{Kind: queries.AIRunRerun, UserID: "u1"}); err != nil {
 		t.Fatal(err)
 	}
@@ -745,7 +746,7 @@ func TestEveryRunIsLogged(t *testing.T) {
 	pickles.SystemPrompt = "A tweaked, unsaved prompt."
 
 	// A real review, then two judges side by side on a custom drawing
-	answer := `{"criteria": [{"id": "ai-santa-nice-list", "score": 6}], "score": 1, "comment": "Ho ho ho!"}`
+	answer := `{"criteria": [{"id": "ai-santa-good-deed", "score": 6}], "score": 1, "comment": "Ho ho ho!"}`
 	if _, err := Review(ctx, repo, fakeProvider{answer: answer}, "s1", Request{Personality: santa, Prompt: "p"}, RunMeta{Kind: queries.AIRunSubmission, UserID: "u1"}); err != nil {
 		t.Fatal(err)
 	}
@@ -1011,7 +1012,7 @@ func TestTheGrinchJudgesChristmasSundays(t *testing.T) {
 			t.Errorf("%s: judge = %s (backwards %v, %d criteria), %v; want the Grinch, backwards, with 3", day, p.ID, p.ScoresBackwards, len(p.Criteria), err)
 		}
 	}
-	for _, day := range []string{"2026-11-28", "2026-11-30", "2026-12-25"} {
+	for _, day := range []string{"2026-11-27", "2026-12-01", "2026-12-25"} {
 		if p, _ := queries.PickAIPersonality(repo, ctx, event.ID, day); p.ID != "ai-santa" {
 			t.Errorf("%s: judge = %s; want Santa", day, p.ID)
 		}
@@ -1032,6 +1033,62 @@ func TestTheGrinchJudgesChristmasSundays(t *testing.T) {
 	for _, giveaway := range []string{"backwards", "upside", "0", "zero", "low score"} {
 		if strings.Contains(strings.ToLower(g.Bio), giveaway) {
 			t.Errorf("the Grinch's bio gives it away (%q): %s", giveaway, g.Bio)
+		}
+	}
+}
+
+func TestDoodlemasSplitsSantasDaysWithTheUnionElves(t *testing.T) {
+	repo := dbtest.NewEventsDB(t)
+	ctx := context.Background()
+	event, err := queries.GetEventBySlug(repo, ctx, "christmas-2026")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	judged := map[string]int{}
+	for day := time.Date(2026, 11, 27, 0, 0, 0, 0, time.UTC); day.Day() != 26; day = day.AddDate(0, 0, 1) {
+		p, err := queries.PickAIPersonality(repo, ctx, event.ID, day.Format(time.DateOnly))
+		if err != nil {
+			t.Fatal(err)
+		}
+		judged[p.ID]++
+	}
+	if want := map[string]int{"ai-santa": 16, "ai-union-elves": 8, "ai-grinch": 5}; !maps.Equal(judged, want) {
+		t.Errorf("Doodlemas days judged = %v; want two of Santa's for each of the elves', and the Grinch's five", judged)
+	}
+
+	elves, err := queries.GetAIPersonality(repo, ctx, "ai-union-elves")
+	if err != nil || !elves.Enabled || elves.ScoresBackwards || elves.EventID != nil || len(elves.Criteria) != 3 {
+		t.Fatalf("the Union Elves = %+v, %v; want an enabled, forwards judge of their own days, with 3 criteria", elves, err)
+	}
+	if !strings.Contains(elves.SystemPrompt, "Your comment is") {
+		t.Errorf("the Union Elves have no comment style:\n%s", elves.SystemPrompt)
+	}
+	// Their days' prompts give them a job to see done
+	if prompt, _ := queries.GetDailyPrompt(repo, ctx, "2026-12-09"); prompt.Prompt != "the elf who has to fix santa's sleigh" {
+		t.Errorf("Dec 9 = %q; want the elves' version", prompt.Prompt)
+	}
+
+	santa, _ := queries.GetAIPersonality(repo, ctx, "ai-santa")
+	names := []string{}
+	for _, c := range santa.Criteria {
+		names = append(names, c.Name)
+	}
+	if strings.Join(names, ", ") != "good deed, happy ending, gift of giving" {
+		t.Errorf("Santa's criteria = %v", names)
+	}
+}
+
+func TestDoodlemasPromptsKeepAnAdminsEdit(t *testing.T) {
+	repo := dbtest.NewEventsDB(t)
+	ctx := context.Background()
+	dbtest.ApplyMigration(t, repo, "1795132820_doodlemas_judge_prompts.down.sql")
+	dbtest.Exec(t, repo, `UPDATE daily_prompts SET prompt = 'an admin prompt' WHERE day = '2026-12-06'`)
+	dbtest.ApplyMigration(t, repo, "1795132820_doodlemas_judge_prompts.up.sql")
+
+	for day, want := range map[string]string{"2026-12-06": "an admin prompt", "2026-12-03": "an elf on strike", "2026-12-24": "a sleigh piled high with presents"} {
+		if prompt, _ := queries.GetDailyPrompt(repo, ctx, day); prompt.Prompt != want {
+			t.Errorf("%s = %q; want %q", day, prompt.Prompt, want)
 		}
 	}
 }
