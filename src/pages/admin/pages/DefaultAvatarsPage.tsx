@@ -79,9 +79,7 @@ const Bubble: FC<{
 const LookTag: FC<{ username: string }> = ({ username }) => {
   const guess = guessLook(username);
   return (
-    <Tag className={guess ? 'bg-butter' : 'bg-white'}>
-      {guess ?? 'coin flip'}
-    </Tag>
+    <Tag className={guess ? 'bg-butter' : 'bg-white'}>{guess ?? 'neutral'}</Tag>
   );
 };
 
@@ -159,7 +157,7 @@ const DefaultAvatarsPage = () => {
         </div>
       </Section>
 
-      {(['fem', 'masc'] as const).map((look) => (
+      {(['neutral', 'fem', 'masc'] as const).map((look) => (
         <Section key={look} title={`every ${look} hairdo`}>
           <div className="flex flex-wrap gap-4">
             {HAIR[look].map((hair, i) => (

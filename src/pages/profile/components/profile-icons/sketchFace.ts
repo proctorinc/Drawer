@@ -5,7 +5,8 @@
  * rest of their things.
  */
 
-export type AvatarLook = 'masc' | 'fem';
+/** Neutral unless the username clearly says otherwise */
+export type AvatarLook = 'masc' | 'fem' | 'neutral';
 
 export const HAIR = {
   masc: [
@@ -28,6 +29,7 @@ export const HAIR = {
     'sweep',
     'wavy',
   ],
+  neutral: ['crop', 'sidePart', 'curly', 'messy', 'puff'],
 } as const;
 
 export const NECKLINES = [
@@ -41,6 +43,7 @@ export const GLASSES = ['none', 'square', 'round'] as const;
 export const EXTRAS = {
   masc: ['none', 'beard', 'mustache'],
   fem: ['none', 'earrings'],
+  neutral: ['none'],
 } as const;
 
 export type Hair = (typeof HAIR)[AvatarLook][number];
@@ -58,13 +61,18 @@ export type AvatarParts = {
   tilt: number;
 };
 
-/** How many different faces there are, before color */
-export const FACE_COUNT = (['masc', 'fem'] as const).reduce(
-  (sum, look) =>
-    sum +
-    HAIR[look].length * NECKLINES.length * GLASSES.length * EXTRAS[look].length,
-  0,
-);
+/** How many different faces there are, before color (looks share some hair) */
+export const FACE_COUNT = new Set(
+  (['masc', 'fem', 'neutral'] as const).flatMap((look) =>
+    HAIR[look].flatMap((hair) =>
+      NECKLINES.flatMap((neck) =>
+        GLASSES.flatMap((glasses) =>
+          EXTRAS[look].map((extra) => [hair, neck, glasses, extra].join()),
+        ),
+      ),
+    ),
+  ),
+).size;
 
 /** A 32-bit FNV-1a hash */
 const hash = (text: string) => {
@@ -108,7 +116,7 @@ const FEM_WORDS = wordSet(`
 const MASC_WORDS = wordSet(`
   dad daddy papa pops pop father grandpa gramps gpa uncle brother bro husband
   hubby boy guy dude man king prince sir mr son him he gentleman
-  john james jim jimmy mike michael matt matthew dave david chris christopher
+  john johnny jon jonny jonathan jonah james jim jimmy mike michael matt matthew dave david chris christopher
   dan daniel danny joe joey joseph josh joshua tom tommy thomas will william
   bill billy bob bobby robert rob steve steven mark paul andrew andy drew ryan
   kevin brian jason justin eric adam nick nathan nate tyler kyle brandon aaron
@@ -151,7 +159,7 @@ const words = (username: string) =>
  * A guess at which look fits a username, from words like "mom" or "dad" and
  * common first names. Undefined when there's no sign, or signs both ways.
  */
-export const guessLook = (username: string): AvatarLook | undefined => {
+export const guessLook = (username: string): 'masc' | 'fem' | undefined => {
   let fem = false;
   let masc = false;
   for (const word of words(username)) {
@@ -168,9 +176,7 @@ export const defaultAvatarFor = (user: {
   username: string;
 }): AvatarParts => {
   const random = randomFrom(hash(user.id));
-  // Drawn even when the name decides, so the other parts stay put either way
-  const coin: AvatarLook = random() < 0.5 ? 'masc' : 'fem';
-  const look = guessLook(user.username) ?? coin;
+  const look = guessLook(user.username) ?? 'neutral';
   return {
     look,
     hair: pick(HAIR[look], random),

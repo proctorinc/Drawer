@@ -43,6 +43,10 @@ const curls = (r: number, from: number, to: number, n: number) => {
 
 /** Hair drawn behind the head (long hair, a bun) and over it (the top, bangs) */
 const HAIR_ART: Record<Hair, { back?: ReactNode; front: ReactNode }> = {
+  puff: {
+    back: <path d={`${curls(41, 0, 360, 16)}Z`} />,
+    front: <path d={`${curls(32, 180, 360, 8)} C68 30 32 30 18 41Z`} />,
+  },
   crop: {
     front: (
       <path d="M19 41C17 19 32 7 50 7C68 7 83 19 81 41C74 32 63 28 50 28C37 28 26 32 19 41Z" />

@@ -14,6 +14,7 @@ describe('guessLook', () => {
     ['mike_draws', 'masc'],
     ['coolguy42', 'masc'],
     ['bigbro', 'masc'],
+    ['jonny_p', 'masc'],
   ] as const)('%s → %s', (name, look) => {
     expect(guessLook(name)).toBe(look);
   });
@@ -44,16 +45,31 @@ describe('defaultAvatarFor', () => {
     }
   });
 
+  it('gives a name with no sign the neutral look', () => {
+    for (let i = 0; i < 50; i++) {
+      const face = defaultAvatarFor({
+        id: `user-${i}`,
+        username: 'pixelwizard',
+      });
+      expect(face.look).toBe('neutral');
+      expect(HAIR.neutral).toContain(face.hair);
+      expect(face.extra).toBe('none');
+    }
+  });
+
   it('spreads users across many faces', () => {
     const faces = new Set(
       Array.from({ length: 2000 }, (_, i) =>
         JSON.stringify(
-          defaultAvatarFor({ id: `user-${i}`, username: 'pixelwizard' }),
+          defaultAvatarFor({
+            id: `user-${i}`,
+            username: ['pixelwizard', 'mom', 'dad'][i % 3],
+          }),
         ),
       ),
     );
-    expect(FACE_COUNT).toBe(600);
-    // Tilt makes faces look more distinct than the 600 parts alone
+    expect(FACE_COUNT).toBe(615);
+    // Tilt makes faces look more distinct than the 615 parts alone
     expect(faces.size).toBeGreaterThan(1500);
   });
 });
