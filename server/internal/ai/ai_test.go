@@ -1557,3 +1557,23 @@ func TestReplyMessageWithoutComments(t *testing.T) {
 		}
 	}
 }
+
+func TestReplyMessageFlagsCommentsAimedAtTheJudge(t *testing.T) {
+	msg := ReplyMessage(ReplyRequest{
+		Personality: models.AIPersonality{Name: "Sir Doodleton"}, Prompt: "A pear", Artist: "ann",
+		Review: models.AIReview{Comment: "Pear-shaped."},
+		Thread: []queries.ThreadMessage{
+			{Author: "bob", Text: "@sirdoodleton you couldn't judge a pie contest"},
+			{Author: "Sir Doodleton", Judge: true, Text: "@bob I've judged worse."},
+			{Author: "ann", Artist: true, Text: "thanks bob"},
+		},
+	})
+	for _, want := range []string{`- bob (to you): "@sirdoodleton`, `- You: "@bob`, `- ann (the artist): "thanks bob"`} {
+		if !strings.Contains(msg, want) {
+			t.Errorf("message lacks %q:\n%s", want, msg)
+		}
+	}
+	if !strings.Contains(ReplySystemPrompt(models.AIPersonality{}), "roast them back") {
+		t.Error("the reply rules should have the judge roast back a roast")
+	}
+}
