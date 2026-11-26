@@ -63,6 +63,7 @@ import AILogPage from './pages/admin/pages/AILogPage.tsx';
 import AIMentionsPage from './pages/admin/pages/AIMentionsPage.tsx';
 import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
+import DefaultAvatarsPage from './pages/admin/pages/DefaultAvatarsPage.tsx';
 import SignaturePage from './pages/admin/pages/SignaturePage.tsx';
 import BetaZonePage from './pages/admin/pages/BetaZonePage.tsx';
 import MintedPage from './pages/admin/pages/MintedPage.tsx';
@@ -446,6 +447,7 @@ const adminPages = [
     component: DrawingDemoPage,
   }),
   adminPage('brand', BrandPage),
+  adminPage('avatars', DefaultAvatarsPage),
   adminPage('signature', SignaturePage),
   adminPage('settings', AppSettingsPage),
   adminPage('beta', BetaZonePage),

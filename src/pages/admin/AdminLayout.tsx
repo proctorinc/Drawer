@@ -26,6 +26,7 @@ import {
   faSliders,
   faStairs,
   faStamp,
+  faUserAstronaut,
   faUsers,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
@@ -113,6 +114,11 @@ const NAV: Array<{ group: string; items: Array<NavItem> }> = [
     items: [
       { to: '/draw/admin/drawing', label: 'drawing canvas', icon: faBrush },
       { to: '/draw/admin/brand', label: 'brand & ui', icon: faPalette },
+      {
+        to: '/draw/admin/avatars',
+        label: 'default avatars',
+        icon: faUserAstronaut,
+      },
       { to: '/draw/admin/signature', label: 'signature', icon: faSignature },
     ],
   },
