@@ -5,7 +5,7 @@ import { BasicProfileIcon } from './BasicProfileIcon';
 import type { VariantProps } from 'class-variance-authority';
 import type { User } from '@/api/Api';
 import type { FC } from 'react';
-import { cn, getTwoCapitalLetters, userColor } from '@/utils';
+import { cn, userColor } from '@/utils';
 import useUser from '@/auth/hooks/useUser';
 
 type Props = {
@@ -44,8 +44,7 @@ export const CustomProfileIcon: FC<Props> = ({
     );
   }
 
-  const name = getTwoCapitalLetters(user.username);
-  const { primary, text: textColor } = userColor(user);
+  const { primary } = userColor(user);
   const handleClick = () => {
     if (onClick) {
       onClick();
@@ -70,20 +69,16 @@ export const CustomProfileIcon: FC<Props> = ({
   return (
     <div className={cn('flex relative group justify-center', className)}>
       <div
-        className={cn(
-          'font-accent font-bold overflow-hidden',
-          userProfileIconVariants({ size }),
-        )}
+        className={cn('overflow-hidden', userProfileIconVariants({ size }))}
         style={{
           backgroundColor: primary,
-          color: textColor,
           transform: isLoaded ? 'scale(1)' : 'scale(1.25)',
           transition: 'transform 0.3s cubic-bezier(0.4,0,0.2,1)',
         }}
       >
         <img
           src={user.avatarUrl}
-          alt={name}
+          alt={user.username}
           className="rounded-full"
           onClick={handleClick}
           onError={() => setBrokenUrl(user.avatarUrl)}

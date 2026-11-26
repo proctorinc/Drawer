@@ -12,7 +12,6 @@ import {
   guessLook,
 } from '@/pages/profile/components/profile-icons/sketchFace';
 import { userProfileIconVariants } from '@/pages/profile/components/profile-icons/UserProfileIcon';
-import { BasicProfileIcon } from '@/pages/profile/components/profile-icons/BasicProfileIcon';
 
 const SIZES: Array<AvatarSize> = ['xs', 'sm', 'lg', 'xl', '2xl'];
 
@@ -183,27 +182,6 @@ const DefaultAvatarsPage = () => {
           </div>
         </Section>
       ))}
-
-      <Section title="today vs. sketch">
-        <div className="flex flex-wrap gap-6">
-          {USERNAMES.slice(0, 8).map((username) => (
-            <div key={username} className="flex items-center gap-2">
-              <BasicProfileIcon
-                user={{
-                  ...demoUser(username),
-                  createdAt: new Date(),
-                  avatarType: 'basic',
-                  avatarUrl: '',
-                  decoration: '',
-                }}
-                size="lg"
-              />
-              <span aria-hidden="true">→</span>
-              <Bubble username={username} />
-            </div>
-          ))}
-        </div>
-      </Section>
     </AdminPage>
   );
 };
