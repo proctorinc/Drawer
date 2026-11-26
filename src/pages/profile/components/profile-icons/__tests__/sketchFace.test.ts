@@ -68,8 +68,8 @@ describe('defaultAvatarFor', () => {
         ),
       ),
     );
-    expect(FACE_COUNT).toBe(615);
-    // Tilt makes faces look more distinct than the 615 parts alone
+    expect(FACE_COUNT).toBe(1335);
+    // Tilt makes faces look more distinct than the 1335 parts alone
     expect(faces.size).toBeGreaterThan(1500);
   });
 });

@@ -6,6 +6,7 @@ import type { AvatarParts } from '@/pages/profile/components/profile-icons/sketc
 import { PROFILE_HUES, cn } from '@/utils';
 import { DefaultAvatar } from '@/pages/profile/components/profile-icons/DefaultAvatar';
 import {
+  EXTRAS,
   FACE_COUNT,
   HAIR,
   defaultAvatarFor,
@@ -180,6 +181,28 @@ const DefaultAvatarsPage = () => {
           </div>
         </Section>
       ))}
+
+      <Section title="every masc extra">
+        <div className="flex flex-wrap gap-4">
+          {EXTRAS.masc.map((extra, i) => (
+            <div key={extra} className="flex flex-col items-center gap-1">
+              <Bubble
+                username={USERNAMES[i * 2 + 1]}
+                size="2xl"
+                parts={{
+                  ...sample,
+                  look: 'masc',
+                  hair: 'crop',
+                  glasses: 'none',
+                  extra,
+                  tilt: 0,
+                }}
+              />
+              <span className="text-sm text-pencil">{extra}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
     </AdminPage>
   );
 };

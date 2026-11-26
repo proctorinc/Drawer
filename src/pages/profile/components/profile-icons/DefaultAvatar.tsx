@@ -210,6 +210,36 @@ const EXTRA_ART: Record<Extra, ReactNode> = {
     <path d="M20 46C21 66 34 75 50 75C66 75 79 66 80 46C73 58 63 61 50 61C37 61 27 58 20 46Z" />
   ),
   mustache: <path d="M38 58Q44 53 50 57Q56 53 62 58" fill="none" />,
+  beardMustache: (
+    <>
+      <path d="M20 46C21 66 34 75 50 75C66 75 79 66 80 46C73 58 63 61 50 61C37 61 27 58 20 46Z" />
+      <path d="M38 58Q44 53 50 57Q56 53 62 58" fill="none" />
+    </>
+  ),
+  goatee: (
+    <>
+      <path d="M42 63Q50 61 58 63Q57 73 50 75Q43 73 42 63Z" />
+      <path d="M40 58Q45 54 50 57Q55 54 60 58" fill="none" />
+    </>
+  ),
+  handlebar: (
+    <path
+      d="M34 52Q33 59 39 58Q45 54 50 57Q55 54 61 58Q67 59 66 52"
+      fill="none"
+    />
+  ),
+  // Dots along the jaw; round caps turn the tiny dashes into specks
+  stubble: (
+    <path
+      d="M24 54Q30 70 50 71Q70 70 76 54"
+      fill="none"
+      strokeDasharray="0.1 4"
+    />
+  ),
+  chinstrap: (
+    <path d="M20 46C21 66 34 75 50 75C66 75 79 66 80 46C77 60 66 69 50 69C34 69 23 60 20 46Z" />
+  ),
+  soulPatch: <path d="M47 64L50 69L53 64Z" />,
   earrings: (
     <g fill="none">
       <circle cx={19.5} cy={53} r={3} />

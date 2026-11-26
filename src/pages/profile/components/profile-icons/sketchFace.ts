@@ -41,7 +41,17 @@ export const NECKLINES = [
 ] as const;
 export const GLASSES = ['none', 'square', 'round'] as const;
 export const EXTRAS = {
-  masc: ['none', 'beard', 'mustache'],
+  masc: [
+    'none',
+    'beard',
+    'mustache',
+    'beardMustache',
+    'goatee',
+    'handlebar',
+    'stubble',
+    'chinstrap',
+    'soulPatch',
+  ],
   fem: ['none', 'earrings'],
   neutral: ['none'],
 } as const;
@@ -94,6 +104,16 @@ const randomFrom = (seed: number) => () => {
 
 const pick = <T>(list: ReadonlyArray<T>, random: () => number): T =>
   list[Math.floor(random() * list.length)];
+
+/**
+ * Half get the first item ('none'), the rest share the other half. One draw,
+ * so adding options doesn't move the parts drawn after it
+ */
+const noneOrPick = <T>(list: ReadonlyArray<T>, random: () => number): T => {
+  const r = random();
+  if (r < 0.5 || list.length === 1) return list[0];
+  return list[1 + Math.floor((r - 0.5) * 2 * (list.length - 1))];
+};
 
 /** A set from a space-separated list, so long lists stay compact */
 const wordSet = (list: string) => new Set(list.trim().split(/\s+/));
@@ -183,7 +203,7 @@ export const defaultAvatarFor = (user: {
     neckline: pick(NECKLINES, random),
     // Half go without, so a room of faces isn't mostly glasses
     glasses: random() < 0.5 ? 'none' : pick(GLASSES.slice(1), random),
-    extra: pick(EXTRAS[look], random),
+    extra: noneOrPick(EXTRAS[look], random),
     tilt: Math.round((random() * 2 - 1) * 4),
   };
 };
