@@ -13,8 +13,8 @@ import (
 
 func GetUserByID(repo *sql.DB, ctx context.Context, userID string) (*models.User, error) {
 	var user models.User
-	query := `SELECT id, username, email, role, created_at, avatar_type, avatar_url, decoration FROM users WHERE id = ?`
-	err := repo.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration)
+	query := `SELECT id, username, email, role, created_at, avatar_type, avatar_url, decoration, color_hue FROM users WHERE id = ?`
+	err := repo.QueryRowContext(ctx, query, userID).Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration, &user.ColorHue)
 
 	if err != nil {
 		return nil, err
@@ -24,12 +24,12 @@ func GetUserByID(repo *sql.DB, ctx context.Context, userID string) (*models.User
 }
 
 func GetUserFromDB(repo *sql.DB, ctx context.Context, userID string) (models.User, error) {
-	query := `SELECT id, username, email, role, created_at, avatar_type, avatar_url, decoration FROM users WHERE id = ?`
+	query := `SELECT id, username, email, role, created_at, avatar_type, avatar_url, decoration, color_hue FROM users WHERE id = ?`
 
 	row := repo.QueryRowContext(ctx, query, userID)
 
 	var user models.User
-	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration)
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration, &user.ColorHue)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.User{}, err
@@ -45,8 +45,8 @@ func GetUserFromDB(repo *sql.DB, ctx context.Context, userID string) (models.Use
 func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requesterID string, cfg *config.Config) (models.GetMeResponse, error) {
 	var response models.GetMeResponse
 
-	userQuery := `SELECT u.id, u.username, u.email, u.role, u.created_at, u.avatar_type, u.avatar_url, u.decoration, f.state, f.created_at,
-			inviter.id, inviter.username, inviter.email, inviter.created_at, inviter.avatar_type, inviter.avatar_url, inviter.decoration
+	userQuery := `SELECT u.id, u.username, u.email, u.role, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue, f.state, f.created_at,
+			inviter.id, inviter.username, inviter.email, inviter.created_at, inviter.avatar_type, inviter.avatar_url, inviter.decoration, inviter.color_hue
 		FROM users u
 		LEFT JOIN friendships f ON ((f.user1 = ? AND f.user2 = u.id) OR (f.user2 = ? AND f.user1 = u.id))
 		LEFT JOIN users inviter ON inviter.id = f.inviter_id
@@ -55,10 +55,11 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 	var nullStatus sql.NullString
 	var nullCreatedAt, inviterCreatedAt sql.NullTime
 	var inviterID, inviterUsername, inviterEmail, inviterAvatarType, inviterAvatarURL, inviterDecoration sql.NullString
+	var inviterColorHue *int
 
 	err := repo.QueryRowContext(ctx, userQuery, requesterID, requesterID, userID).Scan(
-		&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration, &nullStatus, &nullCreatedAt,
-		&inviterID, &inviterUsername, &inviterEmail, &inviterCreatedAt, &inviterAvatarType, &inviterAvatarURL, &inviterDecoration)
+		&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration, &user.ColorHue, &nullStatus, &nullCreatedAt,
+		&inviterID, &inviterUsername, &inviterEmail, &inviterCreatedAt, &inviterAvatarType, &inviterAvatarURL, &inviterDecoration, &inviterColorHue)
 	if err != nil {
 		log.Printf("Error fetching user info for user %s: %v", userID, err)
 		return models.GetMeResponse{}, err
@@ -75,6 +76,7 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 				AvatarType: inviterAvatarType.String,
 				AvatarURL:  inviterAvatarURL.String,
 				Decoration: inviterDecoration.String,
+				ColorHue:   inviterColorHue,
 			},
 			CreatedAt: nullCreatedAt.Time,
 			Status:    nullStatus.String,
@@ -88,7 +90,7 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 			u.email,
 			u.created_at,
 			u.avatar_type,
-			u.avatar_url, u.decoration
+			u.avatar_url, u.decoration, u.color_hue
 		FROM
 			friendships f
 		JOIN
@@ -104,7 +106,7 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 	response.Friends = []models.User{}
 	for friendsRows.Next() {
 		var friend models.User
-		err := friendsRows.Scan(&friend.ID, &friend.Username, &friend.Email, &friend.CreatedAt, &friend.AvatarType, &friend.AvatarURL, &friend.Decoration)
+		err := friendsRows.Scan(&friend.ID, &friend.Username, &friend.Email, &friend.CreatedAt, &friend.AvatarType, &friend.AvatarURL, &friend.Decoration, &friend.ColorHue)
 		if err != nil {
 			log.Printf("Error scanning friend row: %v", err)
 			continue
@@ -222,10 +224,10 @@ func GetAllUsers(repo *sql.DB, ctx context.Context, searchQuery string) ([]model
 	var args []interface{}
 
 	if searchQuery != "" {
-		query = `SELECT id, username, email, role, created_at, avatar_type, avatar_url, decoration FROM users WHERE username LIKE ? ORDER BY username ASC`
+		query = `SELECT id, username, email, role, created_at, avatar_type, avatar_url, decoration, color_hue FROM users WHERE username LIKE ? ORDER BY username ASC`
 		args = []interface{}{"%" + searchQuery + "%"}
 	} else {
-		query = `SELECT id, username, email, role, created_at, avatar_type, avatar_url, decoration FROM users ORDER BY username ASC`
+		query = `SELECT id, username, email, role, created_at, avatar_type, avatar_url, decoration, color_hue FROM users ORDER BY username ASC`
 	}
 
 	rows, err := repo.QueryContext(ctx, query, args...)
@@ -237,7 +239,7 @@ func GetAllUsers(repo *sql.DB, ctx context.Context, searchQuery string) ([]model
 	var users []models.User
 	for rows.Next() {
 		var user models.User
-		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration)
+		err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration, &user.ColorHue)
 		if err != nil {
 			log.Printf("Error scanning user row: %v", err)
 			continue
@@ -322,6 +324,13 @@ func WearUserAvatar(repo *sql.DB, ctx context.Context, userID string, slot int) 
 // UpdateUserDecoration sets the decoration the user wears, or takes it off with ""
 func UpdateUserDecoration(repo *sql.DB, ctx context.Context, userID string, decoration string) error {
 	_, err := repo.ExecContext(ctx, `UPDATE users SET decoration = ? WHERE id = ?`, decoration, userID)
+	return err
+}
+
+// UpdateUserColorHue sets the hue (0-359) of the user's profile color, or clears it with nil
+// so their color comes from their name again
+func UpdateUserColorHue(repo *sql.DB, ctx context.Context, userID string, hue *int) error {
+	_, err := repo.ExecContext(ctx, `UPDATE users SET color_hue = ? WHERE id = ?`, hue, userID)
 	return err
 }
 

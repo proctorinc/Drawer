@@ -195,6 +195,14 @@ export const GearIcon: FC<IconProps> = (props) => (
   </StrokeIcon>
 );
 
+export const LogOutIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M10 4.2H6.6c-.9 0-1.6.7-1.6 1.6v12.5c0 .9.7 1.6 1.6 1.6H10" />
+    <path d="M9.6 12.1c2.9-.1 5.8 0 8.6-.1" />
+    <path d="M14.8 8.2l3.7 3.9-3.8 3.7" />
+  </StrokeIcon>
+);
+
 export const SpeakerOffIcon: FC<IconProps> = (props) => (
   <StrokeIcon {...props}>
     <path d="M4 9.5v5c0 .3.2.5.5.5H8l5 4V5L8 9H4.5c-.3 0-.5.2-.5.5z" />

@@ -8,7 +8,7 @@ import type { FC } from 'react';
 import { MAX_AVATAR_SLOTS } from '@/api/Api';
 import Layout from '@/components/Layout';
 import LoadingScreen from '@/components/LoadingScreen';
-import { cn, nameToColor } from '@/utils';
+import { cn, userColor } from '@/utils';
 import { Card, CardContent } from '@/components/Card';
 import Button from '@/components/Button';
 import Disclaimer, { DisclaimerItem } from '@/components/Disclaimer';
@@ -27,8 +27,8 @@ type CanvasProps = {
 
 const DrawFace: FC<CanvasProps> = ({ slot, isRedraw }) => {
   const { profile, uploadAvatar } = useMyProfilePage();
-  const { primary, secondary, text } = nameToColor(
-    profile?.user.username ?? '',
+  const { primary, secondary, text } = userColor(
+    profile?.user ?? { username: '' },
   );
   const { clearCanvas } = useDrawing();
   const [skinColorIndex, setSkinColorIndex] = useLocalStorage<number | null>(

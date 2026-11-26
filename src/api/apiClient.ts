@@ -376,6 +376,20 @@ export const apiClient = {
     return response.json();
   },
 
+  /** Picks your profile color, or goes back to your name's with null */
+  updateColor: async (
+    colorHue: number | null,
+  ): Promise<{ colorHue: number | null }> => {
+    const response = await fetchAPI('PUT', '/user/color', {
+      body: JSON.stringify({ colorHue }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      throw new Error(data.error || "couldn't change your color, try again");
+    }
+    return response.json();
+  },
+
   addComment: async (submissionId: string, text: string): Promise<Comment> => {
     const response = await fetchAPI(
       'POST',

@@ -35,6 +35,8 @@ export interface User {
   avatarUrl: string;
   /** The decoration worn on their avatar, or '' for none */
   decoration: DecorationId | '';
+  /** The profile color hue they picked; unset means their name picks it */
+  colorHue?: number;
   /** Only sent for your own account */
   isAdmin?: boolean;
   /** Let into the beta zone (admins always are); only sent for your own account */
@@ -536,6 +538,12 @@ export function useUploadCustomAvatar() {
 export function useUpdateDecoration() {
   return useMutation({
     mutationFn: apiClient.updateDecoration,
+  });
+}
+
+export function useUpdateColor() {
+  return useMutation({
+    mutationFn: apiClient.updateColor,
   });
 }
 

@@ -8,11 +8,11 @@ import (
 	"github.com/google/uuid"
 )
 
-const userColumns = `id, username, email, role, created_at, avatar_type, avatar_url, decoration`
+const userColumns = `id, username, email, role, created_at, avatar_type, avatar_url, decoration, color_hue`
 
 func scanUser(row *sql.Row) (*models.User, error) {
 	var user models.User
-	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration)
+	err := row.Scan(&user.ID, &user.Username, &user.Email, &user.Role, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration, &user.ColorHue)
 	if err != nil {
 		return nil, err
 	}

@@ -93,6 +93,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			// The handler checks the unlock only when switching to a drawn face.
 			userGroup.PUT("/profile-pic/toggle", handlers.HandleToggleAvatarType)
 			userGroup.PUT("/decoration", handlers.HandleUpdateDecoration)
+			userGroup.PUT("/color", handlers.HandleUpdateColor)
 
 			userGroup.GET("/levels", handlers.HandleGetUserLevels)
 			userGroup.GET("/:id/profile", handlers.HandleGetUserByID)

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useSearch } from '@tanstack/react-router';
 import { useMyProfilePage } from './context/MyProfileContext';
 import AccountFooter from './components/AccountFooter';
-import EditProfile from './components/EditProfile';
+import EditProfile, { NameForm } from './components/EditProfile';
+import SettingsMenu from './components/SettingsMenu';
 import FlairShelf from './components/FlairShelf';
 import Sheet from './components/Sheet';
 import ProfileStats from './components/ProfileStats';
@@ -18,11 +19,12 @@ import { useGetTrophies } from '@/api/trophies';
 import { levelTitle } from '@/levels/ranks';
 import Layout from '@/components/Layout';
 
-type SheetId = 'friends' | 'edit';
+type SheetId = 'friends' | 'edit' | 'name';
 
 const SHEET_TITLES: Record<SheetId, string> = {
   friends: 'friends',
-  edit: 'edit my cover',
+  edit: 'edit my look',
+  name: 'change my name',
 };
 
 /** Links can open a sheet straight away: #friends, or #decorations in the edit sheet */
@@ -44,13 +46,6 @@ const MyProfilePage = () => {
     const linked = SHEET_FOR_HASH[hash];
     if (linked) setSheet(linked);
   }, [hash]);
-
-  // Runs after the sheet has opened, so the linked section exists to scroll to
-  useEffect(() => {
-    if (sheet && SHEET_FOR_HASH[hash] === sheet) {
-      document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [sheet, hash]);
 
   function closeSheet() {
     setSheet(null);
@@ -74,9 +69,10 @@ const MyProfilePage = () => {
           level={level}
           title={level ? levelTitle(level).toLowerCase() : undefined}
           onAvatarClick={() => setSheet('edit')}
+          corner={<SettingsMenu onChangeName={() => setSheet('name')} />}
           avatarBadge={
             <button
-              aria-label="Edit my cover"
+              aria-label="Edit my look"
               onClick={() => setSheet('edit')}
               className="press grid place-items-center size-8 bg-me border-2 border-ink rounded-full shadow-pencil-sm cursor-pointer"
             >
@@ -115,6 +111,7 @@ const MyProfilePage = () => {
       >
         {sheet === 'friends' && <FriendsPanel profile={profile} />}
         {sheet === 'edit' && <EditProfile tryOn={tryOn} />}
+        {sheet === 'name' && <NameForm />}
       </Sheet>
     </Layout>
   );

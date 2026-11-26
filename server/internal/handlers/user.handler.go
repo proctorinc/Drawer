@@ -14,6 +14,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -202,9 +203,9 @@ func HandleGetInvitations(c *gin.Context) {
 	// Query all pending invitations where the user is either user1 or user2, join inviter user object
 	query := `
 		SELECT f.created_at,
-			user1, user1.username, user1.email, user1.created_at, user1.avatar_type, user1.avatar_url, user1.decoration,
-			user2, user2.username, user2.email, user2.created_at, user2.avatar_type, user2.avatar_url, user2.decoration,
-			inviter.id, inviter.username, inviter.email, inviter.created_at, inviter.avatar_type, inviter.avatar_url, inviter.decoration
+			user1, user1.username, user1.email, user1.created_at, user1.avatar_type, user1.avatar_url, user1.decoration, user1.color_hue,
+			user2, user2.username, user2.email, user2.created_at, user2.avatar_type, user2.avatar_url, user2.decoration, user2.color_hue,
+			inviter.id, inviter.username, inviter.email, inviter.created_at, inviter.avatar_type, inviter.avatar_url, inviter.decoration, inviter.color_hue
 		FROM friendships f
 		JOIN users inviter ON f.inviter_id = inviter.id
 		JOIN users user1 ON f.user1 = user1.id
@@ -227,9 +228,9 @@ func HandleGetInvitations(c *gin.Context) {
 		var friendshipCreatedAt string
 		var user1, user2, inviter models.User
 		err := rows.Scan(&friendshipCreatedAt,
-			&user1.ID, &user1.Username, &user1.Email, &user1.CreatedAt, &user1.AvatarType, &user1.AvatarURL, &user1.Decoration,
-			&user2.ID, &user2.Username, &user2.Email, &user2.CreatedAt, &user2.AvatarType, &user2.AvatarURL, &user2.Decoration,
-			&inviter.ID, &inviter.Username, &inviter.Email, &inviter.CreatedAt, &inviter.AvatarType, &inviter.AvatarURL, &inviter.Decoration)
+			&user1.ID, &user1.Username, &user1.Email, &user1.CreatedAt, &user1.AvatarType, &user1.AvatarURL, &user1.Decoration, &user1.ColorHue,
+			&user2.ID, &user2.Username, &user2.Email, &user2.CreatedAt, &user2.AvatarType, &user2.AvatarURL, &user2.Decoration, &user2.ColorHue,
+			&inviter.ID, &inviter.Username, &inviter.Email, &inviter.CreatedAt, &inviter.AvatarType, &inviter.AvatarURL, &inviter.Decoration, &inviter.ColorHue)
 		if err != nil {
 			log.Printf("HandleGetInvitations: error scanning row %d: %v", rowCount, err)
 			continue
@@ -491,4 +492,38 @@ func HandleUpdateDecoration(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"decoration": body.Decoration})
+}
+
+// HandleUpdateColor sets the hue (0-359) of the requester's profile color, or clears it with null
+// so their color comes from their name again
+func HandleUpdateColor(c *gin.Context) {
+	requester := middleware.GetUser(c)
+	appCtx := requestContext.GetCtx(c)
+
+	var body struct {
+		ColorHue *float64 `json:"colorHue"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	var hue *int
+	if body.ColorHue != nil {
+		h := *body.ColorHue
+		if h != math.Trunc(h) || h < 0 || h > 359 {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Unknown color"})
+			return
+		}
+		picked := int(h)
+		hue = &picked
+	}
+
+	if err := queries.UpdateUserColorHue(appCtx.DB, c.Request.Context(), requester.ID, hue); err != nil {
+		log.Printf("Error updating color for %s: %v", requester.ID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update color"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"colorHue": hue})
 }

@@ -51,10 +51,10 @@ func TestPokesReadBack(t *testing.T) {
 	}
 	defer db.Close()
 	_, err = db.Exec(`
-		CREATE TABLE users (id TEXT, username TEXT, email TEXT, created_at TIMESTAMP, avatar_type TEXT, avatar_url TEXT, decoration TEXT NOT NULL DEFAULT '');
+		CREATE TABLE users (id TEXT, username TEXT, email TEXT, created_at TIMESTAMP, avatar_type TEXT, avatar_url TEXT, decoration TEXT NOT NULL DEFAULT '', color_hue INTEGER);
 		CREATE TABLE pokes (poker_id TEXT, pokee_id TEXT, day TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
-		INSERT INTO users VALUES ('ann', 'ann', 'a@x', '2026-01-01 00:00:00', 'default', '', ''),
-			('bob', 'bob', 'b@x', '2026-01-01 00:00:00', 'default', '', '');
+		INSERT INTO users VALUES ('ann', 'ann', 'a@x', '2026-01-01 00:00:00', 'default', '', '', NULL),
+			('bob', 'bob', 'b@x', '2026-01-01 00:00:00', 'default', '', '', NULL);
 		INSERT INTO pokes (poker_id, pokee_id, day) VALUES ('ann', 'bob', '2026-11-18'), ('bob', 'ann', '2026-11-18');
 		INSERT INTO pokes VALUES ('ann', 'bob', '2026-11-01', datetime('now', '-17 days'));`)
 	if err != nil {

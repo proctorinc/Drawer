@@ -119,7 +119,7 @@ func ListAIRuns(repo *sql.DB, ctx context.Context, limit int) ([]AIRun, error) {
 		SELECT r.id, r.kind, r.batch_id, r.personality_id, r.judge_name, r.judge_avatar_url, r.judge_decoration, r.system_prompt,
 			r.submission_id, r.prompt, r.image_data, r.status, r.score, r.criteria_scores, r.comment, r.model, r.error,
 			r.duration_ms, r.metadata, r.created_at, COALESCE(s.user_id, ''),
-			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
+			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue,
 			r.applied_at, COALESCE(rv.run_id = r.id AND rv.status = 'done', 0)
 		FROM ai_runs r
 		LEFT JOIN user_submissions s ON s.id = r.submission_id
@@ -141,11 +141,12 @@ func ListAIRuns(repo *sql.DB, ctx context.Context, limit int) ([]AIRun, error) {
 			criteriaJSON, metadataJSON                          string
 			userID, username, avatarType, avatarURL, decoration sql.NullString
 			userCreatedAt, appliedAt                            sql.NullTime
+			colorHue                                            *int
 		)
 		err := rows.Scan(&run.ID, &run.Kind, &run.BatchID, &run.PersonalityID, &run.JudgeName, &run.JudgeAvatarURL,
 			&run.JudgeDecoration, &run.SystemPrompt, &submissionID, &run.Prompt, &run.ImageData, &run.Status, &score,
 			&criteriaJSON, &run.Comment, &run.Model, &run.Error, &run.DurationMS, &metadataJSON, &run.CreatedAt, &run.ArtistID,
-			&userID, &username, &userCreatedAt, &avatarType, &avatarURL, &decoration, &appliedAt, &run.Current)
+			&userID, &username, &userCreatedAt, &avatarType, &avatarURL, &decoration, &colorHue, &appliedAt, &run.Current)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning AI run: %w", err)
 		}
@@ -167,6 +168,7 @@ func ListAIRuns(repo *sql.DB, ctx context.Context, limit int) ([]AIRun, error) {
 			run.User = &models.User{
 				ID: userID.String, Username: username.String, CreatedAt: userCreatedAt.Time,
 				AvatarType: avatarType.String, AvatarURL: avatarURL.String, Decoration: decoration.String,
+				ColorHue: colorHue,
 			}
 		}
 		runs = append(runs, run)

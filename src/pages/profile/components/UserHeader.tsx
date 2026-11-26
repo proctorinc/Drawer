@@ -11,6 +11,11 @@ type Props = {
   onAvatarClick?: () => void;
   /** Pinned to the avatar's bottom-left corner (the level badge has the right), e.g. an edit button */
   avatarBadge?: ReactNode;
+  /**
+   * Pinned to the cover's top-right corner, e.g. a settings menu. It sits
+   * outside the cover so a dropdown from it isn't clipped by the cover's edge
+   */
+  corner?: ReactNode;
   /** Extra lines under the stats, e.g. a trophy count */
   extra?: ReactNode;
   /** Dress the cover for their rank; level is undefined while it loads */
@@ -31,6 +36,7 @@ const UserHeader: FC<Props> = ({
   userProfile,
   onAvatarClick,
   avatarBadge,
+  corner,
   extra,
   ranked,
   level,
@@ -42,7 +48,7 @@ const UserHeader: FC<Props> = ({
   const streak = userProfile.stats.currentStreak;
 
   const row = (
-    <div className="relative flex items-center gap-4">
+    <div className={cn('relative flex items-center gap-4', corner && 'pr-10')}>
       <div className="relative flex-none -rotate-4">
         <UserProfileIcon
           user={userProfile.user}
@@ -81,7 +87,7 @@ const UserHeader: FC<Props> = ({
   );
 
   return (
-    <div className="flex flex-col gap-4 w-full">
+    <div className="relative flex flex-col gap-4 w-full">
       {ranked ? (
         <RankCard level={level} contentClassName="flex flex-col gap-3 p-4">
           {row}
@@ -93,6 +99,7 @@ const UserHeader: FC<Props> = ({
           {footer}
         </div>
       )}
+      {corner && <div className="absolute top-3 right-3 z-20">{corner}</div>}
       {stats}
       {children && <div className="flex items-center gap-2">{children}</div>}
     </div>

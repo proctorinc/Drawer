@@ -17,22 +17,38 @@ export function cn(...inputs: Array<ClassValue>) {
   return twMerge(clsx(inputs));
 }
 
-export function nameToColor(name: string) {
+/** The hue a name gives you: the same name always lands on the same one */
+export function nameToHue(name: string) {
   const modified = getTwoCapitalLetters(name);
   let hash = 0;
   for (let i = 0; i < modified.length; i++) {
     hash = modified.charCodeAt(i) + ((hash << 5) - hash);
   }
+  return ((hash % 360) + 360) % 360;
+}
 
-  const hue = ((hash % 360) + 360) % 360;
-  const saturation = 50;
-  const lightness = 70;
-
+/** A profile color: the avatar fill, a pale wash of it, and text dark enough to read on it */
+export function hueToColor(hue: number) {
   return {
-    primary: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
-    secondary: `hsl(${hue}, ${saturation}%, 90%)`,
-    text: `hsl(${hue}, ${saturation}%, 30%)`,
+    primary: `hsl(${hue}, 50%, 70%)`,
+    secondary: `hsl(${hue}, 50%, 90%)`,
+    text: `hsl(${hue}, 50%, 30%)`,
   };
+}
+
+/**
+ * The hues you can pick for your profile. Not evenly spaced: reds, oranges and
+ * blues change fast as the hue turns, so they're packed close, while greens
+ * all look alike over a wide stretch, so only a few of those make it in
+ */
+export const PROFILE_HUES = [
+  0, 10, 20, 30, 40, 50, 60, 75, 95, 120, 145, 165, 180, 192, 204, 216, 228,
+  240, 255, 270, 285, 300, 318, 338,
+];
+
+/** Someone's profile color: the one they picked, else the one their name gives them */
+export function userColor(user: Pick<User, 'username' | 'colorHue'>) {
+  return hueToColor(user.colorHue ?? nameToHue(user.username));
 }
 
 export function isFriend(userId: string, friends: Array<User>) {

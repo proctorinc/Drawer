@@ -473,7 +473,7 @@ func GetUsersByIDs(repo *sql.DB, ctx context.Context, userIDs []string) ([]model
 	}
 
 	rows, err := repo.QueryContext(ctx, `
-		SELECT id, username, created_at, avatar_type, avatar_url, decoration
+		SELECT id, username, created_at, avatar_type, avatar_url, decoration, color_hue
 		FROM users WHERE id IN (`+placeholders(len(userIDs))+`)
 	`, args...)
 	if err != nil {
@@ -484,7 +484,7 @@ func GetUsersByIDs(repo *sql.DB, ctx context.Context, userIDs []string) ([]model
 	users := []models.User{}
 	for rows.Next() {
 		var u models.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.CreatedAt, &u.AvatarType, &u.AvatarURL, &u.Decoration); err != nil {
+		if err := rows.Scan(&u.ID, &u.Username, &u.CreatedAt, &u.AvatarType, &u.AvatarURL, &u.Decoration, &u.ColorHue); err != nil {
 			return nil, err
 		}
 		users = append(users, u)

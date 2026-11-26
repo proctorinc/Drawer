@@ -22,7 +22,7 @@ func GetSubmissionReactions(repo *sql.DB, ctx context.Context, submissionID stri
 			u.email,
 			u.created_at,
 			u.avatar_type,
-			u.avatar_url, u.decoration
+			u.avatar_url, u.decoration, u.color_hue
 		FROM reactions r
 		JOIN users u ON r.user_id = u.id
 		WHERE r.content_type = 'submission' AND r.content_id = ?
@@ -48,7 +48,7 @@ func GetSubmissionReactions(repo *sql.DB, ctx context.Context, submissionID stri
 			&user.Email,
 			&user.CreatedAt,
 			&user.AvatarType,
-			&user.AvatarURL, &user.Decoration,
+			&user.AvatarURL, &user.Decoration, &user.ColorHue,
 		)
 		if err != nil {
 			log.Printf("Error scanning reaction row: %v", err)

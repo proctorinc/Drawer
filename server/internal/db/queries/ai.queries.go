@@ -404,7 +404,7 @@ type AdminAIReview struct {
 // ListRecentAIReviews returns the newest reviews of every status, newest first.
 func ListRecentAIReviews(repo *sql.DB, ctx context.Context, limit int) ([]AdminAIReview, error) {
 	rows, err := repo.QueryContext(ctx, `
-		SELECT `+aiReviewColumns+`, dp.prompt, s.day, u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration
+		SELECT `+aiReviewColumns+`, dp.prompt, s.day, u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue
 		FROM ai_reviews r
 		JOIN ai_personalities p ON p.id = r.personality_id
 		JOIN user_submissions s ON s.id = r.submission_id
@@ -429,7 +429,7 @@ func ListRecentAIReviews(repo *sql.DB, ctx context.Context, limit int) ([]AdminA
 			&review.Model, &review.Error, &review.CreatedAt,
 			&review.Judge.ID, &review.Judge.Name, &review.Judge.Bio, &review.Judge.AvatarURL, &review.Judge.Decoration, &review.Judge.ScoresBackwards,
 			&prompt, &review.Day, &review.Artist.ID, &review.Artist.Username, &review.Artist.CreatedAt,
-			&review.Artist.AvatarType, &review.Artist.AvatarURL, &review.Artist.Decoration)
+			&review.Artist.AvatarType, &review.Artist.AvatarURL, &review.Artist.Decoration, &review.Artist.ColorHue)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning AI review: %w", err)
 		}

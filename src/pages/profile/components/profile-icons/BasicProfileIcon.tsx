@@ -3,7 +3,7 @@ import { userProfileIconVariants } from './UserProfileIcon';
 import type { VariantProps } from 'class-variance-authority';
 import type { User } from '@/api/Api';
 import type { FC } from 'react';
-import { cn, getTwoCapitalLetters, nameToColor } from '@/utils';
+import { cn, getTwoCapitalLetters, userColor } from '@/utils';
 
 type Props = {
   user?: User;
@@ -37,7 +37,7 @@ export const BasicProfileIcon: FC<Props> = ({
   }
 
   const name = getTwoCapitalLetters(user.username);
-  const { primary, text: textColor } = nameToColor(user.username);
+  const { primary, text: textColor } = userColor(user);
 
   return (
     <div className={cn('flex relative group justify-center', className)}>

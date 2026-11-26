@@ -38,7 +38,8 @@ type User struct {
 	CreatedAt  time.Time `json:"createdAt"`
 	AvatarType string    `json:"avatarType"`
 	AvatarURL  string    `json:"avatarUrl"`
-	Decoration string    `json:"decoration"` // The worn decoration's reward id, or "" for none
+	Decoration string    `json:"decoration"`         // The worn decoration's reward id, or "" for none
+	ColorHue   *int      `json:"colorHue,omitempty"` // The hue (0-359) they picked, or nil to use the color from their name
 }
 
 // Account is a User as its owner (or an admin) sees it: email included.

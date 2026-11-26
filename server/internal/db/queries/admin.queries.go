@@ -30,7 +30,7 @@ type AdminUser struct {
 
 func GetAdminUsers(repo *sql.DB, ctx context.Context) ([]AdminUser, error) {
 	rows, err := repo.QueryContext(ctx, `
-		SELECT u.id, u.username, u.email, u.role, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
+		SELECT u.id, u.username, u.email, u.role, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue,
 			(SELECT COUNT(*) FROM user_submissions s WHERE s.user_id = u.id),
 			(SELECT COUNT(*) FROM friendships f WHERE f.state = 'accepted' AND (f.user1 = u.id OR f.user2 = u.id)),
 			(SELECT COUNT(*) FROM user_achievements ua WHERE ua.user_id = u.id),
@@ -47,7 +47,7 @@ func GetAdminUsers(repo *sql.DB, ctx context.Context) ([]AdminUser, error) {
 	for rows.Next() {
 		var u models.User
 		var a AdminUser
-		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.AvatarType, &u.AvatarURL, &u.Decoration,
+		if err := rows.Scan(&u.ID, &u.Username, &u.Email, &u.Role, &u.CreatedAt, &u.AvatarType, &u.AvatarURL, &u.Decoration, &u.ColorHue,
 			&a.Drawings, &a.Friends, &a.Achievements, &a.LastDrawnDay, &a.PushSubscribed); err != nil {
 			return nil, err
 		}
@@ -68,7 +68,7 @@ type AdminPrompt struct {
 func GetAllPrompts(repo *sql.DB, ctx context.Context) ([]AdminPrompt, error) {
 	rows, err := repo.QueryContext(ctx, `
 		SELECT dp.day, dp.colors, dp.pencils, dp.prompt,
-			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
+			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue,
 			(SELECT COUNT(*) FROM user_submissions s WHERE s.day = dp.day), dp.judge_id
 		FROM daily_prompts dp
 		LEFT JOIN users u ON u.id = dp.created_by
@@ -102,11 +102,12 @@ func GetAllPrompts(repo *sql.DB, ctx context.Context) ([]AdminPrompt, error) {
 type nullableUser struct {
 	id, username, avatarType, avatarURL, decoration sql.NullString
 	createdAt                                       sql.NullTime
+	colorHue                                        *int
 }
 
-// dest scans id, username, created_at, avatar_type, avatar_url, decoration in that order
+// dest scans id, username, created_at, avatar_type, avatar_url, decoration, color_hue in that order
 func (n *nullableUser) dest() []any {
-	return []any{&n.id, &n.username, &n.createdAt, &n.avatarType, &n.avatarURL, &n.decoration}
+	return []any{&n.id, &n.username, &n.createdAt, &n.avatarType, &n.avatarURL, &n.decoration, &n.colorHue}
 }
 
 func (n *nullableUser) user() *models.User {
@@ -120,6 +121,7 @@ func (n *nullableUser) user() *models.User {
 		AvatarType: n.avatarType.String,
 		AvatarURL:  n.avatarURL.String,
 		Decoration: n.decoration.String,
+		ColorHue:   n.colorHue,
 	}
 }
 
@@ -140,7 +142,7 @@ type AdminSubmission struct {
 func GetRecentSubmissions(repo *sql.DB, ctx context.Context, cfg *config.Config, limit int) ([]AdminSubmission, error) {
 	rows, err := repo.QueryContext(ctx, `
 		SELECT s.id, s.day, COALESCE(dp.prompt, ''), COALESCE(dp.colors, '[]'),
-			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
+			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue,
 			`+isoTime("s.created_at")+`,
 			(SELECT COUNT(*) FROM reactions r WHERE r.content_type = 'submission' AND r.content_id = s.id),
 			(SELECT COUNT(*) FROM comments c WHERE c.submission_id = s.id)
@@ -159,7 +161,7 @@ func GetRecentSubmissions(repo *sql.DB, ctx context.Context, cfg *config.Config,
 		var s AdminSubmission
 		var colors string
 		u := &s.User
-		if err := rows.Scan(&s.ID, &s.Day, &s.Prompt, &colors, &u.ID, &u.Username, &u.CreatedAt, &u.AvatarType, &u.AvatarURL, &u.Decoration,
+		if err := rows.Scan(&s.ID, &s.Day, &s.Prompt, &colors, &u.ID, &u.Username, &u.CreatedAt, &u.AvatarType, &u.AvatarURL, &u.Decoration, &u.ColorHue,
 			&s.CreatedAt, &s.Reactions, &s.Comments); err != nil {
 			return nil, err
 		}
@@ -351,7 +353,7 @@ type EventStanding struct {
 // separately the ones inside the countdown's [countdownFirst, countdownLast].
 func GetEventStandings(repo *sql.DB, ctx context.Context, firstDay, lastDay, countdownFirst, countdownLast string) ([]EventStanding, error) {
 	rows, err := repo.QueryContext(ctx, `
-		SELECT u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
+		SELECT u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue,
 			(SELECT COUNT(*) FROM user_submissions s WHERE s.user_id = u.id AND s.day BETWEEN ? AND ?) AS doodles,
 			(SELECT COUNT(*) FROM user_submissions s WHERE s.user_id = u.id AND s.day BETWEEN ? AND ?),
 			`+reactionsReceivedSQL+` AS reactions_received
@@ -368,7 +370,7 @@ func GetEventStandings(repo *sql.DB, ctx context.Context, firstDay, lastDay, cou
 	for rows.Next() {
 		var s EventStanding
 		u := &s.User
-		if err := rows.Scan(&u.ID, &u.Username, &u.CreatedAt, &u.AvatarType, &u.AvatarURL, &u.Decoration,
+		if err := rows.Scan(&u.ID, &u.Username, &u.CreatedAt, &u.AvatarType, &u.AvatarURL, &u.Decoration, &u.ColorHue,
 			&s.Doodles, &s.CountdownDoodles, &s.ReactionsReceived); err != nil {
 			return nil, err
 		}

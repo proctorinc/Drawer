@@ -6,7 +6,7 @@ import type { FC, ReactNode } from 'react';
 import type { User } from '@/api/Api';
 import { useCreateUser, useGetMe, useLogoutUser } from '@/api/Api';
 import { ProfileRequiredError, setAuthTokenGetter } from '@/api/apiClient';
-import { nameToColor } from '@/utils';
+import { userColor } from '@/utils';
 import { Config } from '@/config/Config';
 
 // With DEV_AUTH_BYPASS there's no ClerkProvider: you're always signed in, and
@@ -59,17 +59,18 @@ export const AuthProvider: FC<Props> = ({ children }) => {
   // The app's accent (progress fills, highlights, active tabs) is your own
   // profile color, the same one behind your avatar
   const username = user?.username;
+  const colorHue = user?.colorHue;
   useEffect(() => {
     const root = document.documentElement.style;
     if (username) {
-      const color = nameToColor(username);
+      const color = userColor({ username, colorHue });
       root.setProperty('--color-me', color.primary);
       root.setProperty('--color-me-ink', color.text);
     } else {
       root.removeProperty('--color-me');
       root.removeProperty('--color-me-ink');
     }
-  }, [username]);
+  }, [username, colorHue]);
 
   const isAuthenticated = !!isSignedIn && !!user;
   const needsProfile = !!isSignedIn && error instanceof ProfileRequiredError;

@@ -103,6 +103,7 @@ func newTestDB(t *testing.T) *sql.DB {
 			avatar_type TEXT NOT NULL DEFAULT 'basic',
 			avatar_url TEXT NOT NULL DEFAULT '',
 			decoration TEXT NOT NULL DEFAULT '',
+			color_hue INTEGER,
 			clerk_id TEXT
 		);
 		CREATE UNIQUE INDEX idx_users_clerk_id ON users (clerk_id);

@@ -37,7 +37,7 @@ type BetaTester struct {
 // ListBetaPlayers is everyone with beta access: admins and testers.
 func ListBetaPlayers(repo *sql.DB, ctx context.Context) ([]BetaTester, error) {
 	rows, err := repo.QueryContext(ctx, `
-		SELECT u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
+		SELECT u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue,
 			u.role = 'admin', bt.created_at
 		FROM users u
 		LEFT JOIN beta_testers bt ON bt.user_id = u.id
@@ -106,8 +106,8 @@ func CreateDuel(repo *sql.DB, ctx context.Context, challengerID, opponentID, hos
 	return id, tx.Commit()
 }
 
-const duelUserCols = `c.id, c.username, c.created_at, c.avatar_type, c.avatar_url, c.decoration,
-	o.id, o.username, o.created_at, o.avatar_type, o.avatar_url, o.decoration`
+const duelUserCols = `c.id, c.username, c.created_at, c.avatar_type, c.avatar_url, c.decoration, c.color_hue,
+	o.id, o.username, o.created_at, o.avatar_type, o.avatar_url, o.decoration, o.color_hue`
 
 const duelCols = `d.id, d.status, d.host_id, d.summary, d.reminded_at, d.challenger_seen_at, d.opponent_seen_at,
 	d.created_at, d.updated_at, d.finished_at, ` + duelUserCols
@@ -123,8 +123,8 @@ func scanDuel(row rowScanner) (models.Duel, error) {
 	var reminded, cSeen, oSeen, finished sql.NullTime
 	err := row.Scan(&d.ID, &d.Status, &d.HostID, &d.Summary, &reminded, &cSeen, &oSeen,
 		&d.CreatedAt, &d.UpdatedAt, &finished,
-		&d.Challenger.ID, &d.Challenger.Username, &d.Challenger.CreatedAt, &d.Challenger.AvatarType, &d.Challenger.AvatarURL, &d.Challenger.Decoration,
-		&d.Opponent.ID, &d.Opponent.Username, &d.Opponent.CreatedAt, &d.Opponent.AvatarType, &d.Opponent.AvatarURL, &d.Opponent.Decoration)
+		&d.Challenger.ID, &d.Challenger.Username, &d.Challenger.CreatedAt, &d.Challenger.AvatarType, &d.Challenger.AvatarURL, &d.Challenger.Decoration, &d.Challenger.ColorHue,
+		&d.Opponent.ID, &d.Opponent.Username, &d.Opponent.CreatedAt, &d.Opponent.AvatarType, &d.Opponent.AvatarURL, &d.Opponent.Decoration, &d.Opponent.ColorHue)
 	d.RemindedAt = nullTime(reminded)
 	d.ChallengerSeenAt = nullTime(cSeen)
 	d.OpponentSeenAt = nullTime(oSeen)

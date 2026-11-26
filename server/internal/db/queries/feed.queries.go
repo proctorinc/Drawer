@@ -116,6 +116,7 @@ func loadSubmissions(repo *sql.DB, ctx context.Context, cfg *config.Config, wher
 	var colorsJSON string
 	var creatorID, creatorUsername, creatorEmail, creatorAvatarType, creatorAvatarURL, creatorDecoration sql.NullString
 	var creatorCreatedAt sql.NullTime
+	var creatorColorHue *int
 	err := queryEach(repo, ctx, `
 		SELECT us.id, us.day, us.created_at, dp.colors, dp.prompt, `+activityUserColumns("u")+`, `+activityUserColumns("dpu")+`
 		FROM user_submissions us
@@ -126,7 +127,7 @@ func loadSubmissions(repo *sql.DB, ctx context.Context, cfg *config.Config, wher
 		ORDER BY us.day DESC, us.created_at DESC`,
 		args,
 		append([]any{&sub.ID, &sub.Day, &sub.CreatedAt, &colorsJSON, &sub.Prompt}, append(activityUserDest(&sub.User),
-			&creatorID, &creatorUsername, &creatorEmail, &creatorCreatedAt, &creatorAvatarType, &creatorAvatarURL, &creatorDecoration)...),
+			&creatorID, &creatorUsername, &creatorEmail, &creatorCreatedAt, &creatorAvatarType, &creatorAvatarURL, &creatorDecoration, &creatorColorHue)...),
 		func() {
 			s := sub
 			_ = json.Unmarshal([]byte(colorsJSON), &s.Colors)
@@ -141,6 +142,7 @@ func loadSubmissions(repo *sql.DB, ctx context.Context, cfg *config.Config, wher
 					AvatarType: creatorAvatarType.String,
 					AvatarURL:  creatorAvatarURL.String,
 					Decoration: creatorDecoration.String,
+					ColorHue:   creatorColorHue,
 				}
 			}
 			submissions = append(submissions, &s)

@@ -5,7 +5,7 @@ import { BasicProfileIcon } from './BasicProfileIcon';
 import type { VariantProps } from 'class-variance-authority';
 import type { User } from '@/api/Api';
 import type { FC } from 'react';
-import { cn, getTwoCapitalLetters, nameToColor } from '@/utils';
+import { cn, getTwoCapitalLetters, userColor } from '@/utils';
 import useUser from '@/auth/hooks/useUser';
 
 type Props = {
@@ -45,7 +45,7 @@ export const CustomProfileIcon: FC<Props> = ({
   }
 
   const name = getTwoCapitalLetters(user.username);
-  const { primary, text: textColor } = nameToColor(user.username);
+  const { primary, text: textColor } = userColor(user);
   const handleClick = () => {
     if (onClick) {
       onClick();

@@ -1,23 +1,20 @@
 import { useNavigate } from '@tanstack/react-router';
-import {
-  faCrown,
-  faDoorOpen,
-  faFlask,
-} from '@fortawesome/free-solid-svg-icons';
+import { faCrown, faFlask } from '@fortawesome/free-solid-svg-icons';
 import NotificationSettings from './NotificationSettings';
-import useAuth from '@/auth/hooks/useAuth';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
 
 // Features still being tried out by the app's owner
 const isOwner = (username: string) => username === 'matty_p';
 
-/** The last page of my book: log out, plus admin tools for admins */
+/** The last page of my book: tools for admins and testers (logging out lives in the settings gear) */
 const AccountFooter = () => {
   const navigate = useNavigate();
   const user = useUser();
-  const { logout } = useAuth();
   const owner = isOwner(user.username);
+  const beta = user.hasBeta || user.isAdmin;
+
+  if (!owner && !beta) return null;
 
   return (
     <footer className="flex flex-col items-center gap-4 w-full pt-6 border-t-2 border-dashed border-line">
@@ -34,7 +31,7 @@ const AccountFooter = () => {
             admin dashboard
           </Button>
         )}
-        {(user.hasBeta || user.isAdmin) && (
+        {beta && (
           <Button
             size="sm"
             variant="base"
@@ -45,9 +42,6 @@ const AccountFooter = () => {
             beta lab
           </Button>
         )}
-        <Button size="sm" variant="base" icon={faDoorOpen} onClick={logout}>
-          log out
-        </Button>
       </div>
     </footer>
   );

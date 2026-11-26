@@ -61,7 +61,7 @@ func GetAllPromptSuggestions(c *gin.Context) {
 	appCtx := requestContext.GetCtx(c)
 
 	query := `
-        SELECT p.id, p.prompt, p.created_at, u.id, u.username, u.email, u.role, u.created_at, u.avatar_type, u.avatar_url, u.decoration
+        SELECT p.id, p.prompt, p.created_at, u.id, u.username, u.email, u.role, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue
         FROM prompt_suggestions p
         LEFT JOIN users u ON u.id = p.user_id
         ORDER BY p.created_at DESC
@@ -90,10 +90,11 @@ func GetAllPromptSuggestions(c *gin.Context) {
 			avatarType          sql.NullString
 			avatarURL           sql.NullString
 			decoration          sql.NullString
+			colorHue            *int
 		)
 
 		err := rows.Scan(&suggestionID, &suggestionPrompt, &suggestionCreatedAt,
-			&userID, &username, &email, &role, &userCreatedAt, &avatarType, &avatarURL, &decoration)
+			&userID, &username, &email, &role, &userCreatedAt, &avatarType, &avatarURL, &decoration, &colorHue)
 		if err != nil {
 			log.Printf("Error scanning row: %v", err)
 			continue
@@ -115,6 +116,7 @@ func GetAllPromptSuggestions(c *gin.Context) {
 				AvatarType: avatarType.String,
 				AvatarURL:  avatarURL.String,
 				Decoration: decoration.String,
+				ColorHue:   colorHue,
 			}
 		}
 

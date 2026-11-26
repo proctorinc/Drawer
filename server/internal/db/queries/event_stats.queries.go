@@ -63,7 +63,7 @@ type EventLeaderboardEntry struct {
 // [firstDay, lastDay] and the reactions received on those doodles, most doodles first.
 func GetEventLeaderboard(repo *sql.DB, ctx context.Context, userID, firstDay, lastDay string) ([]EventLeaderboardEntry, error) {
 	query := `
-		SELECT u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
+		SELECT u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue,
 			(SELECT COUNT(*) FROM user_submissions us WHERE us.user_id = u.id AND us.day BETWEEN ? AND ?
 				AND ` + countedDay("us.user_id", "us.day") + `) AS doodles,
 			` + reactionsReceivedSQL + ` AS reactions_received
@@ -85,7 +85,7 @@ func GetEventLeaderboard(repo *sql.DB, ctx context.Context, userID, firstDay, la
 	for rows.Next() {
 		var entry EventLeaderboardEntry
 		user := &entry.User
-		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration,
+		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.AvatarType, &user.AvatarURL, &user.Decoration, &user.ColorHue,
 			&entry.Doodles, &entry.ReactionsReceived); err != nil {
 			return nil, err
 		}
@@ -99,8 +99,8 @@ func GetEventLeaderboard(repo *sql.DB, ctx context.Context, userID, firstDay, la
 func GetUserSubmissionsInDays(repo *sql.DB, ctx context.Context, cfg *config.Config, userID, firstDay, lastDay string) ([]models.UserPromptSubmission, error) {
 	rows, err := repo.QueryContext(ctx, `
 		SELECT us.id, us.day, dp.colors, dp.prompt, us.created_at,
-			u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration,
-			dpu.id, dpu.username, dpu.email, dpu.created_at, dpu.avatar_type, dpu.avatar_url, dpu.decoration,
+			u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue,
+			dpu.id, dpu.username, dpu.email, dpu.created_at, dpu.avatar_type, dpu.avatar_url, dpu.decoration, dpu.color_hue,
 			EXISTS(SELECT 1 FROM user_favorite_submissions f WHERE f.user_id = u.id AND f.submission_id = us.id)
 		FROM user_submissions us
 		JOIN daily_prompts dp ON us.day = dp.day
@@ -120,10 +120,11 @@ func GetUserSubmissionsInDays(repo *sql.DB, ctx context.Context, cfg *config.Con
 			colorsJSON                                                                                   string
 			creatorID, creatorName, creatorEmail, creatorAvatarType, creatorAvatarURL, creatorDecoration sql.NullString
 			creatorCreatedAt                                                                             sql.NullTime
+			creatorColorHue                                                                              *int
 		)
 		if err := rows.Scan(&sub.ID, &sub.Day, &colorsJSON, &sub.Prompt, &sub.CreatedAt,
-			&sub.User.ID, &sub.User.Username, &sub.User.Email, &sub.User.CreatedAt, &sub.User.AvatarType, &sub.User.AvatarURL, &sub.User.Decoration,
-			&creatorID, &creatorName, &creatorEmail, &creatorCreatedAt, &creatorAvatarType, &creatorAvatarURL, &creatorDecoration,
+			&sub.User.ID, &sub.User.Username, &sub.User.Email, &sub.User.CreatedAt, &sub.User.AvatarType, &sub.User.AvatarURL, &sub.User.Decoration, &sub.User.ColorHue,
+			&creatorID, &creatorName, &creatorEmail, &creatorCreatedAt, &creatorAvatarType, &creatorAvatarURL, &creatorDecoration, &creatorColorHue,
 			&sub.IsFavorite); err != nil {
 			return nil, err
 		}
@@ -139,6 +140,7 @@ func GetUserSubmissionsInDays(repo *sql.DB, ctx context.Context, cfg *config.Con
 				AvatarType: creatorAvatarType.String,
 				AvatarURL:  creatorAvatarURL.String,
 				Decoration: creatorDecoration.String,
+				ColorHue:   creatorColorHue,
 			}
 		}
 		sub.ImageUrl = utils.GetImageUrl(cfg, utils.GetSubmissionFilename(sub.User.ID, sub.ID))
@@ -167,7 +169,7 @@ func addSubmissionDetails(repo *sql.DB, ctx context.Context, sub *models.UserPro
 	}
 
 	rows, err := repo.QueryContext(ctx, `
-		SELECT c.id, c.text, c.created_at, u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration
+		SELECT c.id, c.text, c.created_at, u.id, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
 		WHERE c.submission_id = ?
@@ -181,7 +183,7 @@ func addSubmissionDetails(repo *sql.DB, ctx context.Context, sub *models.UserPro
 	for rows.Next() {
 		var comment models.Comment
 		if err := rows.Scan(&comment.ID, &comment.Text, &comment.CreatedAt, &comment.User.ID, &comment.User.Username,
-			&comment.User.Email, &comment.User.CreatedAt, &comment.User.AvatarType, &comment.User.AvatarURL, &comment.User.Decoration); err != nil {
+			&comment.User.Email, &comment.User.CreatedAt, &comment.User.AvatarType, &comment.User.AvatarURL, &comment.User.Decoration, &comment.User.ColorHue); err != nil {
 			return err
 		}
 		sub.Comments = append(sub.Comments, comment)

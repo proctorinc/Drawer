@@ -8,7 +8,7 @@ CREATE TABLE users (
     username TEXT UNIQUE NOT NULL,
     email TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-, role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')), avatar_type VARCHAR (255) NOT NULL DEFAULT 'default', avatar_url VARCHAR (255) NOT NULL DEFAULT '', clerk_id TEXT, decoration TEXT NOT NULL DEFAULT '', stats_start_day TEXT);
+, role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')), avatar_type VARCHAR (255) NOT NULL DEFAULT 'default', avatar_url VARCHAR (255) NOT NULL DEFAULT '', clerk_id TEXT, decoration TEXT NOT NULL DEFAULT '', stats_start_day TEXT, color_hue INTEGER);
 CREATE TABLE user_submissions (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
