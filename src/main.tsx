@@ -80,7 +80,11 @@ import { ConfirmProvider } from './components/Confirm.tsx';
 import type { AchievementTab } from './pages/achievements/AchievementsPage.tsx';
 import type { FC, ReactNode } from 'react';
 
-const queryClient = new QueryClient();
+// Each refetch costs database reads, so reuse data for a minute rather than refetching on
+// every tab focus and page change. Mutations still invalidate what they change.
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 60_000 } },
+});
 
 // DEV_AUTH_BYPASS runs without Clerk at all (see AuthProvider)
 const SessionProvider: FC<{ children: ReactNode }> = ({ children }) =>

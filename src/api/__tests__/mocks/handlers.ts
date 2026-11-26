@@ -21,7 +21,6 @@ const mockUser = {
 const mockUserProfile = {
   user: mockUser,
   prompts: [],
-  feed: [],
   friends: [],
   stats: {
     totalDrawings: 5,

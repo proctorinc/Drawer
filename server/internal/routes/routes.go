@@ -117,6 +117,9 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			submissionGroup.POST("/:id/comment/:reactionId/reaction", handlers.HandleCommentToggleReaction)
 			submissionGroup.DELETE("/:id/comment/:commentId", handlers.HandleDeleteComment)
 
+			authGroup.GET("/feed", handlers.HandleGetFeed)
+			authGroup.GET("/feed/:day", handlers.HandleGetFeedDay)
+
 			authGroup.GET("/activity", handlers.HandleGetActivity)
 			authGroup.POST("/activity/view", handlers.HandlePostActivity)
 			authGroup.POST("/favorite/swap", handlers.HandleSwapFavoriteOrder)

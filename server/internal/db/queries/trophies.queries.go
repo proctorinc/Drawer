@@ -65,15 +65,20 @@ const CommentsWrittenXPPerDay = 5
 
 // commentsWrittenForXP is every comment someone left on someone else's drawing, with xp
 // set when it was among the first CommentsWrittenXPPerDay they left that day, numbered
-// from the day's start like reactionsGivenForXP.
-func commentsWrittenForXP() string {
+// from the day's start like reactionsGivenForXP. A non-empty `where` (on comments as c)
+// limits it to some commenters: numbering is per commenter, so that changes nothing for
+// them but saves numbering everyone's comments.
+func commentsWrittenForXP(where string) string {
+	if where != "" {
+		where = " AND " + where
+	}
 	return `
 	SELECT c.user_id, c.created_at,
 		ROW_NUMBER() OVER (
 			PARTITION BY c.user_id, date(c.created_at, '` + weekModifier() + `') ORDER BY c.created_at
 		) <= ` + strconv.Itoa(CommentsWrittenXPPerDay) + ` AS xp
 	FROM comments c JOIN user_submissions s ON s.id = c.submission_id
-	WHERE s.user_id != c.user_id AND ` + countedAt("c.user_id", "c.created_at") + `
+	WHERE s.user_id != c.user_id AND ` + countedAt("c.user_id", "c.created_at") + where + `
 `
 }
 
@@ -171,6 +176,13 @@ const sqliteTimestamp = "2006-01-02 15:04:05"
 // whether it counts toward the reactor's stats (for_reactor) and the owner's
 // (for_owner), which their stats start days decide.
 func reactionOwners() string {
+	return reactionOwnersWhere("1")
+}
+
+// reactionOwnersWhere is reactionOwners for just the reactions matching `where` (on
+// reactions as r). Filter here rather than on ro: SQLite can't push a filter past the
+// window functions that number ro's rows.
+func reactionOwnersWhere(where string) string {
 	return `
 	SELECT reactor, owner, reaction_id, content_type, content_id, created_at,
 		` + countedAt("reactor", "created_at") + ` AS for_reactor,
@@ -181,6 +193,30 @@ func reactionOwners() string {
 		FROM reactions r
 		LEFT JOIN user_submissions s ON r.content_type = 'submission' AND s.id = r.content_id
 		LEFT JOIN comments cs ON r.content_type = 'comment' AND cs.id = r.content_id
+		WHERE ` + where + `
+	)
+`
+}
+
+// reactionsReceived is reactions on the drawings and comments of the users in `in` made
+// in [?, ?), each with whether it counts toward its owner's stats (for_owner). It starts
+// from the owners' side, since ro's owner is computed and filtering on it reads every
+// reaction ever made. Takes its arguments as: users, from, to, users, from, to.
+func reactionsReceived(in string) string {
+	return `
+	SELECT reactor, owner, reaction_id, created_at,
+		` + countedAt("owner", "created_at") + ` AS for_owner
+	FROM (
+		SELECT r.user_id AS reactor, s.user_id AS owner, r.reaction_id, r.created_at
+		FROM user_submissions s
+		JOIN reactions r ON r.content_id = s.id AND r.content_type = 'submission'
+		WHERE s.user_id IN ` + in + ` AND r.created_at >= ? AND r.created_at < ?
+		UNION ALL
+		SELECT r.user_id, c.user_id, r.reaction_id, r.created_at
+		FROM comments c
+		-- comments.id is an INTEGER and content_id TEXT; the CAST lets this use the index
+		JOIN reactions r ON r.content_id = CAST(c.id AS TEXT) AND r.content_type = 'comment'
+		WHERE c.user_id IN ` + in + ` AND r.created_at >= ? AND r.created_at < ?
 	)
 `
 }
@@ -199,8 +235,10 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 
 	in := "(" + placeholders(len(userIDs)) + ")"
 	query := `
-		WITH ro AS (` + reactionOwners() + `), rg AS (` + reactionsGivenForXP() + `),
-			cw AS (` + commentsWrittenForXP() + `)
+		WITH ro AS (` + reactionOwnersWhere("r.user_id IN "+in) + `),
+			rg AS (` + reactionsGivenForXP() + `),
+			cw AS (` + commentsWrittenForXP("c.user_id IN "+in) + `),
+			received AS (` + reactionsReceived(in) + `)
 		SELECT user_id, 'drawings', COUNT(*) FROM user_submissions
 		WHERE user_id IN ` + in + ` AND day >= ? AND day < ? AND ` + countedDay("user_id", "day") + `
 		GROUP BY user_id
@@ -228,13 +266,12 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 			AND ` + countedAt("c.user_id", "c.created_at") + `
 		GROUP BY c.user_id
 		UNION ALL
-		SELECT owner, 'reactionsReceived', COUNT(*) FROM ro
-		WHERE owner IN ` + in + ` AND owner != reactor AND for_owner AND created_at >= ? AND created_at < ?
+		SELECT owner, 'reactionsReceived', COUNT(*) FROM received
+		WHERE owner != reactor AND for_owner
 		GROUP BY owner
 		UNION ALL
-		SELECT owner, 'cryLaughsReceived', COUNT(*) FROM ro
-		WHERE owner IN ` + in + ` AND owner != reactor AND for_owner AND reaction_id = 'cry-laugh'
-			AND created_at >= ? AND created_at < ?
+		SELECT owner, 'cryLaughsReceived', COUNT(*) FROM received
+		WHERE owner != reactor AND for_owner AND reaction_id = 'cry-laugh'
 		GROUP BY owner
 		UNION ALL
 		SELECT s.user_id, 'commentsReceived', COUNT(*) FROM comments c
@@ -259,18 +296,19 @@ func GetActivityCounts(repo *sql.DB, ctx context.Context, userIDs []string, from
 		GROUP BY user_id
 	`
 
-	const parts = 12
-	args := make([]any, 0, parts*(len(userIDs)+2))
-	for i := range parts {
-		for _, id := range userIDs {
-			args = append(args, id)
-		}
-		if i == 0 || i == 2 { // drawings and judged doodles go by day
-			args = append(args, utils.GetFormattedDate(from), utils.GetFormattedDate(to))
-		} else {
-			args = append(args, from.UTC().Format(sqliteTimestamp), to.UTC().Format(sqliteTimestamp))
-		}
+	ids := make([]any, len(userIDs))
+	for i, id := range userIDs {
+		ids[i] = id
 	}
+	// Drawings and judged doodles go by day, everything else by time
+	days := []any{utils.GetFormattedDate(from), utils.GetFormattedDate(to)}
+	times := []any{from.UTC().Format(sqliteTimestamp), to.UTC().Format(sqliteTimestamp)}
+	args := slices.Concat(
+		ids, ids, ids, times, ids, times, // ro, cw, received
+		ids, days, ids, times, ids, days, // drawings, reactionsGivenForXP, judged doodles
+		ids, times, ids, times, ids, times, // reactionsGiven, drawingsReacted, commentsWritten
+		ids, times, ids, times, ids, times, ids, times, // commentsReceived, achievements, achievementXP, commentsWrittenForXP
+	)
 
 	rows, err := repo.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -475,7 +513,7 @@ func GetXPEventsSince(repo *sql.DB, ctx context.Context, userID string, since ti
 	// column types the driver would otherwise parse by
 	err := queryEach(repo, ctx, `
 		WITH ro AS (`+reactionOwners()+`), rg AS (`+reactionsGivenForXP()+`),
-			cw AS (`+commentsWrittenForXP()+`)
+			cw AS (`+commentsWrittenForXP("")+`)
 		SELECT 'drawings', datetime(created_at) AS at FROM user_submissions
 		WHERE user_id = ? AND day >= ? AND `+countedDay("user_id", "day")+`
 		UNION ALL

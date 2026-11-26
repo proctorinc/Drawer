@@ -49,7 +49,6 @@ describe('API Client', () => {
       expect(result).toBeDefined();
       expect(result).toHaveProperty('user');
       expect(result).toHaveProperty('prompts');
-      expect(result).toHaveProperty('feed');
       expect(result).toHaveProperty('friends');
       expect(result).toHaveProperty('stats');
 
@@ -57,7 +56,6 @@ describe('API Client', () => {
       const typedResult = result;
       expect(typedResult.user).toBeDefined();
       expect(Array.isArray(typedResult.prompts)).toBe(true);
-      expect(Array.isArray(typedResult.feed)).toBe(true);
       expect(Array.isArray(typedResult.friends)).toBe(true);
       expect(typedResult.stats).toHaveProperty('totalDrawings');
       expect(typedResult.stats).toHaveProperty('currentStreak');

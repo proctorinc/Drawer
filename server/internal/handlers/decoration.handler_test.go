@@ -62,10 +62,10 @@ func TestFriendsDecorationOnProfile(t *testing.T) {
 	if profile.User.Decoration != "CHRISTMAS_LIGHTS" {
 		t.Errorf("profile user decoration = %q", profile.User.Decoration)
 	}
-	if len(profile.Feed) != 1 || profile.Feed[0].User.Decoration != "CHRISTMAS_LIGHTS" ||
-		len(profile.Feed[0].Comments) != 1 || profile.Feed[0].Comments[0].User.Decoration != "CHRISTMAS_LIGHTS" ||
-		profile.Feed[0].CreatedBy == nil || profile.Feed[0].CreatedBy.Decoration != "CHRISTMAS_LIGHTS" {
-		t.Errorf("feed is missing the friend's decoration: %+v", profile.Feed)
+	if len(profile.Prompts) != 1 || profile.Prompts[0].User.Decoration != "CHRISTMAS_LIGHTS" ||
+		len(profile.Prompts[0].Comments) != 1 || profile.Prompts[0].Comments[0].User.Decoration != "CHRISTMAS_LIGHTS" ||
+		profile.Prompts[0].CreatedBy == nil || profile.Prompts[0].CreatedBy.Decoration != "CHRISTMAS_LIGHTS" {
+		t.Errorf("friend's doodles are missing the friend's decoration: %+v", profile.Prompts)
 	}
 
 	users, err := queries.GetUsersByIDs(repo, ctx, []string{"friend"})

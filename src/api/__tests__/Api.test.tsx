@@ -115,8 +115,7 @@ describe('React Query Hooks', () => {
           createdAt: new Date(),
         },
         prompts: [],
-        feed: [],
-        friends: [],
+              friends: [],
         stats: { totalDrawings: 5, currentStreak: 3 },
       };
 

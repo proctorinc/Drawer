@@ -118,8 +118,10 @@ type UserStats struct {
 
 // GetMeResponse is the structure for the /me endpoint response.
 type GetMeResponse struct {
-	User       User                    `json:"user"`
-	Prompts    []*UserPromptSubmission `json:"prompts"`
+	User    User                    `json:"user"`
+	Prompts []*UserPromptSubmission `json:"prompts"`
+	// Feed is always empty now that the feed pages through /feed. It stays only so app tabs
+	// opened before that change don't crash on a missing field; drop it once they've reloaded.
 	Feed       []*UserPromptSubmission `json:"feed"`
 	Friends    []User                  `json:"friends"`
 	Stats      UserStats               `json:"stats"`

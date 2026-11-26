@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import Polaroid from './Polaroid';
 import { FriendsToday } from './FriendsToday';
 import { ColorDabs, PromptCredit, PromptTitle } from './PromptTitle';
 import type { FC, ReactNode } from 'react';
 import type { DailyPrompt, UserPromptSubmission } from '@/api/Api';
+import { useFeed } from '@/api/Api';
 import { useChristmas } from '@/events/useChristmas';
 import Lights from '@/events/christmas/Lights';
 import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
@@ -119,7 +120,8 @@ export const TodayWall = () => {
   const { profile } = useMyProfilePage();
   const { dailyPrompt } = useDailyPrompt();
   const christmas = useChristmas();
-  if (!profile) return null;
+  const { data: feed } = useFeed();
+  if (!profile || !feed) return null;
 
   if (!dailyPrompt) {
     return (
@@ -134,7 +136,8 @@ export const TodayWall = () => {
     );
   }
 
-  const today = profile.feed.filter((submission) =>
+  // Today is always on the first page
+  const today = feed.pages[0].submissions.filter((submission) =>
     isSameDay(submission.day, dailyPrompt.day),
   );
   if (today.length === 0) {
@@ -175,49 +178,44 @@ export const TodayWall = () => {
   );
 };
 
-const DAYS_PER_FLIP = 3;
-
-/** Earlier days flip open a few at a time as you scroll down to them */
+/** Earlier days load a page at a time as you scroll down to them */
 export const PastPages = () => {
-  const { profile } = useMyProfilePage();
   const { dailyPrompt } = useDailyPrompt();
-  const [daysShown, setDaysShown] = useState(0);
+  const { data: feed, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    useFeed();
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const pastDays = groupByDay(profile?.feed ?? []).filter(
-    (group) => !dailyPrompt || !isSameDay(group.day, dailyPrompt.day),
-  );
-  const hasMore = daysShown < pastDays.length;
+  const pastDays = groupByDay(
+    feed?.pages.flatMap((page) => page.submissions) ?? [],
+  ).filter((group) => !dailyPrompt || !isSameDay(group.day, dailyPrompt.day));
 
-  // A fresh observer after each flip reports right away if the sentinel is
-  // still in view (short days), so we keep flipping until the page fills
+  // A fresh observer after each page reports right away if the sentinel is
+  // still in view (short days), so we keep loading until the page fills
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasMore) return;
+    if (!sentinel || !hasNextPage || isFetchingNextPage) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          setDaysShown((shown) => shown + DAYS_PER_FLIP);
-        }
+        if (entry.isIntersecting) fetchNextPage();
       },
       { rootMargin: '600px 0px' },
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [daysShown, hasMore]);
+  }, [feed?.pages.length, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  if (pastDays.length === 0) return null;
+  if (pastDays.length === 0 && !hasNextPage) return null;
 
   return (
     <div className="flex flex-col gap-10 w-full pt-4">
-      {pastDays.slice(0, daysShown).map((group) => (
+      {pastDays.map((group) => (
         <DayPage
           key={group.day}
           title={dayLabel(group.day)}
           submissions={group.submissions}
         />
       ))}
-      {hasMore && (
+      {hasNextPage && (
         <div
           ref={sentinelRef}
           className="flex justify-center text-pencil"

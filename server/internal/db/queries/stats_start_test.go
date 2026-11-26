@@ -80,7 +80,7 @@ func TestStatsStartDay(t *testing.T) {
 	}
 
 	// Profiles, your own and as a friend sees it, show the same restarted drawing count
-	mine, err := GetUserDataFromDB(db, ctx, "me", &config.Config{})
+	mine, err := GetUserProfileFromDB(db, ctx, "me", "me", &config.Config{})
 	if err != nil {
 		t.Fatal(err)
 	}

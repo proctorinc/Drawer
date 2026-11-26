@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { apiClient } from './apiClient';
 import type { Pencil } from '@/drawing/pencils';
 
@@ -244,6 +249,13 @@ export interface FavoriteSubmission {
   orderNum: number;
 }
 
+/** A few days of you and your friends' doodles, newest first */
+export interface FeedPage {
+  submissions: Array<UserPromptSubmission>;
+  /** Pass as `before` for the next page; empty on the last one */
+  nextBefore: string;
+}
+
 export interface UserStats {
   totalDrawings: number;
   currentStreak: number;
@@ -252,7 +264,6 @@ export interface UserStats {
 export interface GetMeResponse {
   user: User;
   prompts: Array<UserPromptSubmission>;
-  feed: Array<UserPromptSubmission>;
   friends: Array<User>;
   stats: UserStats;
   favorites: Array<FavoriteSubmission>;
@@ -371,6 +382,9 @@ export const queryKeys = {
   unfinishedPrompt: ['unfinishedPrompt'] as const,
   redos: ['redos'] as const,
   myProfile: ['myProfile'] as const,
+  // Under myProfile, so everything that refreshes your profile refreshes the feed too
+  feed: ['myProfile', 'feed'] as const,
+  feedDay: (day: string) => ['myProfile', 'feedDay', day] as const,
   myAvatars: ['myAvatars'] as const,
   userProfile: (id: string) => ['userProfile', id] as const,
   user: (id: string) => ['user', id] as const,
@@ -425,6 +439,24 @@ export function useGetMyProfile() {
     retry: () => {
       return false;
     },
+  });
+}
+
+/** You and your friends' doodles, a few days per page as you scroll back */
+export function useFeed() {
+  return useInfiniteQuery({
+    queryKey: queryKeys.feed,
+    queryFn: ({ pageParam }) => apiClient.getFeed(pageParam),
+    initialPageParam: '',
+    getNextPageParam: (page) => page.nextBefore || undefined,
+  });
+}
+
+/** You and your friends' doodles from one day */
+export function useFeedDay(day: string) {
+  return useQuery({
+    queryKey: queryKeys.feedDay(day),
+    queryFn: () => apiClient.getFeedDay(day),
   });
 }
 

@@ -46,7 +46,7 @@ CREATE TABLE activity_reads (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 CREATE TABLE "reactions" (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT NOT NULL, content_type TEXT NOT NULL CHECK (content_type IN ('submission', 'comment')), content_id TEXT NOT NULL, reaction_id TEXT NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE (user_id, content_type, content_id, reaction_id), FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
-CREATE INDEX idx_reactions_content ON reactions (content_type, content_id);
+CREATE INDEX idx_reactions_content_id ON reactions (content_id, content_type);
 CREATE INDEX idx_reactions_user ON reactions (user_id);
 CREATE INDEX idx_reactions_created_at ON reactions (created_at);
 CREATE TABLE user_favorite_submissions (
@@ -161,3 +161,7 @@ CREATE TABLE judge_pledges (
 CREATE TABLE drawing_starts (user_id TEXT NOT NULL, day TEXT NOT NULL, started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (user_id, day), FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
 CREATE TABLE redo_grants (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, day TEXT, note TEXT NOT NULL DEFAULT '', granted_by TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, used_at TIMESTAMP, used_day TEXT, FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE, FOREIGN KEY (granted_by) REFERENCES users (id) ON DELETE SET NULL);
 CREATE INDEX idx_redo_grants_user ON redo_grants (user_id, used_at);
+CREATE INDEX idx_comments_submission_id ON comments (submission_id);
+CREATE INDEX idx_comments_user_id_created_at ON comments (user_id, created_at);
+CREATE INDEX idx_comments_created_at ON comments (created_at);
+CREATE INDEX idx_pokes_pokee_id_created_at ON pokes (pokee_id, created_at);

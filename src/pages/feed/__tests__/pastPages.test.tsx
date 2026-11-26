@@ -1,27 +1,37 @@
 import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PastPages } from '../components/DayPages';
-import type { UserPromptSubmission } from '@/api/Api';
+import type { FeedPage, UserPromptSubmission } from '@/api/Api';
 
 vi.mock('../components/Polaroid', () => ({ default: () => <div /> }));
 vi.mock('@/events/useChristmas', () => ({ useChristmas: () => null }));
 vi.mock('@/daily/DailyPromptContext', () => ({
-  useDailyPrompt: () => ({ dailyPrompt: null }),
+  useDailyPrompt: () => ({ dailyPrompt: { day: '2026-11-20' } }),
 }));
 
-const feed = Array.from(
-  { length: 7 },
-  (_, i) =>
-    ({
-      id: `doodle-${i}`,
-      day: `2026-11-${String(20 - i).padStart(2, '0')}`,
-      prompt: 'a cat',
-      colors: [],
-      user: { id: 'friend' },
-    }) as UserPromptSubmission,
-);
-vi.mock('@/pages/profile/context/MyProfileContext', () => ({
-  useMyProfilePage: () => ({ profile: { feed } }),
+const doodle = (day: string) =>
+  ({
+    id: `doodle-${day}`,
+    day,
+    prompt: 'a cat',
+    colors: [],
+    user: { id: 'friend' },
+  }) as UserPromptSubmission;
+
+/** What the feed query has loaded so far */
+let feed: {
+  pages: Array<FeedPage>;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+};
+const fetchNextPage = vi.fn();
+vi.mock('@/api/Api', () => ({
+  useFeed: () => ({
+    data: { pages: feed.pages },
+    hasNextPage: feed.hasNextPage,
+    isFetchingNextPage: feed.isFetchingNextPage,
+    fetchNextPage,
+  }),
 }));
 
 /** Stands in for the browser: each observer reports whether the sentinel is on screen */
@@ -32,16 +42,13 @@ class FakeIntersectionObserver {
     observers.push(callback);
   }
   observe() {
-    this.report();
-  }
-  disconnect() {
-    observers = observers.filter((cb) => cb !== this.callback);
-  }
-  report() {
     this.callback(
       [{ isIntersecting: sentinelOnScreen } as IntersectionObserverEntry],
       this as unknown as IntersectionObserver,
     );
+  }
+  disconnect() {
+    observers = observers.filter((cb) => cb !== this.callback);
   }
 }
 
@@ -55,40 +62,64 @@ const scrollSentinelIntoView = () =>
     }
   });
 
-const pagesShown = () => screen.queryAllByRole('heading', { level: 1 }).length;
+/** Each day's page is headed by its prompt */
+const daysShown = () => screen.queryAllByRole('heading', { level: 1 }).length;
 
 describe('PastPages', () => {
   beforeEach(() => {
     sentinelOnScreen = false;
     observers = [];
+    fetchNextPage.mockClear();
     vi.stubGlobal('IntersectionObserver', FakeIntersectionObserver);
+    feed = {
+      pages: [
+        {
+          submissions: [
+            doodle('2026-11-20'),
+            doodle('2026-11-19'),
+            doodle('2026-11-18'),
+          ],
+          nextBefore: '2026-11-18',
+        },
+      ],
+      hasNextPage: true,
+      isFetchingNextPage: false,
+    };
   });
 
-  it('opens more days as you scroll down to the end, with no button', () => {
+  it('shows the loaded days before today', () => {
     render(<PastPages />);
-    expect(pagesShown()).toBe(0);
+    expect(daysShown()).toBe(2);
+    expect(screen.getByText('thu, nov 19')).toBeTruthy();
+    expect(screen.getByText('wed, nov 18')).toBeTruthy();
+  });
+
+  it('loads the next page as you scroll down to the end, with no button', () => {
+    render(<PastPages />);
+    expect(fetchNextPage).not.toHaveBeenCalled();
     expect(screen.queryByRole('button')).toBeNull();
 
     scrollSentinelIntoView();
-    expect(pagesShown()).toBe(3);
-
-    scrollSentinelIntoView();
-    expect(pagesShown()).toBe(6);
+    expect(fetchNextPage).toHaveBeenCalledTimes(1);
   });
 
-  it('stops watching once every day is open', () => {
+  it('waits for a page to arrive before asking for another', () => {
+    feed.isFetchingNextPage = true;
     render(<PastPages />);
     scrollSentinelIntoView();
-    scrollSentinelIntoView();
-    scrollSentinelIntoView();
-
-    expect(pagesShown()).toBe(7);
-    expect(observers).toHaveLength(0);
+    expect(fetchNextPage).not.toHaveBeenCalled();
   });
 
-  it('keeps flipping while the end of the feed is still on screen', () => {
+  it('keeps loading while the end of the feed is still on screen', () => {
     sentinelOnScreen = true;
     render(<PastPages />);
-    expect(pagesShown()).toBe(7);
+    expect(fetchNextPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops watching once the last page is in', () => {
+    feed.hasNextPage = false;
+    render(<PastPages />);
+    expect(observers).toHaveLength(0);
+    expect(daysShown()).toBe(2);
   });
 });

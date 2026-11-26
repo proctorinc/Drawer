@@ -6,6 +6,7 @@ import type {
   DailyActionStat,
   DailyPrompt,
   DecorationId,
+  FeedPage,
   GetMeResponse,
   InvitationResponse,
   PromptSuggestion,
@@ -118,6 +119,25 @@ export const apiClient = {
         createdAt: new Date(data.user.createdAt),
       },
     };
+  },
+
+  getFeed: async (before: string): Promise<FeedPage> => {
+    const query = before ? `?before=${encodeURIComponent(before)}` : '';
+    const response = await fetchAPI('GET', `/feed${query}`);
+    if (!response.ok) {
+      throw new Error(`Error fetching feed: ${response.statusText}`);
+    }
+    return response.json();
+  },
+
+  getFeedDay: async (day: string): Promise<Array<UserPromptSubmission>> => {
+    const response = await fetchAPI('GET', `/feed/${encodeURIComponent(day)}`);
+    if (!response.ok) {
+      throw new Error(`Error fetching ${day}'s doodles: ${response.statusText}`);
+    }
+    const data: { submissions: Array<UserPromptSubmission> } =
+      await response.json();
+    return data.submissions;
   },
 
   getUserProfile: async (userId: string): Promise<GetMeResponse> => {

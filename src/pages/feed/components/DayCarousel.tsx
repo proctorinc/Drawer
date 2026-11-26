@@ -8,7 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import SubmissionSheet from './SubmissionSheet';
 import type { CSSProperties, FC } from 'react';
 import type { UserPromptSubmission } from '@/api/Api';
-import { useGetMyProfile, useGetUserProfile } from '@/api/Api';
+import { useFeedDay, useGetMyProfile, useGetUserProfile } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import Layout from '@/components/Layout';
 import Masthead from '@/components/Masthead';
@@ -104,13 +104,14 @@ type Props = {
 const DayCarousel: FC<Props> = ({ submission, book }) => {
   const navigate = useNavigate();
   const router = useRouter();
-  const { data: profile } = useGetMyProfile();
   const bookPrompts = useBook(book);
   // Keeps a stranger's doodle in the row after you've swiped past it
   const [opened] = useState(submission);
+  // Days sometimes carry a UTC time, which /feed/:day won't take
+  const { data: day } = useFeedDay(opened.day.slice(0, 10));
   const doodles = book
     ? bookDoodles(bookPrompts ?? [], opened)
-    : dayDoodles(profile?.feed ?? [], opened);
+    : dayDoodles(day ?? [], opened);
   const index = doodles.findIndex((doodle) => doodle.id === submission.id);
   const stripRef = useRef<HTMLUListElement>(null);
   const settleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
