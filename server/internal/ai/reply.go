@@ -61,6 +61,8 @@ type ReplyRequest struct {
 	Thread []queries.ThreadMessage
 	// What the admin wants the judge to say or do; "" to just answer the thread
 	Direction string
+	// Answer only this username, who just @mentioned the judge; "" to answer the thread
+	To string
 }
 
 // ReplySystemPrompt is the reply call's system prompt: how to reply, and who the judge is.
@@ -107,7 +109,9 @@ func ReplyMessage(req ReplyRequest) string {
 		fmt.Fprintf(&b, "- %s: %q\n", who, m.Text)
 	}
 
-	if direction := strings.TrimSpace(req.Direction); direction != "" {
+	if req.To != "" {
+		fmt.Fprintf(&b, "\n%s just @mentioned you. Reply to %s only, answering their latest comment to you. Write your reply.", req.To, req.To)
+	} else if direction := strings.TrimSpace(req.Direction); direction != "" {
 		fmt.Fprintf(&b, "\nThe game's host asks you to: %s\nDo that, in character, replying to whoever that means. Write your replies.", direction)
 	} else {
 		fmt.Fprintf(&b, "\nReply to each person who spoke to you or about your review or the doodle, starting with anyone who spoke to you; if nobody did, reply to %s. Write your replies.", req.Artist)
@@ -138,8 +142,12 @@ func Replies(ctx context.Context, provider Provider, req ReplyRequest) ([]ReplyD
 	return ParseReplies(raw, req.people())
 }
 
-// people are who the judge may answer: the artist and everyone who commented.
+// people are who the judge may answer: the one person in To, else the artist and everyone
+// who commented.
 func (req ReplyRequest) people() []string {
+	if req.To != "" {
+		return []string{req.To}
+	}
 	people := []string{req.Artist}
 	for _, m := range req.Thread {
 		if !m.Judge && !slices.Contains(people, m.Author) {

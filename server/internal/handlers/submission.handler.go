@@ -181,6 +181,9 @@ func HandleGetSubmissionByID(c *gin.Context) {
 	if resp.AIReplies, err = queries.GetAIReplies(appCtx.DB, c.Request.Context(), subID); err != nil {
 		log.Printf("Error fetching AI replies for submission %s: %v", subID, err)
 	}
+	if resp.AIReplyPending, err = queries.AutoReplyPending(appCtx.DB, c.Request.Context(), subID); err != nil {
+		log.Printf("Error checking for a pending AI reply on %s: %v", subID, err)
+	}
 
 	if err := queries.AttachSubmissionFlags(appCtx.DB, c.Request.Context(), []*models.UserPromptSubmission{&resp}); err != nil {
 		log.Printf("Error checking how %s was pinned: %v", subID, err)

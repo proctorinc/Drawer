@@ -8,6 +8,7 @@ import type { FC } from 'react';
 import type { Comment, ReactionId, UserPromptSubmission } from '@/api/Api';
 import { SpeechBox } from '@/components/SpeechBox';
 import { refreshProgress } from '@/animations/useProgressWatcher';
+import { AIJudgeAvatar } from '@/ai/AIJudgeAvatar';
 import { AIReviewComment } from '@/ai/AIReviewComment';
 import { AIReplyButton } from '@/ai/AIReplyButton';
 import { AIReplyComment } from '@/ai/AIReplyComment';
@@ -266,6 +267,19 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
               })}
             </SpeechBox>
           ),
+        )}
+        {submission.aiReplyPending && submission.aiReview && (
+          <SpeechBox
+            portrait={<AIJudgeAvatar judge={submission.aiReview.judge} />}
+            name={submission.aiReview.judge.name}
+          >
+            <p
+              className="font-semibold text-secondary animate-pulse"
+              aria-live="polite"
+            >
+              typing…
+            </p>
+          </SpeechBox>
         )}
         {submission.comments.length === 0 && !submission.aiReview && (
           <span className="font-bold text-center text-secondary">

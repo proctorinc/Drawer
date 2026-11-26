@@ -102,3 +102,66 @@ func GetCommentThread(repo *sql.DB, ctx context.Context, submissionID string) ([
 	}
 	return thread, rows.Err()
 }
+
+// autoReplyTimeout is how long a claimed automatic reply counts as being written. A claim
+// older than that was lost (the server restarted mid-call) and stops showing as pending.
+const autoReplyTimeout = "-2 minutes"
+
+// ClaimAutoReply takes a doodle's one automatic judge reply, or a lost claim on it. It reports
+// false when the doodle has had it already, or another comment is getting it now.
+func ClaimAutoReply(repo *sql.DB, ctx context.Context, submissionID string) (bool, error) {
+	res, err := repo.ExecContext(ctx, `
+		INSERT INTO ai_auto_replies (submission_id) VALUES (?)
+		ON CONFLICT (submission_id) DO UPDATE SET started_at = CURRENT_TIMESTAMP
+		WHERE replied_at IS NULL AND datetime(started_at) <= datetime('now', '`+autoReplyTimeout+`')`, submissionID)
+	if err != nil {
+		return false, fmt.Errorf("error claiming automatic AI reply: %w", err)
+	}
+	n, err := res.RowsAffected()
+	return n == 1, err
+}
+
+// PostAutoReply posts a doodle's automatic judge reply and marks its claim done.
+func PostAutoReply(repo *sql.DB, ctx context.Context, submissionID string, judge models.AIPersonality, text string) error {
+	tx, err := repo.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error posting automatic AI reply: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx,
+		`INSERT INTO ai_replies (id, submission_id, personality_id, text) VALUES (?, ?, ?, ?)`,
+		uuid.New().String(), submissionID, judge.ID, text,
+	); err != nil {
+		return fmt.Errorf("error posting automatic AI reply: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE ai_auto_replies SET replied_at = CURRENT_TIMESTAMP WHERE submission_id = ?`, submissionID,
+	); err != nil {
+		return fmt.Errorf("error marking automatic AI reply done: %w", err)
+	}
+	return tx.Commit()
+}
+
+// ReleaseAutoReply gives a doodle's automatic reply back after the judge failed to write it,
+// so the next @mention can have it.
+func ReleaseAutoReply(repo *sql.DB, ctx context.Context, submissionID string) error {
+	if _, err := repo.ExecContext(ctx,
+		`DELETE FROM ai_auto_replies WHERE submission_id = ? AND replied_at IS NULL`, submissionID,
+	); err != nil {
+		return fmt.Errorf("error releasing automatic AI reply: %w", err)
+	}
+	return nil
+}
+
+// AutoReplyPending reports whether the judge is writing a doodle's automatic reply right now.
+func AutoReplyPending(repo *sql.DB, ctx context.Context, submissionID string) (bool, error) {
+	var pending bool
+	err := repo.QueryRowContext(ctx, `
+		SELECT EXISTS (SELECT 1 FROM ai_auto_replies
+			WHERE submission_id = ? AND replied_at IS NULL
+				AND datetime(started_at) > datetime('now', '`+autoReplyTimeout+`'))`, submissionID).Scan(&pending)
+	if err != nil {
+		return false, fmt.Errorf("error checking for a pending AI reply: %w", err)
+	}
+	return pending, nil
+}

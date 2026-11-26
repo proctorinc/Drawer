@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"drawer-service-backend/internal/achievements"
+	"drawer-service-backend/internal/ai"
 	requestContext "drawer-service-backend/internal/context"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/db/queries"
@@ -76,6 +77,14 @@ func HandleAddCommentToSubmission(c *gin.Context) {
 		if err := notifications.NotifyUserOfComment(appCtx.DB, requester.ID, requester.Username, submissionOwnerID, submissionID, appCtx.Config); err != nil {
 			log.Printf("Failed to send comment notification: %v", err)
 		}
+	}
+
+	// The first comment to @mention the doodle's judge gets its answer right away; later
+	// ones wait for an admin on the AI mentions page
+	if reply, err := ai.StartMentionReply(c.Request.Context(), appCtx.DB, appCtx.Config, submissionID, requester.Username, body.Text); err != nil {
+		log.Printf("AI judge: couldn't start answering comment %d: %v", commentID, err)
+	} else if reply != nil {
+		go reply.Run()
 	}
 
 	go func() {

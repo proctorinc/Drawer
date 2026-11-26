@@ -175,6 +175,8 @@ export interface UserPromptSubmission extends DailyPrompt {
   aiReview?: AIReview | null;
   /** What the judge has said in the comments since its review, oldest first; only on a single doodle */
   aiReplies?: Array<AIReply>;
+  /** The judge is writing its automatic answer to an @mention; only on a single doodle */
+  aiReplyPending?: boolean;
   /** Pinned the day after its prompt: a doodle the rollover interrupted */
   late?: boolean;
   /** Drawn with a redo, after its prompt had closed */
@@ -479,10 +481,13 @@ export function usePromptSubmission(
     queryKey: queryKeys.promptSubmission(submissionId),
     queryFn: () => apiClient.getPromptSubmission(submissionId),
     placeholderData: placeholder,
-    // Check back while the AI judge is writing. A doodle drawn while judging was
-    // off has no review at all, so it never waits or shows any AI UI.
-    refetchInterval: (query) =>
-      query.state.data?.aiReview?.status === 'pending' ? 4000 : false,
+    // Check back while the AI judge is writing its review or a reply. A doodle drawn
+    // while judging was off has no review at all, so it never waits or shows any AI UI.
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (data?.aiReview?.status === 'pending') return 4000;
+      return data?.aiReplyPending ? 2000 : false;
+    },
     retry: () => {
       return false;
     },
