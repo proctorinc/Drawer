@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { userProfileIconVariants } from './UserProfileIcon';
 import { DefaultAvatar } from './DefaultAvatar';
+import { useSketchFace } from './avatarFaces';
+import type { AvatarSize } from './DefaultAvatar';
 import type { VariantProps } from 'class-variance-authority';
 import type { User } from '@/api/Api';
 import type { FC } from 'react';
@@ -11,6 +13,11 @@ type Props = {
   className?: string;
   onClick?: () => void;
 } & VariantProps<typeof userProfileIconVariants>;
+
+/** Their sketch face, or the one an admin picked for them */
+const SketchAvatar: FC<{ user: User; size: AvatarSize }> = ({ user, size }) => (
+  <DefaultAvatar user={user} size={size} parts={useSketchFace(user)} />
+);
 
 export const BasicProfileIcon: FC<Props> = ({
   user,
@@ -49,7 +56,7 @@ export const BasicProfileIcon: FC<Props> = ({
         }}
         onClick={onClick}
       >
-        <DefaultAvatar user={user} size={size ?? 'lg'} />
+        <SketchAvatar user={user} size={size ?? 'lg'} />
       </div>
     </div>
   );

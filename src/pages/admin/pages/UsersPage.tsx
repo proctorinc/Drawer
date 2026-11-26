@@ -1,8 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { faRotateLeft, faUserSecret } from '@fortawesome/free-solid-svg-icons';
+import {
+  faImagePortrait,
+  faRotateLeft,
+  faUserSecret,
+} from '@fortawesome/free-solid-svg-icons';
 import { useAdminUsers } from '../api';
+import PicturePicker from '../components/PicturePicker';
 import {
   AdminPage,
   Loaded,
@@ -14,10 +19,26 @@ import {
   td,
   th,
 } from '../components/ui';
+import type { AdminUser } from '../api';
+import type { FC } from 'react';
 import { useImpersonateUser } from '@/api/Api';
 import { switchAccount } from '@/animations/useProgressWatcher';
 import Button from '@/components/Button';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
+import Sheet from '@/pages/profile/components/Sheet';
+
+const PictureSheet: FC<{ user?: AdminUser; onClose: () => void }> = ({
+  user,
+  onClose,
+}) => (
+  <Sheet
+    title={user ? `${user.username}'s picture` : 'picture'}
+    open={!!user}
+    onClose={onClose}
+  >
+    {user && <PicturePicker key={user.id} user={user} onDone={onClose} />}
+  </Sheet>
+);
 
 const UsersPage = () => {
   const users = useAdminUsers();
@@ -25,6 +46,8 @@ const UsersPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  // Whose picture the drawer is swapping, by id so it follows the refreshed list
+  const [picturing, setPicturing] = useState<string>();
 
   const becomeUser = (userId: string) =>
     impersonate.mutate(userId, {
@@ -74,7 +97,11 @@ const UsersPage = () => {
                 <tr key={user.id}>
                   <td className={td}>
                     <div className="flex items-center gap-3">
-                      <UserProfileIcon user={user} size="sm" />
+                      <UserProfileIcon
+                        user={user}
+                        size="sm"
+                        onClick={() => setPicturing(user.id)}
+                      />
                       <div className="flex flex-col leading-tight">
                         <span className="font-bold">{user.username}</span>
                         <span className="text-sm text-pencil">
@@ -108,6 +135,15 @@ const UsersPage = () => {
                         size="sm"
                         variant="base"
                         disableLoad
+                        icon={faImagePortrait}
+                        onClick={() => setPicturing(user.id)}
+                      >
+                        pic
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="base"
+                        disableLoad
                         icon={faRotateLeft}
                         onClick={() =>
                           navigate({
@@ -135,6 +171,10 @@ const UsersPage = () => {
           );
         }}
       </Loaded>
+      <PictureSheet
+        user={users.data?.find((u) => u.id === picturing)}
+        onClose={() => setPicturing(undefined)}
+      />
     </AdminPage>
   );
 };

@@ -94,6 +94,7 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 			userGroup.PUT("/profile-pic/toggle", handlers.HandleToggleAvatarType)
 			userGroup.PUT("/decoration", handlers.HandleUpdateDecoration)
 			userGroup.PUT("/color", handlers.HandleUpdateColor)
+			userGroup.GET("/avatar-faces", handlers.HandleGetAvatarFaces)
 
 			userGroup.GET("/levels", handlers.HandleGetUserLevels)
 			userGroup.GET("/:id/profile", handlers.HandleGetUserByID)
@@ -243,6 +244,8 @@ func InitRouter(cfg *config.Config, repo *sql.DB) *gin.Engine {
 				// Admin dashboard endpoints will be added here
 				adminGroup.GET("/dashboard", handlers.HandleGetAdminDashboard)
 				adminGroup.POST("/impersonate", handlers.HandleImpersonateUser)
+				adminGroup.GET("/users/:id/avatars", handlers.HandleAdminGetUserAvatars)
+				adminGroup.PUT("/users/:id/picture", handlers.HandleAdminSetUserPicture)
 				adminGroup.POST("/prompt", handlers.HandleCreatePrompt)
 				adminGroup.GET("/action-stats", handlers.HandleGetAdminActionStats)
 				adminGroup.GET("/prompt-suggestions", handlers.GetAllPromptSuggestions)

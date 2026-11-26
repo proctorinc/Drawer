@@ -3,6 +3,7 @@ import type {
   AICriterionScore,
   AIReview,
   Achievement,
+  CustomAvatar,
   DailyPrompt,
   User,
 } from '@/api/Api';
@@ -927,5 +928,41 @@ export function useCheckAIMention() {
       ),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ['admin', 'ai/mentions'] }),
+  });
+}
+
+/** A player's drawn faces, to swap between */
+export const useAdminUserAvatars = (userId?: string) =>
+  useQuery({
+    queryKey: ['admin', 'users', userId, 'avatars'],
+    queryFn: async (): Promise<Array<CustomAvatar>> => {
+      const response = await fetchAPI('GET', `/admin/users/${userId}/avatars`);
+      if (!response.ok) throw new Error('Failed to load their drawn faces');
+      return (await response.json()).avatars;
+    },
+    enabled: !!userId,
+  });
+
+/**
+ * The drawn face they last wore, one in a slot, a sketch face, or
+ * ({face: ''}) the sketch face their id gives them
+ */
+export type PictureChoice =
+  | { drawn: true }
+  | { slot: number }
+  | { face: string };
+
+export function useSetUserPicture(userId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (choice: PictureChoice) =>
+      ensureOk(
+        await fetchAPI('PUT', `/admin/users/${userId}/picture`, {
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(choice),
+        }),
+      ),
+    // Their avatar rides along on every user the app has loaded
+    onSuccess: () => queryClient.invalidateQueries(),
   });
 }

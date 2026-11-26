@@ -187,3 +187,35 @@ export const defaultAvatarFor = (user: {
     tilt: Math.round((random() * 2 - 1) * 4),
   };
 };
+
+/** A face as stored when an admin picks one: "look/hair/neckline/glasses/extra" */
+export const faceKey = (parts: AvatarParts) =>
+  [parts.look, parts.hair, parts.neckline, parts.glasses, parts.extra].join(
+    '/',
+  );
+
+const isLook = (look: string): look is AvatarLook => look in HAIR;
+
+/**
+ * A stored face laid over the user's own (which keeps its tilt), or undefined
+ * when any part of it isn't one this app knows
+ */
+export const parseFace = (
+  face: string,
+  own: AvatarParts,
+): AvatarParts | undefined => {
+  const [look, hair, neckline, glasses, extra] = face.split('/');
+  if (!isLook(look)) return undefined;
+  const known = <T extends string>(list: ReadonlyArray<T>, value: string) =>
+    list.find((item) => item === value);
+  const parts = {
+    hair: known<Hair>(HAIR[look], hair),
+    neckline: known(NECKLINES, neckline),
+    glasses: known(GLASSES, glasses),
+    extra: known<Extra>(EXTRAS[look], extra),
+  };
+  if (!parts.hair || !parts.neckline || !parts.glasses || !parts.extra) {
+    return undefined;
+  }
+  return { ...own, look, ...parts } as AvatarParts;
+};
