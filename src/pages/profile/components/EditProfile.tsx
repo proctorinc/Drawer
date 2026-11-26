@@ -144,7 +144,7 @@ const FacePicker = () => {
             label="draw my face"
             isLocked
             onClick={() =>
-              setNote('keep a 14 day streak to draw your own face')
+              setNote('keep a 7 day streak to draw your own face')
             }
           >
             <span className="flex items-center justify-center size-12 border-2 border-dashed border-ink rounded-full">
