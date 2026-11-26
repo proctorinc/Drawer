@@ -25,6 +25,8 @@ type Props = {
   belowCanvas?: ReactNode;
   /** How tall that note is (a CSS length), so a fitted canvas leaves room for it */
   belowCanvasHeight?: string;
+  /** Laid over the drawing, zooming with it; never part of the saved image */
+  overlay?: ReactNode;
 } & Omit<HTMLAttributes<HTMLDivElement>, 'onSubmit'>;
 
 const DrawingCanvas: FC<Props> = ({
@@ -43,6 +45,7 @@ const DrawingCanvas: FC<Props> = ({
   fit = false,
   belowCanvas,
   belowCanvasHeight = '1.5rem',
+  overlay,
   ...props
 }) => {
   const { canvasRef, hasInk, getPng } = useDrawing();
@@ -115,6 +118,7 @@ const DrawingCanvas: FC<Props> = ({
                 'max-h-[min(calc(100cqh-4px-var(--below-canvas)-0.625rem),var(--canvas-h))]',
             )}
             canvasProps={canvasProps}
+            overlay={overlay}
           />
           {belowCanvas && (
             <div className="flex items-center justify-center h-(--below-canvas) mt-2.5 text-sm text-pencil">

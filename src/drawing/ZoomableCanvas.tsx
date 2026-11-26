@@ -1,7 +1,14 @@
 import { useImperativeHandle } from 'react';
 import Canvas from './Canvas';
 import { usePinchZoom } from './usePinchZoom';
-import type { CSSProperties, FC, HTMLAttributes, Ref, RefObject } from 'react';
+import type {
+  CSSProperties,
+  FC,
+  HTMLAttributes,
+  ReactNode,
+  Ref,
+  RefObject,
+} from 'react';
 import type { Edges, PinchZoomHandle } from './usePinchZoom';
 import { ZoomOutIcon } from '@/components/icons';
 import { cn } from '@/utils';
@@ -17,6 +24,8 @@ type Props = {
   zoomRef?: Ref<PinchZoomHandle>;
   /** Where a pinch zooms the canvas from (the whole page, say); the frame if not given */
   pinchAreaRef?: RefObject<HTMLElement | null>;
+  /** Laid over the drawing, zooming and panning with it; never part of the saved image */
+  overlay?: ReactNode;
   className?: string;
 };
 
@@ -92,6 +101,7 @@ const ZoomableCanvas: FC<Props> = ({
   canvasProps,
   zoomRef,
   pinchAreaRef,
+  overlay,
   className,
 }) => {
   const { frameRef, zoomed, edges, reset } = usePinchZoom(pinchAreaRef);
@@ -110,21 +120,25 @@ const ZoomableCanvas: FC<Props> = ({
           rounded,
         )}
       >
-        <Canvas
-          style={
-            {
-              backgroundColor,
-              ...(size !== undefined && {
-                width: size,
-                height: size,
-                maxWidth: 'none',
-                maxHeight: 'none',
-              }),
-            } as CSSProperties
-          }
-          className={canvasClassName}
-          {...canvasProps}
-        />
+        {/* The frame zooms its first child, so the overlay goes in it with the canvas */}
+        <div className="relative">
+          <Canvas
+            style={
+              {
+                backgroundColor,
+                ...(size !== undefined && {
+                  width: size,
+                  height: size,
+                  maxWidth: 'none',
+                  maxHeight: 'none',
+                }),
+              } as CSSProperties
+            }
+            className={canvasClassName}
+            {...canvasProps}
+          />
+          {overlay}
+        </div>
       </div>
       <EdgeLines edges={edges} round={variant === 'round'} />
       {zoomed && (

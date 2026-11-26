@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useSearch } from '@tanstack/react-router';
-import { faEdit } from '@fortawesome/free-solid-svg-icons';
+import { faEdit, faUser, faUserSlash } from '@fortawesome/free-solid-svg-icons';
 import DrawingCanvas from '../feed/components/DrawingCanvas';
 import { useMyProfilePage } from './context/MyProfileContext';
+import AvatarGuide from './components/AvatarGuide';
 import type { FC } from 'react';
 import { MAX_AVATAR_SLOTS } from '@/api/Api';
 import Layout from '@/components/Layout';
@@ -34,6 +35,7 @@ const DrawFace: FC<CanvasProps> = ({ slot, isRedraw }) => {
     'SKIN_COLOR',
     null,
   );
+  const [showGuide, setShowGuide] = useLocalStorage('AVATAR_GUIDE', true);
   const [readyToDraw, setReadyToDraw] = useState(skinColorIndex !== null);
   const skinColors = ['#8d5524', '#c68642', '#e0ac69', '#f1c27d', '#ffdbac'];
 
@@ -44,12 +46,23 @@ const DrawFace: FC<CanvasProps> = ({ slot, isRedraw }) => {
           {isRedraw ? `redraw face #${slot + 1}` : 'draw your face'}
         </h1>
         {readyToDraw && skinColorIndex !== null && (
-          <Button
-            size="sm"
-            style={{ backgroundColor: skinColors[skinColorIndex] }}
-            icon={faEdit}
-            onClick={() => setReadyToDraw(false)}
-          ></Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="base"
+              icon={showGuide ? faUser : faUserSlash}
+              aria-label="Outline guide"
+              aria-pressed={showGuide}
+              disableLoad
+              onClick={() => setShowGuide(!showGuide)}
+            />
+            <Button
+              size="sm"
+              style={{ backgroundColor: skinColors[skinColorIndex] }}
+              icon={faEdit}
+              onClick={() => setReadyToDraw(false)}
+            ></Button>
+          </div>
         )}
       </div>
       {!readyToDraw && (
@@ -93,6 +106,7 @@ const DrawFace: FC<CanvasProps> = ({ slot, isRedraw }) => {
         }
         backgroundColor={primary}
         className={cn('rounded-full', !readyToDraw && 'hidden')}
+        overlay={<AvatarGuide visible={showGuide} />}
         onSubmit={(png) => uploadAvatar(png, slot)}
         submitLabel={isRedraw ? 'replace this face' : 'save my avatar'}
       />
