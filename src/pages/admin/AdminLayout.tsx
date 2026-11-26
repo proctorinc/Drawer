@@ -3,6 +3,7 @@ import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faArrowLeft,
+  faAt,
   faAward,
   faBars,
   faBrush,
@@ -93,6 +94,7 @@ const NAV: Array<{ group: string; items: Array<NavItem> }> = [
       { to: '/draw/admin/ai', label: 'ai judges', icon: faRobot },
       { to: '/draw/admin/ai/test', label: 'testing ground', icon: faFlask },
       { to: '/draw/admin/ai/log', label: 'ai log', icon: faScroll },
+      { to: '/draw/admin/ai/mentions', label: 'ai mentions', icon: faAt },
     ],
   },
   {

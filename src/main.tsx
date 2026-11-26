@@ -60,6 +60,7 @@ import AnnouncementsPage from './pages/admin/pages/AnnouncementsPage.tsx';
 import AIJudgesPage from './pages/admin/pages/AIJudgesPage.tsx';
 import AITestingGroundPage from './pages/admin/pages/AITestingGroundPage.tsx';
 import AILogPage from './pages/admin/pages/AILogPage.tsx';
+import AIMentionsPage from './pages/admin/pages/AIMentionsPage.tsx';
 import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
 import SignaturePage from './pages/admin/pages/SignaturePage.tsx';
@@ -433,6 +434,7 @@ const adminPages = [
   adminPage('ai', AIJudgesPage),
   adminPage('ai/test', AITestingGroundPage),
   adminPage('ai/log', AILogPage),
+  adminPage('ai/mentions', AIMentionsPage),
   adminPage('minted', MintedPage),
   createRoute({
     getParentRoute: () => adminRoute,

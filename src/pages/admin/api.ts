@@ -887,3 +887,45 @@ export function useResetAnnouncementViews() {
     onSuccess,
   });
 }
+
+/**
+ * A comment that @mentions an AI judge. It's answered once a judge replies on
+ * the doodle after it, or done once an admin checks it off by hand.
+ */
+export interface AIMention {
+  commentId: number;
+  submissionId: string;
+  imageUrl: string;
+  prompt: string;
+  username: string;
+  text: string;
+  createdAt: string;
+  /** The judge who reviewed the doodle: the only one counted when @ed */
+  judge: string;
+  /** That judge, once they've replied after it */
+  repliedBy: string | null;
+  repliedAt: string | null;
+  /** The admin who checked it off, if they're still around */
+  checkedBy: string | null;
+  checkedAt: string | null;
+}
+
+/** Oldest first */
+export const useAIMentions = () =>
+  useAdminList<Array<AIMention>>('ai/mentions', 'mentions');
+
+/** Checks a mention off by hand, or takes the check back */
+export function useCheckAIMention() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, checked }: { id: number; checked: boolean }) =>
+      ensureOk(
+        await fetchAPI(
+          checked ? 'PUT' : 'DELETE',
+          `/admin/ai/mentions/${id}/check`,
+        ),
+      ),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: ['admin', 'ai/mentions'] }),
+  });
+}

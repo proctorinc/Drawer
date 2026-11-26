@@ -165,3 +165,4 @@ CREATE INDEX idx_comments_submission_id ON comments (submission_id);
 CREATE INDEX idx_comments_user_id_created_at ON comments (user_id, created_at);
 CREATE INDEX idx_comments_created_at ON comments (created_at);
 CREATE INDEX idx_pokes_pokee_id_created_at ON pokes (pokee_id, created_at);
+CREATE TABLE ai_mention_checks (comment_id INTEGER PRIMARY KEY, checked_by TEXT, checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (comment_id) REFERENCES comments (id) ON DELETE CASCADE, FOREIGN KEY (checked_by) REFERENCES users (id) ON DELETE SET NULL);
