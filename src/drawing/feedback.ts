@@ -775,6 +775,13 @@ export const toolFeedback = {
   },
 };
 
+export const zoomFeedback = {
+  /** Panned or zoomed up against an edge of the canvas */
+  edge() {
+    buzz(10);
+  },
+};
+
 /** A taste of a level just picked in the settings, or of a pencil sound */
 export function previewFeedback(
   kind: 'sound' | 'vibrate',

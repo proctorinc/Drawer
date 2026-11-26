@@ -2,6 +2,9 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useRef } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { edgesAt, usePinchZoom } from '../usePinchZoom';
+import { zoomFeedback } from '../feedback';
+
+vi.mock('../feedback', () => ({ zoomFeedback: { edge: vi.fn() } }));
 
 const Frame = () => {
   const { frameRef } = usePinchZoom();
@@ -83,6 +86,17 @@ describe('usePinchZoom', () => {
     expect(screen.getByTestId('content').style.transform).toContain('scale');
   });
 
+  it('buzzes once on reaching an edge, not again while staying there', () => {
+    vi.mocked(zoomFeedback.edge).mockClear();
+    // jsdom's frame has no size, so any zoom is up against every side
+    render(<Frame />);
+    touch('pointerDown', { id: 1, x: 100, y: 100, primary: true });
+    touch('pointerDown', { id: 2, x: 120, y: 120, primary: false });
+    touch('pointerMove', { id: 2, x: 200, y: 200, primary: false });
+    touch('pointerMove', { id: 2, x: 220, y: 220, primary: false });
+    expect(zoomFeedback.edge).toHaveBeenCalledTimes(1);
+  });
+
   it("doesn't zoom one finger when an earlier finger's lift never arrived", () => {
     render(<Frame />);
     // A finger lands and the system swallows its release
@@ -101,6 +115,10 @@ describe('edgesAt', () => {
 
   it('marks no side when not zoomed', () => {
     expect(edgesAt({ scale: 1, x: 0, y: 0 }, frame)).toEqual(none);
+  });
+
+  it('marks no side when barely zoomed', () => {
+    expect(edgesAt({ scale: 1.1, x: 0, y: 0 }, frame)).toEqual(none);
   });
 
   it('marks no side zoomed into the middle', () => {

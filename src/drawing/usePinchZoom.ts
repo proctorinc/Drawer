@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { zoomFeedback } from './feedback';
 import type { RefObject } from 'react';
 
 /** How far two fingers can blow the canvas up */
@@ -29,15 +30,18 @@ const NO_EDGES: Edges = {
   bottom: false,
   left: false,
 };
+// Barely zoomed, the canvas is a pixel or two past every side, so edges only
+// count from here on (else every pinch would start with a flash and a buzz)
+const EDGES_FROM_SCALE = 1.2;
 // Within this many px of the clamp counts as up against it
 const EDGE_SLOP = 0.5;
 
-/** At 1x the whole canvas shows, so no side counts as one you've panned to */
+/** Barely zoomed, the whole canvas all but shows, so no side counts as one you've panned to */
 export function edgesAt(
   { scale, x, y }: View,
   frame: { width: number; height: number },
 ): Edges {
-  if (scale <= 1) return NO_EDGES;
+  if (scale < EDGES_FROM_SCALE) return NO_EDGES;
   return {
     top: y >= -EDGE_SLOP,
     left: x >= -EDGE_SLOP,
@@ -51,6 +55,13 @@ const sameEdges = (a: Edges, b: Edges) =>
   a.right === b.right &&
   a.bottom === b.bottom &&
   a.left === b.left;
+
+/** Whether `next` is up against a side `prev` wasn't */
+const reachesNewEdge = (prev: Edges, next: Edges) =>
+  (next.top && !prev.top) ||
+  (next.right && !prev.right) ||
+  (next.bottom && !prev.bottom) ||
+  (next.left && !prev.left);
 
 export type PinchZoomHandle = {
   /** Back to fitting the frame; instantly (say, before measuring the canvas) or with a spring */
@@ -71,6 +82,7 @@ export function usePinchZoom(areaRef?: RefObject<HTMLElement | null>) {
   const pinch = useRef<Pinch | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [edges, setEdges] = useState<Edges>(NO_EDGES);
+  const edgesRef = useRef<Edges>(NO_EDGES);
 
   /** Where the frame's inside starts on screen (inside its border) */
   const origin = useCallback(() => {
@@ -102,7 +114,11 @@ export function usePinchZoom(areaRef?: RefObject<HTMLElement | null>) {
       }
       setZoomed(next.scale > 1);
       const nextEdges = edgesAt(next, origin());
-      setEdges((prev) => (sameEdges(prev, nextEdges) ? prev : nextEdges));
+      if (!sameEdges(edgesRef.current, nextEdges)) {
+        if (reachesNewEdge(edgesRef.current, nextEdges)) zoomFeedback.edge();
+        edgesRef.current = nextEdges;
+        setEdges(nextEdges);
+      }
     },
     [origin],
   );

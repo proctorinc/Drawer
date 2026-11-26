@@ -2,7 +2,7 @@ import { useImperativeHandle } from 'react';
 import Canvas from './Canvas';
 import { usePinchZoom } from './usePinchZoom';
 import type { CSSProperties, FC, HTMLAttributes, Ref, RefObject } from 'react';
-import type { PinchZoomHandle } from './usePinchZoom';
+import type { Edges, PinchZoomHandle } from './usePinchZoom';
 import { ZoomOutIcon } from '@/components/icons';
 import { cn } from '@/utils';
 
@@ -19,6 +19,69 @@ type Props = {
   pinchAreaRef?: RefObject<HTMLElement | null>;
   className?: string;
 };
+
+// Ink dashes on white, so the line shows up on any color drawn under it
+const dashes = (angle: number) =>
+  `repeating-linear-gradient(${angle}deg, var(--color-ink) 0 6px, white 6px 10px)`;
+
+const SIDES: Record<
+  keyof Edges,
+  {
+    place: string;
+    /** How far along the side it runs, on the square frame and the round one */
+    length: { square: string; round: string };
+    hidden: string;
+    background: string;
+  }
+> = {
+  top: {
+    place: 'top-[5px] h-0.5',
+    length: { square: 'inset-x-3', round: 'inset-x-[30%]' },
+    hidden: '-translate-y-1',
+    background: dashes(90),
+  },
+  bottom: {
+    place: 'bottom-[5px] h-0.5',
+    length: { square: 'inset-x-3', round: 'inset-x-[30%]' },
+    hidden: 'translate-y-1',
+    background: dashes(90),
+  },
+  left: {
+    place: 'left-[5px] w-0.5',
+    length: { square: 'inset-y-3', round: 'inset-y-[30%]' },
+    hidden: '-translate-x-1',
+    background: dashes(180),
+  },
+  right: {
+    place: 'right-[5px] w-0.5',
+    length: { square: 'inset-y-3', round: 'inset-y-[30%]' },
+    hidden: 'translate-x-1',
+    background: dashes(180),
+  },
+};
+
+/**
+ * Zoomed in on a blank canvas, the frame looks the same wherever you are, so
+ * a line marks each side where the canvas really ends. It fades in, nudging
+ * in from just past the edge as if it bumped into it.
+ */
+const EdgeLines: FC<{ edges: Edges; round: boolean }> = ({ edges, round }) =>
+  (Object.keys(SIDES) as Array<keyof Edges>).map((side) => {
+    const { place, length, hidden, background } = SIDES[side];
+    return (
+      <span
+        key={side}
+        aria-hidden="true"
+        className={cn(
+          'absolute pointer-events-none transition-[opacity,translate] duration-300 ease-[var(--ease-spring)]',
+          place,
+          round ? length.round : length.square,
+          edges[side] ? 'opacity-100' : cn('opacity-0', hidden),
+        )}
+        style={{ background }}
+      />
+    );
+  });
 
 /** The canvas in its sketchy frame: one finger draws, two pinch to zoom and pan */
 const ZoomableCanvas: FC<Props> = ({
@@ -63,19 +126,7 @@ const ZoomableCanvas: FC<Props> = ({
           {...canvasProps}
         />
       </div>
-      {/* Zoomed in on a blank canvas, the frame looks the same wherever you
-          are, so a dashed line marks each side where the canvas really ends */}
-      <span
-        aria-hidden="true"
-        className={cn(
-          'absolute inset-[5px] pointer-events-none border-2 border-dashed border-transparent transition-colors duration-200',
-          rounded,
-          edges.top && 'border-t-ink/40',
-          edges.right && 'border-r-ink/40',
-          edges.bottom && 'border-b-ink/40',
-          edges.left && 'border-l-ink/40',
-        )}
-      />
+      <EdgeLines edges={edges} round={variant === 'round'} />
       {zoomed && (
         <button
           type="button"
