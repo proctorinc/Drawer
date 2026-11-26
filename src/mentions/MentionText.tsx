@@ -13,31 +13,42 @@ type Props = {
 };
 
 /** Text with each @mention picked out in a little highlight */
-export const MentionText: FC<Props> = ({ text, judge }) => {
-  const knowsJudge = judge !== undefined;
-  const { data: judgeNames } = useJudgeNames(knowsJudge);
-  const ignored = useMemo(
-    () =>
-      knowsJudge && judgeNames
-        ? otherJudgeHandles(judgeNames, judge)
-        : undefined,
-    [knowsJudge, judgeNames, judge],
+export const MentionText: FC<Props> = ({ text, judge }) =>
+  judge === undefined ? (
+    <Highlighted text={text} />
+  ) : (
+    <OnlyReviewerHighlighted text={text} judge={judge} />
   );
 
-  return (
-    <>
-      {splitMentions(text, ignored).map((part, i) =>
-        part.mention ? (
-          <span
-            key={i}
-            className="px-1 rounded-md bg-sky text-ink font-bold whitespace-nowrap"
-          >
-            {part.text}
-          </span>
-        ) : (
-          part.text
-        ),
-      )}
-    </>
+/** Leaves every judge but the reviewer as plain text, once their names load */
+const OnlyReviewerHighlighted: FC<{ text: string; judge: string | null }> = ({
+  text,
+  judge,
+}) => {
+  const { data: judgeNames } = useJudgeNames();
+  const ignored = useMemo(
+    () => judgeNames && otherJudgeHandles(judgeNames, judge),
+    [judgeNames, judge],
   );
+  return <Highlighted text={text} ignored={ignored} />;
 };
+
+const Highlighted: FC<{ text: string; ignored?: ReadonlySet<string> }> = ({
+  text,
+  ignored,
+}) => (
+  <>
+    {splitMentions(text, ignored).map((part, i) =>
+      part.mention ? (
+        <span
+          key={i}
+          className="px-1 rounded-md bg-sky text-ink font-bold whitespace-nowrap"
+        >
+          {part.text}
+        </span>
+      ) : (
+        part.text
+      ),
+    )}
+  </>
+);
