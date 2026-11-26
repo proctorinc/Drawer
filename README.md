@@ -37,22 +37,6 @@ To run the docker container:
 docker run -p 8080:8080 -e TURSO_DATABASE_URL='' -e TURSO_AUTH_TOKEN='' -e CLERK_SECRET_KEY='' -e S3_BUCKET_NAME='' -e S3_BUCKET_REGION='' -e AWS_ACCESS_KEY_ID='' -e AWS_SECRET_ACCESS_KEY='' -e VAPID_PUBLIC_KEY='' -e VAPID_PRIVATE_KEY='' -e VAPID_SUBJECT='' -e ALLOWED_ORIGINS='' drawer-service
 ```
 
-## Database schema
-
-### Update database schema
-
-Locally:
-
-```bash
-sqlite3 drawer.db < server/schema.sql
-```
-
-Turso:
-
-```bash
-turso db shell drawer-db < server/schema.sql
-```
-
 ## Migrations
 
 - Checkout Turso/Geni docs here: https://turso.tech/blog/database-migrations-with-geni

@@ -88,17 +88,40 @@ func initLocalDB() (*sql.DB, error) {
 	return db, nil
 }
 
-func initializeDevData(db *sql.DB, devUserEmail string) error {
-	log.Println("Initializing dev data")
-	schema, err := os.ReadFile("schema.sql")
+// dropAllTables empties the local database so the seed starts fresh, whatever
+// tables it has: a hand-kept list of them fell behind every new migration.
+// Any order works, as initLocalDB's connection doesn't enforce foreign keys.
+func dropAllTables(db *sql.DB) error {
+	rows, err := db.Query(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`)
 	if err != nil {
-		return fmt.Errorf("failed to read schema file: %w", err)
+		return err
+	}
+	var tables []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			rows.Close()
+			return err
+		}
+		tables = append(tables, name)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
 	}
 
-	// Execute the schema SQL commands
-	_, err = db.Exec(string(schema))
-	if err != nil {
-		return fmt.Errorf("failed to execute schema SQL: %w", err)
+	for _, table := range tables {
+		if _, err := db.Exec(fmt.Sprintf(`DROP TABLE IF EXISTS "%s"`, table)); err != nil {
+			return fmt.Errorf("drop %s: %w", table, err)
+		}
+	}
+	return nil
+}
+
+func initializeDevData(db *sql.DB, devUserEmail string) error {
+	log.Println("Initializing dev data")
+	if err := dropAllTables(db); err != nil {
+		return fmt.Errorf("failed to clear the dev database: %w", err)
 	}
 
 	migrationsSchema, err := os.ReadFile("./migrations/schema.sql")
