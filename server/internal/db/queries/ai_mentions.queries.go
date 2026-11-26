@@ -127,3 +127,21 @@ func UncheckAIMention(repo *sql.DB, ctx context.Context, commentID int64) error 
 	}
 	return nil
 }
+
+// ListAIJudgeNames returns every judge's name, so the app can tell a judge's @handle from a player's.
+func ListAIJudgeNames(repo *sql.DB, ctx context.Context) ([]string, error) {
+	rows, err := repo.QueryContext(ctx, `SELECT name FROM ai_personalities ORDER BY name`)
+	if err != nil {
+		return nil, fmt.Errorf("error listing judge names: %w", err)
+	}
+	defer rows.Close()
+	names := []string{}
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, fmt.Errorf("error scanning judge name: %w", err)
+		}
+		names = append(names, name)
+	}
+	return names, rows.Err()
+}

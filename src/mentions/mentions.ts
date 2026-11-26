@@ -11,14 +11,18 @@ const TRAILING = /[.,!?;:)\]'"]+$/;
 
 /**
  * Splits text into plain runs and @mentions. A mention starts a word (so an
- * email address isn't one) and leaves off trailing punctuation.
+ * email address isn't one) and leaves off trailing punctuation. Handles in
+ * `ignored` (lowercased, without the @) stay plain text.
  */
-export function splitMentions(text: string): Array<MentionPart> {
+export function splitMentions(
+  text: string,
+  ignored: ReadonlySet<string> = new Set(),
+): Array<MentionPart> {
   const parts: Array<MentionPart> = [];
   let last = 0;
   for (const match of text.matchAll(MENTION)) {
     const name = match[2].replace(TRAILING, '');
-    if (name.length < 2) continue;
+    if (name.length < 2 || ignored.has(name.slice(1).toLowerCase())) continue;
     const start = match.index + match[1].length;
     if (start > last)
       parts.push({ text: text.slice(last, start), mention: false });
@@ -32,6 +36,22 @@ export function splitMentions(text: string): Array<MentionPart> {
 
 /** How an AI judge is @mentioned: their name without spaces, e.g. SirDoodleton */
 export const judgeHandle = (name: string) => name.replace(/\s+/g, '');
+
+/**
+ * The lowercased handles of every judge but the one who reviewed a doodle:
+ * only that judge answers there, so @ing any other one is just text.
+ */
+export function otherJudgeHandles(
+  judgeNames: Array<string>,
+  reviewer: string | null,
+): Set<string> {
+  const mine = reviewer && judgeHandle(reviewer).toLowerCase();
+  return new Set(
+    judgeNames
+      .map((name) => judgeHandle(name).toLowerCase())
+      .filter((handle) => handle !== mine),
+  );
+}
 
 /**
  * The @mention being typed just before the caret, if any: where its @ is and

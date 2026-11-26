@@ -627,6 +627,19 @@ func HandleGetTodaysJudge(c *gin.Context) {
 	})
 }
 
+// HandleListAIJudgeNames lists every judge's name, so the app can tell a judge's @handle from a
+// player's: only the judge who reviewed a doodle is highlighted when @ed in its comments.
+func HandleListAIJudgeNames(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	names, err := queries.ListAIJudgeNames(appCtx.DB, c.Request.Context())
+	if err != nil {
+		log.Printf("HandleListAIJudgeNames: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load the judges"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"names": names})
+}
+
 // TodaysJudgeIntro is the judge asking you for today's doodle, a line at a time.
 type TodaysJudgeIntro struct {
 	Judge  models.AIJudge `json:"judge"`

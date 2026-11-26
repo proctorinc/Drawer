@@ -4,6 +4,7 @@ import {
   matchMentions,
   mentionAtCaret,
   mentionables,
+  otherJudgeHandles,
   splitMentions,
 } from '../mentions';
 import type { AIJudge, User } from '@/api/Api';
@@ -65,5 +66,28 @@ describe('mentionables', () => {
       'benji',
     ]);
     expect(matchMentions(list, '').length).toBe(2);
+  });
+});
+
+describe('other judges', () => {
+  it('lists every judge handle but the reviewer, lowercased', () => {
+    const others = otherJudgeHandles(
+      ['Sir Doodleton', 'Madame Scribble'],
+      'Sir Doodleton',
+    );
+    expect([...others]).toEqual(['madamescribble']);
+    expect(otherJudgeHandles(['Sir Doodleton'], null).size).toBe(1);
+  });
+
+  it('leaves ignored handles as plain text', () => {
+    expect(
+      splitMentions(
+        '@SirDoodleton or @madamescribble?',
+        new Set(['madamescribble']),
+      ),
+    ).toEqual([
+      { text: '@SirDoodleton', mention: true },
+      { text: ' or @madamescribble?', mention: false },
+    ]);
   });
 });

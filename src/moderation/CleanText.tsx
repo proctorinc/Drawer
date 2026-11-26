@@ -11,11 +11,13 @@ const RAINBOW: CSSProperties = {
 
 /**
  * Renders user text with each swear word swapped for a silly word of the same kind, in a little
- * rainbow tag so it's clear the original was cleaned up, and each @mention highlighted.
+ * rainbow tag so it's clear the original was cleaned up, and each @mention highlighted (see
+ * MentionText for `judge`).
  */
-export const CleanText: FC<{ text: string | null | undefined }> = ({
-  text,
-}) => {
+export const CleanText: FC<{
+  text: string | null | undefined;
+  judge?: string | null;
+}> = ({ text, judge }) => {
   const segments = useMemo(() => findProfanity(text ?? ''), [text]);
 
   // One wrapping span so a flex parent sees a single item, not a column per word run
@@ -31,7 +33,7 @@ export const CleanText: FC<{ text: string | null | undefined }> = ({
             {segment.swap}
           </span>
         ) : (
-          <MentionText key={i} text={segment.text} />
+          <MentionText key={i} text={segment.text} judge={judge} />
         ),
       )}
     </span>

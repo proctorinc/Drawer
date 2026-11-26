@@ -226,7 +226,10 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
                   <div key={comment.id} className="flex flex-col gap-1">
                     <div className="flex items-start gap-2 font-semibold leading-snug">
                       <p className="flex-1 min-w-0 break-words">
-                        <CleanText text={comment.text} />
+                        <CleanText
+                          text={comment.text}
+                          judge={submission.aiReview?.judge.name ?? null}
+                        />
                       </p>
                       <span className="text-xs leading-5 text-secondary whitespace-nowrap">
                         {timeAgo(comment.createdAt)}
