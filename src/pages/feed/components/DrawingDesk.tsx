@@ -165,14 +165,15 @@ const DeskLinks = () => {
  * column with the title right above it, so the two never drift apart.
  */
 function useDeskFit() {
+  const mainRef = useRef<HTMLElement>(null);
   const areaRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState<Fit>('roomy');
   const [size, setSize] = useState(0);
   const sizeRef = useRef(0);
   sizeRef.current = size;
-  // What everything but the canvas needs in each layout, from the last time
-  // it was on screen (a guess until then)
+  // What everything on the desk but the canvas needs in each layout, from the
+  // last time it was on screen (a guess until then)
   const chrome = useRef<Record<Fit, number | null>>({
     roomy: null,
     compact: null,
@@ -181,9 +182,10 @@ function useDeskFit() {
   fitRef.current = fit;
 
   useLayoutEffect(() => {
+    const main = mainRef.current;
     const area = areaRef.current;
     const content = contentRef.current;
-    if (!area || !content) return;
+    if (!main || !area || !content) return;
 
     const measure = () => {
       // The frame's 2px border goes around the canvas
@@ -192,11 +194,17 @@ function useDeskFit() {
       const current = fitRef.current;
       // Everything in the column except the canvas
       const extra = content.offsetHeight - sizeRef.current;
-      chrome.current[current] = extra;
+      // The header above the column changes with the layout too, so each
+      // layout is judged against the whole desk, which doesn't. Judging by
+      // the column alone flip-flopped forever when only one layout fit.
+      chrome.current[current] = main.clientHeight - height + extra;
 
-      const room = (layout: Fit) =>
-        height -
-        (chrome.current[layout] ?? extra * (layout === 'compact' ? 0.5 : 2));
+      const room = (layout: Fit) => {
+        const known = chrome.current[layout];
+        return known === null
+          ? height - extra * (layout === 'compact' ? 0.5 : 2)
+          : main.clientHeight - known;
+      };
       const roomy = room('roomy') >= width * ROOMY_ENOUGH;
       const next: Fit = roomy ? 'roomy' : 'compact';
       if (next !== current) {
@@ -215,7 +223,7 @@ function useDeskFit() {
     return () => observer.disconnect();
   }, [fit]);
 
-  return { areaRef, contentRef, fit, size };
+  return { mainRef, areaRef, contentRef, fit, size };
 }
 
 type DrawingDeskProps = {
@@ -247,7 +255,7 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
   const zoomRef = useRef<PinchZoomHandle>(null);
   // A pinch anywhere on the desk zooms the canvas, never the page
   const deskRef = useRef<HTMLDivElement>(null);
-  const { areaRef, contentRef, fit, size } = useDeskFit();
+  const { mainRef, areaRef, contentRef, fit, size } = useDeskFit();
   const compact = fit === 'compact';
   // Just the canvas: the shell's masthead and navbar step aside
   useFullscreenPage();
@@ -312,6 +320,7 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
       className="flex justify-center h-dvh overflow-hidden overscroll-none touch-none"
     >
       <main
+        ref={mainRef}
         className={cn(
           'relative flex flex-col w-full max-w-md px-5 pt-[max(14px,env(safe-area-inset-top))] pb-[max(16px,env(safe-area-inset-bottom))] animate-rise transition-opacity duration-300',
           compact ? 'gap-2' : 'gap-3',
