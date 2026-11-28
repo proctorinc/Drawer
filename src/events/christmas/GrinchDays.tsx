@@ -73,7 +73,7 @@ const GrinchDays: FC<Props> = ({ event, days, className }) => {
                 color={isToday ? 'var(--color-xmas-red)' : undefined}
                 className={cn(
                   'w-full max-w-14 h-16',
-                  isToday && 'animate-twinkle',
+                  isToday && 'animate-breathe',
                 )}
               />
               <span className="font-accent font-bold text-lg leading-none">

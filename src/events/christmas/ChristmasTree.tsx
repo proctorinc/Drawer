@@ -162,7 +162,7 @@ const Ornament: FC<OrnamentProps> = ({
         aria-label={label}
         className={cn(
           'relative block w-full aspect-square scale-[1.35]',
-          isToday && 'animate-twinkle',
+          isToday && 'animate-breathe',
         )}
       >
         <GrinchHead
@@ -187,7 +187,7 @@ const Ornament: FC<OrnamentProps> = ({
             'relative block size-full rounded-full overflow-hidden box-border',
             isDone &&
               'bg-white border-2 border-ink shadow-[inset_0_0_0_2px_#fff] animate-in zoom-in-0 duration-500 fill-mode-both ease-[var(--ease-spring)]',
-            isToday && 'bg-white/70 border-2 border-xmas-red animate-twinkle',
+            isToday && 'bg-white/70 border-2 border-xmas-red animate-beacon',
             !isDone && !isToday && 'border-[1.5px] border-dashed',
           )}
           style={

@@ -63,6 +63,8 @@
   --color-snow: #9fb6cf;
   --animate-blink: blink 1.8s ease-in-out infinite;
   --animate-twinkle: twinkle 1.4s ease-in-out infinite;
+  /* Today's slot in a day tally: a slow, soft red glow that swells and fades */
+  --animate-beacon: beacon 3s ease-in-out infinite;
   /* Ornaments on the Christmas tree: a slow swell, a glint across, a sparkle */
   --animate-breathe: breathe 5s ease-in-out infinite;
   --animate-swell: swell 5s ease-in-out infinite;
@@ -177,6 +179,16 @@
     }
     50% {
       scale: 1.3;
+    }
+  }
+
+  @keyframes beacon {
+    0%,
+    100% {
+      box-shadow: 0 0 0 1.5px rgb(229 72 59 / 0.12);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgb(229 72 59 / 0.28);
     }
   }
 
