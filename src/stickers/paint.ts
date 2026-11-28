@@ -1,5 +1,5 @@
 import { PUPIL_SIZE } from './googly';
-import { BUBBLE_MAX_CHARS, stickerHeight } from './stickers';
+import { stickerHeight } from './stickers';
 import type { Pupil } from './googly';
 import type { PlacedSticker } from './stickers';
 
@@ -103,7 +103,7 @@ function paintBubble(
   ctx.fill(body);
   ctx.restore();
 
-  const words = text.trim().slice(0, BUBBLE_MAX_CHARS) || placeholder;
+  const words = text.trim() || placeholder;
   if (!words) return;
   // The roomy middle of the oval
   const { size, lines } = fitText(ctx, words, w * 0.72, bodyH * 0.62);

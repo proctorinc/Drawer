@@ -15,7 +15,7 @@ type PromptSticker struct {
 
 // ListPromptStickers returns every prompt's sticker, newest day first
 func ListPromptStickers(repo *sql.DB, ctx context.Context) ([]PromptSticker, error) {
-	rows, err := repo.QueryContext(ctx, `SELECT day, kind, size FROM prompt_stickers ORDER BY day DESC`)
+	rows, err := repo.QueryContext(ctx, `SELECT day, kind, size, max_chars FROM prompt_stickers ORDER BY day DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("listing prompt stickers: %w", err)
 	}
@@ -24,7 +24,7 @@ func ListPromptStickers(repo *sql.DB, ctx context.Context) ([]PromptSticker, err
 	stickers := []PromptSticker{}
 	for rows.Next() {
 		var s PromptSticker
-		if err := rows.Scan(&s.Day, &s.Kind, &s.Size); err != nil {
+		if err := rows.Scan(&s.Day, &s.Kind, &s.Size, &s.MaxChars); err != nil {
 			return nil, fmt.Errorf("scanning prompt sticker: %w", err)
 		}
 		stickers = append(stickers, s)
@@ -36,10 +36,11 @@ func ListPromptStickers(repo *sql.DB, ctx context.Context) ([]PromptSticker, err
 // sql.ErrNoRows if there's no prompt that day.
 func SetPromptSticker(repo *sql.DB, ctx context.Context, day string, sticker models.Sticker) error {
 	result, err := repo.ExecContext(ctx, `
-		INSERT INTO prompt_stickers (day, kind, size)
-		SELECT day, ?, ? FROM daily_prompts WHERE day = ?
-		ON CONFLICT (day) DO UPDATE SET kind = excluded.kind, size = excluded.size, updated_at = CURRENT_TIMESTAMP`,
-		sticker.Kind, sticker.Size, day)
+		INSERT INTO prompt_stickers (day, kind, size, max_chars)
+		SELECT day, ?, ?, ? FROM daily_prompts WHERE day = ?
+		ON CONFLICT (day) DO UPDATE SET
+			kind = excluded.kind, size = excluded.size, max_chars = excluded.max_chars, updated_at = CURRENT_TIMESTAMP`,
+		sticker.Kind, sticker.Size, sticker.MaxChars, day)
 	if err != nil {
 		return fmt.Errorf("setting the sticker for %s: %w", day, err)
 	}

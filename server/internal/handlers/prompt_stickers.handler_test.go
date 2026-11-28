@@ -44,10 +44,10 @@ func TestAdminPromptStickers(t *testing.T) {
 	if s := stickerOf(); s != nil {
 		t.Errorf("a new prompt has sticker %+v; want none", s)
 	}
-	if code, _ := send("PUT", "/prompts/2030-01-02/sticker", `{"kind": "bubble", "size": 40}`); code != http.StatusOK {
+	if code, _ := send("PUT", "/prompts/2030-01-02/sticker", `{"kind": "bubble", "size": 40, "maxChars": 12}`); code != http.StatusOK {
 		t.Errorf("adding a bubble: %d", code)
 	}
-	if s := stickerOf(); s == nil || *s != (models.Sticker{Kind: "bubble", Size: 40}) {
+	if s := stickerOf(); s == nil || *s != (models.Sticker{Kind: "bubble", Size: 40, MaxChars: 12}) {
 		t.Errorf("after adding a bubble the prompt has %+v", s)
 	}
 	if code, _ := send("PUT", "/prompts/2030-01-02/sticker", `{"kind": "googly-eyes", "size": 25}`); code != http.StatusOK {
@@ -61,12 +61,19 @@ func TestAdminPromptStickers(t *testing.T) {
 		t.Errorf("list = %d %s", code, body)
 	}
 
-	for _, bad := range []string{`{"kind": "mustache", "size": 40}`, `{"kind": "bubble", "size": 5}`, `{"kind": "bubble", "size": 95}`} {
+	for _, bad := range []string{
+		`{"kind": "mustache", "size": 40}`,
+		`{"kind": "bubble", "size": 5, "maxChars": 10}`,
+		`{"kind": "bubble", "size": 95, "maxChars": 10}`,
+		`{"kind": "bubble", "size": 40}`,
+		`{"kind": "bubble", "size": 40, "maxChars": 33}`,
+		`{"kind": "googly-eyes", "size": 25, "maxChars": 10}`,
+	} {
 		if code, _ := send("PUT", "/prompts/2030-01-02/sticker", bad); code != http.StatusBadRequest {
 			t.Errorf("%s: %d; want 400", bad, code)
 		}
 	}
-	if code, _ := send("PUT", "/prompts/2030-01-03/sticker", `{"kind": "bubble", "size": 40}`); code != http.StatusNotFound {
+	if code, _ := send("PUT", "/prompts/2030-01-03/sticker", `{"kind": "bubble", "size": 40, "maxChars": 10}`); code != http.StatusNotFound {
 		t.Errorf("a day with no prompt: %d; want 404", code)
 	}
 

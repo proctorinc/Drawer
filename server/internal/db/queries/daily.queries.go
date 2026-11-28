@@ -34,7 +34,7 @@ func CheckUserSubmittedToday(repo *sql.DB, ctx context.Context, userID string) (
 
 func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.DailyPrompt, error) {
 	query := `SELECT dp.day, dp.colors, dp.pencils, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue,
-			ps.kind, ps.size
+			ps.kind, ps.size, ps.max_chars
 		FROM daily_prompts dp
 		LEFT JOIN users u ON dp.created_by = u.id
 		LEFT JOIN prompt_stickers ps ON ps.day = dp.day
@@ -55,9 +55,10 @@ func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.D
 		colorHue      *int
 		stickerKind   sql.NullString
 		stickerSize   sql.NullInt64
+		stickerChars  sql.NullInt64
 	)
 
-	err := row.Scan(&prompt.Day, &colorsJSON, &pencilsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL, &decoration, &colorHue, &stickerKind, &stickerSize)
+	err := row.Scan(&prompt.Day, &colorsJSON, &pencilsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL, &decoration, &colorHue, &stickerKind, &stickerSize, &stickerChars)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.DailyPrompt{}, sql.ErrNoRows
@@ -72,7 +73,11 @@ func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.D
 	}
 	prompt.Pencils = parsePencils(pencilsJSON)
 	if stickerKind.Valid {
-		prompt.Sticker = &models.Sticker{Kind: stickerKind.String, Size: int(stickerSize.Int64)}
+		prompt.Sticker = &models.Sticker{
+			Kind:     stickerKind.String,
+			Size:     int(stickerSize.Int64),
+			MaxChars: int(stickerChars.Int64),
+		}
 	}
 
 	if userID.Valid {

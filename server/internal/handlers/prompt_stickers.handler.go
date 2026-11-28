@@ -22,6 +22,12 @@ const (
 	maxStickerSize = 90
 )
 
+// How many letters admins can let a word bubble hold
+const (
+	minBubbleChars = 1
+	maxBubbleChars = 32
+)
+
 // validateSticker reports what's wrong with a prompt's sticker, or "" if it's fine
 func validateSticker(s models.Sticker) string {
 	if !stickerKinds[s.Kind] {
@@ -29,6 +35,12 @@ func validateSticker(s models.Sticker) string {
 	}
 	if s.Size < minStickerSize || s.Size > maxStickerSize {
 		return fmt.Sprintf("Sticker sizes must be %d to %d", minStickerSize, maxStickerSize)
+	}
+	if s.Kind == "bubble" && (s.MaxChars < minBubbleChars || s.MaxChars > maxBubbleChars) {
+		return fmt.Sprintf("A word bubble holds %d to %d letters", minBubbleChars, maxBubbleChars)
+	}
+	if s.Kind != "bubble" && s.MaxChars != 0 {
+		return "Only word bubbles hold letters"
 	}
 	return ""
 }

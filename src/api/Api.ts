@@ -16,7 +16,7 @@ export interface DailyPrompt {
   isCompleted: boolean;
   createdBy: User | null;
   /** A sticker players can put on their drawing; left out for none */
-  sticker?: { kind: string; size: number };
+  sticker?: { kind: string; size: number; maxChars?: number };
 }
 
 export interface PromptSuggestion {

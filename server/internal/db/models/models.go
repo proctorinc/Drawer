@@ -17,11 +17,12 @@ type DailyPrompt struct {
 	Sticker *Sticker `json:"sticker,omitempty"`
 }
 
-// Sticker is one a prompt hands out: which kind, and how wide it starts as a percent of
-// the canvas width
+// Sticker is one a prompt hands out: which kind, how wide it starts as a percent of
+// the canvas width, and for a word bubble how many letters it holds
 type Sticker struct {
-	Kind string `json:"kind"`
-	Size int    `json:"size"`
+	Kind     string `json:"kind"`
+	Size     int    `json:"size"`
+	MaxChars int    `json:"maxChars,omitempty"`
 }
 
 // Pencil is one color a prompt hands out, and how thick it draws (in canvas units;

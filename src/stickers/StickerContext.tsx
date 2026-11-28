@@ -75,7 +75,7 @@ function savePlaced(key: string | undefined, placed: PlacedSticker | null) {
 
 type Props = {
   /** What the prompt hands out, straight from the server */
-  sticker?: { kind: string; size: number } | null;
+  sticker?: { kind: string; size: number; maxChars?: number } | null;
   /** Where the sticker is kept on the device until the drawing's pinned; nowhere if not given */
   storageKey?: string;
   children: ReactNode;
@@ -89,9 +89,10 @@ export const StickerProvider: FC<Props> = ({
 }) => {
   const kind = given && isStickerKind(given.kind) ? given.kind : null;
   const size = given?.size;
+  const maxChars = given?.maxChars;
   const sticker = useMemo(
-    () => (kind && size ? { kind, size } : null),
-    [kind, size],
+    () => (kind && size ? { kind, size, maxChars } : null),
+    [kind, size, maxChars],
   );
   const [placed, setPlaced] = useState(() => loadPlaced(storageKey, sticker));
   const [selected, setSelected] = useState(false);
@@ -105,14 +106,16 @@ export const StickerProvider: FC<Props> = ({
     if (kind === 'bubble') loadStickerFonts();
   }, [kind]);
 
-  // A new size (an admin trying sizes out) takes effect on the sticker already down
-  const sizeRef = useRef(sticker);
+  // A new size or letter limit (an admin trying them out) takes effect on the
+  // sticker already down
+  const stickerRef = useRef(sticker);
   useEffect(() => {
-    const before = sizeRef.current;
-    sizeRef.current = sticker;
-    if (!sticker || before?.size === sticker.size) return;
+    const before = stickerRef.current;
+    stickerRef.current = sticker;
+    if (!sticker || before === sticker) return;
+    const fit = before?.size === sticker.size ? clampSticker : resizeSticker;
     setPlaced((prev) =>
-      prev?.kind === sticker.kind ? resizeSticker(prev, sticker) : null,
+      prev?.kind === sticker.kind ? fit(prev, sticker) : null,
     );
   }, [sticker]);
 

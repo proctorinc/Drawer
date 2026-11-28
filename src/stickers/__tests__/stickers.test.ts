@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  BUBBLE_MAX_CHARS,
   clampSticker,
   placeSticker,
   resizeSticker,
@@ -45,10 +44,15 @@ describe('placing a sticker', () => {
     ).toBe(W);
   });
 
-  it('cuts a bubble off at its limit', () => {
-    const text = 'x'.repeat(BUBBLE_MAX_CHARS + 10);
+  it("cuts a bubble off at its prompt's limit", () => {
+    const text = 'x'.repeat(40);
+    const short = { ...bubble, maxChars: 4 };
+    expect(clampSticker({ ...placeSticker(short), text }, short).text).toBe(
+      'xxxx',
+    );
+    // Prompts saved before admins could pick hold the old 10
     expect(clampSticker({ ...placeSticker(bubble), text }, bubble).text).toBe(
-      'x'.repeat(BUBBLE_MAX_CHARS),
+      'x'.repeat(10),
     );
   });
 

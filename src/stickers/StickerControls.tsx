@@ -1,5 +1,5 @@
 import { useStickers } from './StickerContext';
-import { BUBBLE_MAX_CHARS, STICKERS } from './stickers';
+import { STICKERS, bubbleMaxChars } from './stickers';
 import type { FC } from 'react';
 import { ToolButton } from '@/drawing/Toolbar';
 import {
@@ -36,8 +36,9 @@ export const StickerControls: FC<{ compact?: boolean; className?: string }> = ({
   compact,
   className,
 }) => {
-  const { placed, update, remove, deselect, jiggle } = useStickers();
-  if (!placed) return null;
+  const { sticker, placed, update, remove, deselect, jiggle } = useStickers();
+  if (!sticker || !placed) return null;
+  const maxChars = bubbleMaxChars(sticker);
 
   return (
     <div className={cn('flex items-center w-full gap-2', className)}>
@@ -47,7 +48,7 @@ export const StickerControls: FC<{ compact?: boolean; className?: string }> = ({
           <input
             type="text"
             value={placed.text}
-            maxLength={BUBBLE_MAX_CHARS}
+            maxLength={maxChars}
             placeholder="say something…"
             enterKeyHint="done"
             // Straight to typing when it's just been stuck on
@@ -63,7 +64,7 @@ export const StickerControls: FC<{ compact?: boolean; className?: string }> = ({
             )}
           />
           <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-pencil tabular-nums pointer-events-none">
-            {BUBBLE_MAX_CHARS - placed.text.length}
+            {maxChars - placed.text.length}
           </span>
         </label>
       ) : (

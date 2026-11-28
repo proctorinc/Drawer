@@ -19,8 +19,15 @@ export const STICKER_KINDS = Object.keys(STICKERS) as Array<StickerKind>;
 export const isStickerKind = (kind: string): kind is StickerKind =>
   kind in STICKERS;
 
-/** The sticker a prompt hands out, and how wide it starts as a percent of the canvas */
-export type PromptSticker = { kind: StickerKind; size: number };
+/**
+ * The sticker a prompt hands out, how wide it starts as a percent of the
+ * canvas, and for a word bubble how many letters it holds
+ */
+export type PromptSticker = {
+  kind: StickerKind;
+  size: number;
+  maxChars?: number;
+};
 
 /** What admins can pick for a sticker's starting size (the server allows the same) */
 export const MIN_STICKER_SIZE = 10;
@@ -29,8 +36,22 @@ export const MAX_STICKER_SIZE = 90;
 /** Players can shrink or grow a sticker this far from where it started */
 export const PLAYER_SCALE = { min: 0.5, max: 1.6 };
 
-/** All a word bubble has room for: a tiny bit of context, not a caption */
-export const BUBBLE_MAX_CHARS = 32;
+/**
+ * How many letters a word bubble holds unless an admin says otherwise (a tiny
+ * bit of context, not a caption), and what admins can pick (the server allows the same)
+ */
+export const BUBBLE_CHARS = { default: 10, min: 1, max: 32 };
+
+/** How many letters the prompt's word bubble holds */
+export const bubbleMaxChars = ({ maxChars }: PromptSticker) =>
+  maxChars ?? BUBBLE_CHARS.default;
+
+/** A kind of sticker as it comes unless an admin says otherwise */
+export const defaultSticker = (kind: StickerKind): PromptSticker => ({
+  kind,
+  size: STICKERS[kind].defaultSize,
+  ...(kind === 'bubble' && { maxChars: BUBBLE_CHARS.default }),
+});
 
 /** A sticker on the page, in drawing units */
 export type PlacedSticker = {
@@ -81,7 +102,7 @@ export function clampSticker(
     width,
     x: clamp(placed.x, 0, CANVAS_W - width),
     y: clamp(placed.y, 0, CANVAS_H - height),
-    text: placed.text.slice(0, BUBBLE_MAX_CHARS),
+    text: placed.text.slice(0, bubbleMaxChars(sticker)),
   };
 }
 

@@ -24,11 +24,13 @@ import { StickerProvider, useStickers } from '@/stickers/StickerContext';
 import { StickerLayer } from '@/stickers/StickerLayer';
 import { AddStickerButton, StickerControls } from '@/stickers/StickerControls';
 import {
+  BUBBLE_CHARS,
   MAX_STICKER_SIZE,
   MIN_STICKER_SIZE,
   PLAYER_SCALE,
   STICKERS,
   STICKER_KINDS,
+  defaultSticker,
 } from '@/stickers/stickers';
 import { cn } from '@/utils';
 
@@ -57,6 +59,33 @@ const sizeIsValid = (size: number) =>
   Number.isInteger(size) &&
   size >= MIN_STICKER_SIZE &&
   size <= MAX_STICKER_SIZE;
+
+/** How many letters a word bubble holds */
+const LettersInput: FC<{
+  value: number;
+  onChange: (maxChars: number) => void;
+}> = ({ value, onChange }) => (
+  <label className="flex items-center gap-1">
+    <input
+      type="number"
+      min={BUBBLE_CHARS.min}
+      max={BUBBLE_CHARS.max}
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className="w-16 px-2 py-1 bg-white border-2 border-ink rounded-sketch-alt"
+    />
+    <span className="text-pencil">letters</span>
+  </label>
+);
+
+const lettersAreValid = (maxChars: number) =>
+  Number.isInteger(maxChars) &&
+  maxChars >= BUBBLE_CHARS.min &&
+  maxChars <= BUBBLE_CHARS.max;
+
+/** Whether a sticker is one admins can save: a size in range, and letters for a bubble */
+const stickerIsValid = ({ kind, size, maxChars }: PromptSticker) =>
+  sizeIsValid(size) && (kind !== 'bubble' || lettersAreValid(maxChars ?? 0));
 
 /** The canvas with the sticker on it, and what the pinned picture comes out as */
 const Playground: FC = () => {
@@ -114,6 +143,9 @@ const TryItOut: FC<{
   onChange: (sticker: PromptSticker) => void;
 }> = ({ sticker, onChange }) => {
   const [size, setSize] = useState(sticker.size);
+  const [maxChars, setMaxChars] = useState(
+    sticker.maxChars ?? BUBBLE_CHARS.default,
+  );
   const tried = sizeIsValid(size) ? { ...sticker, size } : sticker;
 
   return (
@@ -136,7 +168,8 @@ const TryItOut: FC<{
               disableLoad
               onClick={() => {
                 setSize(STICKERS[kind].defaultSize);
-                onChange({ kind, size: STICKERS[kind].defaultSize });
+                setMaxChars(BUBBLE_CHARS.default);
+                onChange(defaultSticker(kind));
               }}
             >
               {STICKERS[kind].label}
@@ -164,6 +197,16 @@ const TryItOut: FC<{
             if (sizeIsValid(next)) onChange({ ...sticker, size: next });
           }}
         />
+        {sticker.kind === 'bubble' && (
+          <LettersInput
+            value={maxChars}
+            onChange={(next) => {
+              setMaxChars(next);
+              if (lettersAreValid(next))
+                onChange({ ...sticker, maxChars: next });
+            }}
+          />
+        )}
         <p className="text-sm text-pencil">
           Players can shrink it to {PLAYER_SCALE.min * 100}% of this or grow it
           to {PLAYER_SCALE.max * 100}% by its corner, and drag it anywhere on
@@ -182,9 +225,18 @@ const PromptStickerRow: FC<{
 }> = ({ prompt, saved, onTry }) => {
   const [kind, setKind] = useState<StickerKind | ''>(saved?.kind ?? '');
   const [size, setSize] = useState(saved?.size ?? 0);
+  const [maxChars, setMaxChars] = useState(
+    saved?.maxChars ?? BUBBLE_CHARS.default,
+  );
   const setSticker = useSetPromptSticker();
-  const dirty = (saved?.kind ?? '') !== kind || (kind && saved?.size !== size);
-  const draft = kind ? { kind, size } : null;
+  const draft: PromptSticker | null = kind
+    ? { kind, size, ...(kind === 'bubble' && { maxChars }) }
+    : null;
+  const dirty =
+    (saved?.kind ?? '') !== kind ||
+    (!!draft &&
+      (saved?.size !== draft.size || saved.maxChars !== draft.maxChars));
+  const valid = !draft || stickerIsValid(draft);
 
   return (
     <tr>
@@ -196,7 +248,10 @@ const PromptStickerRow: FC<{
           onChange={(e) => {
             const next = e.target.value as StickerKind | '';
             setKind(next);
-            if (next) setSize(STICKERS[next].defaultSize);
+            if (next) {
+              setSize(STICKERS[next].defaultSize);
+              setMaxChars(BUBBLE_CHARS.default);
+            }
           }}
           className="px-2 py-1 bg-white border-2 border-ink rounded-sketch-alt"
         >
@@ -211,12 +266,17 @@ const PromptStickerRow: FC<{
       <td className={td}>
         {kind && <SizeInput value={size} onChange={setSize} />}
       </td>
+      <td className={td}>
+        {kind === 'bubble' && (
+          <LettersInput value={maxChars} onChange={setMaxChars} />
+        )}
+      </td>
       <td className={cn(td, 'whitespace-nowrap')}>
         <div className="flex items-center gap-2">
           <Button
             size="sm"
             variant="base"
-            disabled={!draft || !sizeIsValid(size)}
+            disabled={!draft || !valid}
             disableLoad
             onClick={() => draft && onTry(draft)}
           >
@@ -224,7 +284,7 @@ const PromptStickerRow: FC<{
           </Button>
           <Button
             size="sm"
-            disabled={!dirty || (!!draft && !sizeIsValid(size))}
+            disabled={!dirty || !valid}
             onClick={() =>
               setSticker.mutateAsync({ day: prompt.day, sticker: draft })
             }
@@ -258,10 +318,7 @@ function promptsToShow(
 const PromptStickersPage = () => {
   const prompts = useAdminPrompts();
   const stickers = useAdminStickers();
-  const [trying, setTrying] = useState<PromptSticker>({
-    kind: 'bubble',
-    size: STICKERS.bubble.defaultSize,
-  });
+  const [trying, setTrying] = useState(defaultSticker('bubble'));
   // Bumped when a prompt's sticker is tried, so the size controls pick it up
   const [tries, setTries] = useState(0);
 
@@ -288,6 +345,7 @@ const PromptStickersPage = () => {
                       <th className={th}>prompt</th>
                       <th className={th}>sticker</th>
                       <th className={th}>size</th>
+                      <th className={th}>letters</th>
                       <th className={th} />
                     </>
                   }
@@ -297,7 +355,7 @@ const PromptStickersPage = () => {
                     return (
                       <PromptStickerRow
                         // Keyed by what's saved, so a save resets the row
-                        key={`${prompt.day}-${saved?.kind}-${saved?.size}`}
+                        key={`${prompt.day}-${saved?.kind}-${saved?.size}-${saved?.maxChars}`}
                         prompt={prompt}
                         saved={saved}
                         onTry={(sticker) => {
