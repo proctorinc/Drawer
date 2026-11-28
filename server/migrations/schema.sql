@@ -168,3 +168,4 @@ CREATE INDEX idx_pokes_pokee_id_created_at ON pokes (pokee_id, created_at);
 CREATE TABLE ai_mention_checks (comment_id INTEGER PRIMARY KEY, checked_by TEXT, checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (comment_id) REFERENCES comments (id) ON DELETE CASCADE, FOREIGN KEY (checked_by) REFERENCES users (id) ON DELETE SET NULL);
 CREATE TABLE ai_auto_replies (submission_id TEXT PRIMARY KEY, started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, replied_at TIMESTAMP, FOREIGN KEY (submission_id) REFERENCES user_submissions (id) ON DELETE CASCADE);
 CREATE TABLE avatar_faces (user_id TEXT PRIMARY KEY, face TEXT NOT NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
+CREATE TABLE prompt_stickers (day TEXT PRIMARY KEY, kind TEXT NOT NULL, size INTEGER NOT NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (day) REFERENCES daily_prompts (day) ON DELETE CASCADE);

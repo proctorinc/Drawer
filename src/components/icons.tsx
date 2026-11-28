@@ -238,3 +238,27 @@ export const ZoomOutIcon: FC<IconProps> = (props) => (
     <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
   </StrokeIcon>
 );
+
+export const BubbleIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M12 4c5 0 9 2.9 9 6.5S17 17 12 17c-1 0-2-.1-2.9-.3L4.5 20l1.3-4.2C4 14.5 3 12.6 3 10.5 3 6.9 7 4 12 4z" />
+  </StrokeIcon>
+);
+
+export const GooglyEyesIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <circle cx="7" cy="12" r="5" />
+    <circle cx="17" cy="12" r="5" />
+    <circle cx="6" cy="14" r="2" fill="currentColor" />
+    <circle cx="18.5" cy="13.5" r="2" fill="currentColor" />
+  </StrokeIcon>
+);
+
+/** Mirrors something left to right */
+export const FlipIcon: FC<IconProps> = (props) => (
+  <StrokeIcon {...props}>
+    <path d="M12 3v18" strokeDasharray="2 3" />
+    <path d="M9 7L3 17h6z" />
+    <path d="M15 7l6 10h-6z" />
+  </StrokeIcon>
+);

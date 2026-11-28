@@ -15,6 +15,7 @@ import { PushPin } from '@/components/PushPin';
 import { useAnimationQueue } from '@/animations/AnimationQueue';
 import { UnfinishedDoodleButton } from '@/daily/UnfinishedDoodleButton';
 import { RedoButton } from '@/daily/RedoButton';
+import { clearStickerDraft } from '@/daily/drafts';
 
 /** When tomorrow's prompt drops; fixed-width digits so it never jiggles */
 const NextPromptCountdown = ({ compact = false }: { compact?: boolean }) =>
@@ -165,6 +166,7 @@ const Feed = () => {
 
   // Both finished: tidy up and show the wall, where the new polaroid drops in
   const isFinished = isUploaded && (isPinned || !pinning);
+  const day = dailyPrompt?.day;
   useEffect(() => {
     if (!isFinished) return;
     if (pinning) URL.revokeObjectURL(pinning.imageUrl);
@@ -172,8 +174,9 @@ const Feed = () => {
     setIsUploaded(false);
     setIsPinned(false);
     clearCanvas();
+    if (day) clearStickerDraft(day);
     window.scrollTo({ top: 0 });
-  }, [isFinished, pinning, clearCanvas]);
+  }, [isFinished, pinning, clearCanvas, day]);
 
   if (isLoading) return <LoadingScreen />;
 

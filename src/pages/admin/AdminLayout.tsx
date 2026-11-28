@@ -18,6 +18,7 @@ import {
   faLightbulb,
   faListUl,
   faMedal,
+  faNoteSticky,
   faPalette,
   faRobot,
   faRotateLeft,
@@ -58,6 +59,7 @@ const NAV: Array<{ group: string; items: Array<NavItem> }> = [
         icon: faLightbulb,
       },
       { to: '/draw/admin/redos', label: 'redos', icon: faRotateLeft },
+      { to: '/draw/admin/stickers', label: 'stickers', icon: faNoteSticky },
     ],
   },
   {

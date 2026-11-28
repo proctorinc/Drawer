@@ -33,10 +33,12 @@ func CheckUserSubmittedToday(repo *sql.DB, ctx context.Context, userID string) (
 }
 
 func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.DailyPrompt, error) {
-	query := `SELECT dp.day, dp.colors, dp.pencils, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue
+	query := `SELECT dp.day, dp.colors, dp.pencils, dp.prompt, dp.created_by, u.username, u.email, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue,
+			ps.kind, ps.size
 		FROM daily_prompts dp
 		LEFT JOIN users u ON dp.created_by = u.id
-		WHERE day = ?`
+		LEFT JOIN prompt_stickers ps ON ps.day = dp.day
+		WHERE dp.day = ?`
 	row := repo.QueryRowContext(ctx, query, dateStr)
 
 	var (
@@ -51,9 +53,11 @@ func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.D
 		avatarURL     sql.NullString
 		decoration    sql.NullString
 		colorHue      *int
+		stickerKind   sql.NullString
+		stickerSize   sql.NullInt64
 	)
 
-	err := row.Scan(&prompt.Day, &colorsJSON, &pencilsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL, &decoration, &colorHue)
+	err := row.Scan(&prompt.Day, &colorsJSON, &pencilsJSON, &prompt.Prompt, &userID, &username, &email, &userCreatedAt, &avatarType, &avatarURL, &decoration, &colorHue, &stickerKind, &stickerSize)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return models.DailyPrompt{}, sql.ErrNoRows
@@ -67,6 +71,9 @@ func GetDailyPrompt(repo *sql.DB, ctx context.Context, dateStr string) (models.D
 		return models.DailyPrompt{}, fmt.Errorf("error parsing colors JSON: %w", err)
 	}
 	prompt.Pencils = parsePencils(pencilsJSON)
+	if stickerKind.Valid {
+		prompt.Sticker = &models.Sticker{Kind: stickerKind.String, Size: int(stickerSize.Int64)}
+	}
 
 	if userID.Valid {
 		prompt.CreatedBy = &models.User{

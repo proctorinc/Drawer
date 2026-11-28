@@ -33,17 +33,44 @@ export function clearDraft(day: string) {
   } catch {
     // Storage blocked: there was nothing kept
   }
+  clearStickerDraft(day);
 }
 
-/** Drops every draft but today's and yesterday's: those can't be pinned any more */
+/**
+ * Drops every draft but today's and yesterday's: those can't be pinned any
+ * more. A sticker goes with them, unless it's on a redo still being drawn.
+ */
 export function clearOldDrafts(today: string) {
   const keep = new Set([draftKey(today), draftKey(dayBefore(today))]);
+  const keepSticker = (key: string) => {
+    const day = key.slice(STICKER_PREFIX.length);
+    return keep.has(draftKey(day)) || localStorage.getItem(redoDraftKey(day));
+  };
   try {
     Object.keys(localStorage)
-      .filter((key) => key.startsWith(PREFIX) && !keep.has(key))
+      .filter((key) =>
+        key.startsWith(PREFIX)
+          ? !keep.has(key)
+          : key.startsWith(STICKER_PREFIX) && !keepSticker(key),
+      )
       .forEach((key) => localStorage.removeItem(key));
   } catch {
     // Storage blocked: nothing to tidy
+  }
+}
+
+const STICKER_PREFIX = 'STICKER_';
+
+/** Where the sticker on day's drawing is kept until it's pinned, for the daily, a late finish or a redo */
+export const stickerDraftKey = (day: string) =>
+  `${STICKER_PREFIX}${day.slice(0, 10)}`;
+
+/** Forgets the sticker on day's drawing, once it's pinned */
+export function clearStickerDraft(day: string) {
+  try {
+    localStorage.removeItem(stickerDraftKey(day));
+  } catch {
+    // Storage blocked: there was nothing kept
   }
 }
 
@@ -63,4 +90,5 @@ export function clearRedoDraft(day: string) {
   } catch {
     // Storage blocked: there was nothing kept
   }
+  clearStickerDraft(day);
 }

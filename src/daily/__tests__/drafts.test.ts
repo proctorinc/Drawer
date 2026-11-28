@@ -2,9 +2,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   clearDraft,
   clearOldDrafts,
+  clearRedoDraft,
   dayBefore,
   draftKey,
   hasDraft,
+  redoDraftKey,
+  stickerDraftKey,
 } from '../drafts';
 
 describe('drafts', () => {
@@ -37,5 +40,35 @@ describe('drafts', () => {
     localStorage.setItem(draftKey('2026-11-22'), '[]');
     clearDraft('2026-11-22T00:00:00Z');
     expect(hasDraft('2026-11-22')).toBe(false);
+  });
+
+  it('keeps the stickers on drawings that can still be pinned', () => {
+    for (const day of [
+      '2026-11-20',
+      '2026-11-21',
+      '2026-11-22',
+      '2026-11-23',
+    ]) {
+      localStorage.setItem(stickerDraftKey(day), '{}');
+    }
+    localStorage.setItem(redoDraftKey('2026-11-20'), '[]');
+
+    clearOldDrafts('2026-11-23');
+
+    const kept = (day: string) => localStorage.getItem(stickerDraftKey(day));
+    expect(kept('2026-11-23')).not.toBeNull();
+    expect(kept('2026-11-22')).not.toBeNull();
+    // A redo in progress
+    expect(kept('2026-11-20')).not.toBeNull();
+    expect(kept('2026-11-21')).toBeNull();
+  });
+
+  it('forgets the sticker along with a pinned drawing', () => {
+    localStorage.setItem(stickerDraftKey('2026-11-22'), '{}');
+    localStorage.setItem(stickerDraftKey('2026-11-01'), '{}');
+    clearDraft('2026-11-22');
+    clearRedoDraft('2026-11-01');
+    expect(localStorage.getItem(stickerDraftKey('2026-11-22'))).toBeNull();
+    expect(localStorage.getItem(stickerDraftKey('2026-11-01'))).toBeNull();
   });
 });

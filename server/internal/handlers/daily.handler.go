@@ -27,6 +27,20 @@ type DailyPromptResponse struct {
 	Prompt      string          `json:"prompt"`
 	IsCompleted bool            `json:"isCompleted"`
 	CreatedBy   *models.User    `json:"createdBy"`
+	Sticker     *models.Sticker `json:"sticker,omitempty"`
+}
+
+// newDailyPromptResponse is what a player sees of a prompt
+func newDailyPromptResponse(prompt models.DailyPrompt, isCompleted bool) DailyPromptResponse {
+	return DailyPromptResponse{
+		Day:         prompt.Day,
+		Colors:      prompt.Colors,
+		Pencils:     prompt.Pencils,
+		Prompt:      prompt.Prompt,
+		IsCompleted: isCompleted,
+		CreatedBy:   prompt.CreatedBy,
+		Sticker:     prompt.Sticker,
+	}
 }
 
 func HandleGetDailyPrompt(c *gin.Context) {
@@ -59,16 +73,7 @@ func HandleGetDailyPrompt(c *gin.Context) {
 		}
 	}
 
-	response := DailyPromptResponse{
-		IsCompleted: hasSubmittedToday,
-		Day:         prompt.Day,
-		Colors:      prompt.Colors,
-		Pencils:     prompt.Pencils,
-		Prompt:      prompt.Prompt,
-		CreatedBy:   prompt.CreatedBy,
-	}
-
-	c.JSON(http.StatusOK, response)
+	c.JSON(http.StatusOK, newDailyPromptResponse(prompt, hasSubmittedToday))
 }
 
 func HandleSubmitDailyPrompt(c *gin.Context) {
@@ -260,13 +265,7 @@ func HandleGetUnfinishedPrompt(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"prompt": nil})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"prompt": DailyPromptResponse{
-		Day:       prompt.Day,
-		Colors:    prompt.Colors,
-		Pencils:   prompt.Pencils,
-		Prompt:    prompt.Prompt,
-		CreatedBy: prompt.CreatedBy,
-	}})
+	c.JSON(http.StatusOK, gin.H{"prompt": newDailyPromptResponse(prompt, false)})
 }
 
 // isPastDay reports whether day is a real YYYY-MM-DD date before today.
@@ -321,13 +320,7 @@ func HandleGetRedos(c *gin.Context) {
 			log.Printf("HandleGetRedos: prompt for %s: %v", day, err)
 			continue
 		}
-		response.Prompts = append(response.Prompts, DailyPromptResponse{
-			Day:       prompt.Day,
-			Colors:    prompt.Colors,
-			Pencils:   prompt.Pencils,
-			Prompt:    prompt.Prompt,
-			CreatedBy: prompt.CreatedBy,
-		})
+		response.Prompts = append(response.Prompts, newDailyPromptResponse(prompt, false))
 		if free.Covers(day) {
 			response.FreeDays = append(response.FreeDays, day)
 		}

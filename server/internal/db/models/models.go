@@ -13,6 +13,15 @@ type DailyPrompt struct {
 	Pencils   []Pencil `json:"pencils,omitempty"`
 	Prompt    string   `json:"prompt"`
 	CreatedBy *User    `json:"createdBy"`
+	// The sticker players can put on their drawing, or nil for none
+	Sticker *Sticker `json:"sticker,omitempty"`
+}
+
+// Sticker is one a prompt hands out: which kind, and how wide it starts as a percent of
+// the canvas width
+type Sticker struct {
+	Kind string `json:"kind"`
+	Size int    `json:"size"`
 }
 
 // Pencil is one color a prompt hands out, and how thick it draws (in canvas units;

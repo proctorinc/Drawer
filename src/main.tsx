@@ -64,6 +64,7 @@ import AIMentionsPage from './pages/admin/pages/AIMentionsPage.tsx';
 import DrawingDemoPage from './pages/admin/pages/DrawingDemoPage.tsx';
 import BrandPage from './pages/admin/pages/BrandPage.tsx';
 import DefaultAvatarsPage from './pages/admin/pages/DefaultAvatarsPage.tsx';
+import PromptStickersPage from './pages/admin/pages/PromptStickersPage.tsx';
 import SignaturePage from './pages/admin/pages/SignaturePage.tsx';
 import BetaZonePage from './pages/admin/pages/BetaZonePage.tsx';
 import MintedPage from './pages/admin/pages/MintedPage.tsx';
@@ -439,6 +440,7 @@ const adminPages = [
   }),
   adminPage('achievements', AchievementsPage),
   adminPage('decorations', DecorationsPage),
+  adminPage('stickers', PromptStickersPage),
   adminPage('reactions', ReactionsPage),
   adminPage('progression', ProgressionPage),
   adminPage('levels', LevelsPage),

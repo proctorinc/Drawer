@@ -30,6 +30,10 @@ import OrnamentTally from '@/events/christmas/OrnamentTally';
 import { useChristmas } from '@/events/useChristmas';
 import { UnfinishedDoodleButton } from '@/daily/UnfinishedDoodleButton';
 import { RedoButton } from '@/daily/RedoButton';
+import { stickerDraftKey } from '@/daily/drafts';
+import { StickerProvider, useStickers } from '@/stickers/StickerContext';
+import { StickerLayer } from '@/stickers/StickerLayer';
+import { AddStickerButton, StickerControls } from '@/stickers/StickerControls';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { cn } from '@/utils';
 
@@ -243,7 +247,16 @@ type DrawingDeskProps = {
 };
 
 /** Nothing but the prompt and the canvas, sized to fit any screen without scrolling */
-const DrawingDesk: FC<DrawingDeskProps> = ({
+const DrawingDesk: FC<DrawingDeskProps> = (props) => (
+  <StickerProvider
+    sticker={props.dailyPrompt.sticker}
+    storageKey={stickerDraftKey(props.dailyPrompt.day)}
+  >
+    <Desk {...props} />
+  </StickerProvider>
+);
+
+const Desk: FC<DrawingDeskProps> = ({
   dailyPrompt,
   error,
   onSubmit,
@@ -254,6 +267,7 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
   const { data: todaysJudge } = useTodaysJudge();
   const judge = past ? undefined : todaysJudge;
   const { canvasRef, hasInk, barelyDrawn, getPng } = useDrawing();
+  const stickers = useStickers();
   const confirm = useConfirm();
   const zoomRef = useRef<PinchZoomHandle>(null);
   // A pinch anywhere on the desk zooms the canvas, never the page
@@ -269,6 +283,8 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
     dailyPrompt.colors.length === 4 ? dailyPrompt.colors[3] : undefined;
   const pencils = pencilsFor(dailyPrompt);
   const tips = <DrawingTipsButton pencils={pencils} paper={backgroundColor} />;
+  // The pencils step aside (staying in hand) while the sticker's being edited
+  const editingSticker = stickers.selected;
 
   async function handleSubmit() {
     // A stray tap on the button shouldn't pin a near-blank page for good
@@ -286,7 +302,8 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
     }
     // The pin flies from where the canvas sits, so show all of it first
     zoomRef.current?.reset(false);
-    const png = await getPng(backgroundColor);
+    stickers.deselect();
+    const png = await getPng(backgroundColor, stickers.paintOver);
     onSubmit(png, canvasRef.current);
   }
 
@@ -379,6 +396,7 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
               pinchAreaRef={deskRef}
               size={size}
               backgroundColor={backgroundColor}
+              overlay={<StickerLayer />}
               // Hidden until it's been measured, so it never flashes the wrong size
               className={cn('self-center animate-drop', !size && 'invisible')}
             />
@@ -406,13 +424,25 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
                 <Toolbar
                   pencils={pencils}
                   compact
-                  className="w-auto grow-[999]"
+                  extra={<AddStickerButton compact />}
+                  className={cn(
+                    'w-auto grow-[999]',
+                    editingSticker && 'hidden',
+                  )}
                 />
+                {editingSticker && (
+                  <StickerControls compact className="w-auto grow-[999]" />
+                )}
                 {submit}
               </div>
             ) : (
               <>
-                <Toolbar pencils={pencils} />
+                <Toolbar
+                  pencils={pencils}
+                  extra={<AddStickerButton />}
+                  className={cn(editingSticker && 'hidden')}
+                />
+                {editingSticker && <StickerControls />}
                 <div className="mt-1">{submit}</div>
               </>
             )}

@@ -11,6 +11,8 @@ type Props = {
   pencils: Array<Pencil>;
   /** Smaller tools, for sharing a row with the submit button on short screens */
   compact?: boolean;
+  /** More tools, before the eraser (e.g. the prompt's sticker) */
+  extra?: ReactNode;
   className?: string;
 };
 
@@ -23,7 +25,8 @@ type ToolButtonProps = {
   children: ReactNode;
 };
 
-const ToolButton: FC<ToolButtonProps> = ({
+/** One of the square tools beside the pencils */
+export const ToolButton: FC<ToolButtonProps> = ({
   label,
   compact,
   isActive,
@@ -47,7 +50,12 @@ const ToolButton: FC<ToolButtonProps> = ({
   </button>
 );
 
-export const Toolbar: FC<Props> = ({ pencils, compact = false, className }) => {
+export const Toolbar: FC<Props> = ({
+  pencils,
+  compact = false,
+  extra,
+  className,
+}) => {
   const {
     selectedColor,
     selectedSize,
@@ -131,6 +139,7 @@ export const Toolbar: FC<Props> = ({ pencils, compact = false, className }) => {
         })}
       </div>
       <div className={cn('flex ml-auto', compact ? 'gap-1.5' : 'gap-2')}>
+        {extra}
         <ToolButton
           label="Eraser"
           compact={compact}

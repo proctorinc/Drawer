@@ -46,7 +46,11 @@ type DrawingContextType = {
   hasInk: boolean;
   /** So little drawn it may have been an accident, e.g. one stray tap */
   barelyDrawn: boolean;
-  getPng: (backgroundColor?: string) => Promise<Blob>;
+  /** The drawing as a picture; `paintOver` adds to it (in drawing units), e.g. a sticker */
+  getPng: (
+    backgroundColor?: string,
+    paintOver?: (ctx: CanvasRenderingContext2D) => void,
+  ) => Promise<Blob>;
 };
 
 const DrawingContext = createContext<DrawingContextType | undefined>(undefined);
@@ -334,7 +338,10 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
   );
 
   const getPng = useCallback(
-    async (backgroundColor?: string): Promise<Blob> => {
+    async (
+      backgroundColor?: string,
+      paintOver?: (ctx: CanvasRenderingContext2D) => void,
+    ): Promise<Blob> => {
       const layer = makeLayer();
       const ctx = layer.getContext('2d');
       if (!ctx) throw new Error('Could not get canvas context');
@@ -343,6 +350,10 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
         ctx.fillRect(0, 0, PIXEL_WIDTH, PIXEL_HEIGHT);
       }
       if (committedRef.current) ctx.drawImage(committedRef.current, 0, 0);
+      if (paintOver) {
+        ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+        paintOver(ctx);
+      }
       return new Promise<Blob>((resolve, reject) => {
         layer.toBlob(
           (blob) =>
