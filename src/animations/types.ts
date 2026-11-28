@@ -12,7 +12,7 @@
  * on stage, so they land with the XP rather than over a celebration.
  */
 import type { FC } from 'react';
-import type { Achievement, AchievementReward } from '@/api/Api';
+import type { AIJudge, Achievement, AchievementReward } from '@/api/Api';
 import type { Quest } from '@/api/trophies';
 import type { Announcement } from '@/announcements/api';
 import type { JudgeIntro } from '@/ai/JudgeIntro';
@@ -59,6 +59,11 @@ export type StagePayloads = {
   };
   /** Full screen: how to get the most out of today's pencils */
   drawingTips: { pencils: Array<Pencil>; paper: string };
+  /**
+   * Centered card: the judge's tips for drawing your doodle better. `welcome`
+   * when it opens on its own after a low score, so it starts encouraging.
+   */
+  reviewTips: { submissionId: string; judge: AIJudge; welcome?: boolean };
 };
 
 export type StageKind = keyof StagePayloads;

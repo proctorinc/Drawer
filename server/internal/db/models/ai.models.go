@@ -86,6 +86,13 @@ type AIReview struct {
 	Error string `json:"-"`
 }
 
+// AITips are how the artist could draw a doodle better next time, in plain words, as the judge
+// that reviewed it sees it. Only the artist sees them.
+type AITips struct {
+	Judge   []string `json:"judge"`   // For what that judge scores
+	General []string `json:"general"` // For drawing well and showing the prompt
+}
+
 // AIReply is something a judge said in a doodle's comments after its review, written when an
 // admin asked for it.
 type AIReply struct {

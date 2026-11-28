@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AIJudgeAvatar } from './AIJudgeAvatar';
 import { CommentLines } from './CommentLines';
 import { AIJudgeDrawer } from './AIJudgeDrawer';
+import { ReviewTipsButton } from './ReviewTips';
 import { AI_SCORE_MAX, formatScore } from './score';
 import { speakerTurns } from './speakers';
 import type { FC } from 'react';
@@ -133,6 +134,9 @@ export const AIReviewComment: FC<Props> = ({
             <CriterionChip key={criterion.id} criterion={criterion} />
           ))}
         </div>
+      )}
+      {mine && (
+        <ReviewTipsButton submissionId={review.submissionId} judge={judge} />
       )}
       {drawer}
     </SpeechBox>

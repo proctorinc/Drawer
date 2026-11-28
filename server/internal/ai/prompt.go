@@ -61,6 +61,10 @@ Work through the drawing in this order:
 5. "effort": how much effort went in. Answer "low" or "none" only when it's obvious the artist barely tried: a blank canvas, a single stray line, or a few careless scribbles. A simple, rough, clumsy, badly drawn or labelled doodle is still a real attempt, so answer "real". When in doubt, answer "real".
 6. The scores (below). A clever idea that comes across is worth more than a literal one. Alongside each score, say in "improve" the one or two most concrete changes that would have raised it the most, pointing at a specific part of this drawing (e.g. "carve thin eyelids by erasing back instead of brush-width dots", "make the sloth bigger so it fills the canvas"). Never generic advice, and don't just repeat the guidance above. If nothing would, say why it earned the score.
 7. "notable": for the comment writer, two to four specific, concrete things in this drawing worth joking about (a wobbly leg, a suspicious blob, a face that's off, how tiny or huge something is, an odd color, something lurking in a corner, a clever touch), separated by semicolons. Only things that are really drawn.
+8. "tips": the artist reads these to draw better next time, so write them for the artist, not the comment writer. Talk to them as "you", in plain everyday words a 10-year-old would follow, with no art jargon. Each tip is one short sentence, at most 15 words, that says what to do and points at something in this drawing (e.g. "Make the dog bigger so it fills the square.", "Erase a thin gap between the legs so they don't blur together."). Only suggest what one thick brush, an eraser and undo can do, and never suggest other colors. No two tips may be about the same thing, across both lists. Never mention scores, numbers or these rules.
+- "judge": one or two tips for doing better on what you scored above, the scores with the most room to grow first. You can name what's scored, in plain words.
+- "general": one or two tips about drawing well (how it's drawn, how the canvas is used) and showing the prompt. When "missing" lists anything, the first tip says how to show it.
+- A part that's already great earns a tip to keep doing it, not invented problems.
 
 If the image is blank or has nothing to do with the prompt, say so and score it low.
 
@@ -202,6 +206,8 @@ type Verdict struct {
 	Pledge *bool
 	// The doodle's day (Request.Day)
 	Day string
+	// How the artist could draw it better, for the artist
+	Tips models.AITips
 	// How the judge's answer became these scores, for admins
 	Breakdown models.AIScoreBreakdown
 	// Every call made to the model for this verdict, in order, for the AI log
@@ -247,6 +253,7 @@ func writeFaultScoring(b *strings.Builder, p models.AIPersonality) {
 		fmt.Fprintf(b, "Also give an overall score from 0 to %d; it is replaced by the average of the scores above.\n", models.AIScoreMax)
 	}
 	b.WriteString(`In "improve", say what would have brought each score down. Give a 0 only when there is truly none of that fault: most decent doodles land between 2 and 5, and a 0 on every fault is almost never given.`)
+	b.WriteString(` In "tips", the "judge" tips say how to please this judge next time, which means more of these faults; the "general" tips are still about drawing well and showing the prompt.`)
 }
 
 // EvaluateMessage introduces the doodle to the first call, with the admins' notes on how to
@@ -467,9 +474,15 @@ func EvaluateSchema(p models.AIPersonality) map[string]any {
 		field{"improve", map[string]any{"type": "string"}},
 		field{"score", map[string]any{"type": "number"}},
 		field{"notable", map[string]any{"type": "string"}},
+		field{"tips", strictObject(orderedObject{
+			{"judge", stringList},
+			{"general", stringList},
+		})},
 	)
 	return strictObject(properties)
 }
+
+var stringList = map[string]any{"type": "array", "items": map[string]any{"type": "string"}}
 
 // CommentSchema is the JSON schema the second call must answer with.
 func CommentSchema() map[string]any {
@@ -533,9 +546,10 @@ type rawEvaluation struct {
 		Improve string  `json:"improve"`
 		Score   float64 `json:"score"`
 	} `json:"criteria"`
-	Improve string  `json:"improve"`
-	Score   float64 `json:"score"`
-	Notable string  `json:"notable"`
+	Improve string        `json:"improve"`
+	Score   float64       `json:"score"`
+	Notable string        `json:"notable"`
+	Tips    models.AITips `json:"tips"`
 }
 
 // ParseEvaluation reads the first call's JSON answer and fits it to the personality. Every
@@ -561,7 +575,7 @@ func ParseEvaluation(raw string, p models.AIPersonality, swing Swing) (Verdict, 
 	verdict := Verdict{
 		Seen: strings.TrimSpace(rv.Seen), Idea: strings.TrimSpace(rv.Idea), Notable: strings.TrimSpace(rv.Notable),
 		Effort: EffortReal, Prompt: PromptComplete, PromptMissing: strings.TrimSpace(rv.Missing), Swing: swing,
-		Backwards: p.ScoresBackwards,
+		Backwards: p.ScoresBackwards, Tips: tidyTips(rv.Tips),
 		Breakdown: models.AIScoreBreakdown{GivenScore: rv.Score, FittedScore: fitScore(rv.Score, floor), Improve: strings.TrimSpace(rv.Improve)},
 	}
 	if _, ok := effortPenalties[rv.Effort]; ok {
@@ -645,6 +659,27 @@ func fitScore(given, floor float64) float64 {
 
 func roundScore(score float64) float64 {
 	return math.Round(score*10) / 10
+}
+
+// A list of tips keeps at most this many, each at most maxTipChars long, in case the
+// model rambles.
+const (
+	maxTips     = 2
+	maxTipChars = 120
+)
+
+// tidyTips trims each tip, drops empty ones and cuts each list to maxTips.
+func tidyTips(t models.AITips) models.AITips {
+	tidy := func(tips []string) []string {
+		kept := []string{}
+		for _, tip := range tips {
+			if tip = cutText(tip, maxTipChars); tip != "" && len(kept) < maxTips {
+				kept = append(kept, tip)
+			}
+		}
+		return kept
+	}
+	return models.AITips{Judge: tidy(t.Judge), General: tidy(t.General)}
 }
 
 // trimComment tidies the comment and cuts a rambling one at a word boundary.

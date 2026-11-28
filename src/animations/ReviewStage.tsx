@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useAnimationQueue } from './AnimationQueue';
 import type { StageComponent } from './types';
 import { AIDialogue, stagedReviews } from '@/ai/AIDialogue';
+import { shouldOfferTips } from '@/ai/ReviewTips';
 import { usePromptSubmission } from '@/api/Api';
 
 /**
@@ -19,11 +21,23 @@ export const ReviewStage: StageComponent<'review'> = ({ payload, onDone }) => {
     staged?.doodle ??
     (data ? { prompt: data.prompt, imageUrl: data.imageUrl } : undefined);
   const nothingToSay = !staged && (isError || (!!data && !fetched));
+  const { enqueue } = useAnimationQueue();
 
   useEffect(() => {
     if (nothingToSay) onDone();
   }, [nothingToSay, onDone]);
 
   if (!review) return null;
-  return <AIDialogue review={review} doodle={doodle} onClose={onDone} />;
+  const close = () => {
+    onDone();
+    // A low score: follow it with the judge's tips, so it ends on a way forward
+    if (shouldOfferTips(review)) {
+      void enqueue({
+        id: `review-tips-${submissionId}`,
+        kind: 'reviewTips',
+        payload: { submissionId, judge: review.judge, welcome: true },
+      });
+    }
+  };
+  return <AIDialogue review={review} doodle={doodle} onClose={close} />;
 };

@@ -66,6 +66,8 @@ type AIRunMetadata struct {
 	PromptBonus   float64 `json:"promptBonus,omitempty"`   // Added to every score
 	Swing         string  `json:"swing,omitempty"`         // The random swing: "boost", "super" or none
 	SwingPoints   float64 `json:"swingPoints,omitempty"`   // Added to every score (negative when hated)
+	// How the artist could draw it better; runs logged before tips were asked for have none
+	Tips *models.AITips `json:"tips,omitempty"`
 	// How the swing was rolled, and how the judge's answer became its scores. Runs logged
 	// before these were kept have neither.
 	SwingRoll *models.AISwingRoll      `json:"swingRoll,omitempty"`

@@ -202,6 +202,7 @@ func RunAndLog(ctx context.Context, repo *sql.DB, provider Provider, req Request
 		run.Score = &verdict.Score
 		run.Criteria = verdict.Criteria
 		run.Comment = verdict.Comment
+		run.Metadata.Tips = &verdict.Tips
 		if verdict.Swing.Kind != SwingNone {
 			log.Printf("AI judge: %s got a %s swing of %+.1f on %q", p.Name, verdict.Swing.Kind, verdict.Swing.Points, req.Prompt)
 		}

@@ -731,6 +731,22 @@ func HandleMarkAIReviewHeard(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
+// HandleGetAIReviewTips returns how you could draw your doodle better, from its judge's
+// review. 404 when it isn't your doodle, isn't judged yet, or was judged before tips.
+func HandleGetAIReviewTips(c *gin.Context) {
+	appCtx := requestContext.GetCtx(c)
+	tips, err := queries.GetAIReviewTips(appCtx.DB, c.Request.Context(), c.Param("submissionId"), middleware.GetUserID(c))
+	if errors.Is(err, sql.ErrNoRows) {
+		c.AbortWithStatusJSON(http.StatusNotFound, Error("No tips for this doodle"))
+		return
+	} else if err != nil {
+		log.Printf("Error loading AI review tips: %v", err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to load the tips"))
+		return
+	}
+	c.JSON(http.StatusOK, tips)
+}
+
 // HandleAdminSetPromptJudge hands a day's doodles to one AI judge, or back to the event's or
 // default judge when judgeId is empty.
 func HandleAdminSetPromptJudge(c *gin.Context) {

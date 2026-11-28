@@ -2,9 +2,12 @@ package queries
 
 import (
 	"context"
+	"database/sql"
 	"drawer-service-backend/internal/config"
 	"drawer-service-backend/internal/db/dbtest"
 	"drawer-service-backend/internal/db/models"
+	"errors"
+	"strings"
 	"testing"
 )
 
@@ -79,5 +82,37 @@ func TestMarkAIReviewHeard(t *testing.T) {
 	}
 	if heard() {
 		t.Error("a re-judged review should be unheard again")
+	}
+}
+
+func TestGetAIReviewTips(t *testing.T) {
+	db := dbtest.NewEventsDB(t)
+	ctx := context.Background()
+	dbtest.Exec(t, db, `
+		INSERT INTO users (id, username, email) VALUES ('me', 'me', 'me@x'), ('pal', 'pal', 'pal@x');
+		INSERT INTO daily_prompts (day, colors, prompt) VALUES ('2026-11-10', '[]', 'A goalie'), ('2026-11-09', '[]', 'A cat');
+		INSERT INTO user_submissions (id, user_id, day) VALUES ('mine', 'me', '2026-11-10'), ('old', 'me', '2026-11-09');
+		INSERT INTO ai_runs (id, kind, personality_id, judge_name, submission_id, status, metadata) VALUES
+			('run', 'submission', 'ai-sir-doodleton', 'Sir Doodleton', 'mine', 'done',
+				'{"prompt": "partial", "promptMissing": "the goal", "tips": {"judge": ["Fill the square."], "general": ["Draw a net behind them."]}}'),
+			('old-run', 'submission', 'ai-sir-doodleton', 'Sir Doodleton', 'old', 'done', '{"prompt": "complete"}');
+		INSERT INTO ai_reviews (submission_id, personality_id, status, score, comment, run_id) VALUES
+			('mine', 'ai-sir-doodleton', 'done', 6, 'Hm.', 'run'),
+			('old', 'ai-sir-doodleton', 'done', 6, 'Hm.', 'old-run');`)
+
+	got, err := GetAIReviewTips(db, ctx, "mine", "me")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Prompt != "partial" || got.PromptMissing != "the goal" ||
+		strings.Join(got.Tips.Judge, "|") != "Fill the square." || strings.Join(got.Tips.General, "|") != "Draw a net behind them." {
+		t.Errorf("tips = %+v", got)
+	}
+
+	if _, err := GetAIReviewTips(db, ctx, "mine", "pal"); !errors.Is(err, sql.ErrNoRows) {
+		t.Errorf("someone else's tips: err = %v, want ErrNoRows", err)
+	}
+	if _, err := GetAIReviewTips(db, ctx, "old", "me"); !errors.Is(err, sql.ErrNoRows) {
+		t.Errorf("a review from before tips: err = %v, want ErrNoRows", err)
 	}
 }

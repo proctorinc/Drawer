@@ -532,6 +532,44 @@ func GetAIReviewActivity(repo *sql.DB, ctx context.Context, userID string, cfg *
 	return activities, rows.Err()
 }
 
+// AIReviewTips are how the artist could draw a doodle better, from its review.
+type AIReviewTips struct {
+	// How well it showed the prompt (nailed, complete, partial or missed), and the parts the
+	// judge found missing ("" for none)
+	Prompt        string        `json:"prompt"`
+	PromptMissing string        `json:"promptMissing"`
+	Tips          models.AITips `json:"tips"`
+}
+
+// GetAIReviewTips returns the tips from the review of a doodle of userID's, read from the run
+// that wrote it. sql.ErrNoRows when the doodle isn't theirs, isn't judged yet, or was judged
+// before tips were asked for.
+func GetAIReviewTips(repo *sql.DB, ctx context.Context, submissionID, userID string) (AIReviewTips, error) {
+	var (
+		result                AIReviewTips
+		tips, prompt, missing sql.NullString
+	)
+	err := repo.QueryRowContext(ctx, `
+		SELECT json_extract(run.metadata, '$.tips'), json_extract(run.metadata, '$.prompt'),
+			json_extract(run.metadata, '$.promptMissing')
+		FROM ai_reviews r
+		JOIN user_submissions s ON s.id = r.submission_id
+		JOIN ai_runs run ON run.id = r.run_id
+		WHERE r.submission_id = ? AND s.user_id = ? AND r.status = 'done'`,
+		submissionID, userID).Scan(&tips, &prompt, &missing)
+	if err != nil {
+		return result, err
+	}
+	if !tips.Valid {
+		return result, sql.ErrNoRows
+	}
+	if err := json.Unmarshal([]byte(tips.String), &result.Tips); err != nil {
+		return result, fmt.Errorf("error reading tips for %s: %w", submissionID, err)
+	}
+	result.Prompt, result.PromptMissing = prompt.String, missing.String
+	return result, nil
+}
+
 // MarkAIReviewHeard records that the artist has heard their judge's review (its dialogue
 // played), so it counts as read on every device. Someone else's doodle is left alone.
 func MarkAIReviewHeard(repo *sql.DB, ctx context.Context, submissionID, userID string) error {

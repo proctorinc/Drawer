@@ -177,16 +177,47 @@ func TestEvaluateMessageCarriesThePromptsNotes(t *testing.T) {
 	}
 }
 
+func TestParseEvaluationTips(t *testing.T) {
+	long := strings.Repeat("draw the cat much bigger ", 10)
+	v, err := ParseEvaluation(`{"score": 6, "tips": {"judge": ["  Fill the square.  ", "", "Add a hat.", "Add a third thing."], "general": ["`+long+`"]}}`, critic(), Swing{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(v.Tips.Judge, "|"); got != "Fill the square.|Add a hat." {
+		t.Errorf("judge tips = %q, want trimmed, without blanks, at most two", got)
+	}
+	if len(v.Tips.General) != 1 || len([]rune(v.Tips.General[0])) > maxTipChars+1 || !strings.HasSuffix(v.Tips.General[0], "…") {
+		t.Errorf("general tips = %q, want one, cut short", v.Tips.General)
+	}
+
+	// An answer without tips still has lists, so the artist sees none rather than null
+	v, err = ParseEvaluation(`{"score": 6}`, critic(), Swing{})
+	if err != nil || v.Tips.Judge == nil || v.Tips.General == nil {
+		t.Errorf("tips without any = %+v, %v", v.Tips, err)
+	}
+}
+
+func TestEvaluateSystemPromptTips(t *testing.T) {
+	if !strings.Contains(EvaluateSystemPrompt(santa()), `"tips"`) {
+		t.Error("the evaluation should ask for tips")
+	}
+	grinch := santa()
+	grinch.ScoresBackwards = true
+	if !strings.Contains(EvaluateSystemPrompt(grinch), "how to please this judge") {
+		t.Error("a judge that scores backwards should say its judge tips run the other way")
+	}
+}
+
 func TestResponseSchema(t *testing.T) {
 	if got := CommentSchema()["required"]; strings.Join(got.([]string), ",") != "comment" {
 		t.Errorf("comment required = %v", got)
 	}
 	schema := EvaluateSchema(critic())
-	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,idea,missing,prompt,effort,improve,score,notable" {
+	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,idea,missing,prompt,effort,improve,score,notable,tips" {
 		t.Errorf("required = %v", got)
 	}
 	schema = EvaluateSchema(santa())
-	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,idea,missing,prompt,effort,criteria,improve,score,notable" {
+	if got := schema["required"]; strings.Join(got.([]string), ",") != "seen,idea,missing,prompt,effort,criteria,improve,score,notable,tips" {
 		t.Errorf("required = %v", got)
 	}
 
@@ -404,14 +435,17 @@ func TestRunLogsTheSwing(t *testing.T) {
 		t.Fatalf("runs = %v, %v", runs, err)
 	}
 	got := runs[0].Metadata
-	breakdown, calls := got.Breakdown, got.Calls
-	got.Breakdown, got.SwingRoll, got.Calls = nil, nil, nil
+	breakdown, calls, tips := got.Breakdown, got.Calls, got.Tips
+	got.Breakdown, got.SwingRoll, got.Calls, got.Tips = nil, nil, nil, nil
 	want := queries.AIRunMetadata{Seen: "a cat", Idea: "a cat, no hat", Notable: "the whiskers", Effort: "real", Prompt: "partial", PromptMissing: "the hat", PromptBonus: -1.5, Swing: "super", SwingPoints: -3.4}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("metadata = %+v, want %+v", got, want)
 	}
 	if breakdown == nil || breakdown.GivenScore != 8 || breakdown.BeforeEffort != 3.1 {
 		t.Errorf("breakdown = %+v", breakdown)
+	}
+	if tips == nil {
+		t.Error("a finished run should log its tips")
 	}
 	// Every call, in full
 	if len(calls) != 2 {
