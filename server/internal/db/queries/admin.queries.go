@@ -8,6 +8,7 @@ import (
 	"drawer-service-backend/internal/utils"
 	"encoding/json"
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -63,13 +64,15 @@ type AdminPrompt struct {
 	Submissions int `json:"submissions"`
 	// The AI judge an admin picked for the day, or nil to leave it to the event's or default judge
 	JudgeID *string `json:"judgeId"`
+	// Notes for the AI judge on how to read the prompt, or ""
+	AIContext string `json:"aiContext"`
 }
 
 func GetAllPrompts(repo *sql.DB, ctx context.Context) ([]AdminPrompt, error) {
 	rows, err := repo.QueryContext(ctx, `
 		SELECT dp.day, dp.colors, dp.pencils, dp.prompt,
 			u.id, u.username, u.created_at, u.avatar_type, u.avatar_url, u.decoration, u.color_hue,
-			(SELECT COUNT(*) FROM user_submissions s WHERE s.day = dp.day), dp.judge_id
+			(SELECT COUNT(*) FROM user_submissions s WHERE s.day = dp.day), dp.judge_id, dp.judge_context
 		FROM daily_prompts dp
 		LEFT JOIN users u ON u.id = dp.created_by
 		ORDER BY dp.day DESC`)
@@ -85,7 +88,7 @@ func GetAllPrompts(repo *sql.DB, ctx context.Context) ([]AdminPrompt, error) {
 		var pencils sql.NullString
 		var by nullableUser
 		dest := append([]any{&p.Day, &colors, &pencils, &p.Prompt}, by.dest()...)
-		if err := rows.Scan(append(dest, &p.Submissions, &p.JudgeID)...); err != nil {
+		if err := rows.Scan(append(dest, &p.Submissions, &p.JudgeID, &p.AIContext)...); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal([]byte(colors), &p.Colors); err != nil {
@@ -469,6 +472,21 @@ func DeletePromptSuggestion(repo *sql.DB, ctx context.Context, suggestionID stri
 	if deleted, err := result.RowsAffected(); err != nil {
 		return err
 	} else if deleted == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+// SetDailyPromptAIContext saves day's notes for the AI judge on how to read its prompt ("" for
+// none). Returns sql.ErrNoRows if day has no prompt.
+func SetDailyPromptAIContext(repo *sql.DB, ctx context.Context, day, aiContext string) error {
+	result, err := repo.ExecContext(ctx, `UPDATE daily_prompts SET judge_context = ? WHERE day = ?`, strings.TrimSpace(aiContext), day)
+	if err != nil {
+		return err
+	}
+	if n, err := result.RowsAffected(); err != nil {
+		return err
+	} else if n == 0 {
 		return sql.ErrNoRows
 	}
 	return nil

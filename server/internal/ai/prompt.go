@@ -48,6 +48,11 @@ Composition (for any score about how the canvas is arranged):
 - The background color and empty space put to work (a sky, a setting, breathing room), not just left over.
 - Balance: nothing cramped against an edge or stranded by accident.
 
+Words in the drawing (for every score):
+- A good doodle explains itself through what's drawn. Words written with the brush to say what something is or what's happening (a label on an object, a sign that spells out the prompt, a caption, a speech bubble that carries the joke) usually mean the drawing couldn't get it across on its own. Never favor a doodle for them: score it as if it had to get its idea across without them, and prefer one that does.
+- A part of the prompt that only a written word conveys still counts as shown, so don't list it as missing, but a doodle that leans on words is never "nailed".
+- Don't confuse this with a tasteful word or two that add to the drawing rather than explain it, especially sound effects (BONK, SPLASH, zzz, achoo). Those are fine and can be a nice touch.
+
 Work through the drawing in this order:
 1. "seen": describe plainly what is drawn, every element and how they're arranged, before thinking about the prompt. Score how recognizable it is to match.
 2. "idea": work out what the artist was going for. Ask why each element is there: what it's doing, what it stands for, what story the elements tell together, any wordplay. Artists often show a prompt indirectly: a cause or an effect instead of the action itself, a symbol, a moment just before or after, a setting that implies it, a visual pun, or an unexpected but fair reading of the words. Your first picture of what the prompt "should" look like is only one option, so don't hold the drawing to it. Give the artist the benefit of the doubt: when an element plausibly stands for part of the prompt, take it that it does. Ground every reading in something actually drawn: name the element and the part of the prompt it conveys. Never invent things that aren't there.
@@ -151,7 +156,10 @@ var effortPenalties = map[string]float64{EffortLow: 0.25, EffortNone: 0.5}
 type Request struct {
 	Personality models.AIPersonality
 	Prompt      string // The day's prompt, e.g. "a reindeer stuck in a chimney"
-	Image       []byte // The doodle, as a PNG
+	// The admins' notes on how to read the prompt (what it means, what counts and what
+	// doesn't), for the evaluation; "" for none
+	PromptContext string
+	Image         []byte // The doodle, as a PNG
 	// The swing added to every score because the judge loves or hates it; usually none.
 	// Run rolls it.
 	Swing Swing
@@ -241,10 +249,21 @@ func writeFaultScoring(b *strings.Builder, p models.AIPersonality) {
 	b.WriteString(`In "improve", say what would have brought each score down. Give a 0 only when there is truly none of that fault: most decent doodles land between 2 and 5, and a 0 on every fault is almost never given.`)
 }
 
-// EvaluateMessage introduces the doodle to the first call. It never mentions the swing: the
-// code applies that, so the scores stay fair.
-func EvaluateMessage(prompt string) string {
-	return fmt.Sprintf("Today's prompt was: %q. Here is the doodle. Evaluate it.", prompt)
+// EvaluateMessage introduces the doodle to the first call, with the admins' notes on how to
+// read the prompt when the day has any (see Request.PromptContext). It never mentions the
+// swing: the code applies that, so the scores stay fair.
+func EvaluateMessage(prompt, promptContext string) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Today's prompt was: %q.", prompt)
+	if notes := strings.TrimSpace(promptContext); notes != "" {
+		b.WriteString(" Whoever set it left notes on what it means and what does and doesn't count as showing it. Follow them when working out the idea, what's missing and how well it answers the prompt; where they disagree with your own reading, they win.\n\nNotes on the prompt:\n")
+		b.WriteString(notes)
+		b.WriteString("\n\n")
+	} else {
+		b.WriteString(" ")
+	}
+	b.WriteString("Here is the doodle. Evaluate it.")
+	return b.String()
 }
 
 // CommentSystemPrompt is the second call's system prompt: how to comment, and who the judge is.

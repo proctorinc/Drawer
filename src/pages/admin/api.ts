@@ -29,6 +29,8 @@ export interface AdminPrompt extends Omit<DailyPrompt, 'isCompleted'> {
   submissions: number;
   /** The AI judge picked for the day, or null for the event's or default judge */
   judgeId: string | null;
+  /** Notes for the AI judge on how to read the prompt, or "" */
+  aiContext: string;
 }
 
 export interface AdminSubmission {
@@ -308,6 +310,8 @@ export interface AcceptSuggestion {
   pencils?: Array<Pencil> | null;
   /** The AI judge for the day, or null for the event's or default judge */
   judgeId?: string | null;
+  /** Notes for the AI judge on how to read the prompt, or "" */
+  aiContext?: string;
 }
 
 /** Schedules a suggestion on a day with no prompt, credited to its suggester */

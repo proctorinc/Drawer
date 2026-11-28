@@ -301,6 +301,7 @@ const EditPrompt = ({
         initialColors={prompt?.colors}
         initialPencils={prompt?.pencils}
         initialJudgeId={prompt?.judgeId ?? null}
+        initialAIContext={prompt?.aiContext}
         suggester={prompt?.createdBy ?? undefined}
         scheduleLabel={prompt ? 'save' : 'add'}
         className="shadow-none"

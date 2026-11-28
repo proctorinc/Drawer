@@ -87,7 +87,7 @@ CREATE INDEX idx_user_stat_calculations_user_id ON user_stat_calculations (user_
 CREATE INDEX idx_user_stat_calculations_stat_type ON user_stat_calculations (stat_type);
 CREATE INDEX idx_user_stat_updates_user_id ON user_stat_calculations (user_id);
 CREATE INDEX idx_user_stat_updates_stat_type ON user_stat_calculations (stat_type);
-CREATE TABLE "daily_prompts" (day TEXT PRIMARY KEY, colors TEXT NOT NULL, prompt TEXT NOT NULL, created_by TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, judge_id TEXT, pencils TEXT, FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE CASCADE);
+CREATE TABLE "daily_prompts" (day TEXT PRIMARY KEY, colors TEXT NOT NULL, prompt TEXT NOT NULL, created_by TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, judge_id TEXT, pencils TEXT, judge_context TEXT NOT NULL DEFAULT '', FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE CASCADE);
 CREATE INDEX idx_daily_prompts_created_by ON daily_prompts (created_by);
 CREATE TABLE prompt_suggestions (id STRING PRIMARY KEY, prompt TEXT NOT NULL, user_id TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE);
 CREATE UNIQUE INDEX idx_users_clerk_id ON users (clerk_id);

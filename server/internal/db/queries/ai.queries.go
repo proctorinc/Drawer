@@ -452,21 +452,25 @@ type SubmissionForAIReview struct {
 	Artist string // Their username
 	Day    string
 	Prompt string
+	// The admins' notes on how to read the prompt, for the judge; "" for none
+	PromptContext string
 }
 
-// GetSubmissionForAIReview returns a doodle's artist and prompt, or sql.ErrNoRows.
+// GetSubmissionForAIReview returns a doodle's artist and prompt (with its notes for the judge),
+// or sql.ErrNoRows.
 func GetSubmissionForAIReview(repo *sql.DB, ctx context.Context, submissionID string) (SubmissionForAIReview, error) {
 	var (
-		sub    SubmissionForAIReview
-		prompt sql.NullString
+		sub           SubmissionForAIReview
+		prompt        sql.NullString
+		promptContext sql.NullString
 	)
 	err := repo.QueryRowContext(ctx, `
-		SELECT s.id, s.user_id, u.username, s.day, dp.prompt
+		SELECT s.id, s.user_id, u.username, s.day, dp.prompt, dp.judge_context
 		FROM user_submissions s
 		JOIN users u ON u.id = s.user_id
 		LEFT JOIN daily_prompts dp ON dp.day = s.day
-		WHERE s.id = ?`, submissionID).Scan(&sub.ID, &sub.UserID, &sub.Artist, &sub.Day, &prompt)
-	sub.Prompt = prompt.String
+		WHERE s.id = ?`, submissionID).Scan(&sub.ID, &sub.UserID, &sub.Artist, &sub.Day, &prompt, &promptContext)
+	sub.Prompt, sub.PromptContext = prompt.String, promptContext.String
 	return sub, err
 }
 

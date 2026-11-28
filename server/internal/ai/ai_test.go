@@ -164,6 +164,19 @@ func TestCommentMessageHandsOverTheEvaluation(t *testing.T) {
 	}
 }
 
+func TestEvaluateMessageCarriesThePromptsNotes(t *testing.T) {
+	plain := EvaluateMessage("a snowman's first day on the job", "  ")
+	if plain != `Today's prompt was: "a snowman's first day on the job". Here is the doodle. Evaluate it.` {
+		t.Errorf("a prompt without notes should read as it always has: %q", plain)
+	}
+
+	notes := "Counts:\n- Being a snowman counts as a job."
+	got := EvaluateMessage("a snowman's first day on the job", "\n"+notes+"\n")
+	if !strings.Contains(got, "Notes on the prompt:\n"+notes+"\n\nHere is the doodle.") {
+		t.Errorf("the notes should come before the doodle, trimmed: %q", got)
+	}
+}
+
 func TestResponseSchema(t *testing.T) {
 	if got := CommentSchema()["required"]; strings.Join(got.([]string), ",") != "comment" {
 		t.Errorf("comment required = %v", got)
@@ -316,7 +329,7 @@ func TestOnlyTheCommentHearsAboutASwing(t *testing.T) {
 			if strings.Contains(got, feeling) != (feeling == c.want) {
 				t.Errorf("swing %+v: %q", c.swing, got)
 			}
-			if strings.Contains(EvaluateMessage("a cat"), feeling) {
+			if strings.Contains(EvaluateMessage("a cat", ""), feeling) {
 				t.Errorf("the evaluation shouldn't hear about the swing")
 			}
 		}
@@ -405,7 +418,7 @@ func TestRunLogsTheSwing(t *testing.T) {
 		t.Fatalf("logged calls = %+v", calls)
 	}
 	eval, comment := calls[0], calls[1]
-	if eval.Step != StepEvaluate || eval.System != EvaluateSystemPrompt(critic()) || eval.Message != EvaluateMessage("a cat in a hat") ||
+	if eval.Step != StepEvaluate || eval.System != EvaluateSystemPrompt(critic()) || eval.Message != EvaluateMessage("a cat in a hat", "") ||
 		!eval.Image || eval.Detail != DetailHigh || eval.Temperature == nil || *eval.Temperature != evaluateTemperature || !strings.Contains(string(eval.Schema), `"idea"`) || !strings.Contains(eval.Answer, `"the hat"`) || eval.Error != "" {
 		t.Errorf("evaluate call = %+v", eval)
 	}
@@ -455,7 +468,7 @@ func TestOpenAIJudge(t *testing.T) {
 
 	client := NewOpenAI("sk-test", "")
 	client.BaseURL = server.URL
-	raw, err := client.Ask(context.Background(), Call{Step: StepEvaluate, System: "sys", User: EvaluateMessage("a banana"), Image: []byte("png"), Schema: EvaluateSchema(critic())})
+	raw, err := client.Ask(context.Background(), Call{Step: StepEvaluate, System: "sys", User: EvaluateMessage("a banana", ""), Image: []byte("png"), Schema: EvaluateSchema(critic())})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -752,7 +765,7 @@ func TestEveryRunIsLogged(t *testing.T) {
 		t.Fatal(err)
 	}
 	results := RunTests(ctx, repo, fakeProvider{answer: `{"score": 7, "comment": "Pickle-tastic!"}`},
-		[]models.AIPersonality{santa, pickles}, "a custom prompt", []byte("png"),
+		[]models.AIPersonality{santa, pickles}, "a custom prompt", "", []byte("png"),
 		RunMeta{BatchID: "batch1", UserID: "admin", ImageData: "data:image/png;base64,cG5n"})
 	if len(results) != 2 || results[0].Name != "Santa" || results[1].Name != "Professor Pickles" {
 		t.Fatalf("results = %+v; want Santa then Pickles", results)
@@ -884,12 +897,12 @@ func TestApplyTestRun(t *testing.T) {
 		t.Fatal(err)
 	}
 	answer := `{"criteria": [], "score": 6, "comment": "Tested and true."}`
-	results := RunTests(ctx, repo, fakeProvider{answer: answer}, []models.AIPersonality{p}, "a cat", nil, RunMeta{SubmissionID: "s1", UserID: "admin"})
-	custom := RunTests(ctx, repo, fakeProvider{answer: answer}, []models.AIPersonality{p}, "a cat", nil, RunMeta{UserID: "admin", ImageData: "data:image/png;base64,"})
-	failed := RunTests(ctx, repo, fakeProvider{err: errors.New("boom")}, []models.AIPersonality{p}, "a cat", nil, RunMeta{SubmissionID: "s1", UserID: "admin"})
+	results := RunTests(ctx, repo, fakeProvider{answer: answer}, []models.AIPersonality{p}, "a cat", "", nil, RunMeta{SubmissionID: "s1", UserID: "admin"})
+	custom := RunTests(ctx, repo, fakeProvider{answer: answer}, []models.AIPersonality{p}, "a cat", "", nil, RunMeta{UserID: "admin", ImageData: "data:image/png;base64,"})
+	failed := RunTests(ctx, repo, fakeProvider{err: errors.New("boom")}, []models.AIPersonality{p}, "a cat", "", nil, RunMeta{SubmissionID: "s1", UserID: "admin"})
 	unsaved := p
 	unsaved.ID = ""
-	gone := RunTests(ctx, repo, fakeProvider{answer: answer}, []models.AIPersonality{unsaved}, "a cat", nil, RunMeta{SubmissionID: "s1", UserID: "admin"})
+	gone := RunTests(ctx, repo, fakeProvider{answer: answer}, []models.AIPersonality{unsaved}, "a cat", "", nil, RunMeta{SubmissionID: "s1", UserID: "admin"})
 
 	// A doodle that was never reviewed (judging was off) gets one
 	if err := queries.ApplyAIRun(repo, ctx, results[0].Run.ID); err != nil {

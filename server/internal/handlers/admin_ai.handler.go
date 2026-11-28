@@ -396,10 +396,11 @@ func HandleAdminTestAI(c *gin.Context) {
 
 	meta := ai.RunMeta{BatchID: uuid.New().String(), UserID: admin.ID}
 	var (
-		settings ai.Settings
-		prompt   string
-		image    []byte
-		ok       bool
+		settings      ai.Settings
+		prompt        string
+		promptContext string
+		image         []byte
+		ok            bool
 	)
 	if body.SubmissionID != "" {
 		var sub queries.SubmissionForAIReview
@@ -407,7 +408,7 @@ func HandleAdminTestAI(c *gin.Context) {
 		if !ok {
 			return
 		}
-		prompt = sub.Prompt
+		prompt, promptContext = sub.Prompt, sub.PromptContext
 		meta.SubmissionID = sub.ID
 	} else {
 		prompt = strings.TrimSpace(body.Prompt)
@@ -428,7 +429,7 @@ func HandleAdminTestAI(c *gin.Context) {
 	}
 
 	provider := ai.NewProvider(settings)
-	results := ai.RunTests(ctx, appCtx.DB, provider, personalities, prompt, image, meta)
+	results := ai.RunTests(ctx, appCtx.DB, provider, personalities, prompt, promptContext, image, meta)
 
 	response := make([]AdminAITestResult, 0, len(results))
 	for _, r := range results {
@@ -545,7 +546,7 @@ func HandleAdminRerunAIReview(c *gin.Context) {
 	}
 	provider := ai.NewProvider(settings)
 	meta := ai.RunMeta{Kind: queries.AIRunRerun, SubmissionID: submissionID, UserID: middleware.GetUser(c).ID}
-	verdict, run, err := ai.RunAndLog(ctx, appCtx.DB, provider, ai.Request{Personality: p, Prompt: sub.Prompt, Image: image, Pledge: pledge, Day: sub.Day}, meta)
+	verdict, run, err := ai.RunAndLog(ctx, appCtx.DB, provider, ai.Request{Personality: p, Prompt: sub.Prompt, PromptContext: sub.PromptContext, Image: image, Pledge: pledge, Day: sub.Day}, meta)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadGateway, Error(err.Error()))
 		return

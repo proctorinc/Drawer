@@ -255,6 +255,8 @@ type AcceptSuggestionRequest struct {
 	Pencils []models.Pencil `json:"pencils"`
 	// The AI judge for the day, or "" for the event's or default judge
 	JudgeID string `json:"judgeId"`
+	// Notes for the AI judge on how to read the prompt, or ""
+	AIContext string `json:"aiContext"`
 }
 
 // HandleAcceptPromptSuggestion schedules a suggestion, as tweaked by the admin, on a free day
@@ -297,6 +299,13 @@ func HandleAcceptPromptSuggestion(c *gin.Context) {
 			if err := queries.SetDailyPromptJudge(appCtx.DB, c.Request.Context(), req.Day, &req.JudgeID); err != nil {
 				log.Printf("Admin: error setting the judge for %s: %v", req.Day, err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Scheduled it, but failed to set its judge"))
+				return
+			}
+		}
+		if strings.TrimSpace(req.AIContext) != "" {
+			if err := queries.SetDailyPromptAIContext(appCtx.DB, c.Request.Context(), req.Day, req.AIContext); err != nil {
+				log.Printf("Admin: error setting the AI context for %s: %v", req.Day, err)
+				c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Scheduled it, but failed to save its notes for the AI judge"))
 				return
 			}
 		}

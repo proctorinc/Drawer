@@ -98,7 +98,7 @@ func Run(ctx context.Context, provider Provider, req Request) (Verdict, error) {
 	attempt := Verdict{Swing: req.Swing}
 
 	raw, call, err := ask(ctx, provider, Call{
-		Step: StepEvaluate, System: EvaluateSystemPrompt(req.Personality), User: EvaluateMessage(req.Prompt),
+		Step: StepEvaluate, System: EvaluateSystemPrompt(req.Personality), User: EvaluateMessage(req.Prompt, req.PromptContext),
 		// High detail, so craft finer than the brush (carved lines, thin rims) can be seen
 		Image: req.Image, Detail: DetailHigh, Temperature: &evaluateTemperature, Schema: EvaluateSchema(req.Personality),
 	})
@@ -286,7 +286,7 @@ func StartNewSubmissionReview(ctx context.Context, repo *sql.DB, cfg *config.Con
 		provider:     NewProvider(settings),
 		submissionID: submissionID,
 		artistID:     sub.UserID,
-		req:          Request{Personality: personality, Prompt: sub.Prompt, Pledge: pledge, Day: sub.Day},
+		req:          Request{Personality: personality, Prompt: sub.Prompt, PromptContext: sub.PromptContext, Pledge: pledge, Day: sub.Day},
 	}, nil
 }
 
@@ -378,15 +378,16 @@ type TestResult struct {
 
 // RunTests has each personality judge the same doodle, side by side, logging each run as a
 // test under one batch. Nothing is saved to any doodle or shown to players. Results come
-// back in the order the personalities were given.
-func RunTests(ctx context.Context, repo *sql.DB, provider Provider, personalities []models.AIPersonality, prompt string, image []byte, meta RunMeta) []TestResult {
+// back in the order the personalities were given. promptContext is the day's notes on the
+// prompt (Request.PromptContext), or "".
+func RunTests(ctx context.Context, repo *sql.DB, provider Provider, personalities []models.AIPersonality, prompt, promptContext string, image []byte, meta RunMeta) []TestResult {
 	meta.Kind = queries.AIRunTest
 	results := make([]TestResult, len(personalities))
 	done := make(chan struct{})
 	for i, p := range personalities {
 		go func() {
 			defer func() { done <- struct{}{} }()
-			verdict, run, err := RunAndLog(ctx, repo, provider, Request{Personality: p, Prompt: prompt, Image: image}, meta)
+			verdict, run, err := RunAndLog(ctx, repo, provider, Request{Personality: p, Prompt: prompt, PromptContext: promptContext, Image: image}, meta)
 			results[i] = TestResult{PersonalityID: p.ID, Name: p.Name, Took: time.Duration(run.DurationMS) * time.Millisecond, Run: run}
 			if err != nil {
 				results[i].Error = err.Error()

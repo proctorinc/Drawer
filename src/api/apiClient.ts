@@ -133,7 +133,9 @@ export const apiClient = {
   getFeedDay: async (day: string): Promise<Array<UserPromptSubmission>> => {
     const response = await fetchAPI('GET', `/feed/${encodeURIComponent(day)}`);
     if (!response.ok) {
-      throw new Error(`Error fetching ${day}'s doodles: ${response.statusText}`);
+      throw new Error(
+        `Error fetching ${day}'s doodles: ${response.statusText}`,
+      );
     }
     const data: { submissions: Array<UserPromptSubmission> } =
       await response.json();
@@ -668,6 +670,8 @@ export const apiClient = {
     createdBy?: string;
     /** The day's AI judge: "" for auto; leave it out to keep the current one */
     judgeId?: string;
+    /** Notes for the AI judge on the prompt: "" for none; leave it out to keep them */
+    aiContext?: string;
   }): Promise<{ message: string; day: string }> => {
     const response = await fetchAPI('POST', '/admin/prompt', {
       headers: { 'Content-Type': 'application/json' },

@@ -128,6 +128,9 @@ type CreatePromptRequest struct {
 	// The AI judge for the day: nil leaves it as it is, "" hands it back to the event's or
 	// default judge
 	JudgeID *string `json:"judgeId"`
+	// Notes for the AI judge on how to read the prompt: nil leaves them as they are, ""
+	// clears them
+	AIContext *string `json:"aiContext"`
 }
 
 func HandleCreatePrompt(c *gin.Context) {
@@ -176,6 +179,19 @@ func HandleCreatePrompt(c *gin.Context) {
 		return true
 	}
 
+	// Saves the notes for the AI judge, if they were sent. Reports false after aborting.
+	setAIContext := func() bool {
+		if req.AIContext == nil {
+			return true
+		}
+		if err := queries.SetDailyPromptAIContext(appCtx.DB, c.Request.Context(), req.Day, *req.AIContext); err != nil {
+			log.Printf("Error setting the AI context for day %s: %v", req.Day, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Saved the prompt, but failed to save its notes for the AI judge"})
+			return false
+		}
+		return true
+	}
+
 	// Check if prompt already exists for this day
 	_, err := queries.GetDailyPrompt(appCtx.DB, c.Request.Context(), req.Day)
 	if err == nil {
@@ -186,7 +202,7 @@ func HandleCreatePrompt(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to update prompt"})
 			return
 		}
-		if !setJudge() {
+		if !setJudge() || !setAIContext() {
 			return
 		}
 
@@ -205,7 +221,7 @@ func HandleCreatePrompt(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Failed to create prompt"})
 		return
 	}
-	if !setJudge() {
+	if !setJudge() || !setAIContext() {
 		return
 	}
 

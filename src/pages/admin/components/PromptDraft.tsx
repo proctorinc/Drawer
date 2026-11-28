@@ -49,7 +49,25 @@ export type Draft = {
   pencils: Array<Pencil> | null;
   /** The AI judge picked for the day, or null for the event's or default judge */
   judgeId: string | null;
+  /** Notes for the AI judge on how to read the prompt, or "" */
+  aiContext: string;
 };
+
+/**
+ * The standard shape of a prompt's notes for the AI judge. The judge reads them before scoring,
+ * so they settle what counts as drawing the prompt.
+ */
+export const AI_CONTEXT_TEMPLATE = `What it means:
+
+
+Counts:
+- 
+
+Doesn't count:
+- 
+
+Extra credit:
+- `;
 
 // Room on the toolbar; the server allows no more
 const MAX_PENCILS = 6;
@@ -388,6 +406,7 @@ export const PromptDraft: FC<{
   initialColors?: Array<string>;
   initialPencils?: Array<Pencil> | null;
   initialJudgeId?: string | null;
+  initialAIContext?: string;
   /** Editing this day's prompt: no picking where it goes */
   fixedDay?: string;
   suggester?: User;
@@ -401,6 +420,7 @@ export const PromptDraft: FC<{
   initialColors,
   initialPencils,
   initialJudgeId = null,
+  initialAIContext = '',
   fixedDay,
   suggester,
   scheduleLabel,
@@ -421,6 +441,8 @@ export const PromptDraft: FC<{
   const [paper, setPaper] = useState(startColors.at(3));
   const [judgeId, setJudgeId] = useState(initialJudgeId);
   const [pickingJudge, setPickingJudge] = useState(false);
+  const [aiContext, setAIContext] = useState(initialAIContext);
+  const [showingAIContext, setShowingAIContext] = useState(!!initialAIContext);
   const [when, setWhen] = useState<When>('next');
   const [withinDays, setWithinDays] = useState(14);
   // A fixed roll, so the random day only changes when asked to
@@ -457,6 +479,11 @@ export const PromptDraft: FC<{
         prompt: prompt.trim(),
         ...promptColors(pencils, paper, startColors),
         judgeId,
+        // The template left as it was says nothing
+        aiContext:
+          aiContext.trim() === AI_CONTEXT_TEMPLATE.trim()
+            ? ''
+            : aiContext.trim(),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to schedule');
@@ -502,6 +529,30 @@ export const PromptDraft: FC<{
               onClick={() => setPickingJudge(true)}
             />
           </span>
+        )}
+        {showingAIContext ? (
+          <label className="flex flex-col gap-1">
+            <span className="text-pencil">
+              notes for the AI judge: what the prompt means, what counts
+            </span>
+            <textarea
+              value={aiContext}
+              onChange={(e) => setAIContext(e.target.value)}
+              rows={10}
+              className={cn(inputClass, 'font-mono text-sm')}
+            />
+          </label>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setAIContext(AI_CONTEXT_TEMPLATE);
+              setShowingAIContext(true);
+            }}
+            className="self-start underline cursor-pointer text-pencil"
+          >
+            <FontAwesomeIcon icon={faPlus} /> notes for the AI judge
+          </button>
         )}
       </div>
 
