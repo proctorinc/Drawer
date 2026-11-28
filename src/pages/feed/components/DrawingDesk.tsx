@@ -7,6 +7,7 @@ import type { ToOptions } from '@tanstack/react-router';
 import type { FC, ReactNode } from 'react';
 import type { DailyPrompt, User } from '@/api/Api';
 import type { PinchZoomHandle } from '@/drawing/usePinchZoom';
+import type { Unfinished } from '@/drawing/ink';
 import { JudgeIntroReplayButton } from '@/ai/JudgeIntro';
 import { TodaysJudgeChip, useTodaysJudge } from '@/ai/TodaysJudge';
 import Button from '@/components/Button';
@@ -36,6 +37,11 @@ import { StickerLayer } from '@/stickers/StickerLayer';
 import { AddStickerButton, StickerControls } from '@/stickers/StickerControls';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
 import { cn } from '@/utils';
+
+const UNFINISHED_MESSAGES: Record<Unfinished, string> = {
+  'barely-drawn': "there's barely anything on your page yet",
+  'unused-pencil': "you haven't used every pencil yet",
+};
 
 /** A drawing on its way to the wall, from where its canvas sat */
 export type Pinning = { imageUrl: string; from: DOMRect };
@@ -266,7 +272,7 @@ const Desk: FC<DrawingDeskProps> = ({
   const christmas = useChristmas();
   const { data: todaysJudge } = useTodaysJudge();
   const judge = past ? undefined : todaysJudge;
-  const { canvasRef, hasInk, barelyDrawn, getPng } = useDrawing();
+  const { canvasRef, hasInk, whyUnfinished, getPng } = useDrawing();
   const stickers = useStickers();
   const confirm = useConfirm();
   const zoomRef = useRef<PinchZoomHandle>(null);
@@ -287,13 +293,13 @@ const Desk: FC<DrawingDeskProps> = ({
   const editingSticker = stickers.selected;
 
   async function handleSubmit() {
-    // A stray tap on the button shouldn't pin a near-blank page for good
+    // A stray tap on the button shouldn't pin an unfinished doodle for good
+    const unfinished = whyUnfinished(pencils.map((pencil) => pencil.color));
     if (
-      barelyDrawn &&
+      unfinished &&
       !(await confirm({
         title: christmas ? 'hang it already?' : 'pin it already?',
-        message:
-          "there's barely anything on your page yet, and you can't change it once it's up.",
+        message: `${UNFINISHED_MESSAGES[unfinished]}, and you can't change it once it's up.`,
         confirmLabel: christmas ? 'hang it anyway' : 'pin it anyway',
         cancelLabel: 'keep drawing',
       }))

@@ -11,7 +11,8 @@ import {
 import { Path } from './shapes/Path';
 import { getEventPoint } from './shapes/Point';
 import { strokeFeedback } from './feedback';
-import { BARELY_DRAWN, inkLength } from './ink';
+import { whyUnfinished } from './ink';
+import type { Unfinished } from './ink';
 import type { FC, PointerEvent as ReactPointerEvent } from 'react';
 import type { SerializedPath } from './shapes/Path';
 import type { Pencil } from './pencils';
@@ -44,8 +45,8 @@ type DrawingContextType = {
   canUndo: boolean;
   /** Something's actually showing, not just strokes that were all erased */
   hasInk: boolean;
-  /** So little drawn it may have been an accident, e.g. one stray tap */
-  barelyDrawn: boolean;
+  /** Whether the doodle looks unfinished with these pencils, and why */
+  whyUnfinished: (pencilColors: Array<string>) => Unfinished | null;
   /** The drawing as a picture; `paintOver` adds to it (in drawing units), e.g. a sticker */
   getPng: (
     backgroundColor?: string,
@@ -378,7 +379,7 @@ export const DrawingProvider: FC<DrawingProviderProps> = ({
         undo,
         canUndo: paths.length > 0,
         hasInk,
-        barelyDrawn: inkLength(paths) < BARELY_DRAWN,
+        whyUnfinished: (pencilColors) => whyUnfinished(paths, pencilColors),
         getPng,
       }}
     >
