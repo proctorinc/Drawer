@@ -24,43 +24,39 @@ func TestAnnouncements(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// The seeded pair are live the week before Doodlemas, in order, and unseen
-	before := time.Date(2026, 11, 21, 12, 0, 0, 0, time.UTC)
+	// Once Doodlemas starts, only its announcement is live (the judges intro is retired), unseen
+	before := time.Date(2026, 11, 28, 12, 0, 0, 0, time.UTC)
 	list, err := GetLiveAnnouncements(repo, ctx, "ann", before)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(list) != 2 || list[0].ID != "announce-ai-judges" || list[1].ID != "announce-doodlemas" {
-		t.Fatalf("live announcements = %+v; want the AI judges, then Doodlemas", list)
+	if len(list) != 1 || list[0].ID != "announce-doodlemas" || list[0].Title != "doodlemas is here" {
+		t.Fatalf("live announcements = %+v; want just Doodlemas", list)
 	}
-	if list[0].Seen || list[1].Seen {
+	if list[0].Seen {
 		t.Errorf("nothing should be seen yet: %+v", list)
 	}
 
 	// Seeing one marks only that one, for only that player; unknown ids are ignored
-	if err := MarkAnnouncementsSeen(repo, ctx, "ann", []string{"announce-ai-judges", "nope"}); err != nil {
+	if err := MarkAnnouncementsSeen(repo, ctx, "ann", []string{"announce-doodlemas", "nope"}); err != nil {
 		t.Fatal(err)
 	}
-	if err := MarkAnnouncementsSeen(repo, ctx, "ann", []string{"announce-ai-judges"}); err != nil {
+	if err := MarkAnnouncementsSeen(repo, ctx, "ann", []string{"announce-doodlemas"}); err != nil {
 		t.Fatalf("seeing it twice: %v", err)
 	}
 	list, _ = GetLiveAnnouncements(repo, ctx, "ann", before)
-	if ids := liveIDs(t, list); !ids["announce-ai-judges"] || ids["announce-doodlemas"] {
-		t.Errorf("seen = %v; want only the AI judges", ids)
+	if ids := liveIDs(t, list); !ids["announce-doodlemas"] {
+		t.Errorf("seen = %v; want Doodlemas", ids)
 	}
 	list, _ = GetLiveAnnouncements(repo, ctx, "bob", before)
-	if ids := liveIDs(t, list); ids["announce-ai-judges"] {
+	if ids := liveIDs(t, list); ids["announce-doodlemas"] {
 		t.Errorf("bob saw ann's view: %v", ids)
 	}
 
-	// Expired ones drop off: after New Year only the AI judges are left, and by spring neither
+	// Expired ones drop off: after New Year there's nothing left
 	list, _ = GetLiveAnnouncements(repo, ctx, "ann", time.Date(2027, 1, 2, 0, 0, 0, 0, time.UTC))
-	if ids := liveIDs(t, list); len(ids) != 1 || !ids["announce-ai-judges"] {
-		t.Errorf("live in January = %v; want just the AI judges", ids)
-	}
-	list, _ = GetLiveAnnouncements(repo, ctx, "ann", time.Date(2027, 4, 1, 0, 0, 0, 0, time.UTC))
 	if len(list) != 0 {
-		t.Errorf("live in April = %+v; want none", list)
+		t.Errorf("live in January = %+v; want none", list)
 	}
 
 	// Drafts don't show; switching one on does, and admins see who's seen what
@@ -90,7 +86,7 @@ func TestAnnouncements(t *testing.T) {
 	}
 	for _, a := range all {
 		want := 0
-		if a.ID == "announce-ai-judges" {
+		if a.ID == "announce-doodlemas" {
 			want = 1
 		}
 		if a.SeenBy != want {
@@ -99,11 +95,11 @@ func TestAnnouncements(t *testing.T) {
 	}
 
 	// Resetting shows it again; deleting takes it away
-	if err := ResetAnnouncementViews(repo, ctx, "announce-ai-judges"); err != nil {
+	if err := ResetAnnouncementViews(repo, ctx, "announce-doodlemas"); err != nil {
 		t.Fatal(err)
 	}
 	list, _ = GetLiveAnnouncements(repo, ctx, "ann", before)
-	if liveIDs(t, list)["announce-ai-judges"] {
+	if liveIDs(t, list)["announce-doodlemas"] {
 		t.Error("reset didn't make it unseen")
 	}
 	if err := DeleteAnnouncement(repo, ctx, draft.ID); err != nil {

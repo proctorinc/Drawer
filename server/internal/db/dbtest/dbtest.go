@@ -47,6 +47,7 @@ var eventMigrations = []string{
 	"1795132820_doodlemas_judge_prompts.up.sql",
 	"1795132850_ai_mention_checks.up.sql",
 	"1795132870_ai_auto_replies.up.sql",
+	"1795132910_doodlemas_is_here.up.sql",
 }
 
 // NewEventsDB returns an in-memory database with the schema from migrations/schema.sql, where
