@@ -12,6 +12,10 @@ type Props = {
   judge?: string | null;
 };
 
+/** The little highlight an @mention wears, also worn by the speakers' names in a judge's exchange */
+export const mentionChipClass =
+  'px-1 rounded-md bg-sky text-ink font-bold whitespace-nowrap';
+
 /** Text with each @mention picked out in a little highlight */
 export const MentionText: FC<Props> = ({ text, judge }) =>
   judge === undefined ? (
@@ -40,10 +44,7 @@ const Highlighted: FC<{ text: string; ignored?: ReadonlySet<string> }> = ({
   <>
     {splitMentions(text, ignored).map((part, i) =>
       part.mention ? (
-        <span
-          key={i}
-          className="px-1 rounded-md bg-sky text-ink font-bold whitespace-nowrap"
-        >
+        <span key={i} className={mentionChipClass}>
           {part.text}
         </span>
       ) : (

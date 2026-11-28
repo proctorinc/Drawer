@@ -2,8 +2,10 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { AIJudgeAvatar } from './AIJudgeAvatar';
+import { CommentLines, spokenText } from './CommentLines';
 import { CriterionChip, ScoreSticker, judgeFace } from './AIReviewComment';
 import { GoldTrim, goldFrameClass, isMasterpiece } from './Masterpiece';
+import { speakerTurns } from './speakers';
 import type { FC, ReactNode } from 'react';
 import type { AIReview, ActivityFeedResponse } from '@/api/Api';
 import { apiClient } from '@/api/apiClient';
@@ -106,8 +108,9 @@ type DialogueProps = {
 export const AIDialogue: FC<DialogueProps> = ({ review, doodle, onClose }) => {
   const prompt = doodle?.prompt;
   const { judge } = review;
+  const turns = useMemo(() => speakerTurns(review.comment), [review.comment]);
   const { shown, done, talking, finish } = useTypewriter(
-    review.comment,
+    spokenText(turns),
     judge.name,
   );
   const advance = () => (done ? onClose() : finish());
@@ -200,12 +203,21 @@ export const AIDialogue: FC<DialogueProps> = ({ review, doodle, onClose }) => {
           </p>
           {/* The full line sits invisibly underneath, so the bubble doesn't grow as it types */}
           <div aria-hidden="true" className="grid text-xl leading-snug">
-            <span className="invisible [grid-area:1/1]">{review.comment}</span>
+            <span className="invisible [grid-area:1/1]">
+              <CommentLines turns={turns} />
+            </span>
             <span className="[grid-area:1/1]">
-              {shown}
-              {!done && (
-                <span className="inline-block w-2 ml-0.5 animate-pulse">▍</span>
-              )}
+              <CommentLines
+                turns={turns}
+                typed={shown.length}
+                after={
+                  !done && (
+                    <span className="inline-block w-2 ml-0.5 animate-pulse">
+                      ▍
+                    </span>
+                  )
+                }
+              />
             </span>
           </div>
 

@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { AIJudgeAvatar } from './AIJudgeAvatar';
+import { CommentLines } from './CommentLines';
 import { AIJudgeDrawer } from './AIJudgeDrawer';
 import { AI_SCORE_MAX, formatScore } from './score';
+import { speakerTurns } from './speakers';
 import type { FC } from 'react';
 import type { AICriterionScore, AIJudge, AIReview } from '@/api/Api';
 import { SpeechBox } from '@/components/SpeechBox';
@@ -122,7 +124,9 @@ export const AIReviewComment: FC<Props> = ({
           className="absolute z-10 -top-6 -right-3 rotate-6"
         />
       )}
-      <p className="font-semibold leading-snug break-words">{review.comment}</p>
+      <p className="font-semibold leading-snug break-words">
+        <CommentLines turns={speakerTurns(review.comment)} />
+      </p>
       {review.criteria.length > 0 && (
         <div className="flex flex-wrap gap-1.5 pt-0.5">
           {review.criteria.map((criterion) => (
