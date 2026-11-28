@@ -25,14 +25,25 @@ type Props = {
   leaving: boolean;
   /** Animate out and finish */
   onClose: () => void;
+  /**
+   * A card over a dimmed page, so you can still see where you are, rather
+   * than taking over the whole screen
+   */
+  modal?: boolean;
 };
 
 /**
- * A full-screen card of pages, with dots to show how many there are: swipe,
- * arrow keys or the buttons page through. Shared by announcements and the
- * drawing tips.
+ * A card of pages, with dots to show how many there are: swipe, arrow keys or
+ * the buttons page through. Shared by announcements (full screen) and the
+ * drawing tips (a modal).
  */
-export const PagedStage: FC<Props> = ({ eyebrow, pages, leaving, onClose }) => {
+export const PagedStage: FC<Props> = ({
+  eyebrow,
+  pages,
+  leaving,
+  onClose,
+  modal = false,
+}) => {
   const { host, preview } = useStageHost();
   const titleId = useId();
   const [index, setIndex] = useState(0);
@@ -104,7 +115,10 @@ export const PagedStage: FC<Props> = ({ eyebrow, pages, leaving, onClose }) => {
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[70] flex flex-col overflow-y-auto"
+      className={cn(
+        'fixed inset-0 z-[70] flex flex-col overflow-y-auto',
+        modal && 'px-4 py-[max(1rem,env(safe-area-inset-top))]',
+      )}
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -112,13 +126,23 @@ export const PagedStage: FC<Props> = ({ eyebrow, pages, leaving, onClose }) => {
       onTouchEnd={pages.length > 1 ? onTouchEnd : undefined}
     >
       <div
-        className="completed-dim fixed inset-0 paper"
+        className={cn(
+          'completed-dim fixed inset-0',
+          modal ? 'bg-ink/45' : 'paper',
+        )}
         data-leaving={leaving || undefined}
         aria-hidden="true"
+        // Tapping away closes a modal, like any other card
+        onClick={modal ? onClose : undefined}
       />
 
       <div
-        className="completed-card relative flex flex-col flex-1 w-full max-w-md mx-auto px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        className={cn(
+          'completed-card relative flex flex-col w-full mx-auto',
+          modal
+            ? 'max-w-[22rem] my-auto px-5 pt-2 pb-5 bg-white border-2 border-ink rounded-sketch shadow-pencil'
+            : 'flex-1 max-w-md px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))]',
+        )}
         data-leaving={leaving || undefined}
       >
         <header className="flex items-center justify-between h-10">
@@ -138,9 +162,17 @@ export const PagedStage: FC<Props> = ({ eyebrow, pages, leaving, onClose }) => {
         {/* Keyed so each page plays its entrance */}
         <div
           key={page.id}
-          className="flex flex-col items-center justify-center flex-1 gap-6 py-6 text-center"
+          className={cn(
+            'flex flex-col items-center justify-center flex-1 text-center',
+            modal ? 'gap-4 pb-5' : 'gap-6 py-6',
+          )}
         >
-          <span className="completed-rise grid place-items-center min-h-52">
+          <span
+            className={cn(
+              'completed-rise grid place-items-center',
+              !modal && 'min-h-52',
+            )}
+          >
             {page.art}
           </span>
           <div
@@ -149,7 +181,10 @@ export const PagedStage: FC<Props> = ({ eyebrow, pages, leaving, onClose }) => {
           >
             <h2
               id={titleId}
-              className="font-accent font-bold text-4xl leading-none"
+              className={cn(
+                'font-accent font-bold leading-none',
+                modal ? 'text-3xl' : 'text-4xl',
+              )}
             >
               <span className="highlight">{page.title}</span>
             </h2>
@@ -157,7 +192,12 @@ export const PagedStage: FC<Props> = ({ eyebrow, pages, leaving, onClose }) => {
           </div>
         </div>
 
-        <footer className="flex flex-col items-center gap-4">
+        <footer
+          className={cn(
+            'flex flex-col items-center',
+            modal ? 'gap-3' : 'gap-4',
+          )}
+        >
           {pages.length > 1 && (
             <div className="flex items-center gap-2" aria-hidden="true">
               {pages.map((p, i) => (
@@ -181,6 +221,7 @@ export const PagedStage: FC<Props> = ({ eyebrow, pages, leaving, onClose }) => {
             {page.action && (
               <Button
                 disableLoad
+                size={modal ? 'sm' : undefined}
                 variant={last ? 'primary' : 'base'}
                 onClick={page.action.onClick}
               >
@@ -193,13 +234,17 @@ export const PagedStage: FC<Props> = ({ eyebrow, pages, leaving, onClose }) => {
                   type="button"
                   aria-label="Back"
                   onClick={goBack}
-                  className="press grid place-items-center flex-none size-12 bg-white border-2 border-ink rounded-sketch-alt cursor-pointer"
+                  className={cn(
+                    'press grid place-items-center flex-none bg-white border-2 border-ink rounded-sketch-alt cursor-pointer',
+                    modal ? 'size-11' : 'size-12',
+                  )}
                 >
                   <ArrowLeftIcon size={22} />
                 </button>
               )}
               <Button
                 disableLoad
+                size={modal ? 'sm' : undefined}
                 variant={page.action && last ? 'base' : 'primary'}
                 className="flex-1"
                 onClick={() => (last ? onClose() : setIndex(index + 1))}
@@ -208,7 +253,7 @@ export const PagedStage: FC<Props> = ({ eyebrow, pages, leaving, onClose }) => {
               </Button>
             </div>
           </div>
-          {pages.length > 1 && (
+          {pages.length > 1 && !modal && (
             <span className="text-sm text-pencil">
               {index + 1} of {pages.length}
             </span>

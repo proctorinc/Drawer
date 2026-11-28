@@ -5,7 +5,10 @@ import type { CSSProperties, FC, ReactNode } from 'react';
 import type { StageComponent } from '@/animations/types';
 import type { Pencil } from '@/drawing/pencils';
 import type { StagePage } from '@/animations/PagedStage';
+import type { TodaysJudge } from '@/ai/TodaysJudge';
 import { PagedStage } from '@/animations/PagedStage';
+import { AIJudgeAvatar } from '@/ai/AIJudgeAvatar';
+import { useTodaysJudge } from '@/ai/TodaysJudge';
 import { useStageHost } from '@/animations/StageHost';
 import { useStageExit } from '@/animations/completed/useStageExit';
 import { EraserIcon, UndoIcon } from '@/components/icons';
@@ -73,7 +76,7 @@ const Stroke: FC<StrokeProps> = ({ d, color, width, at, dur, undoAt }) => (
 /** A little canvas, at the real canvas's scale */
 const Sketch: FC<{ paper: string; size?: number; children: ReactNode }> = ({
   paper,
-  size = 192,
+  size = 144,
   children,
 }) => (
   <svg
@@ -209,7 +212,7 @@ const EraserArt: FC<{ colors: Palette; slipWidth: number }> = ({
 
 /** Two fingers spread over a tiny eye and it fills the canvas */
 const ZoomArt: FC<{ colors: Palette }> = ({ colors }) => {
-  const size = 192;
+  const size = 144;
   // Where the eye sits, in canvas units
   const x = 185;
   const y = 160;
@@ -253,7 +256,7 @@ const GoodDoodleArt: FC<{ colors: Palette }> = ({ colors }) => (
     <span className="flex items-start gap-4">
       <span className="flex flex-col items-center gap-1">
         <Frame>
-          <Sketch paper={colors.paper} size={120}>
+          <Sketch paper={colors.paper} size={104}>
             <Stroke
               d={circle(95, 95, 35)}
               width={20}
@@ -267,7 +270,7 @@ const GoodDoodleArt: FC<{ colors: Palette }> = ({ colors }) => (
       </span>
       <span className="flex flex-col items-center gap-1">
         <Frame className="-rotate-2">
-          <Sketch paper={colors.paper} size={120}>
+          <Sketch paper={colors.paper} size={104}>
             <Stroke {...disc(185, 185, 160)} color={colors.a} at={1} />
             <Stroke {...disc(185, 185, 144)} color={colors.b} at={1.8} />
             <Stroke
@@ -304,8 +307,28 @@ const GoodDoodleArt: FC<{ colors: Palette }> = ({ colors }) => (
   </Loop>
 );
 
+/** Today's judge, and the things they score popping up one by one */
+const JudgeArt: FC<{ today: TodaysJudge }> = ({ today }) => (
+  <Loop ms={4000}>
+    <span className="flex flex-col items-center gap-3 w-64">
+      <AIJudgeAvatar judge={today.judge} size="xl" />
+      <span className="flex flex-wrap justify-center gap-1.5">
+        {today.criteria.map((criterion, i) => (
+          <span
+            key={criterion.id}
+            className="px-2.5 py-1 bg-white border-[1.5px] border-ink rounded-sketch-alt font-accent font-bold text-sm leading-none odd:-rotate-2 even:rotate-2 animate-in zoom-in-0 fill-mode-both duration-300 ease-[var(--ease-spring)]"
+            style={{ animationDelay: `${0.4 + i * 0.3}s` }}
+          >
+            {criterion.name}
+          </span>
+        ))}
+      </span>
+    </span>
+  </Loop>
+);
+
 const Body: FC<{ children: ReactNode }> = ({ children }) => (
-  <p className="text-lg leading-snug text-pencil">{children}</p>
+  <p className="leading-snug text-pencil">{children}</p>
 );
 
 const GOOD_DOODLE = [
@@ -315,13 +338,17 @@ const GOOD_DOODLE = [
   'let the drawing explain itself, no labels',
 ];
 
-function tipPages(pencils: Array<Pencil>, paper: string): Array<StagePage> {
+function tipPages(
+  pencils: Array<Pencil>,
+  paper: string,
+  judge: TodaysJudge | null | undefined,
+): Array<StagePage> {
   const a = pencils.at(0)?.color ?? 'var(--color-ink)';
   const b = pencils.at(1)?.color ?? a;
   const colors: Palette = { a, b, c: pencils.at(2)?.color ?? b, paper };
   const sameSize = pencils.every((p) => p.size === pencils[0]?.size);
 
-  return [
+  const pages: Array<StagePage> = [
     {
       id: 'pencils',
       art: <PencilsArt pencils={pencils} paper={paper} />,
@@ -368,7 +395,7 @@ function tipPages(pencils: Array<Pencil>, paper: string): Array<StagePage> {
       art: <GoodDoodleArt colors={colors} />,
       title: 'a great doodle',
       body: (
-        <ul className="flex flex-col gap-1 text-lg leading-snug text-pencil">
+        <ul className="flex flex-col gap-0.5 leading-snug text-pencil">
           {GOOD_DOODLE.map((tip) => (
             <li key={tip}>{tip}</li>
           ))}
@@ -376,6 +403,25 @@ function tipPages(pencils: Array<Pencil>, paper: string): Array<StagePage> {
       ),
     },
   ];
+
+  // Judging can be off, and then there's no one to play to
+  if (judge) {
+    pages.push({
+      id: 'judge',
+      art: <JudgeArt today={judge} />,
+      title: 'know your judge',
+      body: (
+        <Body>
+          Every judge wants something different.{' '}
+          {judge.judge.scoresBackwards
+            ? "Today's scores backwards, so check what he's after"
+            : 'Draw well, answer the prompt exactly, and give them what they score'}
+          : it's listed under the canvas.
+        </Body>
+      ),
+    });
+  }
+  return pages;
 }
 
 /** How to get the most out of the day's pencils, a page at a time */
@@ -385,6 +431,7 @@ export const DrawingTipsStage: StageComponent<'drawingTips'> = ({
 }) => {
   const { preview } = useStageHost();
   const { leaving, exit } = useStageExit(onDone);
+  const { data: judge } = useTodaysJudge();
 
   // Once it's been up, it waits for the info button
   useEffect(() => {
@@ -394,9 +441,10 @@ export const DrawingTipsStage: StageComponent<'drawingTips'> = ({
   return (
     <PagedStage
       eyebrow="drawing tips"
+      modal
       leaving={leaving}
       onClose={exit}
-      pages={tipPages(payload.pencils, payload.paper)}
+      pages={tipPages(payload.pencils, payload.paper, judge)}
     />
   );
 };

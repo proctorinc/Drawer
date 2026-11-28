@@ -213,21 +213,34 @@ const DecorationArt: FC<{ id: DecorationId }> = ({ id }) => {
   const [fitted, setFitted] = useState(false);
 
   useLayoutEffect(() => {
-    const svg = ref.current?.querySelector('svg');
-    if (!svg) return;
-    const { x, y, width, height } = svg.getBBox();
-    const side = Math.max(width, height) + ART_PADDING * 2;
-    const left = x + width / 2 - side / 2;
-    const top = y + height / 2 - side / 2;
-    svg.setAttribute('viewBox', `${left} ${top} ${side} ${side}`);
-    // Drop whatever placement it has over an avatar and fill the box instead
-    Object.assign(svg.style, {
-      inset: '0',
-      width: '100%',
-      height: '100%',
-      transform: 'none',
-    });
-    setFitted(true);
+    const box = ref.current;
+    const svg = box?.querySelector('svg');
+    if (!box || !svg) return;
+
+    /** Fits the picture to what's drawn; false while it isn't laid out yet */
+    const fit = () => {
+      const { x, y, width, height } = svg.getBBox();
+      if (!width || !height) return false;
+      const side = Math.max(width, height) + ART_PADDING * 2;
+      const left = x + width / 2 - side / 2;
+      const top = y + height / 2 - side / 2;
+      svg.setAttribute('viewBox', `${left} ${top} ${side} ${side}`);
+      // Drop whatever placement it has over an avatar and fill the box instead
+      Object.assign(svg.style, {
+        inset: '0',
+        width: '100%',
+        height: '100%',
+        transform: 'none',
+      });
+      setFitted(true);
+      return true;
+    };
+
+    if (fit()) return;
+    // Inside a sheet that hasn't opened yet nothing measures, so fit once it shows
+    const observer = new ResizeObserver(() => fit() && observer.disconnect());
+    observer.observe(box);
+    return () => observer.disconnect();
   }, [id]);
 
   return (

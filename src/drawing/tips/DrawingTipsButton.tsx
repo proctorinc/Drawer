@@ -20,9 +20,10 @@ type Props = {
 export const DrawingTipsButton: FC<Props> = ({ pencils, paper, className }) => {
   const { enqueue } = useAnimationQueue();
   const show = useCallback(
-    (id: string) =>
+    () =>
       void enqueue({
-        id,
+        // One id, so extra taps while they're up or waiting don't stack copies
+        id: 'drawing-tips',
         kind: 'drawingTips',
         payload: { pencils, paper: paper ?? '#ffffff' },
       }),
@@ -33,7 +34,7 @@ export const DrawingTipsButton: FC<Props> = ({ pencils, paper, className }) => {
   useEffect(() => {
     if (asked.current || wereTipsSeen()) return;
     asked.current = true;
-    show('drawing-tips:first');
+    show();
   }, [show]);
 
   return (
@@ -41,8 +42,7 @@ export const DrawingTipsButton: FC<Props> = ({ pencils, paper, className }) => {
       type="button"
       aria-label="Drawing tips"
       title="Drawing tips"
-      // Its own id each time, so a replay never merges with one already queued
-      onClick={() => show(`drawing-tips:${Date.now()}`)}
+      onClick={show}
       className={cn(
         'flex items-center justify-center size-8 text-pencil rounded-full cursor-pointer hover:text-ink hover:-rotate-12 transition-[rotate,color] duration-300 active:scale-90',
         className,
