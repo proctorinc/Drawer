@@ -34,6 +34,10 @@ const loaders = {
     import('@/announcements/AnnouncementsStage').then((m) => ({
       default: m.AnnouncementsStage,
     })),
+  drawingTips: () =>
+    import('@/drawing/tips/DrawingTipsStage').then((m) => ({
+      default: m.DrawingTipsStage,
+    })),
   ticker: () =>
     import('./xp/ProgressTicker').then((m) => ({ default: m.ProgressTicker })),
 };
@@ -47,6 +51,7 @@ export const stageRegistry: StageRegistry = {
   completed: lazy(loaders.completed),
   reward: lazy(loaders.reward),
   announcements: lazy(loaders.announcements),
+  drawingTips: lazy(loaders.drawingTips),
 };
 
 export const TickerComponent: ComponentType<TickerProps> = lazy(loaders.ticker);

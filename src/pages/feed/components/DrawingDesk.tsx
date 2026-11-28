@@ -21,6 +21,7 @@ import { CanvasSettingsButton } from '@/drawing/CanvasSettings';
 import { useDrawing } from '@/drawing/DrawingContext';
 import { Toolbar } from '@/drawing/Toolbar';
 import { pencilsFor } from '@/drawing/pencils';
+import { DrawingTipsButton } from '@/drawing/tips/DrawingTipsButton';
 import ZoomableCanvas from '@/drawing/ZoomableCanvas';
 import useUser from '@/auth/hooks/useUser';
 import { TreeIcon } from '@/events/christmas/Decorations';
@@ -133,12 +134,13 @@ const PastByline: FC<PastDesk> = ({ title, detail, backTo }) => (
 );
 
 /** Your own corners of the app; everyone else's drawings wait until you've drawn */
-const DeskLinks = () => {
+const DeskLinks: FC<{ tips: ReactNode }> = ({ tips }) => {
   const user = useUser();
   const christmas = useChristmas();
 
   return (
     <nav aria-label="Main" className="flex flex-none items-center gap-2">
+      {tips}
       <CanvasSettingsButton />
       <Link
         // During Doodlemas the trophies page steps aside for the event's
@@ -265,6 +267,7 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
   const backgroundColor =
     dailyPrompt.colors.length === 4 ? dailyPrompt.colors[3] : undefined;
   const pencils = pencilsFor(dailyPrompt);
+  const tips = <DrawingTipsButton pencils={pencils} paper={backgroundColor} />;
 
   async function handleSubmit() {
     // A stray tap on the button shouldn't pin a near-blank page for good
@@ -332,12 +335,15 @@ const DrawingDesk: FC<DrawingDeskProps> = ({
           {past ? (
             <>
               <PastByline {...past} />
-              <CanvasSettingsButton />
+              <span className="flex flex-none items-center gap-2">
+                {tips}
+                <CanvasSettingsButton />
+              </span>
             </>
           ) : (
             <>
               <DeskByline createdBy={dailyPrompt.createdBy} fit={fit} />
-              <DeskLinks />
+              <DeskLinks tips={tips} />
             </>
           )}
         </header>

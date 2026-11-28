@@ -16,6 +16,7 @@ import type { Achievement, AchievementReward } from '@/api/Api';
 import type { Quest } from '@/api/trophies';
 import type { Announcement } from '@/announcements/api';
 import type { JudgeIntro } from '@/ai/JudgeIntro';
+import type { Pencil } from '@/drawing/pencils';
 
 /** A level snapshot, the same shape /trophies returns */
 export type LevelSnapshot = {
@@ -56,6 +57,8 @@ export type StagePayloads = {
     /** An admin trying one out: nothing is recorded and buttons just close it */
     preview?: boolean;
   };
+  /** Full screen: how to get the most out of today's pencils */
+  drawingTips: { pencils: Array<Pencil>; paper: string };
 };
 
 export type StageKind = keyof StagePayloads;

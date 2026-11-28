@@ -1,0 +1,123 @@
+/*
+ * The drawing tips' little looping demos. Each loop remounts its picture, so
+ * every animation here plays once from the start, waiting for its --at.
+ */
+
+/* A pencil stroke drawing itself (on a path with pathLength="1") */
+@keyframes tip-draw {
+  0% {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+  1% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+/* Undo: the stroke winds back off the page */
+@keyframes tip-undo {
+  to {
+    stroke-dashoffset: 1;
+    opacity: 0;
+  }
+}
+/* A tool button getting tapped */
+@keyframes tip-press {
+  40% {
+    scale: 0.85;
+    rotate: -6deg;
+    background-color: var(--color-me);
+  }
+}
+/* A tool held in hand for a while */
+@keyframes tip-hold {
+  0%,
+  100% {
+    rotate: -6deg;
+    background-color: var(--color-me);
+  }
+}
+/* Two fingers pinching out, holding, and pinching back in */
+@keyframes tip-zoom {
+  35%,
+  75% {
+    scale: 2.4;
+  }
+}
+@keyframes tip-finger-a {
+  0%,
+  100% {
+    translate: 30px 30px;
+    opacity: 0;
+  }
+  8%,
+  80% {
+    opacity: 1;
+  }
+  35%,
+  75% {
+    translate: -40px -40px;
+  }
+}
+@keyframes tip-finger-b {
+  0%,
+  100% {
+    translate: -30px -30px;
+    opacity: 0;
+  }
+  8%,
+  80% {
+    opacity: 1;
+  }
+  35%,
+  75% {
+    translate: 40px 40px;
+  }
+}
+
+.tip-draw {
+  stroke-dasharray: 1;
+  animation: tip-draw var(--dur, 0.7s) var(--at, 0s) ease-in-out both;
+}
+.tip-draw.tip-undone {
+  animation:
+    tip-draw var(--dur, 0.7s) var(--at, 0s) ease-in-out both,
+    tip-undo 0.35s var(--undo-at) ease-in forwards;
+}
+.tip-press {
+  animation: tip-press 0.45s var(--at) ease-out both;
+}
+.tip-hold {
+  animation: tip-hold var(--dur) var(--at);
+}
+.tip-zoom {
+  transform-box: view-box;
+  transform-origin: var(--origin);
+  animation: tip-zoom 4s 0.6s ease-in-out both;
+}
+.tip-finger-a {
+  animation: tip-finger-a 4s 0.6s ease-in-out both;
+}
+.tip-finger-b {
+  animation: tip-finger-b 4s 0.6s ease-in-out both;
+}
+
+/* Still: just the finished picture */
+@media (prefers-reduced-motion: reduce) {
+  .tip-draw,
+  .tip-press,
+  .tip-hold,
+  .tip-zoom,
+  .tip-finger-a,
+  .tip-finger-b {
+    animation: none;
+  }
+  .tip-undone,
+  .tip-finger-a,
+  .tip-finger-b {
+    display: none;
+  }
+}
