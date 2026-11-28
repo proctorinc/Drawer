@@ -55,7 +55,7 @@ type EventLeaderboardEntry struct {
 	User              models.User `json:"user"`
 	Doodles           int         `json:"doodles"`
 	ReactionsReceived int         `json:"reactionsReceived"`
-	// XP is everything earned during the event; the handler fills it in and ranks by it
+	// XP is event XP only (no everyday XP); the handler fills it in and ranks by it
 	XP int `json:"xp"`
 }
 

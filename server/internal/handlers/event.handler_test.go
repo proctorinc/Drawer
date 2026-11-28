@@ -181,7 +181,7 @@ func TestEventRecapXP(t *testing.T) {
 		`{"action":"Send a festive reaction","count":1,"xp":2,"xpEach":2},` +
 		`{"action":"Get a festive reaction","count":1,"xp":1,"xpEach":1},` +
 		`{"action":"Earn a christmas sticker","count":1,"xp":25,"xpEach":25}` +
-		`],"total":50}` // 48 from the event, plus 2 for the heart
+		`],"total":48}` // the everyday heart doesn't count
 	if string(xp) != want {
 		t.Errorf("xp = %s\nwant %s", xp, want)
 	}
@@ -190,14 +190,17 @@ func TestEventRecapXP(t *testing.T) {
 	}
 }
 
-func TestEventLeaderboardBreaksDoodleTiesByXP(t *testing.T) {
+func TestEventLeaderboardCountsOnlyEventXP(t *testing.T) {
 	router, repo := newEventsRouter(t, "2026-12-05")
 	submit(t, repo, "m1", "me", "2026-11-27")
 	submit(t, repo, "f1", "friend", "2026-11-27")
-	// Same doodles, but the friend also commented during the event, which finishes my
-	// get-a-comment quest
+	// The friend's comment is everyday XP for them, and finishes my get-a-comment quest:
+	// neither counts
 	dbtest.Exec(t, repo, `INSERT INTO comments (user_id, submission_id, text, created_at)
 		VALUES ('friend', 'm1', 'nice', '2026-11-28 12:00:00')`)
+	// A festive reaction counts for both: 2 XP to give, 1 to get
+	dbtest.Exec(t, repo, `INSERT INTO reactions (user_id, content_type, content_id, reaction_id, created_at)
+		VALUES ('friend', 'submission', 'm1', 'gift', '2026-11-28 12:00:00')`)
 
 	_, body := request(t, router, "GET", "/events/christmas-2026/leaderboard", nil)
 	entries, _ := json.Marshal(body["entries"])
@@ -207,8 +210,8 @@ func TestEventLeaderboardBreaksDoodleTiesByXP(t *testing.T) {
 		XP      int
 	}
 	json.Unmarshal(entries, &got)
-	if len(got) != 2 || got[0].User.ID != "me" || got[0].XP != 25 || got[1].XP != 13 {
-		t.Errorf("entries = %+v, want me (25 XP) ahead of friend (13 XP)", got)
+	if len(got) != 2 || got[0].User.ID != "friend" || got[0].XP != 12 || got[1].XP != 11 {
+		t.Errorf("entries = %+v, want friend (12 XP) ahead of me (11 XP)", got)
 	}
 }
 

@@ -45,7 +45,7 @@ export interface EventLeaderboardEntry {
   user: User;
   doodles: number;
   reactionsReceived: number;
-  /** Everything earned during the event; breaks ties in doodles */
+  /** Event XP only, as in EventXP.total; ranks the board, doodles break ties */
   xp: number;
 }
 
@@ -58,9 +58,9 @@ export interface EventXPLine {
 }
 
 export interface EventXP {
-  /** All XP earned while the event ran, event-related or not */
+  /** The sum of lines: event XP only, no everyday XP */
   total: number;
-  /** The event's own share of total; the rest came from everyday activity */
+  /** The event-only ways to earn XP */
   lines: Array<EventXPLine>;
 }
 

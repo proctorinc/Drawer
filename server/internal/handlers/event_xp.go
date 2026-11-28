@@ -8,9 +8,9 @@ import (
 	"time"
 )
 
-// Event XP isn't a new kind of XP: it's the everyday XP earned while an event runs, with
-// the share that only the event made possible (its doodles, reactions and stickers)
-// broken out, so changing the everyday rules re-scores events too.
+// Event XP isn't a new kind of XP: it's the share of the everyday XP earned while an event
+// runs that only the event made possible (its doodles, reactions and stickers), so
+// changing the everyday rules re-scores events too. Other XP earned meanwhile doesn't count.
 
 // EventXPLine is one event-only way to earn XP and what it's earned so far.
 type EventXPLine struct {
@@ -21,9 +21,9 @@ type EventXPLine struct {
 }
 
 type EventXP struct {
-	// Total is all XP earned while the event ran, event-related or not
+	// Total is the sum of Lines
 	Total int `json:"total"`
-	// Lines are the event's own share of Total; the rest came from everyday activity
+	// Lines are the event-only ways to earn XP
 	Lines []EventXPLine `json:"lines"`
 }
 
@@ -111,7 +111,11 @@ func eventXP(event models.Event, a queries.ActivityCounts, e queries.EventActivi
 		}
 		lines = append(lines, stickers)
 	}
-	return EventXP{Total: xpFor(a), Lines: lines}
+	total := 0
+	for _, l := range lines {
+		total += l.XP
+	}
+	return EventXP{Total: total, Lines: lines}
 }
 
 // eventQuests are weeklyQuests in the event's words, with the reaction quest asking for

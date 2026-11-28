@@ -11,7 +11,7 @@ type Props = {
   className?: string;
 };
 
-/** You and your friends, ranked by XP earned during the event, then doodles drawn */
+/** You and your friends, ranked by event XP, then doodles drawn */
 const EventLeaderboard: FC<Props> = ({ slug, className }) => {
   const me = useUser();
   const { data: entries } = useEventLeaderboard(slug);

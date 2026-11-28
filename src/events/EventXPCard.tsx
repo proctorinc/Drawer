@@ -10,49 +10,35 @@ type Props = {
   className?: string;
 };
 
-/**
- * XP earned while an event ran: the event's own actions line by line, then
- * whatever everyday activity added on top.
- */
-const EventXPCard: FC<Props> = ({ xp, className }) => {
-  const eventXP = xp.lines.reduce((sum, line) => sum + line.xp, 0);
-  const everydayXP = xp.total - eventXP;
-
-  return (
-    <div
-      className={cn(
-        'flex flex-col gap-3 w-full p-4 bg-white border-2 border-ink rounded-sketch',
-        className,
-      )}
-    >
-      <p className="flex items-baseline gap-2">
-        <span className="font-accent font-bold text-[44px] leading-none">
-          {xp.total}
-        </span>
-        <span className="text-pencil">XP earned during the event</span>
-      </p>
-      <ul className="flex flex-col gap-1.5">
-        {xp.lines.map((line) => (
-          <li key={line.action} className="flex items-baseline gap-2">
-            <span className="flex-1 leading-tight">{line.action}</span>
-            <span className="text-sm text-pencil tabular-nums whitespace-nowrap">
-              {line.xpEach > 0 ? `${line.count} × ${line.xpEach}` : line.count}
-            </span>
-            <span className="w-12 text-right font-accent font-bold text-lg tabular-nums">
-              +{line.xp}
-            </span>
-          </li>
-        ))}
-        <li className="flex items-baseline gap-2 pt-1.5 border-t-2 border-dashed border-line text-pencil">
-          <span className="flex-1 leading-tight">Everyday XP on top</span>
+/** Event XP, the event's own actions line by line */
+const EventXPCard: FC<Props> = ({ xp, className }) => (
+  <div
+    className={cn(
+      'flex flex-col gap-3 w-full p-4 bg-white border-2 border-ink rounded-sketch',
+      className,
+    )}
+  >
+    <p className="flex items-baseline gap-2">
+      <span className="font-accent font-bold text-[44px] leading-none">
+        {xp.total}
+      </span>
+      <span className="text-pencil">event XP</span>
+    </p>
+    <ul className="flex flex-col gap-1.5">
+      {xp.lines.map((line) => (
+        <li key={line.action} className="flex items-baseline gap-2">
+          <span className="flex-1 leading-tight">{line.action}</span>
+          <span className="text-sm text-pencil tabular-nums whitespace-nowrap">
+            {line.xpEach > 0 ? `${line.count} × ${line.xpEach}` : line.count}
+          </span>
           <span className="w-12 text-right font-accent font-bold text-lg tabular-nums">
-            +{everydayXP}
+            +{line.xp}
           </span>
         </li>
-      </ul>
-    </div>
-  );
-};
+      ))}
+    </ul>
+  </div>
+);
 
 /**
  * The event's XP total as a chip; tapping it opens a drawer explaining how it
@@ -79,8 +65,7 @@ export const EventXPInfo: FC<{ xp: EventXP; title: string }> = ({
       </button>
       <Sheet title={title} open={open} onClose={() => setOpen(false)}>
         <p className="-mt-3 text-pencil">
-          everything you earned while the event ran, with the event's own
-          actions listed
+          what you earned from the event's own actions
         </p>
         <EventXPCard xp={xp} />
       </Sheet>

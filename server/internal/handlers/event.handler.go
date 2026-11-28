@@ -133,8 +133,8 @@ type EventLeaderboardResponse struct {
 	Entries []queries.EventLeaderboardEntry `json:"entries"`
 }
 
-// HandleGetEventLeaderboard ranks the signed-in user and their friends by doodles during
-// the event, then by XP earned during it.
+// HandleGetEventLeaderboard ranks the signed-in user and their friends by event XP (see
+// eventXP), then by doodles drawn during the event.
 func HandleGetEventLeaderboard(c *gin.Context) {
 	appCtx := requestContext.GetCtx(c)
 	userID := middleware.GetUserID(c)
@@ -164,14 +164,21 @@ func HandleGetEventLeaderboard(c *gin.Context) {
 		return
 	}
 	for i := range entries {
-		entries[i].XP = xpFor(during[entries[i].User.ID])
+		id := entries[i].User.ID
+		duringEvent, err := queries.GetEventActivityCounts(appCtx.DB, c.Request.Context(), id, event.ID, event.StartsAt.UTC(), event.EndsAt.UTC())
+		if err != nil {
+			log.Printf("Error fetching event %s leaderboard XP for user %s: %v", event.Slug, id, err)
+			c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to retrieve leaderboard"))
+			return
+		}
+		entries[i].XP = eventXP(event, during[id], duringEvent).Total
 	}
 	rankLeaderboard(entries)
 
 	c.JSON(http.StatusOK, EventLeaderboardResponse{Entries: entries})
 }
 
-// rankLeaderboard puts the most XP earned during the event first, with doodles drawn
+// rankLeaderboard puts the most event XP first, with doodles drawn
 // breaking ties
 func rankLeaderboard(entries []queries.EventLeaderboardEntry) {
 	slices.SortStableFunc(entries, func(a, b queries.EventLeaderboardEntry) int {
