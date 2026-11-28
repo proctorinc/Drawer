@@ -4,6 +4,7 @@ import { GrinchHead } from './GrinchOutline';
 import TreeArt, { TREE_BOX } from './TreeArt';
 import type { CSSProperties, FC } from 'react';
 import type { ActiveEvent, GrinchDay } from '@/api/events';
+import { LockIcon, RedoIcon } from '@/components/icons';
 import { DrawingImage } from '@/drawing/components/DrawingImage';
 import { cn } from '@/utils';
 
@@ -77,10 +78,15 @@ const monthDay = (date: string) =>
     timeZone: 'UTC',
   });
 
+/** A missed day you can still redo: a soft berry outline on a blush fill */
+const REDO_COLOR = '#d9675b';
+const REDO_FILL = '#fdeae4';
+
 /** A small, stable tilt per day so the ornaments don't hang like a grid */
 const tilt = (i: number) => `${((i * 37) % 19) - 9}deg`;
 
-type Doodle = { id: string; imageUrl: string };
+/** A hung doodle; `locked` when it's a day you can still draw, so it's kept from you */
+type Doodle = { id: string; imageUrl: string; locked?: boolean };
 
 /** How long one breath of the wave takes, matching --animate-breathe */
 const BREATH_MS = 5000;
@@ -125,6 +131,10 @@ type OrnamentProps = {
   breath: string;
   /** A day the Grinch judges: until it's drawn, its hook is his head's outline */
   grinch?: boolean;
+  /** A missed day you can still draw (YYYY-MM-DD): its slot opens the redo desk */
+  redoDay?: string;
+  /** The event whose tree this is, for the redo desk's way back */
+  eventSlug: string;
 };
 
 /** A bauble holding that day's doodle, or an empty hook waiting for one */
@@ -138,12 +148,15 @@ const Ornament: FC<OrnamentProps> = ({
   breath,
   grinch,
   star,
+  redoDay,
+  eventSlug,
 }) => {
   const empty = !isDone && !isToday;
-  // An empty slot's outline and day: pine green, or gold up in the star
-  const slotColor = star ? '#d99a00' : '#8fa897';
+  // An empty slot's outline and day: pine green, gold up in the star, or a
+  // soft berry red on a missed day waiting to be redone
+  const slotColor = redoDay ? REDO_COLOR : star ? '#d99a00' : '#8fa897';
   const bauble =
-    grinch && !isDone ? (
+    grinch && !isDone && !redoDay ? (
       <span
         role="img"
         aria-label={label}
@@ -181,17 +194,29 @@ const Ornament: FC<OrnamentProps> = ({
             isDone
               ? { animationDelay: `${delay}ms` }
               : empty
-                ? { borderColor: slotColor }
+                ? {
+                    borderColor: slotColor,
+                    backgroundColor: redoDay ? REDO_FILL : undefined,
+                  }
                 : undefined
           }
         >
-          {isDone && doodle && (
-            <DrawingImage
-              imageUrl={doodle.imageUrl}
-              draggable={false}
-              className="object-cover"
-            />
-          )}
+          {isDone &&
+            doodle &&
+            (doodle.locked ? (
+              <span className="absolute inset-0 grid place-items-center bg-paper">
+                <LockIcon
+                  fill="var(--color-me)"
+                  className="size-[55%] -rotate-6 text-ink"
+                />
+              </span>
+            ) : (
+              <DrawingImage
+                imageUrl={doodle.imageUrl}
+                draggable={false}
+                className="object-cover"
+              />
+            ))}
           {/* A glint of light across the glass at the top of each breath */}
           {isDone && (
             <span
@@ -200,8 +225,18 @@ const Ornament: FC<OrnamentProps> = ({
               style={{ animationDelay: breath }}
             />
           )}
+          {/* A missed day you can redo wears the redo arrow in place of its day */}
+          {redoDay && (
+            <span
+              aria-hidden="true"
+              className="absolute inset-0 grid place-items-center"
+              style={{ color: slotColor }}
+            >
+              <RedoIcon strokeWidth={2.75} className="size-[58%]" />
+            </span>
+          )}
           {/* An empty slot keeps its day, so it reads as one waiting to be drawn */}
-          {empty && (
+          {empty && !redoDay && (
             <span
               aria-hidden="true"
               className="absolute inset-0 grid place-items-center font-accent font-bold text-[clamp(8px,3vw,12px)] leading-none"
@@ -236,6 +271,20 @@ const Ornament: FC<OrnamentProps> = ({
     </span>
   );
 
+  if (redoDay) {
+    return (
+      <Link
+        to="/draw/redo/$day"
+        params={{ day: redoDay }}
+        search={{ event: eventSlug }}
+        aria-label={`${label}, redo it`}
+        className="block transition-[scale] duration-300 ease-[var(--ease-spring)] hover:scale-125 active:scale-95"
+      >
+        {breathing}
+      </Link>
+    );
+  }
+
   if (!doodle) return breathing;
 
   return (
@@ -255,6 +304,8 @@ type Props = {
   drawings?: Record<string, Doodle | undefined>;
   /** The days the Grinch judges, whose empty hooks look like him */
   grinchDays?: Array<GrinchDay>;
+  /** Missed days you can still draw with a redo, by YYYY-MM-DD; tapping one starts it */
+  redoDays?: Set<string>;
   className?: string;
 };
 
@@ -266,6 +317,7 @@ const ChristmasTree: FC<Props> = ({
   event,
   drawings = {},
   grinchDays = [],
+  redoDays,
   className,
 }) => {
   const dates = countdownDates(event);
@@ -287,6 +339,8 @@ const ChristmasTree: FC<Props> = ({
       day={Number(date.slice(8, 10))}
       star={i === dates.length - 1}
       breath={breathDelay(i === dates.length - 1 ? STAR : SPOTS[i])}
+      redoDay={!drawn.has(date) && redoDays?.has(date) ? date : undefined}
+      eventSlug={event.slug}
     />
   );
 

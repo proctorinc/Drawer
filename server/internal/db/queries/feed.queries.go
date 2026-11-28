@@ -76,7 +76,7 @@ func GetFeedPage(repo *sql.DB, ctx context.Context, cfg *config.Config, viewerID
 	if err != nil {
 		return FeedPage{}, err
 	}
-	return page, HideTodaysDrawings(repo, ctx, viewerID, page.Submissions)
+	return page, HideLockedDrawings(repo, ctx, viewerID, page.Submissions)
 }
 
 // GetFeedDay returns the viewer's and their friends' doodles from one day
@@ -91,7 +91,7 @@ func GetFeedDay(repo *sql.DB, ctx context.Context, cfg *config.Config, viewerID,
 	if err != nil {
 		return nil, err
 	}
-	return submissions, HideTodaysDrawings(repo, ctx, viewerID, submissions)
+	return submissions, HideLockedDrawings(repo, ctx, viewerID, submissions)
 }
 
 // circleArgs is the viewer and their friends, as query arguments

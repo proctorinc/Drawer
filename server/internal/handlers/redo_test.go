@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"drawer-service-backend/internal/db/dbtest"
 	"drawer-service-backend/internal/db/queries"
 	"net/http"
 	"testing"
@@ -208,5 +209,82 @@ func TestAdminPlayerDays(t *testing.T) {
 
 	if code, _ := requestAs(t, rig.router, "admin", "GET", "/admin/users/nobody/days", nil); code != http.StatusNotFound {
 		t.Errorf("an unknown player's days: %d, want 404", code)
+	}
+}
+
+// While an event's countdown is on, everyone can go back and draw the countdown days they
+// missed, without spending a redo.
+func TestFreeEventRedos(t *testing.T) {
+	rig := newDailyRig(t)
+	d := rig.days
+	// A 5-day countdown, d[10] to d[6], still going, in place of the seeded one
+	dbtest.Exec(t, rig.repo, `DELETE FROM events`)
+	dbtest.Exec(t, rig.repo, `INSERT INTO events (id, slug, name, theme, starts_at, ends_at, countdown_days)
+		VALUES ('xmas', 'doodlemas', 'Doodlemas', 'christmas', ?, '2999-01-01T00:00:00Z', 5)`, d[10]+"T00:00:00Z")
+	redos := func() (grants, prompts, free []any) {
+		t.Helper()
+		code, body := requestAs(t, rig.router, "amy", "GET", "/submission/redos", nil)
+		if code != http.StatusOK {
+			t.Fatalf("redos: %d %v", code, body)
+		}
+		return body["grants"].([]any), body["prompts"].([]any), body["freeDays"].([]any)
+	}
+
+	g, p, free := redos()
+	if len(g) != 0 || len(p) != 5 || len(free) != 5 || p[0].(map[string]any)["day"] != d[6] || free[4] != d[10] {
+		t.Fatalf("amy's free redos: %d grants, prompts %v, free %v; want d[6]..d[10]", len(g), p, free)
+	}
+	code, body := rig.submit(t, "amy", d[8])
+	if code != http.StatusCreated || body["redo"] != true {
+		t.Fatalf("free redo of d[8]: %d %v", code, body)
+	}
+	if code, _ := rig.submit(t, "amy", d[3]); code != http.StatusConflict {
+		t.Errorf("redo of d[3], after the countdown: %d, want 409", code)
+	}
+
+	// A grant isn't spent on a free day, so it's still there for one that isn't
+	if code, _ := requestAs(t, rig.router, "admin", "POST", "/admin/redos", map[string]any{"userId": "amy"}); code != http.StatusCreated {
+		t.Fatalf("granting: %d", code)
+	}
+	if code, _ := rig.submit(t, "amy", d[7]); code != http.StatusCreated {
+		t.Fatalf("free redo of d[7]: %d", code)
+	}
+	// The grant covers d[1]..d[29] since amy joined, less the two she drew
+	if g, p, free := redos(); len(g) != 1 || len(free) != 3 || len(p) != 27 {
+		t.Errorf("after two free redos: %d grants, %d prompts, free %v", len(g), len(p), free)
+	}
+	if code, _ := rig.submit(t, "amy", d[3]); code != http.StatusCreated {
+		t.Errorf("redo of d[3] with the grant: %d", code)
+	}
+
+	// Others' drawings of a day amy can still redo stay hidden, and she can't comment or react
+	// on them, so nobody peeks before redoing. Once she's drawn it, they're hers to see.
+	code, body = rig.submit(t, "bo", d[9])
+	if code != http.StatusCreated {
+		t.Fatalf("bo's free redo of d[9]: %d", code)
+	}
+	bos := "/submission/" + body["id"].(string)
+	if code, body := requestAs(t, rig.router, "amy", "GET", bos, nil); code != http.StatusOK ||
+		body["locked"] != true || body["imageUrl"] != "" || body["aiReview"] != nil {
+		t.Errorf("bo's d[9] before amy drew it: %d locked=%v image=%v", code, body["locked"], body["imageUrl"])
+	}
+	if code, _ := requestAs(t, rig.router, "amy", "POST", bos+"/comment", map[string]any{"text": "nice"}); code != http.StatusForbidden {
+		t.Errorf("commenting on a locked drawing: %d, want 403", code)
+	}
+	if code, _ := requestAs(t, rig.router, "amy", "POST", bos+"/reaction", map[string]any{"reactionId": "heart"}); code != http.StatusForbidden {
+		t.Errorf("reacting to a locked drawing: %d, want 403", code)
+	}
+	if code, body := requestAs(t, rig.router, "bo", "GET", bos, nil); code != http.StatusOK || body["locked"] == true {
+		t.Errorf("bo's own d[9]: %d locked=%v", code, body["locked"])
+	}
+
+	if code, _ := rig.submit(t, "amy", d[9]); code != http.StatusCreated {
+		t.Fatalf("amy's free redo of d[9]: %d", code)
+	}
+	if code, body := requestAs(t, rig.router, "amy", "GET", bos, nil); code != http.StatusOK || body["locked"] == true {
+		t.Errorf("bo's d[9] after amy drew it: %d locked=%v", code, body["locked"])
+	}
+	if code, _ := requestAs(t, rig.router, "amy", "POST", bos+"/comment", map[string]any{"text": "nice"}); code != http.StatusCreated && code != http.StatusOK {
+		t.Errorf("commenting once unlocked: %d", code)
 	}
 }

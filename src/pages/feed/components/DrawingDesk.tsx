@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { CountDownTimer } from '../../../daily/CountdownTimer';
 import { PromptTitle } from './PromptTitle';
 import { useLeaveGuard } from './useLeaveGuard';
+import type { ToOptions } from '@tanstack/react-router';
 import type { FC, ReactNode } from 'react';
 import type { DailyPrompt, User } from '@/api/Api';
 import type { PinchZoomHandle } from '@/drawing/usePinchZoom';
@@ -109,14 +110,14 @@ export type PastDesk = {
   /** Under the title: how long is left, or which day it was */
   detail: ReactNode;
   /** Where the back button goes */
-  backTo: '/draw' | '/draw/redo';
+  backTo: ToOptions;
 };
 
 /** Drawing an earlier prompt: the way back, and what it is */
 const PastByline: FC<PastDesk> = ({ title, detail, backTo }) => (
   <div className="flex items-center gap-2.5 min-w-0">
     <Link
-      to={backTo}
+      {...backTo}
       aria-label="Back"
       className="press flex flex-none items-center justify-center size-10 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil-sm hover:-rotate-6"
     >

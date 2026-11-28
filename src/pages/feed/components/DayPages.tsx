@@ -1,15 +1,16 @@
 import { useEffect, useRef } from 'react';
+import { Link } from '@tanstack/react-router';
 import Polaroid from './Polaroid';
 import { FriendsToday } from './FriendsToday';
 import { ColorDabs, PromptCredit, PromptTitle } from './PromptTitle';
 import type { FC, ReactNode } from 'react';
 import type { DailyPrompt, UserPromptSubmission } from '@/api/Api';
-import { useFeed } from '@/api/Api';
+import { useFeed, useGetRedos } from '@/api/Api';
 import { useChristmas } from '@/events/useChristmas';
 import Lights from '@/events/christmas/Lights';
 import { useMyProfilePage } from '@/pages/profile/context/MyProfileContext';
 import { useDailyPrompt } from '@/daily/DailyPromptContext';
-import { PencilIcon } from '@/components/icons';
+import { PencilIcon, RedoIcon } from '@/components/icons';
 import { isSameDay, parseDay } from '@/days';
 
 type DayGroup = {
@@ -71,6 +72,19 @@ const DayHeader = ({
   </div>
 );
 
+/** Under a day you missed but can still draw: its doodles stay locked till you do */
+const RedoDayLink = ({ day }: { day: string }) => (
+  <Link
+    to="/draw/redo/$day"
+    params={{ day: day.slice(0, 10) }}
+    search={{ from: 'feed' }}
+    className="press self-start inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#fdeae4] border-[1.5px] border-dashed border-[#d9675b] rounded-sketch-alt text-base leading-none text-[#b8483d] -rotate-1 hover:rotate-0 transition-[rotate] duration-300"
+  >
+    <RedoIcon size={15} strokeWidth={2.5} className="flex-none" />
+    you missed this one. redo it to unlock
+  </Link>
+);
+
 type DayPageProps = {
   /** Defaults to the day's prompt under a small date line */
   header?: ReactNode;
@@ -80,6 +94,8 @@ type DayPageProps = {
   lastTile?: ReactNode;
   /** Christmas event: polaroids hang from a string of lights */
   festive?: boolean;
+  /** Under the default header, e.g. the way to redo a missed day */
+  aside?: ReactNode;
 };
 
 /** One day's prompt and its pinned polaroids */
@@ -89,6 +105,7 @@ const DayPage: FC<DayPageProps> = ({
   submissions,
   lastTile,
   festive = false,
+  aside,
 }) => {
   return (
     <section className="flex flex-col gap-3 w-full">
@@ -97,7 +114,9 @@ const DayPage: FC<DayPageProps> = ({
           label={<span className="-mb-2 text-lg text-pencil">{title}</span>}
           prompt={submissions[0]}
           pinned={submissions.length}
-        />
+        >
+          {aside}
+        </DayHeader>
       )}
       {festive && <Lights bulbs={8} className="-mx-6 -mb-6" />}
       <div className="grid grid-cols-2 gap-x-3.5 gap-y-5 pt-3">
@@ -181,8 +200,15 @@ export const TodayWall = () => {
 /** Earlier days load a page at a time as you scroll down to them */
 export const PastPages = () => {
   const { dailyPrompt } = useDailyPrompt();
-  const { data: feed, hasNextPage, isFetchingNextPage, fetchNextPage } =
-    useFeed();
+  const {
+    data: feed,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useFeed();
+  const { data: redos } = useGetRedos();
+  const canRedo = (day: string) =>
+    !!redos?.prompts.some((prompt) => isSameDay(prompt.day, day));
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   const pastDays = groupByDay(
@@ -213,6 +239,7 @@ export const PastPages = () => {
           key={group.day}
           title={dayLabel(group.day)}
           submissions={group.submissions}
+          aside={canRedo(group.day) && <RedoDayLink day={group.day} />}
         />
       ))}
       {hasNextPage && (

@@ -79,6 +79,7 @@ import { Config } from './config/Config.ts';
 import ImpersonationBanner from './components/ImpersonationBanner.tsx';
 import AppShell from './components/AppShell.tsx';
 import { ConfirmProvider } from './components/Confirm.tsx';
+import type { ToOptions } from '@tanstack/react-router';
 import type { AchievementTab } from './pages/achievements/AchievementsPage.tsx';
 import type { FC, ReactNode } from 'react';
 
@@ -190,12 +191,23 @@ const redoListRoute = createRoute({
 const redoDeskRoute = createRoute({
   getParentRoute: () => appRoute,
   path: '/draw/redo/$day',
+  // Where back goes: `event`, that event's tree; `from=feed`, the feed
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { event?: string; from?: 'feed' } => ({
+    event: typeof search.event === 'string' ? search.event : undefined,
+    from: search.from === 'feed' ? 'feed' : undefined,
+  }),
   component: () => {
     const { day } = redoDeskRoute.useParams();
+    const { event, from } = redoDeskRoute.useSearch();
+    const backTo: ToOptions = event
+      ? { to: '/draw/event/$slug', params: { slug: event } }
+      : { to: from === 'feed' ? '/draw' : '/draw/redo' };
     return (
       <AuthRoute>
         <MyProfilePageProvider>
-          <RedoDeskPage day={day} />
+          <RedoDeskPage day={day} backTo={backTo} />
         </MyProfilePageProvider>
       </AuthRoute>
     );

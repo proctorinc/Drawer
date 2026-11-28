@@ -11,6 +11,7 @@ import (
 	"drawer-service-backend/internal/notifications"
 	"drawer-service-backend/internal/utils"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 
@@ -193,7 +194,7 @@ func HandleGetSubmissionByID(c *gin.Context) {
 	if err := queries.AttachSubmissionFlags(appCtx.DB, c.Request.Context(), []*models.UserPromptSubmission{&resp}); err != nil {
 		log.Printf("Error checking how %s was pinned: %v", subID, err)
 	}
-	if err := queries.HideTodaysDrawings(appCtx.DB, c.Request.Context(), requester.ID, []*models.UserPromptSubmission{&resp}); err != nil {
+	if err := queries.HideLockedDrawings(appCtx.DB, c.Request.Context(), requester.ID, []*models.UserPromptSubmission{&resp}); err != nil {
 		log.Printf("Error checking whether user %s drew today: %v", requester.ID, err)
 	}
 
@@ -232,6 +233,9 @@ func HandleSubmissionToggleReaction(c *gin.Context) {
 	submissionID := c.Param("id")
 	if submissionID == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Submission ID is required"})
+		return
+	}
+	if abortIfLocked(c, submissionID) {
 		return
 	}
 
@@ -329,4 +333,21 @@ func HandleSwapFavoriteOrder(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// abortIfLocked refuses to let the requester comment or react on someone else's drawing of a
+// day they haven't drawn yet but still can (queries.LockedDays), reporting whether it did.
+func abortIfLocked(c *gin.Context, submissionID string) bool {
+	appCtx := requestContext.GetCtx(c)
+	err := queries.CheckSubmissionUnlocked(appCtx.DB, c.Request.Context(), middleware.GetUserID(c), submissionID)
+	switch {
+	case errors.Is(err, queries.ErrDrawingLocked):
+		c.AbortWithStatusJSON(http.StatusForbidden, Error("Draw that day first"))
+		return true
+	case err != nil:
+		log.Printf("Error checking whether %s is locked: %v", submissionID, err)
+		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Something went wrong"))
+		return true
+	}
+	return false
 }

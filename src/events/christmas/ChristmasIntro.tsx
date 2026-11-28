@@ -79,7 +79,7 @@ const ChristmasIntroSheet: FC<SheetProps> = ({ event, open, onClose }) => {
           title="fill your tree"
         >
           {days
-            ? `doodle on all ${days} days for a full tree. miss one and its spot stays bare`
+            ? `doodle on all ${days} days for a full tree. miss one? tap its spot to draw it later`
             : 'every doodle you draw hangs on your tree'}
         </Point>
         <Point

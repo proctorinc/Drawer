@@ -38,7 +38,7 @@ func newDailyRig(t *testing.T) *dailyRig {
 	for i := 0; i < 30; i++ {
 		day := utils.GetFormattedDate(now.AddDate(0, 0, -i))
 		days = append(days, day)
-		dbtest.Exec(t, repo, `INSERT INTO daily_prompts (day, colors, prompt) VALUES (?, '["#111111","#222222","#333333"]', ?)`, day, "prompt "+day)
+		dbtest.Exec(t, repo, `INSERT OR REPLACE INTO daily_prompts (day, colors, prompt) VALUES (?, '["#111111","#222222","#333333"]', ?)`, day, "prompt "+day)
 	}
 	// Joined at the start of a day, so it's the same day on any clock the test runs on
 	dbtest.Exec(t, repo, `INSERT INTO users (id, username, email, role, created_at) VALUES
@@ -63,6 +63,8 @@ func newDailyRig(t *testing.T) *dailyRig {
 	router.GET("/submission/daily/unfinished", HandleGetUnfinishedPrompt)
 	router.GET("/submission/redos", HandleGetRedos)
 	router.GET("/submission/:id", HandleGetSubmissionByID)
+	router.POST("/submission/:id/comment", HandleAddCommentToSubmission)
+	router.POST("/submission/:id/reaction", HandleSubmissionToggleReaction)
 	router.GET("/settings", HandleGetAppSettings)
 	router.GET("/admin/redos", HandleAdminListRedos)
 	router.GET("/admin/users/:id/days", HandleAdminPlayerDays)

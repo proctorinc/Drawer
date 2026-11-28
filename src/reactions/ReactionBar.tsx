@@ -33,6 +33,8 @@ function inOrder(reactions: Array<Reaction>, myId: string) {
 
 type Props = {
   submission: UserPromptSubmission;
+  /** Just look: a drawing you can't see yet takes no reactions */
+  readOnly?: boolean;
   className?: string;
 };
 
@@ -41,13 +43,17 @@ type Props = {
  * the corner. Tap one of yours to take it back; the heart adds another (you
  * can't react to your own)
  */
-export const ReactionBar: FC<Props> = ({ submission, className }) => {
+export const ReactionBar: FC<Props> = ({
+  submission,
+  readOnly = false,
+  className,
+}) => {
   const user = useUser();
   const queryClient = useQueryClient();
   const toggleReaction = useToggleSubmissionReaction();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const canReact = submission.user.id !== user.id;
+  const canReact = !readOnly && submission.user.id !== user.id;
   const picked = new Set(
     submission.reactions
       .filter((reaction) => reaction.user.id === user.id)
@@ -83,7 +89,7 @@ export const ReactionBar: FC<Props> = ({ submission, className }) => {
   return (
     <div className={cn('flex flex-wrap items-center gap-4', className)}>
       {reactions.map((reaction, index) => {
-        const mine = reaction.user.id === user.id;
+        const mine = !readOnly && reaction.user.id === user.id;
         const { label } = getReaction(reaction.reactionId);
         const sticker = (
           <ReactionSticker

@@ -148,7 +148,7 @@ func GetUserProfileFromDB(repo *sql.DB, ctx context.Context, userID string, requ
 	}
 
 	// Before favorites copy the submissions, so they come out hidden too
-	if err := HideTodaysDrawings(repo, ctx, requesterID, response.Prompts); err != nil {
+	if err := HideLockedDrawings(repo, ctx, requesterID, response.Prompts); err != nil {
 		log.Printf("Error checking whether user %s drew today: %v", requesterID, err)
 	}
 

@@ -1,19 +1,19 @@
 import { Link } from '@tanstack/react-router';
 import type { FC } from 'react';
 import { useGetRedos } from '@/api/Api';
-import { UndoIcon } from '@/components/icons';
+import { RedoIcon } from '@/components/icons';
 import { cn } from '@/utils';
 
 /**
- * The way to your redos: shown only while you hold one and there's a missed
- * prompt to spend it on.
+ * The way to your redos: shown only while there's a missed prompt you can
+ * redo, with a redo you hold or a free one for a missed event day.
  */
 export const RedoButton: FC<{ className?: string }> = ({ className }) => {
   const { data } = useGetRedos();
-  if (!data || data.grants.length === 0 || data.prompts.length === 0) {
+  if (!data || data.prompts.length === 0) {
     return null;
   }
-  const count = data.grants.length;
+  const count = data.grants.length + data.freeDays.length;
 
   return (
     <Link
@@ -23,7 +23,7 @@ export const RedoButton: FC<{ className?: string }> = ({ className }) => {
         className,
       )}
     >
-      <UndoIcon size={15} className="flex-none" />
+      <RedoIcon size={15} className="flex-none" />
       <span>
         you have{' '}
         <span className="font-accent font-bold">

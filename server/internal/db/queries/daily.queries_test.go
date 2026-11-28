@@ -2,24 +2,16 @@ package queries
 
 import (
 	"context"
-	"database/sql"
+	"drawer-service-backend/internal/db/dbtest"
 	"drawer-service-backend/internal/db/models"
 	"drawer-service-backend/internal/utils"
 	"testing"
 	"time"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
-func TestHideTodaysDrawings(t *testing.T) {
-	db, err := sql.Open("sqlite3", ":memory:")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-	if _, err := db.Exec(`CREATE TABLE user_submissions (id TEXT, user_id TEXT, day TEXT)`); err != nil {
-		t.Fatal(err)
-	}
+func TestHideLockedDrawings(t *testing.T) {
+	db := dbtest.NewEventsDB(t)
+	dbtest.Exec(t, db, `INSERT INTO users (id, username, email) VALUES ('ann', 'ann', 'a@x'), ('bob', 'bob', 'b@x')`)
 	ctx := context.Background()
 	today := utils.GetFormattedDate(time.Now())
 
@@ -35,18 +27,21 @@ func TestHideTodaysDrawings(t *testing.T) {
 	}
 
 	before := submissions()
-	if err := HideTodaysDrawings(db, ctx, "ann", before); err != nil {
+	if err := HideLockedDrawings(db, ctx, "ann", before); err != nil {
 		t.Fatal(err)
 	}
 	if got := shown(before); got[0] != true || got[1] != false || got[2] != true {
 		t.Errorf("before ann draws, shown = %v; want only bob's of today hidden", got)
 	}
+	if !before[1].Locked || before[2].Locked {
+		t.Errorf("locked: today's %v, the past one's %v; want just today's", before[1].Locked, before[2].Locked)
+	}
 
-	if _, err := db.Exec(`INSERT INTO user_submissions VALUES ('mine', 'ann', ?)`, today); err != nil {
+	if _, err := db.Exec(`INSERT INTO user_submissions (id, user_id, day) VALUES ('mine', 'ann', ?)`, today); err != nil {
 		t.Fatal(err)
 	}
 	after := submissions()
-	if err := HideTodaysDrawings(db, ctx, "ann", after); err != nil {
+	if err := HideLockedDrawings(db, ctx, "ann", after); err != nil {
 		t.Fatal(err)
 	}
 	if got := shown(after); got[0] != true || got[1] != true || got[2] != true {

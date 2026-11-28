@@ -1,10 +1,20 @@
 import { act, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PastPages } from '../components/DayPages';
+import type { ReactNode } from 'react';
 import type { FeedPage, UserPromptSubmission } from '@/api/Api';
 
 vi.mock('../components/Polaroid', () => ({ default: () => <div /> }));
 vi.mock('@/events/useChristmas', () => ({ useChristmas: () => null }));
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({
+    children,
+    params,
+  }: {
+    children: ReactNode;
+    params: { day: string };
+  }) => <a href={`/draw/redo/${params.day}`}>{children}</a>,
+}));
 vi.mock('@/daily/DailyPromptContext', () => ({
   useDailyPrompt: () => ({ dailyPrompt: { day: '2026-11-20' } }),
 }));
@@ -32,6 +42,8 @@ vi.mock('@/api/Api', () => ({
     isFetchingNextPage: feed.isFetchingNextPage,
     fetchNextPage,
   }),
+  // You missed nov 18 and can still redo it
+  useGetRedos: () => ({ data: { prompts: [{ day: '2026-11-18' }] } }),
 }));
 
 /** Stands in for the browser: each observer reports whether the sentinel is on screen */
@@ -92,6 +104,14 @@ describe('PastPages', () => {
     expect(daysShown()).toBe(2);
     expect(screen.getByText('thu, nov 19')).toBeTruthy();
     expect(screen.getByText('wed, nov 18')).toBeTruthy();
+  });
+
+  it('offers a redo on just the days you can redo', () => {
+    render(<PastPages />);
+    const links = screen.getAllByRole('link', { name: /redo it/ });
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/draw/redo/2026-11-18',
+    ]);
   });
 
   it('loads the next page as you scroll down to the end, with no button', () => {

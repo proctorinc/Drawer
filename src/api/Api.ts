@@ -183,6 +183,11 @@ export interface UserPromptSubmission extends DailyPrompt {
   late?: boolean;
   /** Drawn with a redo, after its prompt had closed */
   redo?: boolean;
+  /**
+   * Someone else's drawing of a day you can still draw: the server sends no
+   * image or AI verdict, and you can't comment or react till you've drawn it
+   */
+  locked?: boolean;
 }
 
 /** A redo an admin gave you: for one missed day, or any (day null) */
@@ -197,6 +202,8 @@ export interface RedoGrant {
 export interface Redos {
   grants: Array<RedoGrant>;
   prompts: Array<Omit<DailyPrompt, 'isCompleted'>>;
+  /** Missed days of the live event's countdown: everyone gets these redos free */
+  freeDays: Array<string>;
 }
 
 /** An AI judge as players see it: never a real user, so it has no profile */

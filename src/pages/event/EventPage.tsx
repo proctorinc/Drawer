@@ -2,7 +2,7 @@ import { Link, useParams, useSearch } from '@tanstack/react-router';
 import StandingsAndQuests from './StandingsAndQuests';
 import type { FC, ReactNode } from 'react';
 import type { ActiveEvent } from '@/api/events';
-import { useGetAchievements } from '@/api/Api';
+import { useGetAchievements, useGetRedos } from '@/api/Api';
 import { useActiveEvent, useEventRecap } from '@/api/events';
 import useUser from '@/auth/hooks/useUser';
 import Button from '@/components/Button';
@@ -80,6 +80,7 @@ const EventPage = () => {
   } = useEventRecap(slug, viewingFriend ? userParam : undefined);
   const { data: liveEvent } = useActiveEvent();
   const { data: achievements } = useGetAchievements();
+  const { data: redos } = useGetRedos();
 
   if (isLoading) return <LoadingScreen />;
 
@@ -106,11 +107,16 @@ const EventPage = () => {
     (s) => s.achievedAt,
   ).length;
   const [day, left] = status(event, isLive);
+  // Your missed days that can still be drawn, tapped open from their ornaments
+  const redoDays =
+    isLive && !viewingFriend
+      ? new Set(redos?.prompts.map((p) => p.day.slice(0, 10)))
+      : undefined;
   // Each doodle hangs on the tree on its own day
   const drawingsByDay = Object.fromEntries(
     submissions.map((s) => [
       s.day.slice(0, 10),
-      { id: s.id, imageUrl: s.imageUrl },
+      { id: s.id, imageUrl: s.imageUrl, locked: s.locked },
     ]),
   );
 
@@ -132,6 +138,7 @@ const EventPage = () => {
             event={event}
             drawings={drawingsByDay}
             grinchDays={recap.grinchDays}
+            redoDays={redoDays}
           />
           <EventBadge
             days={event.countdownDays}
@@ -153,6 +160,12 @@ const EventPage = () => {
             <div className="flex flex-col items-center gap-2">
               <p className="text-center text-pencil">
                 every doodle you draw hangs on the tree
+                {!!redos?.freeDays.length && (
+                  <>
+                    <br />
+                    missed a day? tap its ornament to draw it now
+                  </>
+                )}
               </p>
               <ChristmasIntroButton event={liveEvent} />
             </div>
@@ -171,9 +184,7 @@ const EventPage = () => {
         </section>
       )}
 
-      {recap.grinchDays && (
-        <GrinchDays event={event} days={recap.grinchDays} />
-      )}
+      {recap.grinchDays && <GrinchDays event={event} days={recap.grinchDays} />}
 
       {stickers.length > 0 && (
         <Section

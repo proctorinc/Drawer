@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate } from '@tanstack/react-router';
 import DrawingDesk from './components/DrawingDesk';
 import { ColorDabs } from './components/PromptTitle';
+import type { ToOptions } from '@tanstack/react-router';
 import type { CSSProperties, FC } from 'react';
 import type { DailyPrompt, RedoGrant } from '@/api/Api';
 import { useGetRedos } from '@/api/Api';
@@ -35,6 +36,8 @@ export const RedoListPage = () => {
   if (isLoading) return <LoadingScreen />;
   const grants = data?.grants ?? [];
   const prompts = data?.prompts ?? [];
+  const free = data?.freeDays ?? [];
+  const count = grants.length + free.length;
   const anyDay = grants.filter((grant) => !grant.day).length;
 
   return (
@@ -42,9 +45,9 @@ export const RedoListPage = () => {
       <header className="flex flex-col gap-1 w-full text-center">
         <h1 className="font-accent font-bold text-4xl leading-none">redos</h1>
         <p className="text-pencil text-balance">
-          {grants.length === 0
+          {count === 0
             ? "you don't have any redos right now"
-            : `you have ${grants.length === 1 ? 'a redo' : `${grants.length} redos`}: draw a prompt you missed and pin it to its day`}
+            : `you have ${count === 1 ? 'a redo' : `${count} redos`}: draw a prompt you missed and pin it to its day`}
         </p>
       </header>
 
@@ -57,6 +60,7 @@ export const RedoListPage = () => {
       <ul className="flex flex-col gap-3 w-full">
         {prompts.map((prompt) => {
           const kept = grantFor(grants, prompt.day);
+          const isFree = free.some((day) => isSameDay(day, prompt.day));
           return (
             <li key={prompt.day}>
               <Link
@@ -80,11 +84,17 @@ export const RedoListPage = () => {
                       {prompt.prompt.toLowerCase()}
                     </span>
                   </span>
-                  {kept && (
+                  {isFree ? (
                     <span className="text-sm leading-tight text-pencil">
-                      a redo saved for this day
-                      {kept.note && `: ${kept.note}`}
+                      a doodlemas day: this redo's on the house
                     </span>
+                  ) : (
+                    kept && (
+                      <span className="text-sm leading-tight text-pencil">
+                        a redo saved for this day
+                        {kept.note && `: ${kept.note}`}
+                      </span>
+                    )
                   )}
                 </div>
                 <div className={cn('flex-none scale-75 origin-right')}>
@@ -105,10 +115,11 @@ export const RedoListPage = () => {
   );
 };
 
-const RedoDesk: FC<{ prompt: RedoPrompt; onDone: () => void }> = ({
-  prompt,
-  onDone,
-}) => {
+const RedoDesk: FC<{
+  prompt: RedoPrompt;
+  backTo: ToOptions;
+  onDone: () => void;
+}> = ({ prompt, backTo, onDone }) => {
   const { submitPrompt } = useDailyPrompt();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
@@ -140,14 +151,20 @@ const RedoDesk: FC<{ prompt: RedoPrompt; onDone: () => void }> = ({
       past={{
         title: 'redo',
         detail: longDay(prompt.day),
-        backTo: '/draw/redo',
+        backTo,
       }}
     />
   );
 };
 
-/** Drawing a missed prompt with a redo; kept on this device until it's pinned */
-export const RedoDeskPage: FC<{ day: string }> = ({ day }) => {
+/**
+ * Drawing a missed prompt with a redo; kept on this device until it's pinned.
+ * Back goes wherever it was opened from (backTo).
+ */
+export const RedoDeskPage: FC<{ day: string; backTo: ToOptions }> = ({
+  day,
+  backTo,
+}) => {
   const { data, isLoading } = useGetRedos();
   // Once it's pinned the prompt leaves the list; don't bounce on the way out
   const [done, setDone] = useState(false);
@@ -155,12 +172,12 @@ export const RedoDeskPage: FC<{ day: string }> = ({ day }) => {
   if (isLoading) return <LoadingScreen />;
   if (done) return null;
   const prompt = data?.prompts.find((p) => isSameDay(p.day, day));
-  if (!prompt) return <Navigate to="/draw/redo" replace />;
+  if (!prompt) return <Navigate {...backTo} replace />;
 
   const key = redoDraftKey(day);
   return (
     <DrawingProvider key={key} localStorageKey={key}>
-      <RedoDesk prompt={prompt} onDone={() => setDone(true)} />
+      <RedoDesk prompt={prompt} backTo={backTo} onDone={() => setDone(true)} />
     </DrawingProvider>
   );
 };

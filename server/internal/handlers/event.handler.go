@@ -242,6 +242,14 @@ func HandleGetEventRecap(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Failed to retrieve recap"))
 		return
 	}
+	// A friend's tree doesn't give away days you can still draw
+	shown := make([]*models.UserPromptSubmission, len(submissions))
+	for i := range submissions {
+		shown[i] = &submissions[i]
+	}
+	if err := queries.HideLockedDrawings(appCtx.DB, ctx, middleware.GetUserID(c), shown); err != nil {
+		log.Printf("Error hiding locked days on %s's event %s tree: %v", userID, event.Slug, err)
+	}
 
 	reactionsReceived, err := queries.CountReactionsReceived(appCtx.DB, ctx, userID, days.First, days.Last)
 	if err != nil {

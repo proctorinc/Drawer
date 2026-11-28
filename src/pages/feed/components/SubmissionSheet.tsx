@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { commentThread } from '../commentRuns';
 import { CommentComposer } from './CommentComposer';
@@ -16,17 +17,18 @@ import {
   queryKeys,
   useDeleteComment,
   useGetMyProfile,
+  useGetRedos,
   usePromptSubmission,
   useToggleCommentReaction,
 } from '@/api/Api';
 import useUser from '@/auth/hooks/useUser';
 import { useAlert, useConfirm } from '@/components/Confirm';
-import { HeartIcon, TrashIcon } from '@/components/icons';
+import { HeartIcon, LockIcon, RedoIcon, TrashIcon } from '@/components/icons';
 import { ReactionDrawer } from '@/reactions/ReactionDrawer';
 import { ReactionSticker } from '@/reactions/ReactionSticker';
 import { PIN_COLORS, PushPin } from '@/components/PushPin';
 import { useIsDrawingLocked } from '@/daily/useIsDrawingLocked';
-import { parseDay } from '@/days';
+import { isSameDay, parseDay } from '@/days';
 import DrawingFeedImage from '@/drawing/components/DrawingFeedImage';
 import { ShareButton } from '@/pages/profile/components/friends/ShareButton';
 import { UserProfileIcon } from '@/pages/profile/components/profile-icons/UserProfileIcon';
@@ -44,6 +46,44 @@ function pinColor(id: string) {
   return PIN_COLORS[Math.abs(hash) % PIN_COLORS.length];
 }
 
+/**
+ * In place of the comment box on a drawing you can't see yet: draw the day
+ * yourself (with a redo, for a missed one) and it opens up
+ */
+const LockedNote: FC<{ day: string }> = ({ day }) => {
+  const { data: redos } = useGetRedos();
+  const redoable = redos?.prompts.some((prompt) => isSameDay(prompt.day, day));
+  const linkClass =
+    'press inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border-2 border-ink rounded-sketch-alt shadow-pencil-sm text-base leading-none text-ink';
+
+  return (
+    <div className="flex flex-col items-center gap-2.5 mt-3 px-4 py-4 border-2 border-dashed border-line rounded-sketch text-center text-pencil">
+      <LockIcon
+        size={28}
+        fill="var(--color-me)"
+        className="text-ink -rotate-6"
+      />
+      <p className="text-balance leading-snug">
+        draw this prompt yourself to see it, the judge's take, and join in
+      </p>
+      {redoable ? (
+        <Link
+          to="/draw/redo/$day"
+          params={{ day: day.slice(0, 10) }}
+          className={linkClass}
+        >
+          <RedoIcon size={15} />
+          redo this day
+        </Link>
+      ) : (
+        <Link to="/draw" className={linkClass}>
+          draw it now
+        </Link>
+      )}
+    </div>
+  );
+};
+
 type Props = {
   /** The feed's copy shows straight away; the full doodle loads over it */
   doodle: UserPromptSubmission;
@@ -56,8 +96,9 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
   const toggleReaction = useToggleCommentReaction();
   const isDrawingLocked = useIsDrawingLocked();
   const { data: submission = doodle } = usePromptSubmission(doodle.id, doodle);
+  const locked = isDrawingLocked(submission);
   // A perfect 10 is framed in gold, once you can see it
-  const golden = !isDrawingLocked(submission) && isMasterpiece(submission);
+  const golden = !locked && isMasterpiece(submission);
   const deleteComment = useDeleteComment();
   const confirm = useConfirm();
   const alert = useAlert();
@@ -178,16 +219,18 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
             </div>
             <ShareButton
               className="flex-none"
-              imageUrl={
-                isDrawingLocked(submission) ? undefined : submission.imageUrl
-              }
+              imageUrl={locked ? undefined : submission.imageUrl}
               text={`Checkout ${submission.user.id === currentUser.id ? 'my' : `${submission.user.username}'s`} doodle of ${submission.prompt.toLowerCase()}!`}
             />
           </div>
         </div>
       </div>
       {/* Just the reactions, each with its reactor's face on the corner */}
-      <ReactionBar submission={submission} className="w-full px-2" />
+      <ReactionBar
+        submission={submission}
+        readOnly={locked}
+        className="w-full px-2"
+      />
       <ReactionDrawer
         title="react to comment"
         open={!!reactingTo}
@@ -198,14 +241,17 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
       />
       <div className="flex flex-col w-full gap-2.5">
         {/* The AI judge's verdict leads the comments */}
-        {submission.aiReview && (
+        {submission.aiReview && !locked && (
           <AIReviewComment
             review={submission.aiReview}
             mine={submission.user.id === currentUser.id}
             className="mt-3"
           />
         )}
-        {commentThread(submission.comments, submission.aiReplies).map((run) =>
+        {commentThread(
+          submission.comments,
+          locked ? undefined : submission.aiReplies,
+        ).map((run) =>
           'reply' in run ? (
             <AIReplyComment
               key={run.reply.id}
@@ -244,7 +290,7 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
                         >
                           <TrashIcon size={16} />
                         </button>
-                      ) : (
+                      ) : locked ? null : (
                         <button
                           type="button"
                           aria-haspopup="dialog"
@@ -271,7 +317,7 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
             </SpeechBox>
           ),
         )}
-        {submission.aiReplyPending && submission.aiReview && (
+        {submission.aiReplyPending && submission.aiReview && !locked && (
           <SpeechBox
             portrait={<AIJudgeAvatar judge={submission.aiReview.judge} />}
             name={submission.aiReview.judge.name}
@@ -284,21 +330,29 @@ const SubmissionSheet: FC<Props> = ({ doodle }) => {
             </p>
           </SpeechBox>
         )}
-        {submission.comments.length === 0 && !submission.aiReview && (
-          <span className="font-bold text-center text-secondary">
-            Be the first to comment!
-          </span>
+        {locked ? (
+          <LockedNote day={submission.day} />
+        ) : (
+          <>
+            {submission.comments.length === 0 && !submission.aiReview && (
+              <span className="font-bold text-center text-secondary">
+                Be the first to comment!
+              </span>
+            )}
+            <CommentComposer
+              submissionId={submission.id}
+              mentionables={canMention}
+            />
+          </>
         )}
-        <CommentComposer
-          submissionId={submission.id}
-          mentionables={canMention}
-        />
-        {currentUser.isAdmin && submission.aiReview?.status === 'done' && (
-          <AIReplyButton
-            submissionId={submission.id}
-            judge={submission.aiReview.judge}
-          />
-        )}
+        {!locked &&
+          currentUser.isAdmin &&
+          submission.aiReview?.status === 'done' && (
+            <AIReplyButton
+              submissionId={submission.id}
+              judge={submission.aiReview.judge}
+            />
+          )}
       </div>
       <div className="text-left w-full -mt-4">
         <span className="text-xs font-semibold text-secondary pl-2">

@@ -27,6 +27,9 @@ func HandleAddCommentToSubmission(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Submission ID is required"})
 		return
 	}
+	if abortIfLocked(c, submissionID) {
+		return
+	}
 
 	var body struct {
 		Text string `json:"text" binding:"required"`
@@ -105,6 +108,9 @@ func HandleCommentToggleReaction(c *gin.Context) {
 	commentID := c.Param("reactionId")
 	if commentID == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Comment ID is required"})
+		return
+	}
+	if abortIfLocked(c, c.Param("id")) {
 		return
 	}
 

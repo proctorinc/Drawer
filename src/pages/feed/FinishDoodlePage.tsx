@@ -52,7 +52,7 @@ const LateDesk: FC<{ prompt: DailyPrompt; onDone: () => void }> = ({
             <CountDownTimer format="short" /> left to finish
           </>
         ),
-        backTo: '/draw',
+        backTo: { to: '/draw' },
       }}
     />
   );

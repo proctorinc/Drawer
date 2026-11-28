@@ -136,8 +136,8 @@ func HandleSubmitDailyPrompt(c *gin.Context) {
 
 	var submissionID string
 	if redo {
-		// Uses up one of their redos, or refuses if none covers the day
-		submissionID, err = queries.InsertRedoSubmission(appCtx.DB, ctx, requester.ID, day, today)
+		// Free on a missed event day, else uses up one of their redos, or refuses if none covers it
+		submissionID, err = queries.InsertRedoSubmission(appCtx.DB, ctx, requester.ID, day, today, queries.FreeRedoDaysAt(appCtx.DB, ctx, now))
 		if errors.Is(err, queries.ErrNoRedo) {
 			log.Printf("Redo for %s refused for user %s: no redo covers it", day, utils.MaskEmail(requester.Email))
 			c.AbortWithStatusJSON(http.StatusConflict, Error("That prompt has closed"))
@@ -275,11 +275,12 @@ func isPastDay(day, today string) bool {
 	return err == nil && day < today
 }
 
-// RedosResponse is what a player can redo: how many redos they hold, what each is for, and
-// the missed prompts those cover, newest first.
+// RedosResponse is what a player can redo: how many redos they hold, what each is for, the
+// missed prompts those cover, newest first, and which of those are free (cost no redo).
 type RedosResponse struct {
-	Grants  []queries.RedoGrant   `json:"grants"`
-	Prompts []DailyPromptResponse `json:"prompts"`
+	Grants   []queries.RedoGrant   `json:"grants"`
+	Prompts  []DailyPromptResponse `json:"prompts"`
+	FreeDays []string              `json:"freeDays"`
 }
 
 // HandleGetRedos lists the player's unused redos and the missed prompts they can spend them on.
@@ -296,8 +297,9 @@ func HandleGetRedos(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Couldn't load your redos"))
 		return
 	}
-	response := RedosResponse{Grants: grants, Prompts: []DailyPromptResponse{}}
-	if len(grants) == 0 {
+	response := RedosResponse{Grants: grants, Prompts: []DailyPromptResponse{}, FreeDays: []string{}}
+	free := queries.FreeRedoDaysAt(appCtx.DB, ctx, now)
+	if len(grants) == 0 && free.First == "" {
 		c.JSON(http.StatusOK, response)
 		return
 	}
@@ -307,7 +309,7 @@ func HandleGetRedos(c *gin.Context) {
 	if err != nil {
 		log.Printf("HandleGetRedos: %v", err)
 	}
-	days, err := queries.RedoableDays(appCtx.DB, ctx, user.ID, today, lateDay)
+	days, err := queries.RedoableDays(appCtx.DB, ctx, user.ID, today, lateDay, free)
 	if err != nil {
 		log.Printf("HandleGetRedos: %v", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, Error("Couldn't load your redos"))
@@ -326,6 +328,9 @@ func HandleGetRedos(c *gin.Context) {
 			Prompt:    prompt.Prompt,
 			CreatedBy: prompt.CreatedBy,
 		})
+		if free.Covers(day) {
+			response.FreeDays = append(response.FreeDays, day)
+		}
 	}
 	c.JSON(http.StatusOK, response)
 }

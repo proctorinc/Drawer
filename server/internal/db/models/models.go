@@ -112,6 +112,9 @@ type UserPromptSubmission struct {
 	Late bool `json:"late,omitempty"`
 	// Drawn with a redo, after its prompt had closed
 	Redo bool `json:"redo,omitempty"`
+	// Someone else's drawing of a day the viewer can still draw: no image or AI verdict, and
+	// no commenting or reacting until they've drawn it (queries.HideLockedDrawings)
+	Locked bool `json:"locked,omitempty"`
 }
 
 type UserStats struct {
